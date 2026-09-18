@@ -10,6 +10,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+
 from jup.portfolio import GATES, Portfolio, Project, RecordError, project_portfolio
 
 
@@ -103,7 +104,7 @@ def test_project_metadata_survives_projection(fixture_path: Callable[..., Path])
 
 
 def test_unknown_frontmatter_keys_and_prose_bodies_are_ignored(fixture_path: Callable[..., Path]) -> None:
-    """`evidence:` belongs to ticket #4; encountering it early must not break the read."""
+    """A prose body and a key the projection does not model must not break the read."""
     portfolio = _portfolio(fixture_path, 'portfolio-basic')
     project = _project(portfolio, 'gas-spbg-reactivation')
 
@@ -341,3 +342,144 @@ def test_projecting_the_same_directory_twice_gives_the_same_answer(
     records = fixture_path('portfolio', 'ordering')
 
     assert project_portfolio(records) == project_portfolio(records)
+
+
+def test_an_assessment_carries_the_evidence_it_required(fixture_path: Callable[..., Path]) -> None:
+    """Each requirement survives projection with its satisfied flag and its citation."""
+    portfolio = _portfolio(fixture_path, 'portfolio-basic')
+    refusal = _project(portfolio, 'gas-spbg-reactivation').assessments[0]
+
+    assert tuple((item.requirement, item.satisfied) for item in refusal.evidence) == (
+        ('gas-allocation-5mmscfd', False),
+        ('rued-alignment-test', True),
+    )
+
+
+def test_an_evidence_item_carries_the_citation_it_was_recorded_with(
+    fixture_path: Callable[..., Path],
+) -> None:
+    """An Engagement is held as an id and an artefact as a path — never interchanged."""
+    portfolio = _portfolio(fixture_path, 'portfolio-basic')
+    allocation, rued = _project(portfolio, 'gas-spbg-reactivation').assessments[0].evidence
+
+    assert allocation.engagement == 'skk-migas-pgn-allocation'
+    assert allocation.artefact is None
+    assert rued.artefact == 'deliverables/policy/JUP-RUED-Alignment-Brief.html'
+    assert rued.engagement is None
+
+
+def test_an_assessment_names_only_its_unsatisfied_requirements(fixture_path: Callable[..., Path]) -> None:
+    """ "What is blocking this" is read off the record rather than reconstructed."""
+    portfolio = _portfolio(fixture_path, 'portfolio-basic')
+    refusal = _project(portfolio, 'gas-spbg-reactivation').assessments[0]
+
+    assert tuple(item.requirement for item in refusal.unsatisfied) == ('gas-allocation-5mmscfd',)
+
+
+def test_an_assessment_with_no_evidence_key_records_no_requirements(
+    fixture_path: Callable[..., Path],
+) -> None:
+    """Absent evidence means none were stated — not that none were met."""
+    portfolio = _portfolio(fixture_path, 'evidence')
+    assessment = _project(portfolio, 'properti-kalibaru-rusun').assessments[0]
+
+    assert assessment.evidence == ()
+    assert assessment.unsatisfied == ()
+
+
+def test_a_project_refused_twice_on_one_requirement_names_it_once(
+    fixture_path: Callable[..., Path],
+) -> None:
+    """The anecdote ADR-0003 wants to retire becomes one named blocker, not three."""
+    portfolio = _portfolio(fixture_path, 'evidence')
+    project = _project(portfolio, 'gas-spbg-reactivation')
+
+    assert tuple(item.requirement for item in project.blocking_requirements) == (
+        'gas-allocation-5mmscfd',
+        'offtake-letter',
+    )
+
+
+def test_a_requirement_waived_by_a_passing_verdict_is_not_a_blocker(
+    fixture_path: Callable[..., Path],
+) -> None:
+    """A board that passed a gate with a requirement outstanding made a decision.
+
+    Calling that a blocker would have the dashboard overrule a decision that was taken and
+    signed, which is the mirror image of the failure this projection exists to prevent.
+    """
+    portfolio = _portfolio(fixture_path, 'evidence')
+    project = _project(portfolio, 'air-marunda-perpipaan')
+
+    assert tuple(item.requirement for item in project.assessments[0].unsatisfied) == ('tariff-confirmation',)
+    assert project.blocking_requirements == ()
+
+
+def test_a_project_with_no_unmet_requirements_has_no_blockers(fixture_path: Callable[..., Path]) -> None:
+    """A refusal that states no requirements yields no blockers rather than a fabricated one."""
+    portfolio = _portfolio(fixture_path, 'evidence')
+
+    assert _project(portfolio, 'properti-kalibaru-rusun').blocking_requirements == ()
+
+
+def test_an_evidence_item_citing_neither_an_artefact_nor_an_engagement_is_refused(
+    fixture_path: Callable[..., Path],
+) -> None:
+    """A requirement nothing is cited against is an assertion, and assertions are refused."""
+    message = _refusal(fixture_path('portfolio', 'malformed-evidence-uncited'))
+
+    assert 'uncited.md' in message
+    assert 'gas-allocation-5mmscfd' in message
+    assert 'artefact' in message
+    assert 'engagement' in message
+
+
+def test_an_evidence_item_without_a_requirement_is_refused(fixture_path: Callable[..., Path]) -> None:
+    """The refusal names the entry's position, because the missing field is its name."""
+    message = _refusal(fixture_path('portfolio', 'malformed-evidence-no-requirement'))
+
+    assert 'unnamed-requirement.md' in message
+    assert 'evidence[1].requirement' in message
+
+
+def test_evidence_recorded_as_bare_paths_is_refused(fixture_path: Callable[..., Path]) -> None:
+    """A list of filed documents never says what was required, so it cannot be checked."""
+    message = _refusal(fixture_path('portfolio', 'malformed-evidence-bare-strings'))
+
+    assert 'bare-strings.md' in message
+    assert 'evidence[1]' in message
+
+
+def test_evidence_that_is_not_a_list_is_refused(fixture_path: Callable[..., Path]) -> None:
+    """Prose where requirements belong is the case where guessing would be worst."""
+    message = _refusal(fixture_path('portfolio', 'malformed-evidence-not-a-list'))
+
+    assert 'prose-evidence.md' in message
+    assert 'evidence' in message
+
+
+def test_an_evidence_item_that_does_not_say_whether_it_was_satisfied_is_refused(
+    fixture_path: Callable[..., Path],
+) -> None:
+    """Both defaults invent a claim: one manufactures evidence, the other a blocker."""
+    message = _refusal(fixture_path('portfolio', 'malformed-evidence-unstated'))
+
+    assert 'unstated.md' in message
+    assert 'evidence[1].satisfied' in message
+
+
+def test_a_hedged_satisfied_flag_is_refused(fixture_path: Callable[..., Path]) -> None:
+    """ "Partially" is the hedge a gate exists to refuse — there is no third state."""
+    message = _refusal(fixture_path('portfolio', 'malformed-evidence-satisfied-not-a-bool'))
+
+    assert 'hedged.md' in message
+    assert 'evidence[1].satisfied' in message
+    assert 'partially' in message
+
+
+def test_an_assessment_with_no_verdict_is_refused(fixture_path: Callable[..., Path]) -> None:
+    """Signed, dated, and never saying what was decided is not a governance record."""
+    message = _refusal(fixture_path('portfolio', 'malformed-missing-verdict'))
+
+    assert 'unresolved.md' in message
+    assert 'verdict' in message

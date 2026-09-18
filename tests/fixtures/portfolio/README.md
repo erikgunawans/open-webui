@@ -7,3 +7,7 @@ derivation and durability, and filenames that deliberately fight the sort keys. 
 `missing-*` and `no-assessments/` directories cover the empty-with-reason states, and each
 `malformed-*` directory holds exactly one untrustworthy record so the `RecordError` a test
 observes is the one it named.
+
+`evidence/` is the corpus for evidence detail and the blocking derivation: a pillar refused
+twice on one requirement, a gate *passed* with a requirement outstanding (a waiver, which
+is deliberately not a blocker), and an assessment carrying no `evidence:` key at all.

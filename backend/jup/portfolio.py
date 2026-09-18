@@ -9,6 +9,8 @@ this module's whole job is to read a directory and refuse anything it cannot vou
 """
 
 import datetime as dt
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -37,6 +39,26 @@ class RecordError(Exception):
 
 
 @dataclass(frozen=True)
+class EvidenceItem:
+    """One requirement a gate asked for, and whether the record says it was met.
+
+    `satisfied` is recorded, never inferred. A citation — an artefact path or an
+    Engagement id — is mandatory in both directions: a satisfied requirement must say what
+    satisfies it, and an unsatisfied one must say where the evidence is expected to come
+    from. A requirement with neither is an assertion, and an assertion is what this
+    projection exists to refuse.
+
+    The Engagement is cited by id and never embedded (ADR-0008). Resolving that id against
+    the Engagement records is ticket #5's job; this module only holds the citation.
+    """
+
+    requirement: str
+    satisfied: bool
+    artefact: str | None
+    engagement: str | None
+
+
+@dataclass(frozen=True)
 class GateAssessment:
     """One recorded attempt to pass a gate — a refusal exactly as much as a pass."""
 
@@ -46,6 +68,16 @@ class GateAssessment:
     assessed_on: dt.date
     signed_by: str
     source: str
+    evidence: tuple[EvidenceItem, ...] = ()
+
+    @property
+    def unsatisfied(self) -> tuple[EvidenceItem, ...]:
+        """The requirements this assessment records as unmet, in the order recorded.
+
+        This is the field that replaces the conversation: "what is blocking this" is read
+        off the record rather than reconstructed from the prose body beneath it.
+        """
+        return tuple(item for item in self.evidence if not item.satisfied)
 
 
 @dataclass(frozen=True)
@@ -78,6 +110,26 @@ class Project:
         no current gate, and only the second is evidence that anyone tried.
         """
         return bool(self.assessments)
+
+    @property
+    def blocking_requirements(self) -> tuple[EvidenceItem, ...]:
+        """What the refusals say is missing — the project's blockers, named.
+
+        Only refused assessments contribute. An unsatisfied requirement under a *passing*
+        verdict is a waiver the board granted on the record, and calling it a blocker
+        would overrule a decision that was actually taken.
+
+        Deduplicated by requirement and kept in ladder order, so a pillar refused three
+        times on one missing allocation names that allocation once rather than three
+        times. The first citation recorded for a requirement is the one kept.
+        """
+        blocking: dict[str, EvidenceItem] = {}
+        for assessment in self.assessments:
+            if assessment.verdict != 'fail':
+                continue
+            for item in assessment.unsatisfied:
+                blocking.setdefault(item.requirement, item)
+        return tuple(blocking.values())
 
 
 @dataclass(frozen=True)
@@ -201,6 +253,7 @@ def _load_assessments(directory: Path, known_projects: set[str]) -> list[GateAss
                 assessed_on=_date(frontmatter, 'assessed_on', path),
                 signed_by=_text(frontmatter, 'signed_by', path),
                 source=path.name,
+                evidence=_evidence(frontmatter, path),
             )
         )
     return assessments
@@ -300,4 +353,86 @@ def _choice(frontmatter: dict[str, object], field: str, permitted: tuple[str, ..
     value = _text(frontmatter, field, path)
     if value not in permitted:
         raise RecordError(path, field, f'is {value!r}, which is not one of {", ".join(permitted)}')
+    return value
+
+
+def _evidence(frontmatter: dict[str, object], path: Path) -> tuple[EvidenceItem, ...]:
+    """Read the evidence a gate required, refusing any item that cannot be checked.
+
+    Absent `evidence` is permitted and means the record states no requirements — not that
+    it met none. Present-but-not-a-list is refused, because a record that meant to state
+    requirements and stated something else is exactly the case where guessing is worst.
+    """
+    raw = frontmatter.get('evidence')
+    if raw is None:
+        return ()
+    if not isinstance(raw, list):
+        raise RecordError(path, 'evidence', 'must be a list of requirement entries')
+    return tuple(_evidence_item(entry, position, path) for position, entry in enumerate(raw, start=1))
+
+
+def _evidence_item(entry: object, position: int, path: Path) -> EvidenceItem:
+    """Read one evidence entry, naming its position so the author can find it.
+
+    The entry is identified by its ordinal rather than its requirement, because the field
+    most likely to be missing is the requirement itself.
+    """
+    field = f'evidence[{position}]'
+    if not isinstance(entry, dict):
+        raise RecordError(
+            path,
+            field,
+            'must be a mapping with a requirement, a satisfied flag and an artefact or engagement citation',
+        )
+
+    with _within(field):
+        requirement = _text(entry, 'requirement', path)
+        artefact = _optional_text(entry, 'artefact', path)
+        engagement = _optional_text(entry, 'engagement', path)
+        satisfied = _flag(entry, 'satisfied', path)
+
+    if artefact is None and engagement is None:
+        raise RecordError(
+            path,
+            f'{field}.{requirement}',
+            'cites neither an artefact nor an engagement, so nothing can be checked against it',
+        )
+
+    return EvidenceItem(
+        requirement=requirement,
+        satisfied=satisfied,
+        artefact=artefact,
+        engagement=engagement,
+    )
+
+
+@contextmanager
+def _within(field: str) -> Iterator[None]:
+    """Re-raise any refusal raised inside as a refusal against a nested field.
+
+    `requirement: is missing` is unactionable in a record with four requirements;
+    `evidence[3].requirement: is missing` sends the author straight to the entry.
+    """
+    try:
+        yield
+    except RecordError as error:
+        raise RecordError(error.path, f'{field}.{error.field}', _problem(error)) from error
+
+
+def _problem(error: RecordError) -> str:
+    """Recover the problem clause from a refusal, so re-raising does not duplicate it."""
+    return str(error).split(f'{error.field}: ', 1)[-1]
+
+
+def _flag(frontmatter: dict[str, object], field: str, path: Path) -> bool:
+    """Read a required boolean, refusing a missing one rather than choosing a default.
+
+    Either default invents a claim: true manufactures evidence nobody presented, false
+    manufactures a blocker nobody reported. The record has to say.
+    """
+    value = frontmatter.get(field)
+    if value is None:
+        raise RecordError(path, field, 'is missing — an unstated requirement is neither met nor unmet')
+    if not isinstance(value, bool):
+        raise RecordError(path, field, f'is {value!r}, which is not true or false')
     return value

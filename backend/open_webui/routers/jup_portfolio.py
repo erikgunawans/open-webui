@@ -11,13 +11,15 @@ the date and the diff that an audited governance artefact needs.
 
 import logging
 import os
+from collections.abc import Iterable
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.concurrency import run_in_threadpool
-from jup.portfolio import Portfolio, RecordError, project_portfolio
-from open_webui.utils.auth import get_verified_user
 from pydantic import BaseModel
+
+from jup.portfolio import EvidenceItem, Portfolio, RecordError, project_portfolio
+from open_webui.utils.auth import get_verified_user
 
 log = logging.getLogger(__name__)
 
@@ -28,12 +30,23 @@ router = APIRouter()
 JUP_RECORDS_DIR = os.environ.get('JUP_RECORDS_DIR', '').strip() or None
 
 
+class EvidenceItemResponse(BaseModel):
+    requirement: str
+    satisfied: bool
+    # Exactly one of these is set on a well-formed record, and the parser has already refused any
+    # item carrying neither. An `engagement` is an id to be resolved against the Engagement records
+    # (ticket #5); it is never an embedded copy of that Engagement's state (ADR-0008).
+    artefact: str | None
+    engagement: str | None
+
+
 class GateAssessmentResponse(BaseModel):
     gate: str
     verdict: str
     assessed_on: str
     signed_by: str
     source: str
+    evidence: list[EvidenceItemResponse]
 
 
 class ProjectResponse(BaseModel):
@@ -45,6 +58,9 @@ class ProjectResponse(BaseModel):
     current_gate: str | None
     has_assessments: bool
     assessments: list[GateAssessmentResponse]
+    # Derived from the refusals only: what the record says is missing. A requirement left unmet
+    # under a *passing* verdict is a waiver the board granted, and is deliberately absent here.
+    blocking_requirements: list[EvidenceItemResponse]
 
 
 class PortfolioResponse(BaseModel):
@@ -52,6 +68,18 @@ class PortfolioResponse(BaseModel):
     # Populated only when the records could not be read. The frontend renders the sentence rather
     # than an empty table, so a misconfiguration is visible instead of looking like a clean portfolio.
     unavailable_reason: str | None
+
+
+def _serialise_evidence(evidence: Iterable[EvidenceItem]) -> list[EvidenceItemResponse]:
+    return [
+        EvidenceItemResponse(
+            requirement=item.requirement,
+            satisfied=item.satisfied,
+            artefact=item.artefact,
+            engagement=item.engagement,
+        )
+        for item in evidence
+    ]
 
 
 def _serialise(portfolio: Portfolio) -> PortfolioResponse:
@@ -70,9 +98,11 @@ def _serialise(portfolio: Portfolio) -> PortfolioResponse:
                         assessed_on=assessment.assessed_on.isoformat(),
                         signed_by=assessment.signed_by,
                         source=assessment.source,
+                        evidence=_serialise_evidence(assessment.evidence),
                     )
                     for assessment in project.assessments
                 ],
+                blocking_requirements=_serialise_evidence(project.blocking_requirements),
             )
             for project in portfolio.projects
         ],

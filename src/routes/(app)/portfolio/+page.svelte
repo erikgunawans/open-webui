@@ -5,7 +5,12 @@
 	import type { i18n as i18nType } from 'i18next';
 
 	import { showSidebar } from '$lib/stores';
-	import { getPortfolio, type Portfolio, type PortfolioProject } from '$lib/apis/portfolio';
+	import {
+		getPortfolio,
+		type EvidenceItem,
+		type Portfolio,
+		type PortfolioProject
+	} from '$lib/apis/portfolio';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 
 	import '$lib/styles/jup-brand.css';
@@ -25,6 +30,13 @@
 
 	const gateWasRefused = (project: PortfolioProject, gate: string) =>
 		project.assessments.some((a) => a.gate === gate && a.verdict === 'fail');
+
+	// What the record cites the requirement against — an artefact path or an Engagement id. The
+	// parser has already refused any item carrying neither, so there is no empty case to render.
+	const citation = (item: EvidenceItem) => item.artefact ?? item.engagement ?? '';
+
+	const citationKind = (item: EvidenceItem) =>
+		item.artefact ? $i18n.t('Artefact') : $i18n.t('Engagement');
 
 	onMount(async () => {
 		try {
@@ -107,6 +119,25 @@
 								{/if}
 							</div>
 
+							{#if project.blocking_requirements.length > 0}
+								<!-- The field that replaces the conversation. These come only from refused
+								     assessments: a requirement left unmet under a passing verdict is a waiver
+								     the board granted, and naming it here would overrule a decision taken. -->
+								<div class="jup-blocking">
+									<p class="jup-blocking-label">{$i18n.t('Blocked on')}</p>
+									<ul class="jup-blocking-list">
+										{#each project.blocking_requirements as item (item.requirement)}
+											<li class="jup-blocking-item">
+												<span class="jup-requirement">{item.requirement}</span>
+												<span class="jup-meta text-xs">
+													{citationKind(item)}:&nbsp;{citation(item)}
+												</span>
+											</li>
+										{/each}
+									</ul>
+								</div>
+							{/if}
+
 							<ol class="jup-ladder" aria-label={$i18n.t('Gate ladder')}>
 								{#each GATES as gate (gate)}
 									<li
@@ -135,6 +166,33 @@
 											<span class="jup-meta text-xs">
 												{assessment.assessed_on}&nbsp;·&nbsp;{assessment.signed_by}
 											</span>
+
+											{#if assessment.evidence.length > 0}
+												<ul class="jup-evidence" aria-label={$i18n.t('Evidence required')}>
+													{#each assessment.evidence as item (item.requirement)}
+														<li class="jup-evidence-item">
+															<span
+																class="jup-tick"
+																class:jup-tick-met={item.satisfied}
+																aria-hidden="true"
+															>
+																{item.satisfied ? '✓' : '✗'}
+															</span>
+															<span class="jup-requirement">{item.requirement}</span>
+															<span class="jup-evidence-state">
+																{item.satisfied ? $i18n.t('Satisfied') : $i18n.t('Not satisfied')}
+															</span>
+															<span class="jup-meta text-xs">
+																{citationKind(item)}:&nbsp;{citation(item)}
+															</span>
+														</li>
+													{/each}
+												</ul>
+											{:else}
+												<p class="jup-meta jup-evidence-none text-xs">
+													{$i18n.t('This assessment records no evidence requirements.')}
+												</p>
+											{/if}
 										</li>
 									{/each}
 								</ul>
@@ -274,5 +332,91 @@
 		font-size: 0.78rem;
 		font-weight: 600;
 		min-width: 1.6rem;
+	}
+
+	/* The blockers, lifted to the top of the card. A Director reading one screen should see what
+	 * is missing without expanding an assessment. */
+	.jup-blocking {
+		margin-top: 0.95rem;
+		background: var(--jup-down-bg);
+		color: var(--jup-down-text);
+		border-radius: var(--jup-radius-sm);
+		padding: 0.6rem 0.75rem;
+	}
+
+	.jup-blocking-label {
+		font-size: 0.7rem;
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+	}
+
+	.jup-blocking-list {
+		margin-top: 0.35rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+	}
+
+	.jup-blocking-item {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.5rem;
+		font-size: 0.8rem;
+	}
+
+	/* `.jup-assessment` wraps, so the evidence list claims a full row of its own beneath the
+	 * verdict rather than trailing off the end of it. */
+	.jup-evidence,
+	.jup-evidence-none {
+		flex-basis: 100%;
+		margin-left: 2.15rem;
+	}
+
+	.jup-evidence {
+		display: flex;
+		flex-direction: column;
+		gap: 0.3rem;
+	}
+
+	.jup-evidence-item {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.45rem;
+		font-size: 0.78rem;
+	}
+
+	.jup-requirement {
+		color: var(--jup-ink);
+		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-size: 0.76rem;
+	}
+
+	/* Inside the blocking block the neutral ink token is the wrong hue family against the refusal
+	 * fill, so both the requirement and its citation take the block's own colour. */
+	.jup-blocking-item .jup-requirement,
+	.jup-blocking-item .jup-meta {
+		color: inherit;
+	}
+
+	/* No opacity softening here: at 0.82 the composited citation measures 3.75:1 against the
+	 * refusal fill and fails AA, even though the token itself is 4.90:1. */
+
+	.jup-evidence-state {
+		color: var(--jup-ink-soft);
+		font-size: 0.72rem;
+	}
+
+	/* A shape as well as a colour, so met and unmet do not rely on hue alone. */
+	.jup-tick {
+		color: var(--jup-down-text);
+		font-weight: 700;
+		min-width: 0.9rem;
+	}
+
+	.jup-tick-met {
+		color: var(--jup-up-text);
 	}
 </style>

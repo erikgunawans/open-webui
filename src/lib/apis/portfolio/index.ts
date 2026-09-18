@@ -1,11 +1,22 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
 
+export type EvidenceItem = {
+	requirement: string;
+	satisfied: boolean;
+	// Exactly one of these is set; the parser refuses an item carrying neither, so the page never
+	// has to render a requirement with nothing to check it against. `engagement` is an id, resolved
+	// against the Engagement records in a later slice — never an embedded copy of their state.
+	artefact: string | null;
+	engagement: string | null;
+};
+
 export type GateAssessment = {
 	gate: string;
 	verdict: 'pass' | 'fail';
 	assessed_on: string;
 	signed_by: string;
 	source: string;
+	evidence: EvidenceItem[];
 };
 
 export type PortfolioProject = {
@@ -18,6 +29,9 @@ export type PortfolioProject = {
 	current_gate: string | null;
 	has_assessments: boolean;
 	assessments: GateAssessment[];
+	// Derived from the refusals only. A requirement left unmet under a passing verdict is a waiver
+	// the board granted on the record, and is deliberately not listed as a blocker.
+	blocking_requirements: EvidenceItem[];
 };
 
 export type Portfolio = {

@@ -260,5 +260,7 @@ select = [
 flake8-import-conventions.banned-from = [ "ast", "datetime" ]
 flake8-import-conventions.aliases = { datetime = "dt" }
 flake8-quotes.inline-quotes = "single"
+# Without this, isort files our own `jup` package with third-party imports.
+isort.known-first-party = [ "jup", "open_webui" ]
 mccabe.max-complexity = 10
 pydocstyle.convention = "google"
