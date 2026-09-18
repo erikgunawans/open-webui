@@ -1,3 +1,95 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-19-final)
+
+> Prepended by /wrap 2026-09-19 (checkpoint 2026-09-19-final). Supersedes checkpoint
+> 2026-09-19-late's anchor.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-19 latest).
+
+**Anchor:** `origin/main` at `3795e1318` **as this was written**, or one commit ahead at this
+checkpoint's own wrap commit (subject begins `chore(session):`). Verify with
+`git log --oneline 3795e1318..origin/main`. A single `chore(session):` commit is EXPECTED — that is
+this wrap writing itself down. Any commit in that range whose subject does NOT start
+`chore(session):` means a parallel session pushed: real drift, investigate before writing.
+
+**Current state:** **#3 is closed and the tracer bullet runs end to end** — markdown Gate Assessments
+on disk → a pure projection → one authenticated read-only endpoint → a Svelte page showing each
+project's derived Current Gate. Backend suite **37 passing in 0.09s**. Tracker: **2/8 closed**; #1
+(spec) and **#4–#8** remain open, all `ready-for-agent`. The design work stays done: 15 decisions,
+`CONTEXT.md`, 10 ADRs.
+
+**Both of the previous handoff's open items are now CLOSED** — Hostinger SSH is restored and D16 is
+deployed and verified; the Cloudflare Worker is redeployed with a current KB. Do not carry them
+forward.
+
+**What this system is (settled — do not re-litigate):** ent-os is **PT JUP's internal operating
+layer**, not a product with JUP as customer zero. Erik is the **appointed Director of Operation and
+Business Development** with full decision authority (no longer "nominee").
+
+**Do next, in order:**
+1. **#4 — evidence detail and fail-closed parse refusals.** The frontier, and it builds directly on
+   #3's parser. It also owns the two follow-ups #3 deliberately left: ruff's isort groups `jup` as
+   third-party (no `known-first-party`), and a YAML *timestamp* in `assessed_on` is currently
+   **refused** rather than truncated to a date — reversible if you disagree with that call.
+2. **#8 — boot baseline.** Small, unblocked, guards the alembic two-heads failure that stops the app
+   booting entirely. Take it first if you want the cheaper win.
+3. Then **#5** and **#6** in parallel, then **#7**. `/clear` between every ticket — each is
+   self-contained by construction.
+4. **#7 needs nothing from Erik** — SKK Migas is already at `contacted`, and it is now live in the
+   Worker's KB. Do not re-derive a rung from `partners.md` prose.
+
+**Constraints to honor:**
+- **Fork-owned Python that must be fast-testable goes in `backend/jup/`, never `backend/open_webui/`.**
+  `open_webui/__init__.py` imports typer and uvicorn, so under `--only-group dev` nothing in that
+  package is importable at all. `pythonpath = ["backend"]` is what makes `jup` reachable. A test
+  dependency must also go in the **dev group** — it will not be inherited from the project.
+- **Tests in `tests/` (plural) at the repo root**, never `backend/`, never `test/` (the vendor tree's
+  own). Fixtures via `fixtures_dir` / `fixture_path`. Command: `uv run --only-group dev pytest`.
+- **`asyncio_mode = auto` is deliberate** — under strict an unmarked `async def` fails outright.
+- **CI gates:** `ruff format --check .` with **`quote-style = "single"`** and line-length 120, plus
+  `ruff check --select=F --ignore=F401,F403,F405,F541,F811,F841`. The bare `--select=F .` reports 348
+  pre-existing vendor errors — the ignore list is what makes it pass; do not "fix" the config.
+- **Budget the Chrome verification at the START of a ticket, not the end.** It needs a multi-GB
+  `uv sync` AND a ~1.1 GB `all-MiniLM-L6-v2` download on first boot before uvicorn binds. Two
+  servers: uvicorn on 8080 **run from `backend/`**, vite on 5173 proxying `/api`.
+- **Disk is tight.** It hit 100% (1.0 GB of 460 GB) this session; npm+bun caches were cleared for
+  ~15.6 GB. Check `df -h` before any large install. `~/.cache/uv` (21 GB) is prunable only when the
+  MCP servers holding its lock are not running.
+- **Interceptor cannot screenshot here** — DOM render times out at 15s, OS capture grabs the wrong
+  Chrome window. Use `interceptor eval --main` + `getComputedStyle` probes and state the
+  missing-pixel gap explicitly. `interceptor state` lists refs when `tree` and `find` return empty.
+- **Canonical `~/jup/brand` accents are FILLS and fail AA as text** (3.05:1, 4.02:1). Use the
+  `-text` variants in `src/lib/styles/jup-brand.css`, which are measured.
+- **`@jup/ui` is REACT and cannot be used in this Svelte tree.** Only the CSS custom properties port.
+- **Enforcement is inlet-only.** `EVENT_SINKS` audit but cannot refuse. See ADR-0002.
+- **A fifth enterprise hole:** `routers/openai.py:1464` and `routers/ollama.py:1091` sit behind only
+  `get_verified_user`, so a user API key bypasses the whole pipeline.
+- **The Strategy KB reaches production ONLY via the Cloudflare Worker bundle** — there is no `kb/` on
+  the Hostinger server. A `kb/*.md` edit needs `bun build-kb-bundle.ts` then `wrangler deploy`; an
+  rsync does nothing. Run `bun build-kb-bundle.ts --check` before believing the assistant matches the
+  repo.
+- **Deploy authorization for axiara.ai/JUP is per-change, never standing** — ask every time.
+- `gh` targets **upstream** unless pinned — pass `--repo erikgunawans/ent-os-new-jup` explicitly.
+- Never push to `upstream`. Commits go **directly to `main`** — private single-maintainer repo, PRs
+  are explicitly not a triage surface. **No PR is expected for a wrap here.**
+- Alembic: a fork revision colliding with upstream gives two heads and the app will not boot. Trust
+  `down_revision`, never the docstring. Tracked as #8.
+- **zsh does not word-split unquoted variables.** `$SSH` holding a whole command fails.
+
+**Open items waiting on Erik (do not chase these yourself):**
+- **One verification only he can run** — the assistant answering `Di rung mana SKK Migas sekarang?`
+  should say **Contacted**, not Follow-up. It needs the shared JUP password, which the assistant does
+  not hold by design.
+- **Two offers he has not answered:** (a) `~/jup/kb/CONTEXT.md` is stale twice over — it calls him
+  "nominee Operation Director" and claims the assistant "runs locally only (127.0.0.1) — never
+  web-published", which stopped being true under D13 exception v2; fixing it needs a bundle rebuild
+  plus another `wrangler deploy`. (b) `~/jup-kb-assistant-worker/` is **not under git** — no origin,
+  no mirror, outside D14, and it holds the deployed assistant.
+- **Codex CLI is 0.139.0 and needs ≥0.155.1** (`bun add -g @openai/codex@latest`) before Forge can
+  give a genuine cross-vendor second opinion. Until then Forge is Claude-family output.
+- **An OpenAI key with ZDR enabled**, when voice work starts (ADR-0005/0006, D16). Not needed yet.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-19-late)
 
 > Prepended by /wrap 2026-09-19 (checkpoint 2026-09-19-late). Supersedes checkpoint 2026-09-19's anchor.
