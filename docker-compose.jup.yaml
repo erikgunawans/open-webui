@@ -1,0 +1,27 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# JUP overlay — mounts the JUP working tree read-only for the portfolio projection.
+#
+# A separate file rather than a patch to `docker-compose.yaml`, which is vendor code:
+# ADR-0007 commits this fork to a quarterly rebase, and every vendor edit is a merge to
+# perform forever. An overlay is a file upstream has never heard of.
+#
+#   docker compose -f docker-compose.yaml -f docker-compose.jup.yaml up -d
+#
+# `JUP_TREE` is the host path to a checkout of the JUP repository — the same tree the board
+# pack is built from, so the two cannot disagree (ADR-0004).
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+  open-webui:
+    volumes:
+      # READ-ONLY, and not by convention: this container must never be able to write a
+      # governance record. A correction is an edit and a commit in the JUP repo, which is
+      # what supplies the author, the date and the diff an audited artefact needs.
+      - ${JUP_TREE:?set JUP_TREE to a checkout of the JUP repository}:/srv/jup:ro
+    environment:
+      # The records root. Its three subdirectories are projects/, gate-assessments/ and
+      # engagements/.
+      - 'JUP_RECORDS_DIR=/srv/jup/records'
+      # The tree the records' artefact and basis paths are relative to. Setting it turns on
+      # artefact resolution, so a rename in the JUP tree is a loud refusal rather than a
+      # dashboard quietly citing documents nobody can open.
+      - 'JUP_ARTEFACT_ROOT=/srv/jup'

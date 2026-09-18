@@ -29,6 +29,16 @@ router = APIRouter()
 # error: it yields the empty-with-reason projection below rather than a silent empty page.
 JUP_RECORDS_DIR = os.environ.get('JUP_RECORDS_DIR', '').strip() or None
 
+# The tree the records' artefact and basis paths are relative to — the JUP working tree,
+# mounted read-only (ADR-0004). Defaults to the records root's parent, which is the layout
+# `<jup>/records/{projects,gate-assessments,engagements}` produces.
+#
+# Setting it turns on artefact resolution, which is what makes a rename in the JUP tree a
+# loud failure. Unset it and citations are carried but never checked — every gate still
+# renders, each one citing a file nobody can open, which is the silent failure ADR-0004's
+# cross-repo coupling is most likely to cause.
+JUP_ARTEFACT_ROOT = os.environ.get('JUP_ARTEFACT_ROOT', '').strip() or None
+
 
 class EvidenceItemResponse(BaseModel):
     requirement: str
@@ -196,6 +206,13 @@ def _serialise(portfolio: Portfolio) -> PortfolioResponse:
     )
 
 
+def _artefact_root(records_dir: Path | None) -> Path | None:
+    """Where the cited documents live, or None when there is nothing to check them against."""
+    if JUP_ARTEFACT_ROOT:
+        return Path(JUP_ARTEFACT_ROOT)
+    return records_dir.parent if records_dir else None
+
+
 @router.get('/', response_model=PortfolioResponse)
 async def get_portfolio(user=Depends(get_verified_user)) -> PortfolioResponse:
     """Return every project with its Gate Assessments and its derived Current Gate.
@@ -204,9 +221,10 @@ async def get_portfolio(user=Depends(get_verified_user)) -> PortfolioResponse:
     records must stop, not render a confident blank around the hole.
     """
     records_dir = Path(JUP_RECORDS_DIR) if JUP_RECORDS_DIR else None
+    artefact_root = _artefact_root(records_dir)
 
     try:
-        portfolio = await run_in_threadpool(project_portfolio, records_dir)
+        portfolio = await run_in_threadpool(project_portfolio, records_dir, artefact_root)
     except RecordError as error:
         log.exception('refused to render the portfolio: an unreadable gate record')
         raise HTTPException(

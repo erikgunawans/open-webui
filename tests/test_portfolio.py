@@ -936,3 +936,77 @@ def test_unreadable_and_absent_reasons_are_not_the_same_sentence(tmp_path: Path)
 
     assert unreadable and absent
     assert unreadable != absent
+
+
+def _records_tree(root: Path) -> Path:
+    """Build a minimal records root citing one artefact, for the artefact-tree tests."""
+    records = root / 'records'
+    (records / 'projects').mkdir(parents=True)
+    (records / 'gate-assessments').mkdir()
+    (records / 'engagements').mkdir()
+    (records / 'projects' / 'gas.md').write_text(
+        '---\nid: gas\nname: Gas\nfigures:\n  - label: Revenue potential\n    value: Rp 63,3 M\n'
+        '    tier: POTENSI\n    basis: SOURCES/analysis.pdf\n---\n',
+        encoding='utf-8',
+    )
+    return records
+
+
+def test_artefact_citations_are_not_checked_without_an_artefact_root(tmp_path: Path) -> None:
+    """The default stays pure over the records directory alone.
+
+    The fixture suite has no artefact tree and should not need one; checking is something a
+    deployment opts into by naming where the documents live.
+    """
+    portfolio = project_portfolio(_records_tree(tmp_path))
+
+    assert portfolio.available
+    assert portfolio.projects[0].figures[0].basis == 'SOURCES/analysis.pdf'
+
+
+def test_a_cited_artefact_that_is_not_in_the_tree_is_refused(tmp_path: Path) -> None:
+    """A rename in the JUP tree must be loud (ADR-0004's cost, paid deliberately).
+
+    Without this the failure is silent in the worst way: every gate still renders and every
+    one of them cites a file nobody can open.
+    """
+    records = _records_tree(tmp_path)
+    (tmp_path / 'SOURCES').mkdir()
+
+    with pytest.raises(RecordError) as refused:
+        project_portfolio(records, artefact_root=tmp_path)
+
+    message = str(refused.value)
+    assert 'SOURCES/analysis.pdf' in message
+    assert 'renamed, moved or never existed' in message
+
+
+def test_a_cited_artefact_that_is_present_resolves(tmp_path: Path) -> None:
+    """The same records pass once the document is where they say it is."""
+    records = _records_tree(tmp_path)
+    (tmp_path / 'SOURCES').mkdir()
+    (tmp_path / 'SOURCES' / 'analysis.pdf').write_bytes(b'%PDF-1.4\n')
+
+    portfolio = project_portfolio(records, artefact_root=tmp_path)
+
+    assert portfolio.available
+    assert portfolio.projects[0].figures[0].basis == 'SOURCES/analysis.pdf'
+
+
+def test_an_artefact_path_escaping_the_tree_is_refused(tmp_path: Path) -> None:
+    """A citation that climbs out of the tree is refused as firmly as a missing one.
+
+    Nothing here opens the file, so this is not a read primitive — but a record that can
+    name a path outside the mounted tree is one whose provenance claim is meaningless.
+    """
+    records = _records_tree(tmp_path)
+    (records / 'projects' / 'gas.md').write_text(
+        '---\nid: gas\nname: Gas\nfigures:\n  - label: Revenue potential\n    value: Rp 63,3 M\n'
+        '    tier: POTENSI\n    basis: ../../../etc/hosts\n---\n',
+        encoding='utf-8',
+    )
+
+    with pytest.raises(RecordError) as refused:
+        project_portfolio(records, artefact_root=tmp_path)
+
+    assert 'outside the artefact tree' in str(refused.value)

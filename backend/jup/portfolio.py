@@ -378,7 +378,7 @@ class Portfolio:
         return self.unavailable_reason is None
 
 
-def project_portfolio(records_dir: Path | str | None) -> Portfolio:
+def project_portfolio(records_dir: Path | str | None, artefact_root: Path | str | None = None) -> Portfolio:
     """Project a directory of markdown records into the portfolio the dashboard renders.
 
     Pure over its argument: the same directory yields the same portfolio, with no
@@ -391,6 +391,11 @@ def project_portfolio(records_dir: Path | str | None) -> Portfolio:
 
     Args:
         records_dir: The records root holding `projects/` and `gate-assessments/`.
+        artefact_root: The tree the records' artefact and basis paths are relative to. When
+            given, every cited document must resolve inside it or the record is refused —
+            which is what makes a rename in the JUP tree a loud failure rather than a
+            dashboard that quietly cites a file nobody can open. When None, citations are
+            carried but not checked, which is what the fixture suite wants.
 
     Returns:
         The projected portfolio, available or reasoned-empty.
@@ -418,6 +423,9 @@ def project_portfolio(records_dir: Path | str | None) -> Portfolio:
         return Portfolio(projects=(), unavailable_reason=f'The records directory {root} could not be read: {error}.')
 
     _resolve_citations(assessments, engagements, engagements_dir)
+
+    if artefact_root is not None:
+        _resolve_artefacts(projects, engagements, assessments, Path(artefact_root))
 
     return Portfolio(
         projects=_attach(projects, assessments),
@@ -859,3 +867,53 @@ def _margin_word(label: str) -> str | None:
         if banned in words:
             return banned
     return None
+
+
+def _resolve_artefacts(
+    projects: dict[str, Project],
+    engagements: dict[str, Engagement],
+    assessments: list[GateAssessment],
+    root: Path,
+) -> None:
+    """Refuse any record citing a document that is not in the artefact tree.
+
+    ADR-0004 puts the records in the JUP repo, which buys provenance and costs a coupling:
+    this dashboard now depends on that tree's layout. A rename there has to be loud. Without
+    this check it would be silent in the worst way — every gate still renders, every rung
+    still shows, and each one cites a file nobody can open.
+
+    A path that escapes the root is refused as firmly as one that is missing. Nothing here
+    opens the file; existence is the whole claim being checked.
+    """
+    resolved_root = root.resolve()
+
+    for project in projects.values():
+        for position, figure in enumerate(project.figures, start=1):
+            _require_artefact(figure.basis, Path(project.id), f'figures[{position}].basis', resolved_root)
+
+    for engagement in engagements.values():
+        _require_artefact(engagement.artefact, Path(engagement.source), 'artefact', resolved_root)
+
+    for assessment in assessments:
+        for item in assessment.evidence:
+            if item.artefact is not None:
+                _require_artefact(
+                    item.artefact,
+                    Path(assessment.source),
+                    f'evidence.{item.requirement}.artefact',
+                    resolved_root,
+                )
+
+
+def _require_artefact(cited: str, source: Path, field: str, root: Path) -> None:
+    """Refuse a cited path that escapes the artefact tree or is not in it."""
+    candidate = (root / cited).resolve()
+    if not candidate.is_relative_to(root):
+        raise RecordError(source, field, f'cites {cited!r}, which resolves outside the artefact tree at {root}')
+    if not candidate.exists():
+        raise RecordError(
+            source,
+            field,
+            f'cites {cited!r}, which is not in the artefact tree at {root} — it has been renamed, moved or '
+            f'never existed',
+        )
