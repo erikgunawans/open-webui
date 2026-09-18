@@ -38,7 +38,13 @@ Storybook story ids never arrive and every story reads "No Preview" — use `sto
 static serve, for Interceptor checks. The conventions validator was proven to fail on an injected
 bad token and a bad component name before being trusted.
 
-**Open for Erik:** which token layer is canonical — GSM `#00A550`/Space Grotesk (what `@jup/ui`
+**RESOLVED same session:** Erik ratified `~/jup/brand` (`#079F4E`, IBM Plex Sans). `@jup/ui` was
+re-based onto it — identity vendored + drift-gated, contrast reworked for the new palette, three real
+bugs caught in the process (a circular `--jup-shadow-lg` that silently killed the large shadow, a
+dark inverse button at 1.00:1 with label and surface the same colour, and a dropped font fallback).
+Swept 9 stories × 2 themes in real Chrome: zero failures.
+
+**Superseded — was open for Erik:** which token layer is canonical — GSM `#00A550`/Space Grotesk (what `@jup/ui`
 uses) or `~/jup/brand` `#079F4E`/IBM Plex Sans (what `@jup/design-system` uses). Both self-describe
 as canonical. Reversing is a one-file edit in `src/tokens/identity.css`.
 

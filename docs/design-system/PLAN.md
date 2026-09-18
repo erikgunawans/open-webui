@@ -56,9 +56,10 @@ fidelity — a component that renders wrong there renders wrong in every design 
 ## Decisions — SETTLED 2026-09-18
 
 - **Package:** `@jup/ui`, private.
-- **Brand:** JUP's Graphic Standard Manual 2023, not Open WebUI's `blue-500` and not an invented
-  colour. Pigment Green `#00A550` (action), Polynesian Blue `#004999` (navigation/institutional),
-  Rich Black `#011627`, Anti-flash White `#F0F1F1`.
+- **Brand:** `~/jup/brand/tokens/colors.css` — **ratified by Erik 2026-09-18**, over the GSM 2023
+  palette. Brand `#079F4E`, blue `#1E6FB0`, ink `#12201A`, paper `#F4F7F2`, IBM Plex Sans /
+  Fraunces / IBM Plex Mono, rounded on an 8px rhythm with real elevation. Same layer that feeds
+  `@jup/design-system`, so the two packages share one palette.
 - **Repo:** `~/ent-os-ui` (sibling). Private, git initialised, two commits.
 - **v1 scope:** primitives only. Composites deferred to v2.
 - **No Tailwind** — reversed from phases 1–2 below. Both existing JUP systems are plain CSS custom
@@ -85,9 +86,14 @@ no typecheck on the skill; and the governance repo has no primitives. `@jup/ui` 
 **Two token layers disagree and both self-describe as canonical.** `~/jup/brand/tokens/colors.css`
 (feeding `@jup/design-system`) uses brand `#079F4E`, blue `#1E6FB0`, IBM Plex Sans, 16px radius and
 real shadows. The GSM skill uses `#00A550`, `#004999`, Space Grotesk, square corners and near-banned
-shadows. `@jup/ui` follows the GSM because it is the corporate brand book, and isolates identity in
-`src/tokens/identity.css` so reversing that is a one-file edit. **This is still an open question for
-Erik** — it is a brand-governance decision, not an engineering one.
+shadows. **RESOLVED 2026-09-18: `~/jup/brand` wins.** `@jup/ui` vendors it into `src/tokens/identity.css`,
+gated by `bun run validate:tokens`, which diffs all 42 light and 36 dark canonical tokens and fails
+the build on drift.
+
+Worth recording for next time: the reversal was **not** the "one-file edit" it was billed as. That
+claim held for hex values and font names only. The GSM system is square and flat; JUP 2.0 is rounded
+and elevated — so `radius.css`, `elevation.css`, every component radius and the conventions
+house-style moved too. Brand character is not just colour.
 
 ## Realistic effort
 
