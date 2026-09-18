@@ -51,3 +51,13 @@ _Avoid_: stage, status, progress, maturity
 The explicitly named set of Strategy KB documents a voice session may retrieve from. Material
 outside it is unreachable, not merely deprioritised.
 _Avoid_: voice permissions, allowlist, filter, restriction
+
+**Engagement**:
+A relationship with a named counterparty, pursued for a stated purpose, held at a stage that a
+document evidences.
+_Avoid_: partnership, relationship, deal, opportunity, lead
+
+**Engagement Stage**:
+The rung an engagement occupies — No contact, Contacted, In discussion, Written intent (LOI/MoU), or
+Executed (KSO/PKS). Each rung requires an artefact to stand on.
+_Avoid_: Initiate, Follow-up, Strengthen, Live, pipeline stage, temperature
