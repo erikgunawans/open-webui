@@ -1,3 +1,73 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-19)
+
+> Prepended by /wrap 2026-09-19 (checkpoint 2026-09-19). Supersedes checkpoint 2026-09-18b's anchor.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-19).
+
+**Anchor:** `origin/main` at `e58be13f7` **as this was written**, or one commit ahead at this
+checkpoint's own wrap commit (subject begins `chore(session):`). Verify with
+`git log --oneline e58be13f7..origin/main`. A single `chore(session):` commit is EXPECTED — that is
+this wrap writing itself down. Any commit in that range whose subject does NOT start
+`chore(session):` means a parallel session pushed: real drift, investigate before writing.
+
+**Current state:** The design work is DONE and the build is fully specified. `/grill-with-docs`
+settled **15 decisions** across four rounds; `CONTEXT.md` (9 terms) and **10 ADRs** are committed;
+spec **#1** and tickets **#2–#8** are on GitHub Issues, all `ready-for-agent`. Still zero product
+code — the repo remains a pristine Open WebUI v0.11.3 fork plus documentation. **#2 is grabbable
+now and nothing blocks it.**
+
+**What this system is (settled — do not re-litigate):** ent-os is **PT JUP's internal operating
+layer**, not a product with JUP as customer zero. It delivers what `~/jup/kb/governance.md` names as
+missing — PMO cadence, HSE, KPI visibility, audited partner SLAs. Erik is now the **appointed
+Director of Operation and Business Development** with full decision authority (no longer "nominee"),
+which added pre-contract business development to the remit.
+
+**Do next, in order:**
+1. **`/implement` on #2** (backend test harness), then work the frontier. `/clear` between every
+   ticket — each is self-contained by construction. Chain: #2 → #3 → {#4 → #5, and #6 in parallel}
+   → #7. #8 (boot baseline) is blocked by #2 only and can be taken any time after it.
+2. **#7 needs nothing from Erik** — he has already placed SKK Migas at `contacted`, and the ticket
+   says so explicitly. Do not re-derive a rung from `partners.md` prose.
+3. When SSH is restored (see below), finish the two pending deploys in one pass.
+
+**Constraints to honor:**
+- **Python is APPROVED for backend work in this fork** (2026-09-19), overriding the global
+  TypeScript-only rule. `svelte.config.js` uses `adapter-static` and FastAPI serves the SPA, so there
+  are no SvelteKit server routes — there is no server-side TypeScript to write here. Does NOT
+  generalise to other repos.
+- **`@jup/ui` is REACT and cannot be used in this Svelte tree.** Same reason `/design-sync` can't
+  target this repo. The `~/jup/brand` tokens DO port — they are plain CSS custom properties. This
+  error was in the first draft of spec #1 and was corrected; do not reintroduce it.
+- **Canonical accents are fills and fail AA as text** — use the `-text` variants for words.
+- **Enforcement is inlet-only.** There is no way to block a websocket-streamed response after the
+  first token ships. `EVENT_SINKS` audits but cannot refuse. See ADR-0002 for the evidence on every
+  rejected extension point.
+- **A fifth enterprise hole, newly found:** `routers/openai.py:1464` and `routers/ollama.py:1091` are
+  mounted behind only `get_verified_user`, so a user API key bypasses the whole pipeline.
+- **zsh does not word-split unquoted variables.** `$SSH` holding a whole command fails. This bit
+  again this session — use inline commands or an array.
+- **Verify web work with Interceptor against `storybook dev` / a dev server, never `bunx serve`.**
+- `gh` targets **upstream** unless pinned — pass `--repo erikgunawans/ent-os-new-jup` explicitly.
+- Never push to `upstream`. Commits go **directly to `main`** — private single-maintainer repo, PRs
+  are explicitly not a triage surface. **No PR is expected for a wrap here.**
+- Alembic: a fork revision colliding with upstream gives two heads and the app will not boot. Trust
+  `down_revision`, never the docstring. Now tracked as #8.
+- **Three JUP component systems exist** — search `~/NEW-JUP/jup-design-system`,
+  `~/.claude/skills/synced/*/jup-design` and `~/ent-os-ui` before building any JUP UI.
+
+**Open items waiting on Erik (do not chase these yourself):**
+- **Hostinger SSH is DEAD** — the key authenticates but the login shell is `/sbin/nologin` and the
+  sftp subsystem is closed, so both the remote `tar` backup and `rsync` fail. Nothing is exposed
+  (unauthenticated `curl` still 401s). **Two changes are committed but NOT live: D16 and the
+  `partners.md` Stage-ladder migration.** Erik must re-enable SSH in hPanel or publish via File
+  Manager. Recorded in `~/jup/CLAUDE.md`.
+- **Cloudflare Worker redeploy** — the `kb/partners.md` change reaches the strategy assistant only
+  when Erik redeploys the Worker himself via `wrangler` (the harness blocks tool calls carrying live
+  credentials).
+- **An OpenAI key with ZDR enabled**, when voice work starts (ADR-0005/0006, D16). Not needed yet.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-18b)
 
 > Prepended by /wrap 2026-09-18 (checkpoint 2026-09-18b). Supersedes checkpoint 2026-09-18's anchor.

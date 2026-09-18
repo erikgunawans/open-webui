@@ -1,5 +1,32 @@
 # PROGRESS — ent-os-new-jup
 
+## Checkpoint 2026-09-19 — the build is specified; 15 decisions, 10 ADRs, 7 tickets
+
+- **Session:** `/grill-with-docs` → `/to-spec` → `/to-tickets`, in one unbroken window.
+- **Branch:** main
+- **Done:**
+  - **15 decisions settled** over four grilling rounds. The root one: ent-os is **PT JUP's internal
+    operating layer**, not a product with JUP as customer zero — `governance.md` already commissions
+    it (PMO, HSE, KPI visibility, audited partner SLAs).
+  - `CONTEXT.md` created — 9 terms drawn from JUP's own governance language, glossary only.
+  - **10 ADRs.** Seat ceiling as a licence constraint · fail-closed attaches at `utils/chat.py:151`
+    with every rejected extension point evidenced · gate assessments not gate status · records
+    git-backed in `~/jup` · GPT-Live client delegation · US processing under ZDR · quarterly upstream
+    rebase · Engagement as a first-class entity · no likelihood field · no external seats.
+  - **Spec #1 + tickets #2–#8** published, all `ready-for-agent`, blocking edges pointing at real
+    issue numbers.
+  - **Investigation result that changed a plan:** `EVENT_SINKS` are observers, not gates — return
+    values discarded, exceptions swallowed, fired after the mutation. The prior standing
+    recommendation to build governance on them was right about cost, wrong about capability.
+  - **Fifth enterprise hole found:** `routers/openai.py:1464` / `routers/ollama.py:1091` sit behind
+    only `get_verified_user`; a user API key bypasses the pipeline entirely.
+  - **In `~/jup`:** D16 added (voice / US processing under ZDR, bounded by a named document set),
+    `kb/partners.md` migrated to the Engagement Stage ladder, and the dead SSH deploy path recorded.
+  - Erik appointed **Director of Operation and Business Development**, full decision authority.
+- **Files changed:** 12 in this repo (CONTEXT.md, 10 ADRs, handoff) + 3 in `~/jup`.
+- **Tests:** still none — #2 establishes the first backend suite, which is where the baseline belongs.
+- **Next:** `/implement` on #2. Blocked on Erik: Hostinger SSH, which is holding two deploys.
+
 ## Checkpoint 2026-09-18 (evening) — @jup/ui built in ~/ent-os-ui
 
 **Handoff item 1 (four design-system decisions) — answered.** `@jup/ui` private ·
