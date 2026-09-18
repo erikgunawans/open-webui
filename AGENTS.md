@@ -55,3 +55,11 @@ config-import time (ADR-0007). It reads `down_revision` from each version file's
 never the docstring, which `d4e5f6a7b8c9` already contradicts. The same file also imports
 the real app to prove it starts; that test skips under `--only-group dev` and runs in the
 `boot` CI job, which triggers on migration changes or on `workflow_dispatch`.
+
+### Authoring records in the JUP tree
+
+A value containing ` #` **must be quoted**: in YAML a bare hash opens a comment, so
+`purpose: The 5 mmscfd allocation — Gate #1 of the gas pillar` parses as `... — Gate` and
+the rest is silently gone. No parser guard can catch it, because what arrives is a shorter
+valid string. This bites the single most likely phrase in JUP's records, and the worked
+example in the spec for #1 is itself written unquoted.

@@ -10,6 +10,21 @@ export type EvidenceItem = {
 	engagement: string | null;
 };
 
+export type Engagement = {
+	id: string;
+	counterparty: string[];
+	pillar: string | null;
+	purpose: string;
+	// The rung slug is what to branch on; `stage_label` is presentation and may be renamed
+	// without a data migration. The ladder is closed — the parser refuses anything else.
+	stage: 'no-contact' | 'contacted' | 'in-discussion' | 'written-intent' | 'executed';
+	stage_label: string;
+	artefact: string;
+	// There is deliberately no likelihood, probability, expected-close or confidence field on
+	// this type, and no UI control for one (ADR-0009). An engagement records where it stands,
+	// never whether it will close. Its absence is the point; do not add one.
+};
+
 export type GateAssessment = {
 	gate: string;
 	verdict: 'pass' | 'fail';
@@ -17,6 +32,8 @@ export type GateAssessment = {
 	signed_by: string;
 	source: string;
 	evidence: EvidenceItem[];
+	// Unsatisfied citations only — a satisfied one is provenance, not a wait.
+	awaiting_engagements: string[];
 };
 
 export type PortfolioProject = {
@@ -32,10 +49,15 @@ export type PortfolioProject = {
 	// Derived from the refusals only. A requirement left unmet under a passing verdict is a waiver
 	// the board granted on the record, and is deliberately not listed as a blocker.
 	blocking_requirements: EvidenceItem[];
+	// Whose reply this project is waiting for, across all its refusals, each named once.
+	awaiting_engagements: string[];
 };
 
 export type Portfolio = {
 	projects: PortfolioProject[];
+	// One record per engagement, however many gates cite it (ADR-0008). Gates carry ids and
+	// resolve them here, so a counterparty's stage exists in exactly one place.
+	engagements: Engagement[];
 	// Set only when the records could not be read. The page shows the sentence, so a
 	// misconfiguration is visible rather than looking like a clean portfolio.
 	unavailable_reason: string | null;

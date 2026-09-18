@@ -11,7 +11,16 @@ from pathlib import Path
 
 import pytest
 
-from jup.portfolio import GATES, Portfolio, Project, RecordError, project_portfolio
+from jup.portfolio import (
+    GATES,
+    STAGE_LABELS,
+    STAGES,
+    Engagement,
+    Portfolio,
+    Project,
+    RecordError,
+    project_portfolio,
+)
 
 
 def _portfolio(fixture_path: Callable[..., Path], scenario: str) -> Portfolio:
@@ -25,6 +34,13 @@ def _project(portfolio: Portfolio, identifier: str) -> Project:
     """Pick one project out by id, so a test never depends on positional order."""
     matches = [project for project in portfolio.projects if project.id == identifier]
     assert matches, f'{identifier!r} missing from {[project.id for project in portfolio.projects]}'
+    return matches[0]
+
+
+def _engagement(portfolio: Portfolio, identifier: str) -> Engagement:
+    """Pick one engagement out by id, so a test never depends on positional order."""
+    matches = [item for item in portfolio.engagements if item.id == identifier]
+    assert matches, f'{identifier!r} missing from {[item.id for item in portfolio.engagements]}'
     return matches[0]
 
 
@@ -483,3 +499,197 @@ def test_an_assessment_with_no_verdict_is_refused(fixture_path: Callable[..., Pa
 
     assert 'unresolved.md' in message
     assert 'verdict' in message
+
+
+def test_an_engagement_record_carries_its_stage_and_evidencing_artefact(
+    fixture_path: Callable[..., Path],
+) -> None:
+    """Who, what for, which rung, and the document the rung stands on (ADR-0008)."""
+    portfolio = _portfolio(fixture_path, 'engagements-shared')
+    allocation = _engagement(portfolio, 'skk-migas-pgn-allocation')
+
+    assert allocation.counterparty == ('SKK Migas', 'PGN/Pertagas')
+    assert allocation.pillar == 'gas'
+    assert allocation.purpose == 'The 5 mmscfd allocation — Gate #1 of the gas pillar'
+    assert allocation.stage == 'contacted'
+    assert allocation.artefact == 'SOURCES/Analisa-Bisnis-Gas-BUMD.pdf'
+
+
+def test_a_single_counterparty_may_be_a_bare_string(fixture_path: Callable[..., Path]) -> None:
+    """The common case should not have to be written as a one-item list."""
+    portfolio = _portfolio(fixture_path, 'engagements-shared')
+
+    assert _engagement(portfolio, 'kemenperin-rued').counterparty == ('Kemenperin',)
+
+
+def test_an_engagement_may_span_pillars_by_naming_none(fixture_path: Callable[..., Path]) -> None:
+    """`pillar` is optional — an engagement that spans pillars should not have to pick one."""
+    portfolio = _portfolio(fixture_path, 'engagements-shared')
+
+    assert _engagement(portfolio, 'kemenperin-rued').pillar is None
+
+
+def test_the_stage_ladder_is_the_five_rungs_in_order() -> None:
+    """A closed set, lowest rung first. `no-contact` is a position, not an absence."""
+    assert STAGES == ('no-contact', 'contacted', 'in-discussion', 'written-intent', 'executed')
+
+
+def test_every_rung_has_a_label_for_a_reader() -> None:
+    """The record holds the slug, so renaming a label never becomes a data migration."""
+    assert tuple(STAGE_LABELS[stage] for stage in STAGES) == (
+        'No contact',
+        'Contacted',
+        'In discussion',
+        'Written intent',
+        'Executed',
+    )
+
+
+def test_one_engagement_cited_by_two_projects_resolves_to_a_single_record(
+    fixture_path: Callable[..., Path],
+) -> None:
+    """The load-bearing ADR-0008 property: one record, however many gates cite it.
+
+    Two copies is how a counterparty's stage ends up current in one place and stale in
+    another, which is the failure the citation model exists to make impossible.
+    """
+    portfolio = _portfolio(fixture_path, 'engagements-shared')
+    matches = [item for item in portfolio.engagements if item.id == 'skk-migas-pgn-allocation']
+
+    assert len(matches) == 1
+    assert _project(portfolio, 'gas-spbg-reactivation').awaiting_engagements == ('skk-migas-pgn-allocation',)
+    assert _project(portfolio, 'gas-cng-transport').awaiting_engagements == ('skk-migas-pgn-allocation',)
+
+
+def test_a_gate_names_the_engagements_it_waits_on(fixture_path: Callable[..., Path]) -> None:
+    """Only the unsatisfied citations. A satisfied one is provenance, not a wait."""
+    portfolio = _portfolio(fixture_path, 'engagements-shared')
+    assessment = _project(portfolio, 'gas-spbg-reactivation').assessments[0]
+
+    assert assessment.awaiting_engagements == ('skk-migas-pgn-allocation',)
+    assert 'kemenperin-rued' not in assessment.awaiting_engagements
+
+
+def test_engagements_are_ordered_by_id(fixture_path: Callable[..., Path]) -> None:
+    """Ordered so the projection never varies with how the filesystem lists files."""
+    portfolio = _portfolio(fixture_path, 'engagements-shared')
+
+    assert tuple(item.id for item in portfolio.engagements) == (
+        'kemenperin-rued',
+        'skk-migas-pgn-allocation',
+    )
+
+
+def test_a_citation_to_an_unknown_engagement_is_refused(fixture_path: Callable[..., Path]) -> None:
+    """The message names the id, because that id is the thing to go and look for."""
+    message = _refusal(fixture_path('portfolio', 'malformed-engagement-unknown-citation'))
+
+    assert 'orphan-citation.md' in message
+    assert 'pgn-allocation-typo' in message
+
+
+def test_a_citation_with_no_engagements_directory_says_so_specifically(
+    fixture_path: Callable[..., Path],
+) -> None:
+    """A missing record and a missing directory send an operator to different places.
+
+    One is a record to write; the other is a mount to fix. Reporting both as "no engagement
+    record" would send someone hunting for a file in a directory that is not there.
+    """
+    message = _refusal(fixture_path('portfolio', 'malformed-engagement-no-directory'))
+
+    assert 'uncitable.md' in message
+    assert 'engagements/' in message
+
+
+def test_a_stage_outside_the_ladder_is_refused_and_the_message_lists_the_rungs(
+    fixture_path: Callable[..., Path],
+) -> None:
+    """ "Follow-up" is the retired vocabulary — a tone, not a rung (ADR-0008)."""
+    message = _refusal(fixture_path('portfolio', 'malformed-engagement-stage'))
+
+    assert 'loose-vocabulary.md' in message
+    assert 'stage' in message
+    for stage in STAGES:
+        assert stage in message
+
+
+def test_an_engagement_without_an_evidencing_artefact_is_refused(
+    fixture_path: Callable[..., Path],
+) -> None:
+    """Each rung requires a document. Written intent with no LOI is a claim, not a record."""
+    message = _refusal(fixture_path('portfolio', 'malformed-engagement-missing-artefact'))
+
+    assert 'unevidenced.md' in message
+    assert 'artefact' in message
+
+
+def test_two_engagements_claiming_one_id_are_refused(fixture_path: Callable[..., Path]) -> None:
+    """Ambiguous provenance must stop the projection rather than pick a winner."""
+    message = _refusal(fixture_path('portfolio', 'malformed-engagement-duplicate-id'))
+
+    assert 'b-second-claim.md' in message
+    assert 'id' in message
+
+
+def test_a_likelihood_field_on_an_engagement_is_refused(fixture_path: Callable[..., Path]) -> None:
+    """ADR-0009 enforced by the parser, not by a review comment."""
+    message = _refusal(fixture_path('portfolio', 'malformed-likelihood-engagement'))
+
+    assert 'forecast.md' in message
+    assert 'likelihood' in message
+
+
+def test_a_forecast_field_nested_inside_an_evidence_item_is_refused(
+    fixture_path: Callable[..., Path],
+) -> None:
+    """The ban reaches any depth — an evidence item is a mapping inside a list."""
+    message = _refusal(fixture_path('portfolio', 'malformed-likelihood-nested'))
+
+    assert 'nested-forecast.md' in message
+    assert 'win_probability' in message
+
+
+def test_a_hyphenated_forecast_key_on_a_project_is_refused(fixture_path: Callable[..., Path]) -> None:
+    """Every record type, and hyphen or underscore reads the same."""
+    message = _refusal(fixture_path('portfolio', 'malformed-likelihood-project'))
+
+    assert 'forecast.md' in message
+    assert 'expected-close' in message
+
+
+def test_a_forecast_key_is_refused_rather_than_quietly_dropped(fixture_path: Callable[..., Path]) -> None:
+    """The distinction ADR-0009 turns on.
+
+    Ignoring the key would let a record carry a forecast the dashboard merely declined to
+    show, and its author would believe it had been recorded. Refusing is the only outcome
+    that tells them it has no home here.
+    """
+    with pytest.raises(RecordError):
+        project_portfolio(fixture_path('portfolio', 'malformed-likelihood-engagement'))
+
+
+def test_certainty_is_not_mistaken_for_a_forecast_field(fixture_path: Callable[..., Path]) -> None:
+    """Certainty Tier (D11) is the legitimate concept, and the ban must not catch it.
+
+    Banning `certainty` alongside `confidence` would refuse the very field that keeps FAKTA
+    and POTENSI apart — the opposite of what ADR-0009 is for.
+    """
+    portfolio = _portfolio(fixture_path, 'certainty-tier')
+
+    assert _engagement(portfolio, 'skk-migas-pgn-allocation').stage == 'contacted'
+
+
+def test_a_purpose_containing_a_hash_survives_when_quoted(fixture_path: Callable[..., Path]) -> None:
+    """The trap that silently truncates the most likely purpose JUP will ever write.
+
+    In YAML a bare ` #` starts a comment, so `purpose: The 5 mmscfd allocation — Gate #1 of
+    the gas pillar` parses as `...— Gate` and the rest is gone. Nothing raises: the parser
+    receives a shorter string that is perfectly valid, so no guard in this module can catch
+    it. Quoting is the only fix, and the spec's own worked example is written unquoted.
+
+    Pinned as a test because "Gate #1" is the exact phrase the first real records use.
+    """
+    portfolio = _portfolio(fixture_path, 'engagements-shared')
+
+    assert _engagement(portfolio, 'skk-migas-pgn-allocation').purpose.endswith('Gate #1 of the gas pillar')

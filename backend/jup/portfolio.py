@@ -19,8 +19,44 @@ import yaml
 GATES: tuple[str, ...] = ('G1', 'G2', 'G3', 'G4')
 VERDICTS: tuple[str, ...] = ('pass', 'fail')
 
+# The Engagement Stage ladder (ADR-0008), lowest rung first. It replaces the informal
+# vocabulary in `~/jup/kb/partners.md` — Initiate, Follow-up, Strengthen — in which two
+# rungs differed in tone rather than in stage and none said what would advance them. Each
+# rung here requires a document to stand on, exactly as a gate does.
+STAGES: tuple[str, ...] = ('no-contact', 'contacted', 'in-discussion', 'written-intent', 'executed')
+
+# How each rung is written for a reader. The record holds the slug so that renaming a label
+# is a presentation change and never a data migration.
+STAGE_LABELS: dict[str, str] = {
+    'no-contact': 'No contact',
+    'contacted': 'Contacted',
+    'in-discussion': 'In discussion',
+    'written-intent': 'Written intent',
+    'executed': 'Executed',
+}
+
+# ADR-0009: there is no field for likelihood, probability of closing, expected close date
+# or confidence — in *any* record, at any depth. The ADR predicts its own violation ("the
+# next engineer will read its absence as an oversight and add one"), so the schema refuses
+# the key rather than ignoring it. Matched as substrings because `win_probability` and
+# `probability_pct` are the same forecast wearing a longer name.
+#
+# `certainty` is deliberately absent from this list: Certainty Tier (D11) is the legitimate
+# concept that labels a figure's basis, and banning it would refuse the very field that
+# keeps FAKTA and POTENSI apart.
+_BANNED_KEY_FRAGMENTS: tuple[str, ...] = (
+    'likelihood',
+    'probability',
+    'confidence',
+    'expected_close',
+    'expected_closing',
+    'close_date',
+    'closing_date',
+)
+
 _PROJECTS_SUBDIR = 'projects'
 _ASSESSMENTS_SUBDIR = 'gate-assessments'
+_ENGAGEMENTS_SUBDIR = 'engagements'
 _DELIMITER = '---'
 
 
@@ -59,6 +95,38 @@ class EvidenceItem:
 
 
 @dataclass(frozen=True)
+class Engagement:
+    """A relationship with a named counterparty, held at a rung a document evidences.
+
+    Its own record, cited by every gate that depends on it (ADR-0008), because the 5 mmscfd
+    allocation is simultaneously an engagement with SKK Migas and PGN/Pertagas *and* the
+    binding evidence requirement for G1 across the whole gas pillar. State embedded in each
+    gate would go stale in two places the first time a counterparty replied to anything.
+
+    There is no likelihood, probability or expected-close field, and there is no room for
+    one: ADR-0009 makes that a property of the schema rather than an instruction a prompt
+    can drop. This record says where an engagement *stands*, never whether it will close.
+    """
+
+    id: str
+    # A list in the record: one engagement routinely faces several counterparties at once,
+    # and splitting it per counterparty would reintroduce the duplication ADR-0008 removes.
+    counterparty: tuple[str, ...]
+    pillar: str | None
+    purpose: str
+    stage: str
+    # The document the rung stands on. Mandatory: a rung without one is a claim about a
+    # counterparty's position, which is exactly what ADR-0009 keeps out of the record.
+    artefact: str
+    source: str
+
+    @property
+    def stage_label(self) -> str:
+        """The rung written for a reader — the parser has already refused anything else."""
+        return STAGE_LABELS[self.stage]
+
+
+@dataclass(frozen=True)
 class GateAssessment:
     """One recorded attempt to pass a gate — a refusal exactly as much as a pass."""
 
@@ -78,6 +146,19 @@ class GateAssessment:
         off the record rather than reconstructed from the prose body beneath it.
         """
         return tuple(item for item in self.evidence if not item.satisfied)
+
+    @property
+    def awaiting_engagements(self) -> tuple[str, ...]:
+        """The Engagement ids this gate is waiting on, in the order recorded.
+
+        Only unsatisfied requirements count. A satisfied one cites the engagement that
+        already delivered, which is provenance rather than something anyone is waiting for.
+        """
+        seen: dict[str, None] = {}
+        for item in self.unsatisfied:
+            if item.engagement is not None:
+                seen.setdefault(item.engagement, None)
+        return tuple(seen)
 
 
 @dataclass(frozen=True)
@@ -131,6 +212,20 @@ class Project:
                 blocking.setdefault(item.requirement, item)
         return tuple(blocking.values())
 
+    @property
+    def awaiting_engagements(self) -> tuple[str, ...]:
+        """Every Engagement id this project's refusals are waiting on, each named once.
+
+        "Whose reply am I waiting for" across the whole project, deduplicated for the same
+        reason `blocking_requirements` is: one counterparty blocking three gates is one
+        thing to chase, not three.
+        """
+        seen: dict[str, None] = {}
+        for item in self.blocking_requirements:
+            if item.engagement is not None:
+                seen.setdefault(item.engagement, None)
+        return tuple(seen)
+
 
 @dataclass(frozen=True)
 class Portfolio:
@@ -138,6 +233,9 @@ class Portfolio:
 
     projects: tuple[Project, ...]
     unavailable_reason: str | None
+    # One record per engagement, however many gates cite it (ADR-0008). Ordered by id so
+    # the projection never varies with how the filesystem lists files.
+    engagements: tuple[Engagement, ...] = ()
 
     @property
     def available(self) -> bool:
@@ -180,13 +278,21 @@ def project_portfolio(records_dir: Path | str | None) -> Portfolio:
     if unavailable is not None:
         return Portfolio(projects=(), unavailable_reason=unavailable)
 
+    engagements_dir = root / _ENGAGEMENTS_SUBDIR
     try:
         projects = _load_projects(root / _PROJECTS_SUBDIR)
+        engagements = _load_engagements(engagements_dir)
         assessments = _load_assessments(root / _ASSESSMENTS_SUBDIR, set(projects))
     except OSError as error:
         return Portfolio(projects=(), unavailable_reason=f'The records directory {root} could not be read: {error}.')
 
-    return Portfolio(projects=_attach(projects, assessments), unavailable_reason=None)
+    _resolve_citations(assessments, engagements, engagements_dir)
+
+    return Portfolio(
+        projects=_attach(projects, assessments),
+        unavailable_reason=None,
+        engagements=tuple(engagements[identifier] for identifier in sorted(engagements)),
+    )
 
 
 def _unavailable_reason(root: Path) -> str | None:
@@ -259,6 +365,83 @@ def _load_assessments(directory: Path, known_projects: set[str]) -> list[GateAss
     return assessments
 
 
+def _load_engagements(directory: Path) -> dict[str, Engagement]:
+    """Read every engagement record, refusing a second record that claims a taken id.
+
+    An absent `engagements/` directory is permitted and yields none. It is not an
+    availability failure: a records root that cites no engagement is perfectly readable,
+    and darkening the whole portfolio over a directory nobody references would be a wildly
+    disproportionate response. A citation into the void is caught precisely, and loudly,
+    by `_resolve_citations` instead.
+    """
+    if not directory.is_dir():
+        return {}
+
+    engagements: dict[str, Engagement] = {}
+    for path in sorted(directory.glob('*.md')):
+        frontmatter = _frontmatter(path)
+        identifier = _text(frontmatter, 'id', path)
+        if identifier in engagements:
+            raise RecordError(path, 'id', f'is {identifier!r}, which another engagement record already declares')
+        engagements[identifier] = Engagement(
+            id=identifier,
+            counterparty=_counterparties(frontmatter, path),
+            pillar=_optional_text(frontmatter, 'pillar', path),
+            purpose=_text(frontmatter, 'purpose', path),
+            stage=_choice(frontmatter, 'stage', STAGES, path),
+            artefact=_text(frontmatter, 'artefact', path),
+            source=path.name,
+        )
+    return engagements
+
+
+def _resolve_citations(
+    assessments: list[GateAssessment],
+    engagements: dict[str, Engagement],
+    directory: Path,
+) -> None:
+    """Refuse any evidence item citing an Engagement id no record declares.
+
+    Resolution is a check, not a copy: the assessment keeps the id and the projection keeps
+    one `Engagement`, which is what makes a counterparty's stage impossible to have current
+    in one place and stale in another (ADR-0008).
+
+    The message distinguishes a missing record from a missing directory, because those send
+    an operator to two completely different places — one to write a record, the other to fix
+    a mount.
+    """
+    missing_directory = not directory.is_dir()
+    for assessment in assessments:
+        for item in assessment.evidence:
+            if item.engagement is None or item.engagement in engagements:
+                continue
+            problem = (
+                f'cites the engagement {item.engagement!r}, and there is no {_ENGAGEMENTS_SUBDIR}/ '
+                f'directory at {directory} for it to live in'
+                if missing_directory
+                else f'cites the engagement {item.engagement!r}, for which there is no engagement record'
+            )
+            raise RecordError(Path(assessment.source), f'evidence.{item.requirement}', problem)
+
+
+def _counterparties(frontmatter: dict[str, object], path: Path) -> tuple[str, ...]:
+    """Read the counterparties, accepting a single name or a list of them.
+
+    One engagement routinely faces several counterparties at once — the 5 mmscfd allocation
+    is SKK Migas *and* PGN/Pertagas — and splitting it per counterparty would reintroduce
+    the duplication ADR-0008 exists to remove.
+    """
+    value = frontmatter.get('counterparty')
+    if isinstance(value, str) or value is None:
+        return (_text(frontmatter, 'counterparty', path),)
+    if not isinstance(value, list) or not value:
+        raise RecordError(path, 'counterparty', 'must be a name or a non-empty list of names')
+    for position, name in enumerate(value, start=1):
+        if not isinstance(name, str) or not name.strip():
+            raise RecordError(path, f'counterparty[{position}]', 'must be a non-empty string')
+    return tuple(name.strip() for name in value)
+
+
 def _attach(projects: dict[str, Project], assessments: list[GateAssessment]) -> tuple[Project, ...]:
     """Hang each assessment on its project, ordered so the projection never varies."""
     by_project: dict[str, list[GateAssessment]] = {identifier: [] for identifier in projects}
@@ -292,6 +475,7 @@ def _frontmatter(path: Path) -> dict[str, object]:
         raise RecordError(path, 'frontmatter', f'is not valid YAML: {error}') from error
     if not isinstance(parsed, dict):
         raise RecordError(path, 'frontmatter', 'is not a YAML mapping')
+    _refuse_forecast_keys(parsed, path)
     return parsed
 
 
@@ -436,3 +620,38 @@ def _flag(frontmatter: dict[str, object], field: str, path: Path) -> bool:
     if not isinstance(value, bool):
         raise RecordError(path, field, f'is {value!r}, which is not true or false')
     return value
+
+
+def _refuse_forecast_keys(value: object, path: Path, trail: str = '') -> None:
+    """Refuse any forecast key anywhere in a record, at any depth (ADR-0009).
+
+    Enforced here, at the one door every record type passes through, rather than in each
+    loader — a rule that has to be remembered in five places is a rule that will be missed
+    in the sixth. Nested mappings and lists are walked because an evidence item is a
+    mapping inside a list, and a `probability` smuggled in there would otherwise be a field
+    the schema quietly tolerated.
+
+    Refused rather than ignored, and deliberately so: dropping the key silently would let a
+    record carry a forecast that the dashboard simply declined to show, which is worse than
+    either refusing it or rendering it. The author would believe it had been recorded.
+    """
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            here = f'{trail}.{key}' if trail else str(key)
+            if isinstance(key, str) and _is_forecast_key(key):
+                raise RecordError(
+                    path,
+                    here,
+                    'is a forecast field, and this schema has none — an engagement records where it '
+                    'stands, never whether it will close (ADR-0009)',
+                )
+            _refuse_forecast_keys(nested, path, here)
+    elif isinstance(value, list):
+        for position, entry in enumerate(value, start=1):
+            _refuse_forecast_keys(entry, path, f'{trail}[{position}]')
+
+
+def _is_forecast_key(key: str) -> bool:
+    """Whether a key names a forecast, normalising hyphens and spacing to underscores."""
+    normalised = key.strip().lower().replace('-', '_').replace(' ', '_')
+    return any(fragment in normalised for fragment in _BANNED_KEY_FRAGMENTS)

@@ -7,6 +7,7 @@
 	import { showSidebar } from '$lib/stores';
 	import {
 		getPortfolio,
+		type Engagement,
 		type EvidenceItem,
 		type Portfolio,
 		type PortfolioProject
@@ -21,6 +22,17 @@
 	// gate reached is what makes Current Gate legible as a derivation instead of a status field.
 	const GATES = ['G1', 'G2', 'G3', 'G4'];
 
+	// The Engagement Stage ladder (ADR-0008), lowest rung first. Rendering the whole ladder
+	// rather than only the rung reached is what makes a stage read as a position on a scale
+	// — and what makes `No contact` legible as a recorded position rather than an absence.
+	const STAGES = [
+		{ slug: 'no-contact', label: 'No contact' },
+		{ slug: 'contacted', label: 'Contacted' },
+		{ slug: 'in-discussion', label: 'In discussion' },
+		{ slug: 'written-intent', label: 'Written intent' },
+		{ slug: 'executed', label: 'Executed' }
+	];
+
 	let loaded = false;
 	let portfolio: Portfolio | null = null;
 	let loadError: string | null = null;
@@ -30,6 +42,13 @@
 
 	const gateWasRefused = (project: PortfolioProject, gate: string) =>
 		project.assessments.some((a) => a.gate === gate && a.verdict === 'fail');
+
+	// One record per engagement, looked up by the id a gate cites (ADR-0008). Resolving here
+	// rather than embedding each engagement in its citation is what stops a counterparty's
+	// stage being current in one place and stale in another.
+	$: engagementsById = new Map((portfolio?.engagements ?? []).map((item) => [item.id, item]));
+
+	const engagementOf = (id: string): Engagement | undefined => engagementsById.get(id);
 
 	// What the record cites the requirement against — an artefact path or an Engagement id. The
 	// parser has already refused any item carrying neither, so there is no empty case to render.
@@ -129,9 +148,18 @@
 										{#each project.blocking_requirements as item (item.requirement)}
 											<li class="jup-blocking-item">
 												<span class="jup-requirement">{item.requirement}</span>
-												<span class="jup-meta text-xs">
-													{citationKind(item)}:&nbsp;{citation(item)}
-												</span>
+												{#if item.engagement && engagementOf(item.engagement)}
+													{@const held = engagementOf(item.engagement)}
+													<!-- The resolved citation: whose reply this is waiting for, and the rung
+													     they are actually on — never a guess at whether they will say yes. -->
+													<span class="jup-meta text-xs">
+														{held?.counterparty.join(', ')}&nbsp;·&nbsp;{held?.stage_label}
+													</span>
+												{:else}
+													<span class="jup-meta text-xs">
+														{citationKind(item)}:&nbsp;{citation(item)}
+													</span>
+												{/if}
 											</li>
 										{/each}
 									</ul>
@@ -193,6 +221,22 @@
 													{$i18n.t('This assessment records no evidence requirements.')}
 												</p>
 											{/if}
+
+											{#if assessment.awaiting_engagements.length > 0}
+												<!-- Under a refusal these are what the gate is waiting for. Under a *pass*
+												     the same citations are a waiver the board granted, and #4's rule holds
+												     here too: a waiver must never read as a blocker. -->
+												<p class="jup-meta jup-awaiting text-xs">
+													{assessment.verdict === 'fail'
+														? $i18n.t('Waiting on')
+														: $i18n.t('Outstanding, waived')}:
+													{#each assessment.awaiting_engagements as id, index (id)}{index > 0
+															? ', '
+															: ''}{engagementOf(id)?.counterparty.join(', ') ??
+															id}&nbsp;({engagementOf(id)?.stage_label ??
+															$i18n.t('unresolved')}){/each}
+												</p>
+											{/if}
 										</li>
 									{/each}
 								</ul>
@@ -204,6 +248,56 @@
 						</li>
 					{/each}
 				</ul>
+
+				{#if (portfolio?.engagements ?? []).length > 0}
+					<section class="jup-engagements-section">
+						<h2 class="jup-title text-lg font-semibold">{$i18n.t('Engagements')}</h2>
+						<!-- ADR-0009's consequence, stated where it applies. The ladder says where an
+						     engagement stands; nothing here says whether it will close, because there is
+						     no field for it and no control to add one. -->
+						<p class="jup-subtitle mt-1 text-sm">
+							{$i18n.t(
+								'Each engagement sits on a rung a document evidences. This states where an engagement stands — never whether it will close.'
+							)}
+						</p>
+
+						<ul class="mt-4 flex flex-col gap-3">
+							{#each portfolio?.engagements ?? [] as engagement (engagement.id)}
+								<li class="jup-card">
+									<div class="flex flex-wrap items-start justify-between gap-3">
+										<div>
+											<h3 class="jup-project-name text-sm font-semibold">
+												{engagement.counterparty.join(', ')}
+											</h3>
+											<p class="jup-meta mt-0.5 text-xs">
+												{engagement.id}{#if engagement.pillar}&nbsp;·&nbsp;{engagement.pillar}{/if}
+											</p>
+										</div>
+										<span class="jup-pill jup-pill-stage">{engagement.stage_label}</span>
+									</div>
+
+									<p class="jup-purpose mt-2 text-sm">{engagement.purpose}</p>
+
+									<ol class="jup-ladder" aria-label={$i18n.t('Engagement stage ladder')}>
+										{#each STAGES as stage (stage.slug)}
+											<li
+												class="jup-rung"
+												class:jup-rung-held={stage.slug === engagement.stage}
+												title={stage.label}
+											>
+												{stage.label}
+											</li>
+										{/each}
+									</ol>
+
+									<p class="jup-meta jup-evidence-none mt-3 text-xs">
+										{$i18n.t('Evidenced by')}:&nbsp;{engagement.artefact}
+									</p>
+								</li>
+							{/each}
+						</ul>
+					</section>
+				{/if}
 			{/if}
 		</div>
 	</div>
@@ -418,5 +512,25 @@
 
 	.jup-tick-met {
 		color: var(--jup-up-text);
+	}
+
+	.jup-engagements-section {
+		margin-top: 2.25rem;
+		padding-top: 1.5rem;
+		border-top: 1px solid var(--jup-line);
+	}
+
+	.jup-purpose {
+		color: var(--jup-ink-soft);
+	}
+
+	.jup-pill-stage {
+		background: var(--jup-gate-bg);
+		color: var(--jup-gate-text);
+	}
+
+	.jup-awaiting {
+		flex-basis: 100%;
+		margin-left: 2.15rem;
 	}
 </style>

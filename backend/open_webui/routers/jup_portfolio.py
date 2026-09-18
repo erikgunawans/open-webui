@@ -40,6 +40,21 @@ class EvidenceItemResponse(BaseModel):
     engagement: str | None
 
 
+class EngagementResponse(BaseModel):
+    id: str
+    counterparty: list[str]
+    pillar: str | None
+    purpose: str
+    # The rung slug plus its label. The slug is what a record holds and what a client should
+    # branch on; the label is presentation and may be renamed without a data migration.
+    stage: str
+    stage_label: str
+    artefact: str
+    # There is deliberately no likelihood, probability, expected-close or confidence field
+    # here, and none anywhere else in this response (ADR-0009). Its absence is the schema
+    # saying so: an engagement records where it stands, never whether it will close.
+
+
 class GateAssessmentResponse(BaseModel):
     gate: str
     verdict: str
@@ -47,6 +62,9 @@ class GateAssessmentResponse(BaseModel):
     signed_by: str
     source: str
     evidence: list[EvidenceItemResponse]
+    # The Engagement ids this gate is waiting on — its unsatisfied citations only. A
+    # satisfied citation is provenance, not something anyone is waiting for.
+    awaiting_engagements: list[str]
 
 
 class ProjectResponse(BaseModel):
@@ -61,10 +79,15 @@ class ProjectResponse(BaseModel):
     # Derived from the refusals only: what the record says is missing. A requirement left unmet
     # under a *passing* verdict is a waiver the board granted, and is deliberately absent here.
     blocking_requirements: list[EvidenceItemResponse]
+    # Whose reply this project is waiting for, across all its refusals, each named once.
+    awaiting_engagements: list[str]
 
 
 class PortfolioResponse(BaseModel):
     projects: list[ProjectResponse]
+    # One record per engagement, however many gates cite it (ADR-0008). Gates carry ids;
+    # the client resolves them here, so a counterparty's stage exists in exactly one place.
+    engagements: list[EngagementResponse]
     # Populated only when the records could not be read. The frontend renders the sentence rather
     # than an empty table, so a misconfiguration is visible instead of looking like a clean portfolio.
     unavailable_reason: str | None
@@ -99,12 +122,26 @@ def _serialise(portfolio: Portfolio) -> PortfolioResponse:
                         signed_by=assessment.signed_by,
                         source=assessment.source,
                         evidence=_serialise_evidence(assessment.evidence),
+                        awaiting_engagements=list(assessment.awaiting_engagements),
                     )
                     for assessment in project.assessments
                 ],
                 blocking_requirements=_serialise_evidence(project.blocking_requirements),
+                awaiting_engagements=list(project.awaiting_engagements),
             )
             for project in portfolio.projects
+        ],
+        engagements=[
+            EngagementResponse(
+                id=engagement.id,
+                counterparty=list(engagement.counterparty),
+                pillar=engagement.pillar,
+                purpose=engagement.purpose,
+                stage=engagement.stage,
+                stage_label=engagement.stage_label,
+                artefact=engagement.artefact,
+            )
+            for engagement in portfolio.engagements
         ],
         unavailable_reason=portfolio.unavailable_reason,
     )
