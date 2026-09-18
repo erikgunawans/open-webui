@@ -1,5 +1,47 @@
 # PROGRESS — ent-os-new-jup
 
+## Checkpoint 2026-09-18 (evening) — @jup/ui built in ~/ent-os-ui
+
+**Handoff item 1 (four design-system decisions) — answered.** `@jup/ui` private · GSM 2023 brand ·
+`~/ent-os-ui` sibling repo · primitives only in v1.
+
+**Handoff item 2 — reframed before building.** Two JUP React systems already existed and were
+already design-synced: `~/NEW-JUP/jup-design-system` (`@jup/design-system`, 13 governance
+components, registered `projectId`) and the `jup-design` skill (24 brand primitives + `_ds_bundle.js`
+format 4). Building a fresh design system would have duplicated them. Erik chose option B: a new
+`@jup/ui` consuming the existing brand identity, holding only what those two lack.
+
+**Built — `~/ent-os-ui`, 2 commits, gates green:**
+- Token layer: GSM identity isolated in `src/tokens/identity.css` (the one file with raw hex), a
+  semantic layer, and a real dark theme (the GSM has none — only an inverse print scope).
+- 20 primitives + `JupUIProvider`: Button, IconButton, Field, Input, Textarea, Select, Checkbox,
+  Switch, Badge, Tag, Card, Avatar, Skeleton, Spinner, Alert, Dialog, Tooltip, ToastProvider, Tabs,
+  DropdownMenu.
+- 20 story files / 97 stories, Storybook 8 with a light/dark toolbar.
+- `bun run check` = typecheck (strict) → tsup build → conventions validation.
+- `.design-sync/{config.json,conventions.md}`, shape `package`.
+
+**Accessibility defect found and fixed — verified in real Chrome, not assumed.** White on Pigment
+Green is **3.23:1**, failing AA for normal text; the source system ships that on its primary button.
+Fixed by moving the label to Rich Black (5.67:1) with the identity surface untouched. Needed three
+tokens, not one: `--jup-text-on-brand` (Rich Black, green), `--jup-text-on-alt` (white, blue — Rich
+Black on Polynesian Blue is 2.11:1), `--jup-text-on-danger` (flips per theme, because `--jup-danger`
+lightens in dark and a white label sat at 2.42:1). All 6 button variants × 2 themes and all solid
+badges now measure ≥ 4.5:1 against their real painted background.
+
+**Also corrected a claim I had written myself:** `#00A550` on `#011627` is 5.67:1 and *does* clear
+AA. The dark-mode brand lift is for small-text headroom, not an AA failure. README and
+`semantic.css` fixed.
+
+**Verification notes.** `bunx serve` strips `.html` and the query string (clean-URL rewriting), so
+Storybook story ids never arrive and every story reads "No Preview" — use `storybook dev`, not a
+static serve, for Interceptor checks. The conventions validator was proven to fail on an injected
+bad token and a bad component name before being trusted.
+
+**Open for Erik:** which token layer is canonical — GSM `#00A550`/Space Grotesk (what `@jup/ui`
+uses) or `~/jup/brand` `#079F4E`/IBM Plex Sans (what `@jup/design-system` uses). Both self-describe
+as canonical. Reversing is a one-file edit in `src/tokens/identity.css`.
+
 > Newest checkpoint first. Append-only history; never delete entries.
 
 ## Current state

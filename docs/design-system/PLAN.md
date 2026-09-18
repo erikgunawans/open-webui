@@ -53,13 +53,41 @@ artifacts before shipping — a conventions file naming things that don't exist 
 **6. Sync.** `/design-sync` in the new repo. Shape will be `storybook`. Expect iteration on preview
 fidelity — a component that renders wrong there renders wrong in every design the agent ever builds.
 
-## Decisions still open (ask before phase 1)
+## Decisions — SETTLED 2026-09-18
 
-- **Name and scope** of the package (`@axiara/ui`? `@jup/ui`?) and whether it's public or private.
-- **Brand divergence:** match Open WebUI exactly, or shift the accent off `blue-500` to a JUP/Axiara
-  brand color? The token spec makes either cheap, but it changes phase 2.
-- **Repo location** — sibling of this one, or elsewhere.
-- Whether composites (phase 4) are in scope for v1 or deferred; primitives alone are syncable.
+- **Package:** `@jup/ui`, private.
+- **Brand:** JUP's Graphic Standard Manual 2023, not Open WebUI's `blue-500` and not an invented
+  colour. Pigment Green `#00A550` (action), Polynesian Blue `#004999` (navigation/institutional),
+  Rich Black `#011627`, Anti-flash White `#F0F1F1`.
+- **Repo:** `~/ent-os-ui` (sibling). Private, git initialised, two commits.
+- **v1 scope:** primitives only. Composites deferred to v2.
+- **No Tailwind** — reversed from phases 1–2 below. Both existing JUP systems are plain CSS custom
+  properties; a third convention would not help, and design-sync's `@import`-closure rule is easier
+  to satisfy without a utility generator. Tailwind was in this plan when the target was mirroring
+  Open WebUI; the target is now JUP.
+
+## ⚠️ This plan was written without knowing two JUP systems already existed
+
+Found 2026-09-18, before any code was written:
+
+1. **`~/NEW-JUP/jup-design-system`** — `@jup/design-system`, a real repo with tsup → `dist/`, a
+   proper `exports` map, and `.design-sync/config.json` carrying a **registered `projectId`**.
+   13 governance components (`Door`, `GateStepper`, `LedgerRow`, `RoomBar`, `WorkstreamCard`,
+   `TierBadge`, `FunnelBar`, `DataTable`, `Panel`, `StatTile`, `Callout`, `Chip`, `JupProvider`).
+2. **The `jup-design` skill** — 24 brand primitives as `.jsx` + `.d.ts`, plus `_ds_bundle.js`
+   (format 4, namespace `JUPDesignSystem_7e98d0`), so it has been through design-sync too. Full
+   token system, Space Grotesk/Space Mono woff2, logo assets.
+
+So phases 1–3 as written were largely redundant. What did not exist anywhere was a **versioned,
+buildable, gated package** carrying those primitives — no `package.json`, no `dist/`, no Storybook,
+no typecheck on the skill; and the governance repo has no primitives. `@jup/ui` fills that gap.
+
+**Two token layers disagree and both self-describe as canonical.** `~/jup/brand/tokens/colors.css`
+(feeding `@jup/design-system`) uses brand `#079F4E`, blue `#1E6FB0`, IBM Plex Sans, 16px radius and
+real shadows. The GSM skill uses `#00A550`, `#004999`, Space Grotesk, square corners and near-banned
+shadows. `@jup/ui` follows the GSM because it is the corporate brand book, and isolates identity in
+`src/tokens/identity.css` so reversing that is a one-file edit. **This is still an open question for
+Erik** — it is a brand-governance decision, not an engineering one.
 
 ## Realistic effort
 
