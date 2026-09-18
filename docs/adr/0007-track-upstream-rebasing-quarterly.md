@@ -16,3 +16,7 @@ A standing quarterly job with a named owner — a commitment, not an intention.
 (`utils/chat.py`, nine touches in twelve months), and that reasoning holds only while we rebase. If
 this ADR is ever reversed, revisit ADR-0002: the cleanest attachment point and the most stable one
 are not the same file.
+
+**The check to run after every rebase** is `uv run --only-group dev pytest tests/test_boot.py`: a
+fork migration colliding with an upstream one leaves alembic with two heads, and since migrations
+run at config-import time the application does not start at all. Tracked as #8.

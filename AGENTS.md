@@ -42,3 +42,16 @@ Tests live in `tests/` (plural) at the repo root, deliberately outside `backend/
 quarterly upstream rebase in ADR-0007 never has to merge them. `test/` (singular) is the
 vendor tree's own directory — do not add to it. Fixture data goes in `tests/fixtures/`,
 reached through the `fixtures_dir` / `fixture_path` fixtures in `tests/conftest.py`.
+
+### After every upstream rebase
+
+```
+uv run --only-group dev pytest tests/test_boot.py
+```
+
+Asserts alembic resolves to exactly one head — a fork revision colliding with an upstream
+one is the failure that stops the app booting at all, because migrations run at
+config-import time (ADR-0007). It reads `down_revision` from each version file's AST and
+never the docstring, which `d4e5f6a7b8c9` already contradicts. The same file also imports
+the real app to prove it starts; that test skips under `--only-group dev` and runs in the
+`boot` CI job, which triggers on migration changes or on `workflow_dispatch`.
