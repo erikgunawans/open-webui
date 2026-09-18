@@ -1,5 +1,39 @@
 # PROGRESS — ent-os-new-jup
 
+## Checkpoint 2026-09-19 (late) — first product code: the backend test harness (#2)
+
+- **Session:** `/next` → `/implement` on #2, one ticket, closed and green in CI.
+- **Branch:** main · **Commit:** `5cbcea364`
+- **Done — #2 closed, the first test suite in this fork:**
+  - **`uv run --only-group dev pytest`** — 4 passed. Verified from a deleted `.venv` on **3.11 and
+    3.12 locally**, and both again in GitHub Actions.
+  - **`--only-group dev` omits the project itself**, so the suite runs in ~13s without installing
+    chromadb, transformers or sentence-transformers. A later ticket that must `import open_webui`
+    drops the flag and pays for the full tree. Both forms documented in `AGENTS.md`.
+  - **Tests live in `tests/` (plural) at the repo root, outside `backend/`** — ADR-0007's quarterly
+    rebase must never have to merge them. `test/` (singular) is already the vendor tree's own
+    (it holds `sd-empty.pt` for image gen) and was left untouched.
+  - Fixture home is `tests/fixtures/`, reached through `fixtures_dir` / `fixture_path` in
+    `tests/conftest.py`, which raises `FileNotFoundError` rather than returning a dead path.
+  - `pytest>=8.4.0` added to `[dependency-groups] dev`; `uv.lock` updated; `[tool.pytest.ini_options]`
+    added to `pyproject.toml`.
+- **Decision — `asyncio_mode = "auto"`, not strict.** Under strict an unmarked `async def` is a
+  silent hazard, and every later ticket exercises async FastAPI paths. **The guard was proven, not
+  assumed:** forcing `-o asyncio_mode=strict` makes `test_async_tests_run_without_a_marker` fail
+  outright with "async def functions are not natively supported".
+- **Beyond the ACs, deliberately:** a `pytest` job added to the existing
+  `.github/workflows/backend.yaml` (path filter extended to `tests/**`), matrix 3.11/3.12, both
+  green — a harness nothing runs decays. Also corrected one stale line in `AGENTS.md` that still
+  claimed `CONTEXT.md` and `docs/adr/` did not exist yet.
+- **Vendor tree untouched:** zero files under `backend/` changed. The `pyproject.toml` edits are
+  dependency and test configuration only, which AC 5 permits.
+- **Files changed:** 7 (`tests/` ×3 new, `pyproject.toml`, `uv.lock`, `AGENTS.md`, the workflow).
+- **Tests:** 4 passing — **the baseline now exists**, where before there were none.
+- **Next:** #3 (tracer bullet). #8 is now unblocked — it was waiting on #2 only.
+- **Still blocked on Erik:** Hostinger SSH (holding two committed-but-not-live deploys), Cloudflare
+  Worker redeploy.
+
+
 ## Checkpoint 2026-09-19 — the build is specified; 15 decisions, 10 ADRs, 7 tickets
 
 - **Session:** `/grill-with-docs` → `/to-spec` → `/to-tickets`, in one unbroken window.
