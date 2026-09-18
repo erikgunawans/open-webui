@@ -68,10 +68,11 @@ bugs caught in the process (a circular `--jup-shadow-lg` that silently killed th
 dark inverse button at 1.00:1 with label and surface the same colour, and a dropped font fallback).
 Swept 9 stories × 2 themes in real Chrome: zero failures.
 
-⚠️ **BLOCKING RISK — `~/ent-os-ui` has no git remote.** Three commits exist only on this machine.
-The session's entire deliverable is unbacked and invisible to any other session or device. Creating
-the private remote is an outward-facing action, so it is left for Erik to authorise — it is the
-first item in the next-session handoff.
+**`~/ent-os-ui` remote — found missing and fixed during the wrap.** The three commits existed only
+on this machine; the session's entire deliverable was unbacked. Erik authorised it and it is now
+private at `github.com/erikgunawans/ent-os-ui`, all 3 commits pushed, remote SHA verified against
+local HEAD. Worth noting for next time: a repo created with `git init` mid-session has no remote,
+and nothing warns you — check for one before ending any session that created a repo.
 
 **Superseded — was open for Erik:** which token layer is canonical — GSM `#00A550`/Space Grotesk (what `@jup/ui`
 uses) or `~/jup/brand` `#079F4E`/IBM Plex Sans (what `@jup/design-system` uses). Both self-describe

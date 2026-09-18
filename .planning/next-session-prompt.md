@@ -17,21 +17,17 @@ is the ratified `~/jup/brand` layer (`#079F4E`, IBM Plex Sans), vendored and dri
 baseline exists for either repo.
 
 **Do next, in order:**
-1. **⚠️ `~/ent-os-ui` HAS NO GIT REMOTE — three commits exist only on this machine.** Ask Erik to
-   authorise a private GitHub repo (the pattern is `erikgunawans/<name>`, matching
-   `erikgunawans/ent-os-new-jup`), then `git remote add origin` and push. Until this is done the
-   entire design system is unbacked. **Do this first; it is a data-loss risk, not a chore.**
-2. **There is still no product spec.** Three sessions have produced a fork, 17 architecture briefs
+1. **There is still no product spec.** Three sessions have produced a fork, 17 architecture briefs
    and a design system — all scaffolding. Run `/grill-with-docs` here to settle which governance
    capability ships first, for which buyer, and what the smallest paid slice looks like. Keep it in
    ONE unbroken context window through `/to-spec` → `/to-tickets`. Escalate to `/wayfinder` only if
    you cannot name a first shippable slice by the end of the interview.
-3. **Minimal boot baseline** for ent-os-new-jup — scope it narrow: does the app boot, and does
+2. **Minimal boot baseline** for ent-os-new-jup — scope it narrow: does the app boot, and does
    alembic have exactly one head. A comprehensive suite over a pristine fork tests Open WebUI's
    code, not ours; the real suite should land WITH the first product code.
-4. `@jup/ui` v2 chat composites (`ChatMessage`, `MessageInput`, `Sidebar`, `ModelSelector`) — they
+3. `@jup/ui` v2 chat composites (`ChatMessage`, `MessageInput`, `Sidebar`, `ModelSelector`) — they
    carry more brand signal than the primitives, but they are better designed once a spec says what
-   screens exist. Do not start these before item 2.
+   screens exist. Do not start these before item 1.
 
 **Constraints to honor:**
 - **Three JUP component systems now exist.** Search `~/NEW-JUP/jup-design-system`,
@@ -57,9 +53,11 @@ baseline exists for either repo.
   surface (`docs/agents/issue-tracker.md`). No PR is expected for a wrap here.
 
 **Open items waiting on me (the user):**
-- **Authorise the `~/ent-os-ui` GitHub remote** (item 1). Blocking, and a data-loss risk.
-- **Decide the product's first shippable slice** — item 2 needs your answers; the grilling cannot
+- **Decide the product's first shippable slice** — item 1 needs your answers; the grilling cannot
   invent a buyer.
+
+*(Resolved during this wrap: `~/ent-os-ui` now has a private remote at
+`github.com/erikgunawans/ent-os-ui`, all 3 commits pushed. No longer a risk.)*
 
 ---
 
