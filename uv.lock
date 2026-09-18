@@ -3104,6 +3104,7 @@ unstructured = [
 dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
+    { name = "pyyaml" },
     { name = "ruff" },
 ]
 
@@ -3232,6 +3233,7 @@ provides-extras = ["all", "mariadb", "postgres", "unstructured"]
 dev = [
     { name = "pytest", specifier = ">=8.4.0" },
     { name = "pytest-asyncio", specifier = ">=1.0.0" },
+    { name = "pyyaml", specifier = ">=6.0" },
     { name = "ruff", specifier = ">=0.15.5" },
 ]
 

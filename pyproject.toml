@@ -218,6 +218,7 @@ dev = [
     "pytest>=8.4.0",
     "pytest-asyncio>=1.0.0",
     "ruff>=0.15.5",
+    "PyYAML>=6.0", # `--only-group dev` skips the project, so the suite needs yaml on its own
 ]
 
 [tool.pytest.ini_options]
@@ -229,6 +230,8 @@ addopts = "-ra --strict-markers --strict-config"
 # later ticket in this set exercises async FastAPI paths.
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+# Makes `backend/jup/` importable without installing the open_webui runtime tree.
+pythonpath = ["backend"]
 
 [tool.black]
 line-length = 120

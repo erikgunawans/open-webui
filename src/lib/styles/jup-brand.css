@@ -1,0 +1,68 @@
+/* JUP brand tokens for the operating layer, ported from ~/jup/brand/tokens/colors.css.
+ *
+ * Ported rather than imported: that file lives in another repository and keys its dark pairs off
+ * `prefers-color-scheme`, while this app switches theme with a `.dark` class on <html>
+ * (tailwind.config.js `darkMode: 'class'`). Following the OS instead of the app would hand a user
+ * on a light OS with a dark workspace the light palette. Values are otherwise unchanged — keep
+ * them in step with the canonical file, which is the source of truth.
+ *
+ * `@jup/ui` is NOT usable here: it is React and this frontend is Svelte. Only the colours port,
+ * because they are plain CSS custom properties.
+ *
+ * The `-text` variants are additions, not ports. The canonical accents are tuned as FILLS and
+ * several of them fail WCAG AA as words — `--brand` #079F4E reads 3.05:1 on its own tint, and the
+ * canonical red 4.02:1. Every ratio in the comments below was computed against these exact pairs;
+ * use the `-text` variant wherever the colour carries a word.
+ */
+
+:root {
+	--jup-paper: #f4f7f2;
+	--jup-surface: #ffffff;
+	--jup-surface-2: #edf2ea;
+	--jup-ink: #12201a; /* 15.58:1 on paper */
+	--jup-ink-soft: #42544a; /* 7.48:1 on paper */
+	--jup-ink-faint: #6a7b70; /* 4.15:1 — large text only */
+	--jup-line: #d7e1d5;
+	--jup-line-soft: #e7eee5;
+
+	/* Fills: backgrounds, borders and icons. Never words. */
+	--jup-up-bg: #e7f4e9;
+	--jup-down-bg: #fbe7e6;
+	--jup-gate-bg: #e6f0f8;
+	--jup-neu-bg: #eef2ee;
+
+	/* Words. Each verified on its own fill above. */
+	--jup-up-text: #026e35; /* canonical --brand-deep; 5.64:1 on up-bg, 5.92:1 on paper */
+	--jup-down-text: #a3231e; /* canonical --red darkened for AA; 6.28:1 on down-bg */
+	--jup-gate-text: #123a5a; /* canonical --navy; 10.22:1 on gate-bg */
+	--jup-neu-text: #42544a; /* canonical --ink-soft; 7.15:1 on neu-bg */
+
+	--jup-shadow: 0 1px 2px rgba(15, 45, 25, 0.05), 0 8px 26px rgba(15, 45, 25, 0.07);
+	--jup-radius: 16px;
+	--jup-radius-sm: 10px;
+}
+
+/* In dark, every canonical accent is already a pastel on a near-black ground, so the accents clear
+ * AA as text unmodified and the light theme's darkening would make contrast worse, not better. */
+html.dark {
+	--jup-paper: #0c120e;
+	--jup-surface: #141e18;
+	--jup-surface-2: #1a261e;
+	--jup-ink: #e8f0e9; /* 16.30:1 on paper */
+	--jup-ink-soft: #a9b8ad; /* 8.26:1 on surface */
+	--jup-ink-faint: #7b8b80;
+	--jup-line: #283a2d;
+	--jup-line-soft: #213027;
+
+	--jup-up-bg: #16301d;
+	--jup-down-bg: #33191a;
+	--jup-gate-bg: #152838;
+	--jup-neu-bg: #1c271f;
+
+	--jup-up-text: #23c46e; /* canonical --brand; 6.23:1 on up-bg */
+	--jup-down-text: #eb6058; /* canonical --red; 4.90:1 on down-bg */
+	--jup-gate-text: #5aa6e0; /* canonical --gate; 5.72:1 on gate-bg */
+	--jup-neu-text: #a9b8ad; /* canonical --ink-soft; 7.46:1 on neu-bg */
+
+	--jup-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.4);
+}
