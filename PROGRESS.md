@@ -2,8 +2,9 @@
 
 ## Checkpoint 2026-09-18 (evening) — @jup/ui built in ~/ent-os-ui
 
-**Handoff item 1 (four design-system decisions) — answered.** `@jup/ui` private · GSM 2023 brand ·
-`~/ent-os-ui` sibling repo · primitives only in v1.
+**Handoff item 1 (four design-system decisions) — answered.** `@jup/ui` private ·
+`~/ent-os-ui` sibling repo · primitives only in v1 · brand initially GSM 2023, then **reversed to
+`~/jup/brand` on Erik's ratification later the same session** (see the token section below).
 
 **Handoff item 2 — reframed before building.** Two JUP React systems already existed and were
 already design-synced: `~/NEW-JUP/jup-design-system` (`@jup/design-system`, 13 governance
@@ -11,14 +12,14 @@ components, registered `projectId`) and the `jup-design` skill (24 brand primiti
 format 4). Building a fresh design system would have duplicated them. Erik chose option B: a new
 `@jup/ui` consuming the existing brand identity, holding only what those two lack.
 
-**Built — `~/ent-os-ui`, 2 commits, gates green:**
-- Token layer: GSM identity isolated in `src/tokens/identity.css` (the one file with raw hex), a
-  semantic layer, and a real dark theme (the GSM has none — only an inverse print scope).
+**Built — `~/ent-os-ui`, 3 commits, gates green:**
+- Token layer: identity isolated in `src/tokens/identity.css`, a semantic layer on top, and a
+  dark theme.
 - 20 primitives + `JupUIProvider`: Button, IconButton, Field, Input, Textarea, Select, Checkbox,
   Switch, Badge, Tag, Card, Avatar, Skeleton, Spinner, Alert, Dialog, Tooltip, ToastProvider, Tabs,
   DropdownMenu.
 - 20 story files / 97 stories, Storybook 8 with a light/dark toolbar.
-- `bun run check` = typecheck (strict) → tsup build → conventions validation.
+- `bun run check` = typecheck (strict) → tsup build → conventions validation → **token drift gate**.
 - `.design-sync/{config.json,conventions.md}`, shape `package`.
 
 **Accessibility defect found and fixed — verified in real Chrome, not assumed.** White on Pigment
@@ -38,11 +39,39 @@ Storybook story ids never arrive and every story reads "No Preview" — use `sto
 static serve, for Interceptor checks. The conventions validator was proven to fail on an injected
 bad token and a bad component name before being trusted.
 
+**Canonical token ratification — the second half of the session.** Erik chose `~/jup/brand`
+(`#079F4E`, IBM Plex Sans) over the GSM 2023 palette. `@jup/ui` was re-based onto it:
+
+- `identity.css` is now a **vendored copy** of `~/jup/brand/tokens/colors.css`, gated by a new
+  `validate:tokens` script diffing all **42 light / 36 dark** canonical tokens and failing on drift.
+  Vendored not imported, because `@jup/design-system` is unpublished and design-sync needs a
+  self-contained `dist/`. The gate was proven to fail by reverting `--jup-brand` to `#00A550`.
+- **The swap was wider than billed.** My "one-file edit" claim held for hex values and font names
+  only — the GSM system is square and flat, JUP 2.0 is rounded (16px panels, 8px controls) and
+  elevated, so `radius.css`, `elevation.css`, every component radius and the conventions
+  house-style moved too. **Brand character is not just colour.**
+- **Three real bugs surfaced:** `--jup-shadow-lg: var(--jup-shadow-lg)` was a circular reference
+  (CSS resolves that to guaranteed-invalid — the large shadow silently vanished); the dark
+  `--jup-text-inverse` override made the inverse button's label and surface the same colour
+  (1.00:1, invisible); the font stack had dropped two canonical fallbacks.
+- **Contrast redone, not ported** — the canonical palette behaves oppositely. Fill and text are now
+  separate tokens per hue (canonical accents fail as *text* on their own tinted bg at 2.65–4.60:1);
+  `--jup-text-brand` resolves to `brand-deep` because `#079F4E` as text on paper is 3.20:1;
+  `--jup-text-on-{brand,alt,danger,warning}` are per-hue and per-theme; small helper text moved off
+  `--jup-text-muted` (4.15:1, large-text only) to `--jup-text-secondary` (7.48:1).
+- Swept **9 stories × 2 themes in real Chrome: zero failures.** The one flagged item is a disabled
+  tab at 2.74:1, reported as exempt under WCAG 1.4.3 rather than silently passed.
+
 **RESOLVED same session:** Erik ratified `~/jup/brand` (`#079F4E`, IBM Plex Sans). `@jup/ui` was
 re-based onto it — identity vendored + drift-gated, contrast reworked for the new palette, three real
 bugs caught in the process (a circular `--jup-shadow-lg` that silently killed the large shadow, a
 dark inverse button at 1.00:1 with label and surface the same colour, and a dropped font fallback).
 Swept 9 stories × 2 themes in real Chrome: zero failures.
+
+⚠️ **BLOCKING RISK — `~/ent-os-ui` has no git remote.** Three commits exist only on this machine.
+The session's entire deliverable is unbacked and invisible to any other session or device. Creating
+the private remote is an outward-facing action, so it is left for Erik to authorise — it is the
+first item in the next-session handoff.
 
 **Superseded — was open for Erik:** which token layer is canonical — GSM `#00A550`/Space Grotesk (what `@jup/ui`
 uses) or `~/jup/brand` `#079F4E`/IBM Plex Sans (what `@jup/design-system` uses). Both self-describe
