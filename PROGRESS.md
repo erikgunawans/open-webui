@@ -1,6 +1,98 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-19 (latest) — #3 closed: the portfolio tracer bullet, end to end
+## Checkpoint 2026-09-19-slice-complete (latest) — #4, #8, #5, #6, #7 closed; the slice is delivered
+
+- **Session:** `/next` → #4, then #8, #5, #6, #7 back to back.
+- **Branch:** main · **Commits:** `8305ab5d1` · `a0d9bcac2` · `0cbc71200` · `31f0390b5` · `4edec6f2a`
+- **Records in the JUP repo:** erikgunawans/jup@`fd753ba`
+- **Tracker: 7/8 closed.** Only **#1**, the parent spec, remains open — every child is done.
+- **Suite: 37 → 100 passing**, 45 fixture scenarios.
+
+### What the dashboard now does
+
+Reads Gate Assessments, Engagements and projects as markdown from the **live `~/jup` tree**, derives
+Current Gate on every read, and renders the gas pillar's binding constraint as a field rather than a
+conversation: *no gate passed, blocked on `gas-allocation-5mmscfd`, SKK Migas + PGN/Pertagas at
+Contacted, G1 refused 2026-09-19.*
+
+### #4 — evidence detail and fail-closed parse refusals (`8305ab5d1`)
+
+- Each assessment carries its requirements, whether each was met, and its citation.
+- `Project.blocking_requirements` counts **refusals only**: a requirement unmet under a *passing*
+  verdict is a waiver the board granted, and naming it a blocker would overrule a decision taken.
+- Guards beyond the ask: `satisfied` absent is refused (either default invents a claim), `satisfied:
+  partially` is refused, bare-path evidence is refused.
+- Also closed #3's isort follow-up — `jup`/`open_webui` are now `known-first-party`.
+
+### #8 — boot baseline (`a0d9bcac2`)
+
+- `jup.migrations` reads the alembic graph by **parsing each version file's AST**. Alembic's own
+  `ScriptDirectory` can't: `migrations/env.py` imports the whole model tree. A parse also works on a
+  tree that is already broken, which is when it is asked.
+- Four assertions — one head, one base, no duplicate ids, no dangling parents — each naming every
+  file involved. Plus a subprocess boot test, `skipif`-guarded on a **dependency** probe.
+- **Premise measured, not assumed:** with two heads injected, importing the app dies with
+  `alembic.util.exc.CommandError: Multiple head revisions are present`, exit 1.
+- New `boot` CI job, scoped to migration changes + `workflow_dispatch`. **Verified by dispatch:**
+  all five ran, 5m27s end to end.
+
+### #5 — engagements, citations, the stage ladder (`0cbc71200`)
+
+- Engagements are their own records; gates **cite** by id and never copy (ADR-0008). One record
+  serves two projects — proven across `engagements-shared/`.
+- ADR-0009's forecast ban is enforced at `_frontmatter`, the **one door every record type passes
+  through**, walking nested mappings and lists. Refused, never dropped.
+- **`certainty` is deliberately NOT banned** — Certainty Tier (D11) is the legitimate concept, and
+  catching it would refuse the field that keeps FAKTA and POTENSI apart. Pinned by a test.
+
+### #6 — certainty tiers, named non-coverage, legible empty states (`31f0390b5`)
+
+- `figures_by_tier` is the **only** shape served: no flat list, no total, no sum. Composing two bases
+  into one statement is something a client would have to go out of its way to do.
+- POTENSI labelled margin/profit/NPV is refused, in **both languages**. Whole-word matching, so
+  "Marginal volume" passes; POTENSI-only, so NPV on FAKTA passes.
+- Named Non-Coverage ships with the payload and renders **outside the branch chain**, so it survives
+  the empty and unavailable states.
+- The **unreadable directory had no coverage at all**; absent and unreadable now read differently.
+
+### #7 — Gate #1 against the live tree (`4edec6f2a` + jup@`fd753ba`)
+
+- Three records in `~/jup/records/`. **No NPV invented** — `kb/portfolio.md` carries none for SPBG
+  reactivation, so the record carries none.
+- `artefact_root` turns on artefact resolution. **Proven on the live tree:** renaming the real
+  RUED brief produced a refusal naming the file, field and path; restoring it returned to available.
+- `docker-compose.jup.yaml` mounts `/srv/jup:ro` as an **overlay**, not a vendor patch (ADR-0007).
+- `.env.example` was **wrong** — it pointed at the repo root, not `records/` inside it.
+
+### Verified, not asserted
+
+- **100 passing.** Clean `--only-group dev` env (CI-equivalent): 99 passed, 1 skipped, 0.45s.
+- **Every guard in all five tickets was neutered and watched failing**, then restored.
+- **Real Chrome against the live `~/jup` tree** and against malformed fixtures: refusals render with
+  zero cards, never a partial page. Contrast measured in both themes, worst **4.90:1**, all opacity 1.
+- Nothing deployed changed: `build-kb-bundle.ts` reads 8 fixed files, `records/` is not among them.
+  `bun build-kb-bundle.ts --check` → *"kb-bundle.js is current."*
+
+### Costs and traps worth not rediscovering
+
+- **YAML eats ` #`.** `purpose: ... — Gate #1 of the gas pillar` parses as `... — Gate`. Nothing
+  raises. No parser guard can catch it. The spec's own worked example is unquoted. Quote it.
+- **`--only-group dev` silently reuses a full local `.venv`.** A skip-guarded test passes here and
+  fails in CI. Verify with `UV_PROJECT_ENVIRONMENT=/tmp/civenv`.
+- **Nominal contrast lies when opacity is involved** — an `opacity: 0.82` softening composited to
+  3.75:1 from a 4.90:1 token. Fold opacity in before believing a ratio.
+- **`read -t N </dev/null` does not sleep** — it returns instantly on EOF. Polling loops built that
+  way spin. Use `Monitor` instead.
+
+### Next
+
+**#1 is the only open issue** — the parent spec, with 23 user stories, some explicitly deferred
+(story 22's unauthenticated board view says "this slice does not build" it). Decide whether to close
+it or audit its stories one by one.
+
+---
+
+## Checkpoint 2026-09-19 — #3 closed: the portfolio tracer bullet, end to end
 
 - **Session:** `/next` → #3, then the two deploy items the previous handoff left with Erik.
 - **Branch:** main · **Commit:** `3795e1318`

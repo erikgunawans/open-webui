@@ -1,3 +1,95 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-19-slice-complete)
+
+> Prepended by /wrap 2026-09-19 (checkpoint 2026-09-19-slice-complete). Supersedes checkpoint
+> 2026-09-19-final's anchor.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-19-slice-complete).
+
+**Anchor:** `origin/main` at `4edec6f2a` **as this was written**, or one commit ahead at this
+checkpoint's own wrap commit (subject begins `chore(session):`). Verify with
+`git log --oneline 4edec6f2a..origin/main`. A single `chore(session):` commit is EXPECTED — that is
+this wrap writing itself down. Any commit in that range whose subject does NOT start
+`chore(session):` means a parallel session pushed: real drift, investigate before writing.
+
+Second repo: **erikgunawans/jup at `fd753ba`**, pushed to origin *and* mirror.
+
+**Current state:** **the portfolio slice is delivered end to end.** Gate Assessments, Engagements
+and projects are markdown in `~/jup/records/`, read read-only, and the gas pillar's binding
+constraint renders as a field: *no gate passed, blocked on `gas-allocation-5mmscfd`, SKK Migas +
+PGN/Pertagas at Contacted, G1 refused 2026-09-19.* Suite **100 passing**, 45 fixture scenarios.
+**Tracker 7/8 — only #1, the parent spec, is open.**
+
+**Do next, in order:**
+1. **Decide #1.** It is the parent spec, 23 user stories, every child ticket closed. Some stories
+   were explicitly deferred by the spec itself — story 22's unauthenticated board view says "this
+   slice does not build" it. Either close it as delivered, or audit the 23 stories one by one and
+   report coverage first. **This is a question for Erik, not a build task** — ask it immediately and
+   offer to start item 2 meanwhile.
+2. **Swap the engagement's artefact for a real contact record.** `records/engagements/
+   skk-migas-pgn-allocation.md` cites `SOURCES/Analisa-Bisnis-Gas-BUMD.pdf`, which establishes the
+   allocation is *required and uncommitted* — it is **not a record of contact**. No letter, minute
+   or reply is filed, so the `contacted` rung currently stands on the Director's own account. The
+   record body says so. This is the highest-value edit to the live records and **needs Erik to
+   supply the document**.
+3. **Exercise the compose overlay.** `docker-compose.jup.yaml` is written but never run.
+   `docker compose -f docker-compose.yaml -f docker-compose.jup.yaml up` with `JUP_TREE` set would
+   test the read-only mount, which uvicorn-with-env-vars does not.
+4. **Optional: non-coverage in the refused state.** When a record is untrustworthy the API 500s, so
+   there is no payload to carry the Named Non-Coverage sentences. The refusal notice names the file
+   and field — a statement that the view proves nothing — but not the same sentences. Fixable with a
+   static endpoint; deliberately not done, because inlining them into the template reintroduces the
+   staleness #6 removed.
+
+**Constraints to honor:**
+- **Quote any record value containing ` #`.** YAML opens a comment at a bare hash, so
+  `purpose: ... — Gate #1 of the gas pillar` silently becomes `... — Gate`. Nothing raises; no
+  parser guard can catch it, and the format uses `#` comments legitimately so they cannot be banned.
+- **`--only-group dev` silently reuses the full local `.venv`.** A `skipif`-guarded test passes here
+  and fails in CI. Verify both paths with `UV_PROJECT_ENVIRONMENT=/tmp/civenv uv run --only-group
+  dev pytest`. Probe a **dependency** (`typer`, `fastapi`), never `open_webui` itself.
+- **Fold opacity in before believing a contrast ratio.** A 4.90:1 token at `opacity: 0.82`
+  composites to 3.75:1 and fails AA.
+- **`read -t N </dev/null` does not sleep** — returns instantly on EOF, so poll loops spin. Use the
+  `Monitor` tool.
+- **Fork-owned Python goes in `backend/jup/`, never `backend/open_webui/`.** Tests in `tests/`
+  (plural) at the repo root. `asyncio_mode = auto` is deliberate. Dev-group deps are not inherited.
+- **CI gates:** `ruff format --check .` with `quote-style = "single"`, line-length 120, plus
+  `ruff check --select=F --ignore=F401,F403,F405,F541,F811,F841`. Do not "fix" the ignore list.
+- **Budget Chrome verification at the START of a ticket.** uvicorn on 8080 **run from `backend/`**,
+  vite on 5173. First boot loads the embedding model.
+- **Interceptor cannot screenshot here** — use `interceptor eval --main` + `getComputedStyle` probes
+  and state the missing-pixel gap explicitly.
+- **`@jup/ui` is REACT and unusable in this Svelte tree.** Only the CSS custom properties port, and
+  the canonical accents are FILLS that fail AA as text — use the `-text` variants.
+- **The Strategy KB reaches production ONLY via the Cloudflare Worker bundle.** It reads 8 fixed
+  files under `kb/` plus `DECISIONS.md`; `records/` is not among them, so records changes need no
+  redeploy. Run `bun build-kb-bundle.ts --check` before believing the assistant matches the repo.
+- **Deploy authorization for axiara.ai/JUP is per-change, never standing** — ask every time.
+- `gh` targets **upstream** unless pinned — pass `--repo erikgunawans/ent-os-new-jup`.
+- Never push to `upstream`. Commits go **directly to `main`**; PRs are explicitly not a triage
+  surface here, so **no PR is expected for a wrap**.
+- **Enforcement is inlet-only** (ADR-0002), and a fifth enterprise hole remains:
+  `routers/openai.py:1464` and `routers/ollama.py:1091` sit behind only `get_verified_user`.
+- **Disk is tight** — it hit 100% this session. Check `df -h` before any large install.
+
+**Open items waiting on Erik (do not chase these yourself):**
+- **Close #1 or audit it?** Item 1 above. His call.
+- **A contact record for SKK Migas / PGN** — a letter, minute or reply to replace the source
+  analysis as the artefact evidencing the `contacted` rung. Only he can supply it.
+- **One verification only he can run** — the deployed assistant answering `Di rung mana SKK Migas
+  sekarang?` should say **Contacted**. Needs the shared JUP password, which the assistant does not
+  hold by design.
+- **Two offers still unanswered:** (a) `~/jup/kb/CONTEXT.md` is stale twice over — it calls him
+  "nominee Operation Director" and claims the assistant "runs locally only (127.0.0.1) — never
+  web-published", untrue under D13 exception v2; fixing it needs a bundle rebuild plus a `wrangler
+  deploy`. (b) `~/jup-kb-assistant-worker/` is **not under git** — no origin, no mirror, outside
+  D14, and it holds the deployed assistant.
+- **Codex CLI is 0.139.0 and needs ≥0.155.1** (`bun add -g @openai/codex@latest`) before Forge gives
+  a genuine cross-vendor second opinion. Until then Forge is Claude-family output.
+- **An OpenAI key with ZDR enabled**, when voice work starts (ADR-0005/0006, D16). Not needed yet.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-19-final)
 
 > Prepended by /wrap 2026-09-19 (checkpoint 2026-09-19-final). Supersedes checkpoint
