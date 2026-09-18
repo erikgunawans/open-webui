@@ -68,6 +68,32 @@ bugs caught in the process (a circular `--jup-shadow-lg` that silently killed th
 dark inverse button at 1.00:1 with label and surface the same colour, and a dropped font fallback).
 Swept 9 stories × 2 themes in real Chrome: zero failures.
 
+**Framing correction — Erik pushed back, correctly.** I described the project as having "zero
+product code" and prior work as "scaffolding," and recommended a from-scratch product grilling.
+Erik challenged it: the fork already has Open WebUI's full capability. He was right, and the
+architecture briefs are design work, not survey work — they name the governance chokepoints with
+file:line.
+
+The accurate statement is much narrower: **nothing yet says who pays, for what, instead of running
+stock Open WebUI free.** And the thesis is already in our own notes — stock Open WebUI is
+enterprise-*capable* but not enterprise-*deployable*:
+
+- Audit redaction is **one regex** (`audit.py:285`); `REQUEST_RESPONSE` captures response bodies
+  **verbatim**. Full audit builds a PII repository, not a compliance control.
+- `workspace.tools` = unsandboxed `exec()` + `pip install` from user frontmatter. Only kill switch
+  is `ENABLE_PLUGINS=false`.
+- Every frontend guard is a client-side `goto('/')`.
+- Timers, automations, subagents and context compaction bypass HTTP middleware entirely — governance
+  must live in the pipeline. This is a genuine moat: a competitor bolting policy onto middleware
+  ships something that silently misses those paths.
+
+Already present and cheap to build on: `publish_event`/`EVENTS` with `EVENT_SINKS` taking a sink
+class, and `merge_usage` (`response.py:100`) aggregating per-user/per-group tokens for chargeback.
+
+Erik deferred the grilling to next session. It is scoped to three questions — which hole ships
+first, who signs, and what beats "just use Azure AI Foundry / Bedrock" — not a blank page. Carried
+into the handoff with an explicit warning not to reopen with the rejected framing.
+
 **`~/ent-os-ui` remote — found missing and fixed during the wrap.** The three commits existed only
 on this machine; the session's entire deliverable was unbacked. Erik authorised it and it is now
 private at `github.com/erikgunawans/ent-os-ui`, all 3 commits pushed, remote SHA verified against

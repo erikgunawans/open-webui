@@ -21,11 +21,41 @@ is the ratified `~/jup/brand` layer (`#079F4E`, IBM Plex Sans), vendored and dri
 baseline exists for either repo.
 
 **Do next, in order:**
-1. **There is still no product spec.** Three sessions have produced a fork, 17 architecture briefs
-   and a design system — all scaffolding. Run `/grill-with-docs` here to settle which governance
-   capability ships first, for which buyer, and what the smallest paid slice looks like. Keep it in
-   ONE unbroken context window through `/to-spec` → `/to-tickets`. Escalate to `/wayfinder` only if
-   you cannot name a first shippable slice by the end of the interview.
+1. **Run `/grill-with-docs` — Erik deferred it from last session specifically to start here.**
+
+   ⚠️ **Do NOT open by saying there is no product, no spec, or that prior work was "scaffolding."**
+   That framing was used last session and Erik correctly pushed back on it. What exists: a full
+   Open WebUI platform (chat, RAG over 13 vector stores and 22 search providers, models, tools,
+   pipelines, `access_grants` RBAC, admin surface) AND a governance blueprint in
+   `docs/architecture/` naming the exact chokepoints with file:line. The gap is narrow and
+   COMMERCIAL, not technical: **nothing yet says who pays, for what, instead of running stock
+   Open WebUI free.**
+
+   The thesis is already in our own notes — stock Open WebUI is enterprise-*capable* but not
+   enterprise-*deployable*, and we know the four holes and where they attach:
+   - Audit redaction is **one regex** (`audit.py:285`) and `REQUEST_RESPONSE` captures response
+     bodies **verbatim** — full audit builds a PII repository, not a compliance control.
+   - `workspace.tools` = unsandboxed `exec()` + `pip install` from user frontmatter; the only kill
+     switch is `ENABLE_PLUGINS=false`. No enterprise security review passes that.
+   - Every frontend guard is a client-side `goto('/')`. Cosmetic.
+   - Timers, automations, subagents and context compaction forge a synthetic `Request` straight to
+     `CHAT_COMPLETION_HANDLER` — **policy in HTTP middleware silently will not cover them.**
+
+   Already present and cheap to build on: `publish_event`/`EVENTS` on nearly every mutation with
+   `EVENT_SINKS` accepting a sink class (no router changes), and `merge_usage` (`response.py:100`)
+   already aggregating per-model/per-user/per-group tokens for chargeback.
+
+   **Grill these three, not a blank page:**
+   1. **Which hole ships first?** Standing recommendation: audit/DLP — most legible to a buyer, and
+      `EVENT_SINKS` means building it without forking the request path. The RCE sandbox is more
+      urgent technically but sells as "you fixed a bug," not as a product.
+   2. **Who signs?** CISO vs Head of AI Governance vs the platform team that must get Open WebUI
+      past security review. Different buyers want different first features.
+   3. **Does it survive the alternative?** The real competitor is "just use Azure AI Foundry /
+      Bedrock, governance included" — not another fork. Erik's Google years are the best source.
+
+   Keep it in ONE unbroken context window through `/to-spec` → `/to-tickets`. Escalate to
+   `/wayfinder` only if no first shippable slice can be named by the end of the interview.
 2. **Minimal boot baseline** for ent-os-new-jup — scope it narrow: does the app boot, and does
    alembic have exactly one head. A comprehensive suite over a pristine fork tests Open WebUI's
    code, not ours; the real suite should land WITH the first product code.
@@ -57,8 +87,8 @@ baseline exists for either repo.
   surface (`docs/agents/issue-tracker.md`). No PR is expected for a wrap here.
 
 **Open items waiting on me (the user):**
-- **Decide the product's first shippable slice** — item 1 needs your answers; the grilling cannot
-  invent a buyer.
+- **The three grill questions in item 1** — which hole first, who signs, and what beats the
+  hyperscaler alternative. The grilling cannot invent a buyer; these are Erik's to answer.
 
 *(Resolved during this wrap: `~/ent-os-ui` now has a private remote at
 `github.com/erikgunawans/ent-os-ui`, all 3 commits pushed. No longer a risk.)*
