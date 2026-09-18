@@ -40,6 +40,24 @@ class EvidenceItemResponse(BaseModel):
     engagement: str | None
 
 
+class FigureResponse(BaseModel):
+    label: str
+    # Held as written text, never a number. A parsed number is one something eventually adds
+    # up, and the one sum this system must never compute is one that crosses tiers (D11).
+    value: str
+    tier: str
+    tier_label: str
+    tier_meaning: str
+    basis: str
+
+
+class TierGroupResponse(BaseModel):
+    tier: str
+    label: str
+    meaning: str
+    figures: list[FigureResponse]
+
+
 class EngagementResponse(BaseModel):
     id: str
     counterparty: list[str]
@@ -81,6 +99,11 @@ class ProjectResponse(BaseModel):
     blocking_requirements: list[EvidenceItemResponse]
     # Whose reply this project is waiting for, across all its refusals, each named once.
     awaiting_engagements: list[str]
+    # Deliberately grouped, and deliberately the ONLY shape figures are served in. A flat
+    # list would let a client render a feasibility NPV beside a top-line revenue potential
+    # as though they were comparable, which is exactly what D11 prohibits. There is no
+    # total, no sum and no blended figure anywhere in this response.
+    figures_by_tier: list[TierGroupResponse]
 
 
 class PortfolioResponse(BaseModel):
@@ -88,6 +111,11 @@ class PortfolioResponse(BaseModel):
     # One record per engagement, however many gates cite it (ADR-0008). Gates carry ids;
     # the client resolves them here, so a counterparty's stage exists in exactly one place.
     engagements: list[EngagementResponse]
+    # What this view does not prove, published beside it. A clean dashboard mistaken for a
+    # safe portfolio is the failure these sentences exist to prevent, so they ship with the
+    # payload rather than living in markup that can go stale unnoticed.
+    non_coverage: list[str]
+    engagement_non_coverage: list[str]
     # Populated only when the records could not be read. The frontend renders the sentence rather
     # than an empty table, so a misconfiguration is visible instead of looking like a clean portfolio.
     unavailable_reason: str | None
@@ -128,6 +156,25 @@ def _serialise(portfolio: Portfolio) -> PortfolioResponse:
                 ],
                 blocking_requirements=_serialise_evidence(project.blocking_requirements),
                 awaiting_engagements=list(project.awaiting_engagements),
+                figures_by_tier=[
+                    TierGroupResponse(
+                        tier=group.tier,
+                        label=group.label,
+                        meaning=group.meaning,
+                        figures=[
+                            FigureResponse(
+                                label=figure.label,
+                                value=figure.value,
+                                tier=figure.tier,
+                                tier_label=figure.tier_label,
+                                tier_meaning=figure.tier_meaning,
+                                basis=figure.basis,
+                            )
+                            for figure in group.figures
+                        ],
+                    )
+                    for group in project.figures_by_tier
+                ],
             )
             for project in portfolio.projects
         ],
@@ -143,6 +190,8 @@ def _serialise(portfolio: Portfolio) -> PortfolioResponse:
             )
             for engagement in portfolio.engagements
         ],
+        non_coverage=list(portfolio.non_coverage),
+        engagement_non_coverage=list(portfolio.engagement_non_coverage),
         unavailable_reason=portfolio.unavailable_reason,
     )
 

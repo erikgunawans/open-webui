@@ -6,6 +6,7 @@ reorganised but the outputs are unchanged is a bad test, so the helpers below de
 speak only in projects, gates and refusal messages.
 """
 
+import os
 from collections.abc import Callable
 from pathlib import Path
 
@@ -15,6 +16,9 @@ from jup.portfolio import (
     GATES,
     STAGE_LABELS,
     STAGES,
+    TIER_LABELS,
+    TIER_MEANINGS,
+    TIERS,
     Engagement,
     Portfolio,
     Project,
@@ -693,3 +697,242 @@ def test_a_purpose_containing_a_hash_survives_when_quoted(fixture_path: Callable
     portfolio = _portfolio(fixture_path, 'engagements-shared')
 
     assert _engagement(portfolio, 'skk-migas-pgn-allocation').purpose.endswith('Gate #1 of the gas pillar')
+
+
+def test_the_three_certainty_tiers_are_ordered_strongest_basis_first() -> None:
+    """A closed set. A fourth tier is a record error, not a new kind of evidence."""
+    assert TIERS == ('FAKTA', 'POTENSI', 'ILUSTRATIF')
+
+
+def test_every_tier_carries_its_ordinal_and_its_meaning() -> None:
+    """D11 writes the ordinal alongside the name, and a board member reads the meaning."""
+    assert TIER_LABELS['POTENSI'] == 'Tier 2 · POTENSI'
+    assert 'Never margin' in TIER_MEANINGS['POTENSI']
+
+
+def test_a_figure_carries_the_basis_it_rests_on(fixture_path: Callable[..., Path]) -> None:
+    """Value and basis travel together — a figure is never surfaced without its source."""
+    portfolio = _portfolio(fixture_path, 'figures')
+    figures = _project(portfolio, 'gas-spbg-reactivation').figures
+
+    npv = next(figure for figure in figures if figure.label == 'NPV at 12%')
+    assert npv.tier == 'FAKTA'
+    assert npv.value == 'IDR 412 bn'
+    assert npv.basis == 'deliverables/feasibility/SPBG-Feasibility-v3.xlsx'
+
+
+def test_figures_are_grouped_by_tier_and_never_returned_as_one_list(
+    fixture_path: Callable[..., Path],
+) -> None:
+    """The structural half of D11: a caller is handed groups, each with exactly one tier.
+
+    A flat list is an invitation to render a feasibility NPV beside a top-line revenue
+    potential as though they were comparable, which is the misreading the tiers exist to
+    prevent. Grouping makes composing two tiers into one statement something a renderer has
+    to go out of its way to do.
+    """
+    portfolio = _portfolio(fixture_path, 'figures')
+    groups = _project(portfolio, 'gas-spbg-reactivation').figures_by_tier
+
+    assert tuple(group.tier for group in groups) == ('FAKTA', 'POTENSI', 'ILUSTRATIF')
+    for group in groups:
+        assert {figure.tier for figure in group.figures} == {group.tier}
+
+
+def test_only_tiers_with_figures_appear_as_groups(fixture_path: Callable[..., Path]) -> None:
+    """An empty group would imply a basis nobody claimed."""
+    portfolio = _portfolio(fixture_path, 'figures-potensi-legitimate')
+    groups = _project(portfolio, 'gas-spbg-reactivation').figures_by_tier
+
+    assert tuple(group.tier for group in groups) == ('POTENSI',)
+
+
+def test_a_project_may_surface_no_figures_at_all(fixture_path: Callable[..., Path]) -> None:
+    """The correct default. A dashboard with no numbers proves less, and is honest."""
+    portfolio = _portfolio(fixture_path, 'figures')
+    project = _project(portfolio, 'air-marunda-perpipaan')
+
+    assert project.figures == ()
+    assert project.figures_by_tier == ()
+
+
+def test_there_is_no_total_or_blended_figure_anywhere(fixture_path: Callable[..., Path]) -> None:
+    """D11 enforced by absence: there is nothing to reach for that crosses tiers.
+
+    A `total` property would be used, and the only sum this system must never compute is
+    one that spans two bases. The value is kept as written text for the same reason — a
+    parsed number is a number something eventually adds up.
+    """
+    portfolio = _portfolio(fixture_path, 'figures')
+    project = _project(portfolio, 'gas-spbg-reactivation')
+
+    for forbidden in ('total', 'sum', 'combined', 'blended', 'aggregate'):
+        assert not hasattr(project, forbidden)
+        assert not hasattr(project.figures_by_tier[0], forbidden)
+    assert isinstance(project.figures[0].value, str)
+
+
+def test_a_potensi_figure_labelled_as_margin_is_refused(fixture_path: Callable[..., Path]) -> None:
+    """A revenue potential dressed as money the company would keep (D11)."""
+    message = _refusal(fixture_path('portfolio', 'malformed-figure-potensi-margin'))
+
+    assert 'revenue-as-profit.md' in message
+    assert 'margin' in message
+    assert 'POTENSI' in message
+
+
+def test_a_potensi_figure_labelled_as_npv_is_refused(fixture_path: Callable[..., Path]) -> None:
+    """NPV is feasibility economics — FAKTA's territory, never POTENSI's."""
+    message = _refusal(fixture_path('portfolio', 'malformed-figure-potensi-npv'))
+
+    assert 'revenue-as-npv.md' in message
+    assert 'npv' in message.lower()
+
+
+def test_a_potensi_figure_labelled_as_profit_in_bahasa_is_refused(
+    fixture_path: Callable[..., Path],
+) -> None:
+    """These records are written by people who work in Bahasa; `laba` is `profit`."""
+    message = _refusal(fixture_path('portfolio', 'malformed-figure-potensi-bahasa'))
+
+    assert 'revenue-as-laba.md' in message
+    assert 'laba' in message
+
+
+def test_a_legitimate_potensi_label_containing_a_banned_word_is_not_refused(
+    fixture_path: Callable[..., Path],
+) -> None:
+    """ "Marginal" is not "margin" — the ban matches whole words.
+
+    A false refusal blocks a PMO analyst from recording a true figure, which is a worse
+    failure than the narrower ban missing an exotic synonym.
+    """
+    portfolio = _portfolio(fixture_path, 'figures-potensi-legitimate')
+    figure = _project(portfolio, 'gas-spbg-reactivation').figures[0]
+
+    assert figure.label == 'Marginal volume above the RUED floor'
+    assert figure.tier == 'POTENSI'
+
+
+def test_an_npv_labelled_figure_on_the_fakta_tier_is_accepted(fixture_path: Callable[..., Path]) -> None:
+    """The ban is POTENSI-only. NPV is exactly what FAKTA is for."""
+    portfolio = _portfolio(fixture_path, 'figures')
+    figures = _project(portfolio, 'gas-spbg-reactivation').figures
+
+    assert any(figure.label == 'NPV at 12%' and figure.tier == 'FAKTA' for figure in figures)
+
+
+def test_a_tier_outside_the_three_is_refused_and_the_message_lists_them(
+    fixture_path: Callable[..., Path],
+) -> None:
+    """A fourth basis is not a new kind of evidence, it is an unstated one."""
+    message = _refusal(fixture_path('portfolio', 'malformed-figure-tier'))
+
+    assert 'untiered.md' in message
+    for tier in TIERS:
+        assert tier in message
+
+
+def test_a_figure_without_a_tier_is_refused(fixture_path: Callable[..., Path]) -> None:
+    """An untiered figure is the blend D11 prohibits, waiting to happen."""
+    message = _refusal(fixture_path('portfolio', 'malformed-figure-no-tier'))
+
+    assert 'no-basis-stated.md' in message
+    assert 'tier' in message
+
+
+def test_a_figure_without_a_basis_is_refused(fixture_path: Callable[..., Path]) -> None:
+    """A figure whose source cannot be opened is an assertion."""
+    message = _refusal(fixture_path('portfolio', 'malformed-figure-no-basis'))
+
+    assert 'unsourced.md' in message
+    assert 'basis' in message
+
+
+def test_a_figure_without_a_value_is_refused(fixture_path: Callable[..., Path]) -> None:
+    """A labelled, sourced, tiered blank is not a figure."""
+    message = _refusal(fixture_path('portfolio', 'malformed-figure-no-value'))
+
+    assert 'valueless.md' in message
+    assert 'value' in message
+
+
+def test_the_portfolio_view_states_what_it_does_not_prove(fixture_path: Callable[..., Path]) -> None:
+    """Named Non-Coverage, published beside the view rather than left to a reader."""
+    portfolio = _portfolio(fixture_path, 'figures')
+
+    assert len(portfolio.non_coverage) >= 3
+    joined = ' '.join(portfolio.non_coverage).lower()
+    assert 'well-formed and wrong' in joined
+    assert 'has not passed' in joined
+
+
+def test_the_engagements_view_states_its_own_non_coverage(fixture_path: Callable[..., Path]) -> None:
+    """A separate view makes a separate claim, so it names its own limits (ADR-0009)."""
+    portfolio = _portfolio(fixture_path, 'figures')
+
+    assert portfolio.engagement_non_coverage
+    assert 'never' in ' '.join(portfolio.engagement_non_coverage).lower()
+
+
+def test_non_coverage_is_present_even_when_the_records_are_unavailable() -> None:
+    """A view that could not load still states what it does not prove.
+
+    The empty state is exactly where a reader is most likely to fill the silence with an
+    assumption, so it is the last place non-coverage should disappear.
+    """
+    portfolio = project_portfolio(None)
+
+    assert portfolio.available is False
+    assert portfolio.non_coverage
+
+
+def test_an_unreadable_records_directory_is_empty_with_a_distinguishable_reason(
+    tmp_path: Path,
+) -> None:
+    """Unreadable and absent are different problems, and must not read alike.
+
+    Absent means nobody mounted it; unreadable means it is there and the process cannot
+    open it — a permissions fix, not a deployment one. Both must beat a blank page, and a
+    reader must be able to tell which they are looking at.
+
+    Skipped when the chmod does not actually bite, which is the case for root.
+    """
+    records = tmp_path / 'records'
+    (records / 'projects').mkdir(parents=True)
+    (records / 'gate-assessments').mkdir()
+    (records / 'projects' / 'a.md').write_text('---\nid: a\nname: A\n---\n', encoding='utf-8')
+
+    records.chmod(0o000)
+    try:
+        if os.access(records, os.R_OK):
+            pytest.skip('this process can read a 0o000 directory, so the case cannot be exercised')
+        portfolio = project_portfolio(records)
+    finally:
+        records.chmod(0o755)
+
+    assert portfolio.available is False
+    assert portfolio.projects == ()
+    assert portfolio.unavailable_reason
+    assert 'could not be read' in portfolio.unavailable_reason
+    assert 'does not exist' not in portfolio.unavailable_reason
+
+
+def test_unreadable_and_absent_reasons_are_not_the_same_sentence(tmp_path: Path) -> None:
+    """Stated as a comparison, because "distinguishable" is a claim about two messages."""
+    records = tmp_path / 'records'
+    (records / 'projects').mkdir(parents=True)
+    (records / 'gate-assessments').mkdir()
+
+    records.chmod(0o000)
+    try:
+        if os.access(records, os.R_OK):
+            pytest.skip('this process can read a 0o000 directory, so the case cannot be exercised')
+        unreadable = project_portfolio(records).unavailable_reason
+    finally:
+        records.chmod(0o755)
+
+    absent = project_portfolio(tmp_path / 'not-mounted-at-all').unavailable_reason
+
+    assert unreadable and absent
+    assert unreadable != absent

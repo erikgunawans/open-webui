@@ -24,3 +24,15 @@ comment, so `purpose: ... — Gate #1 of the gas pillar` silently parses as `...
 Nothing raises: the parser receives a shorter, perfectly valid string, so no guard can catch
 it. `test_a_purpose_containing_a_hash_survives_when_quoted` pins the quoted form, because
 "Gate #1" is the exact phrase the first real records use.
+
+`figures/` is the D11 corpus — one project carrying figures on **three** tiers, which must
+project as three groups and never as one list, beside one carrying none (the correct
+default). `figures-potensi-legitimate/` guards the other direction: *"Marginal volume"* is
+not a margin, and the ban matches whole words, because a false refusal blocks a PMO analyst
+from recording a true figure. The `malformed-figure-*` directories cover a POTENSI figure
+labelled as margin, as NPV and as `laba`, plus a tier outside the three and a figure missing
+its tier, basis or value.
+
+The **unreadable**-directory case has no fixture: it needs a live `chmod 000`, so those two
+tests build it under `tmp_path` and skip when the chmod does not bite (as it would not for
+root).

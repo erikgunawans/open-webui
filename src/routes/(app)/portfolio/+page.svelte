@@ -245,6 +245,30 @@
 									{$i18n.t('This project has never been assessed against a gate.')}
 								</p>
 							{/if}
+							{#if project.figures_by_tier.length > 0}
+								<!-- One block per tier, never one list. The tier heading is what makes
+								     composing two bases into a single statement something a renderer would
+								     have to go out of its way to do (D11). -->
+								<div class="jup-figures">
+									{#each project.figures_by_tier as group (group.tier)}
+										<section class="jup-tier">
+											<p class="jup-tier-label">{group.label}</p>
+											<p class="jup-tier-meaning">{group.meaning}</p>
+											<ul class="jup-figure-list">
+												{#each group.figures as figure (figure.label)}
+													<li class="jup-figure">
+														<span class="jup-figure-value">{figure.value}</span>
+														<span class="jup-figure-label">{figure.label}</span>
+														<span class="jup-meta text-xs">
+															{$i18n.t('Basis')}:&nbsp;{figure.basis}
+														</span>
+													</li>
+												{/each}
+											</ul>
+										</section>
+									{/each}
+								</div>
+							{/if}
 						</li>
 					{/each}
 				</ul>
@@ -252,14 +276,17 @@
 				{#if (portfolio?.engagements ?? []).length > 0}
 					<section class="jup-engagements-section">
 						<h2 class="jup-title text-lg font-semibold">{$i18n.t('Engagements')}</h2>
-						<!-- ADR-0009's consequence, stated where it applies. The ladder says where an
-						     engagement stands; nothing here says whether it will close, because there is
-						     no field for it and no control to add one. -->
-						<p class="jup-subtitle mt-1 text-sm">
-							{$i18n.t(
-								'Each engagement sits on a rung a document evidences. This states where an engagement stands — never whether it will close.'
-							)}
-						</p>
+						<!-- ADR-0009's consequence, now served with the payload rather than written
+						     here, so the projection is the single source of what this view does not
+						     prove and markup cannot drift from it. -->
+						<aside class="jup-non-coverage" aria-label={$i18n.t('What this view does not prove')}>
+							<p class="jup-non-coverage-label">{$i18n.t('What this view does not prove')}</p>
+							<ul class="jup-non-coverage-list">
+								{#each portfolio?.engagement_non_coverage ?? [] as statement (statement)}
+									<li>{statement}</li>
+								{/each}
+							</ul>
+						</aside>
 
 						<ul class="mt-4 flex flex-col gap-3">
 							{#each portfolio?.engagements ?? [] as engagement (engagement.id)}
@@ -298,6 +325,21 @@
 						</ul>
 					</section>
 				{/if}
+			{/if}
+
+			{#if (portfolio?.non_coverage ?? []).length > 0}
+				<!-- Outside the branch chain on purpose. The empty and unavailable states are
+				     exactly where a reader fills the silence with an assumption, so they are the
+				     last place non-coverage should disappear. A clean dashboard mistaken for a
+				     safe portfolio is the failure these sentences exist to prevent. -->
+				<aside class="jup-non-coverage" aria-label={$i18n.t('What this view does not prove')}>
+					<p class="jup-non-coverage-label">{$i18n.t('What this view does not prove')}</p>
+					<ul class="jup-non-coverage-list">
+						{#each portfolio?.non_coverage ?? [] as statement (statement)}
+							<li>{statement}</li>
+						{/each}
+					</ul>
+				</aside>
 			{/if}
 		</div>
 	</div>
@@ -532,5 +574,83 @@
 	.jup-awaiting {
 		flex-basis: 100%;
 		margin-left: 2.15rem;
+	}
+
+	/* One visually separated block per tier. The separation is the point: two bases must not
+	 * read as one statement, so they do not share a row, a rule or a background. */
+	.jup-figures {
+		margin-top: 1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.85rem;
+	}
+
+	.jup-tier {
+		border-left: 3px solid var(--jup-line);
+		padding-left: 0.75rem;
+	}
+
+	.jup-tier-label {
+		color: var(--jup-ink);
+		font-size: 0.72rem;
+		font-weight: 600;
+		letter-spacing: 0.04em;
+	}
+
+	.jup-tier-meaning {
+		color: var(--jup-ink-soft);
+		font-size: 0.72rem;
+		margin-top: 0.1rem;
+	}
+
+	.jup-figure-list {
+		margin-top: 0.45rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.jup-figure {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.5rem;
+	}
+
+	.jup-figure-value {
+		color: var(--jup-ink);
+		font-size: 0.95rem;
+		font-weight: 600;
+	}
+
+	.jup-figure-label {
+		color: var(--jup-ink-soft);
+		font-size: 0.8rem;
+	}
+
+	.jup-non-coverage {
+		margin-top: 1.75rem;
+		background: var(--jup-neu-bg);
+		color: var(--jup-neu-text);
+		border: 1px solid var(--jup-line);
+		border-radius: var(--jup-radius);
+		padding: 0.9rem 1.1rem;
+	}
+
+	.jup-non-coverage-label {
+		font-size: 0.7rem;
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+	}
+
+	.jup-non-coverage-list {
+		margin-top: 0.45rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.3rem;
+		font-size: 0.8rem;
+		list-style: disc;
+		padding-left: 1.1rem;
 	}
 </style>

@@ -10,6 +10,26 @@ export type EvidenceItem = {
 	engagement: string | null;
 };
 
+export type CertaintyTier = 'FAKTA' | 'POTENSI' | 'ILUSTRATIF';
+
+export type Figure = {
+	label: string;
+	// Written text, never a number — a parsed number is one something eventually adds up, and
+	// the one sum this system must never compute is one that crosses tiers (D11).
+	value: string;
+	tier: CertaintyTier;
+	tier_label: string;
+	tier_meaning: string;
+	basis: string;
+};
+
+export type TierGroup = {
+	tier: CertaintyTier;
+	label: string;
+	meaning: string;
+	figures: Figure[];
+};
+
 export type Engagement = {
 	id: string;
 	counterparty: string[];
@@ -51,6 +71,10 @@ export type PortfolioProject = {
 	blocking_requirements: EvidenceItem[];
 	// Whose reply this project is waiting for, across all its refusals, each named once.
 	awaiting_engagements: string[];
+	// Grouped, and the only shape figures arrive in. Do not flatten this: a flat list is how
+	// a feasibility NPV ends up beside a top-line revenue potential as though the two were
+	// comparable, which is precisely what D11 prohibits. There is no total to render.
+	figures_by_tier: TierGroup[];
 };
 
 export type Portfolio = {
@@ -58,6 +82,10 @@ export type Portfolio = {
 	// One record per engagement, however many gates cite it (ADR-0008). Gates carry ids and
 	// resolve them here, so a counterparty's stage exists in exactly one place.
 	engagements: Engagement[];
+	// What each view does not prove, shipped with the payload rather than written into the
+	// markup, so it cannot go stale unnoticed.
+	non_coverage: string[];
+	engagement_non_coverage: string[];
 	// Set only when the records could not be read. The page shows the sentence, so a
 	// misconfiguration is visible rather than looking like a clean portfolio.
 	unavailable_reason: string | null;

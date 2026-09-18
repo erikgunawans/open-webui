@@ -54,6 +54,61 @@ _BANNED_KEY_FRAGMENTS: tuple[str, ...] = (
     'closing_date',
 )
 
+# The three certainty tiers (D11), strongest basis first. A figure states which of these it
+# rests on, or it is not surfaced at all: "mixing these is how boards get misled" is the
+# decision verbatim, and a figure with no stated basis is the easiest way to mix them.
+TIERS: tuple[str, ...] = ('FAKTA', 'POTENSI', 'ILUSTRATIF')
+
+TIER_LABELS: dict[str, str] = {
+    'FAKTA': 'Tier 1 · FAKTA',
+    'POTENSI': 'Tier 2 · POTENSI',
+    'ILUSTRATIF': 'Tier 3 · ILUSTRATIF',
+}
+
+# What each tier is, in the words of the decision, so a reader never has to have read it.
+TIER_MEANINGS: dict[str, str] = {
+    'FAKTA': 'Feasibility economics — NPV, IRR and payback from the business plan.',
+    'POTENSI': 'Top-line revenue potential. Never margin: B-to-G prices are government-set.',
+    'ILUSTRATIF': 'Order-of-magnitude sizing from capacity targets and unit costs.',
+}
+
+# POTENSI is revenue, never margin (D11). A POTENSI figure labelled NPV, margin or profit is
+# the precise misreading the tier exists to prevent — a revenue potential dressed as money
+# the company would keep — so the label is refused rather than rendered with a caveat.
+# Both languages: these records are written by people who work in Bahasa and in English.
+_MARGIN_WORDS: tuple[str, ...] = (
+    'margin',
+    'marjin',
+    'profit',
+    'laba',
+    'keuntungan',
+    'npv',
+    'irr',
+    'ebitda',
+    'payback',
+)
+
+# Named Non-Coverage: what each view does NOT prove, published beside the view itself.
+#
+# Held here rather than written into the page so that there is one source of truth and so
+# that it can be tested. A non-coverage statement that lives only in markup is one nobody
+# notices going stale, and a clean dashboard mistaken for a safe portfolio is the specific
+# failure this system exists to prevent.
+PORTFOLIO_NON_COVERAGE: tuple[str, ...] = (
+    'This shows what was assessed, not whether the assessment was right. It cannot detect a '
+    'record that is well-formed and wrong.',
+    'A project with no assessment has not been evaluated. It has not passed, and it has not failed.',
+    'Current Gate says a gate was passed on the day it was signed. It is not a statement about the project today.',
+    'Figures carry the basis they rest on and are never combined across bases (D11). Nothing here totals a portfolio.',
+)
+
+ENGAGEMENT_NON_COVERAGE: tuple[str, ...] = (
+    'An engagement sits on the rung its artefact evidences. This states where it stands — never '
+    'whether it will close (ADR-0009).',
+    "A rung records a document, not a counterparty's intent. Judgement about intent stays with "
+    'the Director and outside this system.',
+)
+
 _PROJECTS_SUBDIR = 'projects'
 _ASSESSMENTS_SUBDIR = 'gate-assessments'
 _ENGAGEMENTS_SUBDIR = 'engagements'
@@ -92,6 +147,57 @@ class EvidenceItem:
     satisfied: bool
     artefact: str | None
     engagement: str | None
+
+
+@dataclass(frozen=True)
+class Figure:
+    """A number the dashboard surfaces, inseparable from the basis it rests on (D11).
+
+    `value` is held as the string the record wrote. Parsing it into a number would invite
+    the dashboard to add two of them up, and the one arithmetic this system must never do
+    is arithmetic across tiers — which is exactly what "mixing these is how boards get
+    misled" names.
+
+    `basis` is mandatory. A figure whose source cannot be opened is an assertion, and this
+    projection refuses assertions in every other field for the same reason.
+    """
+
+    label: str
+    value: str
+    tier: str
+    basis: str
+
+    @property
+    def tier_label(self) -> str:
+        """`Tier 2 · POTENSI` — the ordinal travels with the name, as D11 writes it."""
+        return TIER_LABELS[self.tier]
+
+    @property
+    def tier_meaning(self) -> str:
+        """What the tier means, so a board member need not have read the decision log."""
+        return TIER_MEANINGS[self.tier]
+
+
+@dataclass(frozen=True)
+class TierGroup:
+    """Every figure resting on one basis, kept together and never merged with another.
+
+    Grouping is the structural half of D11. A caller cannot render two tiers in one
+    statement by accident, because the only thing it is handed is a group that has exactly
+    one tier — and there is deliberately no total, no sum and no blended figure anywhere in
+    this module for it to reach for instead.
+    """
+
+    tier: str
+    figures: tuple[Figure, ...]
+
+    @property
+    def label(self) -> str:
+        return TIER_LABELS[self.tier]
+
+    @property
+    def meaning(self) -> str:
+        return TIER_MEANINGS[self.tier]
 
 
 @dataclass(frozen=True)
@@ -169,6 +275,7 @@ class Project:
     name: str
     pillar: str | None
     assessments: tuple[GateAssessment, ...]
+    figures: tuple[Figure, ...] = ()
 
     @property
     def current_gate(self) -> str | None:
@@ -213,6 +320,20 @@ class Project:
         return tuple(blocking.values())
 
     @property
+    def figures_by_tier(self) -> tuple[TierGroup, ...]:
+        """This project's figures, grouped by basis, in D11's order.
+
+        Grouped rather than listed because a flat list is an invitation to render two tiers
+        side by side as though they were comparable. Only tiers that actually have figures
+        appear, so an empty group never implies a basis nobody claimed.
+        """
+        return tuple(
+            TierGroup(tier=tier, figures=tuple(figure for figure in self.figures if figure.tier == tier))
+            for tier in TIERS
+            if any(figure.tier == tier for figure in self.figures)
+        )
+
+    @property
     def awaiting_engagements(self) -> tuple[str, ...]:
         """Every Engagement id this project's refusals are waiting on, each named once.
 
@@ -236,6 +357,16 @@ class Portfolio:
     # One record per engagement, however many gates cite it (ADR-0008). Ordered by id so
     # the projection never varies with how the filesystem lists files.
     engagements: tuple[Engagement, ...] = ()
+
+    @property
+    def non_coverage(self) -> tuple[str, ...]:
+        """What the portfolio view does not prove, published alongside it."""
+        return PORTFOLIO_NON_COVERAGE
+
+    @property
+    def engagement_non_coverage(self) -> tuple[str, ...]:
+        """What the engagements view does not prove. A separate view states its own."""
+        return ENGAGEMENT_NON_COVERAGE
 
     @property
     def available(self) -> bool:
@@ -335,6 +466,7 @@ def _load_projects(directory: Path) -> dict[str, Project]:
             name=_text(frontmatter, 'name', path),
             pillar=_optional_text(frontmatter, 'pillar', path),
             assessments=(),
+            figures=_figures(frontmatter, path),
         )
     return projects
 
@@ -453,6 +585,7 @@ def _attach(projects: dict[str, Project], assessments: list[GateAssessment]) -> 
             name=project.name,
             pillar=project.pillar,
             assessments=tuple(sorted(by_project[project.id], key=_ladder_position)),
+            figures=project.figures,
         )
         for project in sorted(projects.values(), key=lambda project: project.id)
     )
@@ -655,3 +788,74 @@ def _is_forecast_key(key: str) -> bool:
     """Whether a key names a forecast, normalising hyphens and spacing to underscores."""
     normalised = key.strip().lower().replace('-', '_').replace(' ', '_')
     return any(fragment in normalised for fragment in _BANNED_KEY_FRAGMENTS)
+
+
+def _figures(frontmatter: dict[str, object], path: Path) -> tuple[Figure, ...]:
+    """Read the figures a record surfaces, refusing any that cannot name its basis.
+
+    Absent `figures` is permitted and means the record surfaces none — which is the correct
+    default. A dashboard with no numbers on it proves less than one with numbers, and is
+    honest; a dashboard with numbers whose basis nobody stated is worse than both.
+    """
+    raw = frontmatter.get('figures')
+    if raw is None:
+        return ()
+    if not isinstance(raw, list):
+        raise RecordError(path, 'figures', 'must be a list of figure entries')
+    return tuple(_figure(entry, position, path) for position, entry in enumerate(raw, start=1))
+
+
+def _figure(entry: object, position: int, path: Path) -> Figure:
+    """Read one figure, refusing a POTENSI number labelled as money anyone would keep."""
+    field = f'figures[{position}]'
+    if not isinstance(entry, dict):
+        raise RecordError(path, field, 'must be a mapping with a label, a value, a tier and a basis')
+
+    with _within(field):
+        label = _text(entry, 'label', path)
+        value = _value(entry, path)
+        tier = _choice(entry, 'tier', TIERS, path)
+        basis = _text(entry, 'basis', path)
+
+    if tier == 'POTENSI':
+        offending = _margin_word(label)
+        if offending is not None:
+            raise RecordError(
+                path,
+                f'{field}.label',
+                f'is {label!r}, and a POTENSI figure is top-line revenue — labelling it {offending!r} '
+                f'presents a revenue potential as money the company would keep (D11)',
+            )
+
+    return Figure(label=label, value=value, tier=tier, basis=basis)
+
+
+def _value(frontmatter: dict[str, object], path: Path) -> str:
+    """Read a figure's value as written, accepting a number but keeping it as text.
+
+    Deliberately never a float. A parsed number is a number something will eventually add
+    up, and the one sum this system must never compute is one that crosses tiers.
+    """
+    value = frontmatter.get('value')
+    if value is None:
+        raise RecordError(path, 'value', 'is missing')
+    if isinstance(value, bool) or not isinstance(value, (str, int, float)):
+        raise RecordError(path, 'value', f'is {value!r}, which is not a number or a string')
+    text = str(value).strip()
+    if not text:
+        raise RecordError(path, 'value', 'must not be blank')
+    return text
+
+
+def _margin_word(label: str) -> str | None:
+    """The margin-or-profit word in a label, or None — matched on whole words.
+
+    Whole words, not substrings, so a legitimate label is not refused for containing one by
+    accident. The cost of a false refusal here is a PMO analyst blocked from recording a
+    true figure, which is a worse failure than the narrower ban missing an exotic synonym.
+    """
+    words = {word.strip('"\'()[]:;,.') for word in label.lower().replace('-', ' ').replace('/', ' ').split()}
+    for banned in _MARGIN_WORDS:
+        if banned in words:
+            return banned
+    return None
