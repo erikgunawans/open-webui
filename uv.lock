@@ -3102,6 +3102,7 @@ unstructured = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
 ]
@@ -3229,6 +3230,7 @@ provides-extras = ["all", "mariadb", "postgres", "unstructured"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "pytest", specifier = ">=8.4.0" },
     { name = "pytest-asyncio", specifier = ">=1.0.0" },
     { name = "ruff", specifier = ">=0.15.5" },
 ]

@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Backend CI — Python formatting checks via Ruff
+# Backend CI — pytest suite plus Python formatting checks via Ruff
 # Runs on pushes and PRs to main/dev when backend files change
 # ─────────────────────────────────────────────────────────────────────────────
 name: Python CI
@@ -7,10 +7,10 @@ name: Python CI
 on:
   push:
     branches: [main, dev]
-    paths: ['backend/**', 'pyproject.toml', 'uv.lock', '.github/workflows/backend.yaml']
+    paths: ['backend/**', 'tests/**', 'pyproject.toml', 'uv.lock', '.github/workflows/backend.yaml']
   pull_request:
     branches: [main, dev]
-    paths: ['backend/**', 'pyproject.toml', 'uv.lock', '.github/workflows/backend.yaml']
+    paths: ['backend/**', 'tests/**', 'pyproject.toml', 'uv.lock', '.github/workflows/backend.yaml']
 
 concurrency:
   group: backend-${{ github.ref }}
@@ -41,3 +41,25 @@ jobs:
 
       - name: Detect logic errors
         run: ruff check --select=F --ignore=F401,F403,F405,F541,F811,F841 --output-format=github .
+
+  # ── Backend test suite ───────────────────────────────────────────────────
+  pytest:
+    name: pytest (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+
+      # --only-group dev deliberately omits the project and its runtime tree, so
+      # this job does not install chromadb/transformers to run the suite.
+      - name: Run backend tests
+        run: uv run --only-group dev pytest

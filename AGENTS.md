@@ -22,5 +22,23 @@ The five canonical labels, unchanged: `needs-triage`, `needs-info`, `ready-for-a
 ### Domain docs
 
 Single-context — one `CONTEXT.md` and one `docs/adr/` at the repo root, covering both the
-SvelteKit frontend and the Python backend. Both are created lazily; neither exists yet.
+SvelteKit frontend and the Python backend. Both now exist.
 See `docs/agents/domain.md`.
+
+## Backend tests
+
+One command, from a clean checkout:
+
+```
+uv run --only-group dev pytest
+```
+
+`--only-group dev` installs the test tooling **without** the project and its runtime tree
+(chromadb, transformers, sentence-transformers and the rest), so the suite is seconds, not
+minutes. A ticket that needs to import `open_webui` drops the flag and pays for the full
+environment: `uv run --group dev pytest`.
+
+Tests live in `tests/` (plural) at the repo root, deliberately outside `backend/` so the
+quarterly upstream rebase in ADR-0007 never has to merge them. `test/` (singular) is the
+vendor tree's own directory — do not add to it. Fixture data goes in `tests/fixtures/`,
+reached through the `fixtures_dir` / `fixture_path` fixtures in `tests/conftest.py`.

@@ -215,9 +215,20 @@ ignore-words-list = 'ans'
 
 [dependency-groups]
 dev = [
+    "pytest>=8.4.0",
     "pytest-asyncio>=1.0.0",
     "ruff>=0.15.5",
 ]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+# Fork-owned tests only. `test/` (singular) belongs to the vendor tree.
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+# `auto` rather than `strict`: an unmarked async test is a silent hazard, and every
+# later ticket in this set exercises async FastAPI paths.
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.black]
 line-length = 120
