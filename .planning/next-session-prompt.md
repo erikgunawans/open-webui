@@ -4,11 +4,15 @@
 
 Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-18 evening).
 
-**Anchor:** `origin/main` at `a901bd4db` **as this was written**, or one commit ahead at this
-checkpoint's own wrap commit (subject: `chore(session): checkpoint — @jup/ui rebased on canonical
-JUP tokens`). Verify with `git log --oneline -1 origin/main`; a single commit of drift whose subject
-names this checkpoint is EXPECTED, not drift to investigate. More than that, or a different subject,
-means someone else pushed — investigate before writing.
+**Anchor:** `origin/main` at `a901bd4db` **as the last non-wrap commit**, followed by this
+checkpoint's own wrap commits — every one of which has a subject beginning `chore(session):`.
+
+Verify with `git log --oneline a901bd4db..origin/main`. If every commit in that range is a
+`chore(session):` one, there is NO drift — that is this wrap writing itself down, and the count is
+deliberately not pinned because each amendment to this file moves the head again. **Any commit in
+that range whose subject does NOT start `chore(session):` means a parallel session pushed** — that
+is real drift, and item 1 may rest on something that changed underneath it. Investigate before
+writing.
 
 **Current state:** `ent-os-new-jup` is still a pristine Open WebUI v0.11.3 fork with **zero product
 code** — documentation commits only. The design system is DONE and lives in a separate repo,
