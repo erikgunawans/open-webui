@@ -1,0 +1,255 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Drift gates — the two checks that compare what is WRITTEN against what is SERVED
+#
+#   kb-drift      `kb/partners.md` vs `records/`            (#9,  ADR-0011)
+#   record-sync   `gs://jup-ops-records` vs the JUP tree    (#13, sync-records.sh)
+#
+# Both already exist as checkers. Neither ran here against live state: kb-drift runs
+# in CI only against fixtures (tests/test_kb_sync.py) and against the live tree only in
+# ~/jup/.githooks/pre-commit — which checks the WORKING TREE, not the staged content,
+# and which `--no-verify` bypasses. record-sync ran when a human remembered, which is
+# the failure mode sync-records.sh was written to end.
+#
+# They are one workflow because they are one problem: both must reach state that lives
+# outside this repository, and so both are blocked on credentials this repository does
+# not have. Solve it once.
+#
+# ── Why the jobs SKIP rather than pass when a credential is absent ───────────
+# A gate that cannot see the thing it guards must not report green. Green and
+# "I could not look" would then be the same colour, and the whole point of a gate is
+# that its colour means something. GitHub renders a skipped job grey, which is neither,
+# and preflight below writes a notice and a run summary naming the secret that is
+# missing and the drift it is therefore not catching.
+#
+# This is also what lets the workflow exist before the credentials do: it is committed
+# and proven to skip correctly now, and starts gating the moment the secrets are issued,
+# with no second change.
+# ─────────────────────────────────────────────────────────────────────────────
+name: Drift gates
+
+on:
+  # Primary trigger. Both gates watch state in OTHER places — the jup repo and a GCS
+  # bucket — which drift without any commit landing here. A push-triggered gate would
+  # be silent for exactly as long as nobody touches this repository, which is precisely
+  # when a stale dashboard goes unnoticed.
+  schedule:
+    - cron: '0 22 * * *' # 05:00 Asia/Jakarta, before the working day
+  workflow_dispatch:
+  # Changes to the gate machinery itself still get checked immediately.
+  push:
+    branches: [main]
+    paths:
+      - 'backend/jup/kb_sync.py'
+      - 'deploy/gcp/sync-records.sh'
+      - '.github/workflows/drift-gates.yaml'
+
+concurrency:
+  group: drift-gates-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write # Workload Identity Federation; see preflight's note on keys
+
+jobs:
+  # ── Which gates can run, and a loud notice for the ones that cannot ────────
+  # The `secrets` context is not available in a job-level `if:`, so presence is probed
+  # here and published as outputs the gate jobs gate themselves on.
+  preflight:
+    name: Which gates can run
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      jup_tree: ${{ steps.probe.outputs.jup_tree }}
+      gcs: ${{ steps.probe.outputs.gcs }}
+    steps:
+      - id: probe
+        # Values are only ever tested for emptiness; nothing is echoed.
+        env:
+          JUP_REPO_TOKEN: ${{ secrets.JUP_REPO_TOKEN }}
+          GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
+          GCP_RECORDS_READER_SA: ${{ secrets.GCP_RECORDS_READER_SA }}
+        run: |
+          set -euo pipefail
+          missing=()
+
+          if [ -n "${JUP_REPO_TOKEN:-}" ]; then
+            jup_tree=true
+          else
+            jup_tree=false
+            missing+=('`JUP_REPO_TOKEN` — a PAT with **read** access to `erikgunawans/jup` and nothing else')
+          fi
+
+          if [ -n "${GCP_WIF_PROVIDER:-}" ] && [ -n "${GCP_RECORDS_READER_SA:-}" ]; then
+            gcs=true
+          else
+            gcs=false
+            missing+=('`GCP_WIF_PROVIDER` + `GCP_RECORDS_READER_SA` — Workload Identity Federation onto a **read-only** service account for `gs://jup-ops-records`')
+          fi
+
+          echo "jup_tree=$jup_tree" >> "$GITHUB_OUTPUT"
+          echo "gcs=$gcs" >> "$GITHUB_OUTPUT"
+
+          {
+            echo '## Drift gates'
+            echo
+            if [ ${#missing[@]} -eq 0 ]; then
+              echo 'Both gates are configured and ran. A green run means the written state and the'
+              echo 'served state agree.'
+            else
+              echo '> [!WARNING]'
+              echo '> **Some gates did not run.** They are skipped, not passing. Nothing below'
+              echo '> should be read as evidence that the deployed state is current.'
+              echo
+              echo 'Missing credentials:'
+              echo
+              for item in "${missing[@]}"; do echo "- $item"; done
+              echo
+              echo 'Until these are issued, drift in the skipped gates is caught only by'
+              echo '`~/jup/.githooks/pre-commit` (working tree only, `--no-verify`-bypassable)'
+              echo 'and by a human remembering to run `deploy/gcp/sync-records.sh --check`.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Guarded, not bare: under `set -u` an empty array expands to an unbound
+          # variable, so the unguarded loop fails on the ONE path that matters most —
+          # the day both credentials are finally present and nothing should be skipped.
+          if [ ${#missing[@]} -ne 0 ]; then
+            for item in "${missing[@]}"; do
+              clean=$(printf '%s' "$item" | tr -d '`*')
+              echo "::notice title=Drift gate skipped — credential absent::$clean"
+            done
+          fi
+
+  # ── kb/partners.md vs records/ (#9, ADR-0011) ──────────────────────────────
+  # `kb/partners.md` is loaded WHOLE by the strategy Worker, so a stale stage here is
+  # not an out-of-date document — it is what a commissioner is told when they ask where
+  # a counterparty stands.
+  kb-drift:
+    name: kb/ agrees with records/ (live tree)
+    needs: preflight
+    if: needs.preflight.outputs.jup_tree == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out ent-os (the checker)
+        uses: actions/checkout@v5
+
+      - name: Check out the live JUP tree (the thing being checked)
+        uses: actions/checkout@v5
+        with:
+          repository: erikgunawans/jup
+          token: ${{ secrets.JUP_REPO_TOKEN }}
+          path: jup-tree
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.12'
+          enable-cache: true
+
+      - name: Check for drift
+        # PYTHONPATH is load-bearing and its absence is NOT a no-op. `pythonpath =
+        # ["backend"]` in pyproject.toml is a pytest setting, so it does nothing for a
+        # bare `python -m`. Locally the module imports anyway, but only because a full
+        # `uv sync` leaves an editable-install .pth pointing at backend/ — and
+        # `--only-group dev` does not install the project, so that .pth is not here.
+        # Without this line the run dies with ModuleNotFoundError and exit **1**, which
+        # is this tool's code for "drift". A missing checkout would then page someone
+        # about a governance disagreement that does not exist.
+        env:
+          PYTHONPATH: backend
+        run: |
+          set -uo pipefail
+          # errexit is ON by default here — GitHub runs this as `bash -e {0}` — so the
+          # obvious shape aborts the step before $? is ever read. The same trap the
+          # ~/jup pre-commit hook documents, arriving from the other direction.
+          set +e
+          uv run --only-group dev python -m jup.kb_sync --jup-root jup-tree --check
+          status=$?
+          set -e
+          # 1 and 2 are kept apart deliberately: drift is a document someone must
+          # regenerate, a bad tree is a checkout that never arrived. Collapsing them
+          # turns a broken runner into a governance alarm.
+          case "$status" in
+            0) echo "::notice::kb/ agrees with records/." ;;
+            1) echo "::error title=KB drift::kb/partners.md disagrees with records/. Regenerate it: uv run --only-group dev python -m jup.kb_sync --jup-root <jup>" ;;
+            *) echo "::error title=Gate could not run::jup.kb_sync exited $status — a malformed or missing tree, NOT drift. The gate did not check anything." ;;
+          esac
+          exit "$status"
+
+  # ── gs://jup-ops-records vs the JUP tree (#13) ─────────────────────────────
+  # The bucket is an rsync, not a live mount: a committed record is not on the dashboard
+  # until sync-records.sh runs. This job only ever observes that; the write half stays
+  # a human action, because it touches deployed infrastructure.
+  record-sync:
+    name: The bucket matches the JUP tree
+    needs: preflight
+    if: needs.preflight.outputs.jup_tree == 'true' && needs.preflight.outputs.gcs == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out ent-os (the checker)
+        uses: actions/checkout@v5
+
+      - name: Check out the live JUP tree (the thing being checked)
+        uses: actions/checkout@v5
+        with:
+          repository: erikgunawans/jup
+          token: ${{ secrets.JUP_REPO_TOKEN }}
+          path: jup-tree
+          persist-credentials: false
+          # sync-records.sh reads `git rev-parse HEAD` and `git status --porcelain`
+          # from this tree, so it must be a real checkout, not an export.
+          fetch-depth: 1
+
+      # Workload Identity Federation rather than a downloadable service-account key.
+      # A JSON key pasted into a repository secret is a long-lived credential sitting
+      # in a second place — which is the shape of #11, arriving by a different door.
+      - id: auth
+        name: Authenticate to GCP (keyless)
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_RECORDS_READER_SA }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Assert the runner cannot write to the bucket
+        # The gate is read-only by construction — it only ever passes --check, and
+        # --check only ever passes --dry-run. This asserts the second line of defence:
+        # that the CREDENTIAL could not write even if something here called the write
+        # path by mistake. testIamPermissions answers that without writing anything.
+        env:
+          BUCKET_NAME: jup-ops-records
+        run: |
+          set -euo pipefail
+          held=$(curl -fsS \
+            -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+            "https://storage.googleapis.com/storage/v1/b/${BUCKET_NAME}/iam/testPermissions?permissions=storage.objects.create&permissions=storage.objects.delete&permissions=storage.objects.update" \
+            | python3 -c 'import json,sys; print(",".join(json.load(sys.stdin).get("permissions", [])))')
+          if [ -n "$held" ]; then
+            echo "::error title=Credential is too broad::The runner holds write permissions on ${BUCKET_NAME}: ${held}. This gate observes deployed state; it must never be able to change it. Narrow the service account to Storage Object Viewer."
+            exit 1
+          fi
+          echo "::notice::Runner holds no write permission on ${BUCKET_NAME}."
+
+      - name: Check for drift
+        env:
+          JUP_TREE: jup-tree
+          BUCKET: gs://jup-ops-records
+          PROJECT: jup-ops
+        run: |
+          set -uo pipefail
+          # --check is read-only: --dry-run never touches the bucket. The bare script
+          # WRITES to deployed infrastructure and must never be reachable from CI.
+          set +e
+          ./deploy/gcp/sync-records.sh --check
+          status=$?
+          set -e
+          case "$status" in
+            0) echo "::notice::The bucket matches the JUP tree." ;;
+            1) echo "::error title=Record drift::gs://jup-ops-records is serving something other than the committed tree. A human with deploy authorization must run deploy/gcp/sync-records.sh." ;;
+            *) echo "::error title=Gate could not run::sync-records.sh exited $status — a bad invocation or a missing tree, NOT drift. The gate did not check anything." ;;
+          esac
+          exit "$status"

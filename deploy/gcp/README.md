@@ -52,6 +52,10 @@ Until that sync is automated, **a record change is a two-step act**: commit it i
 then sync. Anyone who forgets the second step is looking at a dashboard that disagrees with the
 repo — which is the failure mode issue #9 exists to close.
 
+`./sync-records.sh --check` is read-only and answers "has it fallen behind?" without writing
+anything. `.github/workflows/drift-gates.yaml` runs that daily so nobody has to remember to ask —
+but it is credential-gated and currently skips; see `drift-gates.md` for what to issue (#13).
+
 ## Order of operations
 
 ```sh
@@ -61,6 +65,7 @@ repo — which is the failure mode issue #9 exists to close.
 ```
 
 IAP and the load balancer are the last step and need a domain — see `iap.md`.
+The drift gates that watch this deployment are in `drift-gates.md`.
 
 ## What this does not do
 

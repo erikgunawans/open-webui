@@ -38,10 +38,18 @@ What runs where:
 | Forced-failure tests | ent-os-new-jup CI | the check catches drift, in five distinct ways |
 | `test_the_real_jup_tree_has_no_drift` | every local `pytest` | the live tree is clean; skipped in CI |
 | `~/jup/.githooks/pre-commit` | every commit touching `records/` or `kb/` | drift never reaches a commit |
+| `.github/workflows/drift-gates.yaml` | daily, once credentialed | the **live** tree is clean, on a schedule |
 
 Enable the hook once per clone with `git config core.hooksPath .githooks`. It checks the working
-tree rather than the staged content, so a partial stage can still commit drift; wiring cross-repo CI
-with a token would close that, and is the open follow-up.
+tree rather than the staged content, so a partial stage can still commit drift, and `--no-verify`
+bypasses it entirely.
+
+**The CI gate now exists but does not yet run (#13).** `drift-gates.yaml` closes both holes — it
+reads the committed state, so a partial stage cannot hide from it, and it runs on a schedule, so
+drift arriving from the other repository surfaces without anyone pushing here. It is still blocked
+on the PAT this ADR anticipated. Until that is issued the job **skips**, visibly: a gate that cannot
+see what it guards must not report green, because green and "I could not look" would then be the
+same colour.
 
 **A record edit now has a second step.** `gs://jup-ops-records` is an rsync and the Worker reads a
 built bundle, so a committed record reaches the dashboard only after `sync-records.sh`, and reaches
