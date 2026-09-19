@@ -1,0 +1,11 @@
+# Build-context exclusions for `gcloud builds submit`. Not committed — see deploy runbook.
+.git
+node_modules
+.svelte-kit
+package
+backend/data
+.venv
+venv
+__pycache__
+*.pyc
+.DS_Store

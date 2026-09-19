@@ -28,7 +28,11 @@ FROM --platform=$BUILDPLATFORM node:22-alpine3.20 AS build
 ARG BUILD_HASH
 
 # Set Node.js options (heap limit Allocation failed - JavaScript heap out of memory)
-# ENV NODE_OPTIONS="--max-old-space-size=4096"
+# JUP: uncommented, and raised from upstream's 4096. `vite build` OOMs on Cloud Build at
+# node's default cap regardless of machine size — it failed identically on an 8 GB
+# E2_HIGHCPU_8 and a 32 GB E2_HIGHCPU_32, which is what rules out machine memory as the
+# cause. Minimal and surgical per ADR-0007: upstream ships this line for this exact error.
+ENV NODE_OPTIONS="--max-old-space-size=8192"
 
 WORKDIR /app
 

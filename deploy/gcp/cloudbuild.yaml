@@ -1,0 +1,21 @@
+# BuildKit is not optional here. The Dockerfile opens with
+#   FROM --platform=$BUILDPLATFORM node:22-alpine3.20 AS build
+# and BUILDPLATFORM is a BuildKit-provided variable. Cloud Build's legacy docker builder
+# leaves it empty and dies with "failed to parse platform: '' is an invalid component",
+# which reads like a Dockerfile syntax error rather than a missing build feature.
+steps:
+  - name: gcr.io/cloud-builders/docker
+    env: ['DOCKER_BUILDKIT=1']
+    args:
+      - build
+      - '--tag=${_IMAGE}:${_TAG}'
+      - '--tag=${_IMAGE}:latest'
+      - '--build-arg=BUILD_HASH=${_TAG}'
+      - '--cache-from=${_IMAGE}:latest'
+      - .
+  - name: gcr.io/cloud-builders/docker
+    args: ['push', '--all-tags', '${_IMAGE}']
+options:
+  machineType: E2_HIGHCPU_32
+  logging: CLOUD_LOGGING_ONLY
+timeout: 3600s
