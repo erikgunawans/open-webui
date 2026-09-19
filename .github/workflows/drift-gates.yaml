@@ -121,6 +121,46 @@ jobs:
             done
           fi
 
+  # ── The bucket credential is read-only ─────────────────────────────────────
+  # Its own job, gated on the GCS credential ALONE, so it proves itself the moment
+  # those secrets exist rather than waiting on the PAT that record-sync also needs.
+  # record-sync `needs:` this, so the drift check cannot run with a credential that
+  # could publish.
+  credential-scope:
+    name: The bucket credential is read-only
+    needs: preflight
+    if: needs.preflight.outputs.gcs == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - id: auth
+        name: Authenticate to GCP (keyless)
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_RECORDS_READER_SA }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Assert the runner cannot write to the bucket
+        # The gate is read-only by construction — it only ever passes --check, and
+        # --check only ever passes --dry-run. This asserts the second line of defence:
+        # that the CREDENTIAL could not write even if something called the write path
+        # by mistake. testIamPermissions answers that without writing anything.
+        env:
+          BUCKET_NAME: jup-ops-records
+        run: |
+          set -euo pipefail
+          held=$(curl -fsS \
+            -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+            "https://storage.googleapis.com/storage/v1/b/${BUCKET_NAME}/iam/testPermissions?permissions=storage.objects.create&permissions=storage.objects.delete&permissions=storage.objects.update&permissions=storage.buckets.setIamPolicy" \
+            | python3 -c 'import json,sys; print(",".join(json.load(sys.stdin).get("permissions", [])))')
+          if [ -n "$held" ]; then
+            echo "::error title=Credential is too broad::The runner holds write permissions on ${BUCKET_NAME}: ${held}. This gate observes deployed state; it must never be able to change it. Narrow the service account to Storage Object Viewer on the bucket."
+            exit 1
+          fi
+          echo "::notice::Runner holds no write permission on ${BUCKET_NAME}."
+
   # ── kb/partners.md vs records/ (#9, ADR-0011) ──────────────────────────────
   # `kb/partners.md` is loaded WHOLE by the strategy Worker, so a stale stage here is
   # not an out-of-date document — it is what a commissioner is told when they ask where
@@ -184,7 +224,9 @@ jobs:
   # a human action, because it touches deployed infrastructure.
   record-sync:
     name: The bucket matches the JUP tree
-    needs: preflight
+    # Depends on credential-scope, not just preflight: a too-broad credential skips
+    # this job rather than checking with it.
+    needs: [preflight, credential-scope]
     if: needs.preflight.outputs.jup_tree == 'true' && needs.preflight.outputs.gcs == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -214,25 +256,6 @@ jobs:
           service_account: ${{ secrets.GCP_RECORDS_READER_SA }}
 
       - uses: google-github-actions/setup-gcloud@v3
-
-      - name: Assert the runner cannot write to the bucket
-        # The gate is read-only by construction — it only ever passes --check, and
-        # --check only ever passes --dry-run. This asserts the second line of defence:
-        # that the CREDENTIAL could not write even if something here called the write
-        # path by mistake. testIamPermissions answers that without writing anything.
-        env:
-          BUCKET_NAME: jup-ops-records
-        run: |
-          set -euo pipefail
-          held=$(curl -fsS \
-            -H "Authorization: Bearer $(gcloud auth print-access-token)" \
-            "https://storage.googleapis.com/storage/v1/b/${BUCKET_NAME}/iam/testPermissions?permissions=storage.objects.create&permissions=storage.objects.delete&permissions=storage.objects.update" \
-            | python3 -c 'import json,sys; print(",".join(json.load(sys.stdin).get("permissions", [])))')
-          if [ -n "$held" ]; then
-            echo "::error title=Credential is too broad::The runner holds write permissions on ${BUCKET_NAME}: ${held}. This gate observes deployed state; it must never be able to change it. Narrow the service account to Storage Object Viewer."
-            exit 1
-          fi
-          echo "::notice::Runner holds no write permission on ${BUCKET_NAME}."
 
       - name: Check for drift
         env:
