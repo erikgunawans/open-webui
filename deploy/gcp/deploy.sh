@@ -15,16 +15,19 @@ echo "==> building $REPO:$SHA"
 gcloud builds submit --project="$PROJECT" --region="$REGION" \
   --tag="$REPO:$SHA" --timeout=3600s --machine-type=e2-highcpu-8
 
-DB_IP="$(gcloud sql instances describe "$INSTANCE" --project="$PROJECT" \
-  --format='value(ipAddresses[0].ipAddress)')"
-DB_PW="$(gcloud secrets versions access latest --secret=db-password --project="$PROJECT")"
+# DATABASE_URL is NOT assembled here. The whole connection string lives in the `database-url`
+# secret and reaches the service as a secret reference (#11). Building it here from `db-password`
+# is what put the production credential in plaintext on the service in the first place, readable
+# to every `run.viewer` — so the lookup is deliberately gone, not merely unused.
+#
+# The secret embeds the instance's private IP. If `jup-ops-db` is ever recreated and lands on a
+# different address, add a new version of `database-url` — this script will not notice.
 
-# An env-vars FILE, not --set-env-vars: DATABASE_URL contains '@' and ':', which collide with
-# every delimiter --set-env-vars offers. gcloud reports that as "Bad syntax for dict arg".
+# An env-vars FILE, not --set-env-vars: the values below are plain, but the file form is kept so
+# adding a value containing '@' or ':' later does not hit "Bad syntax for dict arg".
 ENVFILE="$(mktemp)"; trap 'rm -f "$ENVFILE"' EXIT
 umask 077
 cat > "$ENVFILE" <<EOF
-DATABASE_URL: "postgresql://entos:${DB_PW}@${DB_IP}:5432/entos"
 VECTOR_DB: "pgvector"
 STORAGE_PROVIDER: "gcs"
 GCS_BUCKET_NAME: "jup-ops-data"
@@ -46,7 +49,7 @@ gcloud run deploy "$SERVICE" \
   --network=default --subnet=default --vpc-egress=private-ranges-only \
   --add-volume="name=jup,type=cloud-storage,bucket=jup-ops-records,readonly=true" \
   --add-volume-mount="volume=jup,mount-path=/srv/jup" \
-  --set-secrets="WEBUI_SECRET_KEY=webui-secret-key:latest" \
+  --set-secrets="WEBUI_SECRET_KEY=webui-secret-key:latest,DATABASE_URL=database-url:latest" \
   --env-vars-file="$ENVFILE"
 
 rm -f "$ENVFILE"

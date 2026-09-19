@@ -12,8 +12,33 @@ in `docker-compose.jup.yaml` — this container must never be able to write a go
 | Database | Cloud SQL `jup-ops-db`, Postgres 16, **private IP only**. Serves both the app DB and pgvector. |
 | Records | `gs://jup-ops-records`, mounted read-only at `/srv/jup`. |
 | Uploads | `gs://jup-ops-data` via `STORAGE_PROVIDER=gcs`. |
-| Secrets | `webui-secret-key`, `db-password` in Secret Manager. |
+| Secrets | `webui-secret-key`, `database-url`, `db-password` in Secret Manager. **Both env vars the service needs are secret references; no credential is a plain value on the service.** |
 | Access | IAP in front of a global load balancer. No public path to the app. |
+
+## The database credential is a secret reference, and must stay one
+
+`DATABASE_URL` reaches the service as a reference to the `database-url` secret, the same way
+`WEBUI_SECRET_KEY` always did. It did not start that way: the connection string was assembled in
+`deploy.sh` and passed as a plain value, which put the production Postgres password in the output of
+`gcloud run services describe` — readable with `run.viewer`, the role you hand someone so they can
+look at a revision. Rotated and moved on 2026-09-19 (#11); treat every value from before that date
+as exposed.
+
+Three things keep it that way:
+
+- **The secret is the whole connection string, not the password.** Splitting it would put the
+  assembly step back in `deploy.sh`, and that step is the defect.
+- **Write secret versions with `printf '%s'`.** A value piped from `openssl`/`cut`/`echo` carries a
+  trailing newline that survives into the version. Cloud Run injects the raw bytes, and the
+  resulting error names the host, not the newline. Verify by reading the version back and checking
+  its byte length.
+- **`--set-secrets` replaces the whole secret block.** Name every secret in one flag, or the one you
+  leave out is silently dropped. Converting an existing plain env var needs
+  `--remove-env-vars=NAME` in the same command — `--update-secrets` alone fails with *"already been
+  set with a different type"*.
+
+`database-url` embeds the instance's private IP. If `jup-ops-db` is recreated on a different
+address, add a new secret version; nothing in `deploy.sh` will notice.
 
 ## Three things that will bite you
 

@@ -67,6 +67,27 @@ have gcloud sql users describe entos --instance="$INSTANCE" --project="$PROJECT"
 # cloudsql.enable_pgvector; passing one fails with a misleading "misspelled flag" error.
 echo "    run once against the entos database:  CREATE EXTENSION IF NOT EXISTS vector;"
 
+echo "==> the connection string, as a secret (#11)"
+# The WHOLE connection string is the secret, not just the password. Splitting it would mean
+# assembling the URL at deploy time, which is exactly the step that used to leave the credential
+# in plaintext on the service. `printf '%s'` is load-bearing: a value piped from openssl/cut/echo
+# carries a trailing newline, it survives into the secret version, and Cloud Run injects the raw
+# bytes — yielding a connection string with an embedded \n whose error names the host, not the
+# newline.
+DB_IP="$(gcloud sql instances describe "$INSTANCE" --project="$PROJECT" \
+  --format='value(ipAddresses[0].ipAddress)')"
+have gcloud secrets describe database-url --project="$PROJECT" \
+  || printf '%s' "postgresql://entos:${DB_PW}@${DB_IP}:5432/entos" \
+     | gcloud secrets create database-url --data-file=- --project="$PROJECT"
+
+echo "==> secret access, scoped to each secret rather than project-wide"
+PN_SA="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')-compute@developer.gserviceaccount.com"
+for secret in webui-secret-key database-url; do
+  gcloud secrets add-iam-policy-binding "$secret" --project="$PROJECT" \
+    --member="serviceAccount:$PN_SA" \
+    --role=roles/secretmanager.secretAccessor --quiet >/dev/null
+done
+
 echo "==> build service account permissions"
 PN="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
 for role in roles/artifactregistry.writer roles/logging.logWriter roles/storage.admin; do
