@@ -1,3 +1,134 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-19-iap)
+
+> Prepended by /wrap 2026-09-19 (checkpoint 2026-09-19-iap). Supersedes checkpoint
+> 2026-09-19-tracker-empty's anchor.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-19-iap).
+
+**Anchor:** `origin/main` at `5df330e4d` **as this was written**, or one commit ahead at this
+checkpoint's own wrap commit (subject begins `chore(session):`). Verify with
+`git log --oneline 5df330e4d..origin/main`. A single `chore(session):` commit is EXPECTED — that is
+this wrap writing itself down. Any commit in that range whose subject does NOT start
+`chore(session):` means a parallel session pushed: real drift, investigate before writing.
+
+Second repo: **erikgunawans/jup at `ac9dc29`**, pushed to origin *and* mirror.
+
+**Current state: the tracker is still empty** — #1–#10 all closed, and everything this session did
+was untracked work Erik picked by hand. **ent-os is now reachable.** `https://ops.axiara.ai` serves
+Open WebUI behind IAP; Erik is `admin`; `GET /api/v1/portfolio/` returns real records, verified in
+real Chrome rather than asserted. **The record sync is observable** — `deploy/gcp/sync-records.sh
+--check` is read-only and exits 1 on drift, and the bucket is currently in sync at `ac9dc29`.
+
+**Do next, in order — none of this is tracked, so confirm before building:**
+1. **Ask what he wants first.** There is still no frontier ticket. The candidates are below and
+   picking one is his call. Do not start (2)–(6) unprompted.
+2. **Open tickets for this session's four findings.** They exist only in PROGRESS.md prose right
+   now, which is where findings go to die: (a) `DATABASE_URL` carries the Postgres password in
+   plaintext as a Cloud Run env var while `WEBUI_SECRET_KEY` correctly uses Secret Manager — any
+   `gcloud run services describe` reads it; (b) no port-80 forwarding rule, so
+   `http://ops.axiara.ai` fails rather than redirecting (~$7-9/mo to fix, deliberate);
+   (c) `sync-records.sh --check` is not in CI; (d) trusted-header auth as an ADR (see 4).
+3. **Cross-repo CI, now covering two gates.** #9's kb-drift check runs against fixtures in ent-os CI
+   and against the live tree only via `~/jup/.githooks/pre-commit`, which checks the **working tree,
+   not the staged content** — a partial stage still commits drift. `sync-records.sh --check` has the
+   same shape and the same blocker. Both need a credential Erik must issue: a PAT for the cross-repo
+   checkout, and GCS read credentials for the runner. **One credential problem, two gates** — solve
+   it once.
+4. **Trusted-header auth (ADR).** `WEBUI_AUTH_TRUSTED_EMAIL_HEADER=X-Goog-Authenticated-User-Email`
+   would make IAP *be* the login: `routers/auths.py:731` creates and authenticates straight from the
+   IAP-verified header — no password, no signup window ever. That is the shape ADR-0010 reaches for.
+   It needs a vendor patch first: IAP prefixes the value (`accounts.google.com:erik@axiara.ai`) and
+   the fork does not strip it, so the account would be created under a malformed address. That buys
+   a permanent ADR-0007 rebase burden, so **decide it as an ADR, not in passing.**
+5. **Automate the sync's write half.** `--check` is built; nothing yet *runs* it or the push. A cron
+   or a post-commit hook in `~/jup` would close the loop, but the write half touches deployed
+   infrastructure and needs authorisation per run.
+6. **Upstream rebase (ADR-0007)**, if the quarter is up. `deploy/gcp/VENDOR-PATCHES.md` lists the
+   `NODE_OPTIONS` Dockerfile patch that must be re-applied, and `tests/test_boot.py`'s alembic head
+   checks are the guard to run first.
+
+**Constraints to honor:**
+- **Disk is at 3.8 GB free**, down from 8.7 GB at the last wrap. Check `df -h` before any large
+  install; a `uv sync` of the full runtime plus the 1.1 GB model download will not fit comfortably.
+- **The static wipe is guarded inside pytest and nowhere else.** `tests/conftest.py` redirects
+  `STATIC_DIR` at conftest import, before pytest imports any test module, and `test_boot.py` asserts
+  it. But `config.py:99` still unlinks every file in `STATIC_DIR` at import and swallows every
+  exception, so any ad-hoc `python -c 'import open_webui...'` deletes 17 tracked vendor assets. Set
+  `STATIC_DIR` on the command line, and `git status` afterwards.
+- **Never hand-edit inside a `<!-- BEGIN generated:... -->` region** in `kb/partners.md`. Edit the
+  record and run `uv run --no-sync --only-group dev python -m jup.kb_sync --jup-root ~/jup`.
+- **`~/jup` has `core.hooksPath .githooks` set.** A commit touching `records/` or `kb/` runs the
+  drift check. `--no-verify` bypasses it; say why if you use it.
+- **`sync-records.sh --check` is read-only and safe to run anytime.** Bare `sync-records.sh` WRITES
+  to deployed infrastructure — per-change authorisation, never standing. It refuses a dirty tree
+  under `records/`, `deliverables/` or `SOURCES/`.
+- **Do not count `Would set mtime` as drift.** rsync proposes it on byte-identical objects because an
+  rsync'd object never carries the local file's mtime. The filter deliberately matches only
+  `Would copy|delete|remove` — `remove`, not `delete`, is the bucket-has-extra direction.
+- **The KB bundle is rebuilt and NOT deployed.** The deployed assistant still answers from the
+  pre-#9 `partners.md`, so it will still say Danantara and Pertamina Patra Niaga are at *Contacted*.
+  A `wrangler deploy` changes what a commissioner is told and **Erik declined it on 2026-09-19** —
+  ask again, do not assume.
+- **Never run the writable compose variant against `~/jup`.** The `:rw` forced-failure probe deleted
+  the live G1 record. Use a copy.
+- **`vite build` OOMs at node's own heap cap, not the machine's** — identical failure on 8 GB and
+  32 GB Cloud Build machines. Fixed by `NODE_OPTIONS` in the Dockerfile; re-check after every
+  ADR-0007 rebase. `E2_HIGHCPU_32` is quota-blocked in asia-southeast2 but available in the global
+  pool (omit `--region`).
+- **Never write a secret with `cut`/`openssl` straight to `--data-file=-`** — the trailing newline
+  survives and Cloud Run injects raw bytes. Use `printf '%s'`.
+- **Quote any record value containing ` #`.** YAML opens a comment at a bare hash.
+- **Run tests as `uv run --no-sync --only-group dev pytest`.** A plain `uv run pytest` triggers the
+  hatch hook's `npm run build`, which fails on a full disk and leaves the tree dirty. The endpoint
+  tests need the full runtime and skip under `--only-group dev`; CI's `Runtime suite` job runs them.
+- **IAP is standing infrastructure now** (~$18/month). `ent-os-neg` / `ent-os-backend` / `ent-os-ip`
+  (**34.111.8.177**) / `ent-os-cert` / `ent-os-lb` / `ent-os-proxy` / `ent-os-fr`. Adding a person is
+  one `gcloud iap web add-iam-policy-binding`; there is no signup and no invite link, deliberately.
+- **A managed cert reading ACTIVE does not yet serve.** For ~2 minutes after `managed.status`
+  flipped, TCP connected and the TLS handshake died at client hello. Poll the handshake, not the API.
+- **Interceptor cannot screenshot here** — use `interceptor eval --main` + `getComputedStyle`. It
+  drives real Chrome, which already holds the Google session IAP needs, so `interceptor open
+  https://ops.axiara.ai` lands authenticated with no login prompt.
+- **`@jup/ui` is REACT and unusable in this Svelte tree.** Only the CSS custom properties port, and
+  the canonical accents are FILLS that fail AA as text — use the `-text` variants.
+- **Fold opacity in before believing a contrast ratio.** 4.90:1 at `opacity: 0.82` composites to
+  3.75:1 and fails AA.
+- **Fork-owned Python goes in `backend/jup/`**, tests in `tests/` at the repo root.
+- **CI gates:** `ruff format --check .` (single quotes, line-length 120) plus
+  `ruff check --select=F --ignore=F401,F403,F405,F541,F811,F841`. Do not "fix" the ignore list.
+- **Deploy authorization for axiara.ai/JUP is per-change, never standing** — ask every time.
+- `gh` targets **upstream** unless pinned — pass `--repo erikgunawans/ent-os-new-jup`.
+- Never push to `upstream`. Commits go **directly to `main`**; no PR is expected for a wrap.
+- **Enforcement is inlet-only** (ADR-0002); a fifth enterprise hole remains at
+  `routers/openai.py:1464` and `routers/ollama.py:1091`, behind only `get_verified_user`.
+
+**Open items waiting on Erik (do not chase these yourself):**
+- **A contact record for SKK Migas / PGN** — a letter, minute or reply to replace the source analysis
+  as the artefact evidencing the `contacted` rung. Still the single highest-value edit to the live
+  records: the live API returns `awaiting_engagements: ["skk-migas-pgn-allocation"]` as the G1
+  blocker, and it rests on the Director's own account.
+- **Whether to deploy the rebuilt KB bundle.** Declined on 2026-09-19; he wanted to review the
+  `partners.md` change first, since three counterparties that read *Contacted* now read as having no
+  record at all. That gap is live to any commissioner asking the deployed assistant today.
+- **Documents for Danantara and Pertamina Patra Niaga**, if any exist — either one would move that
+  counterparty straight back into the generated table.
+- **A PAT for cross-repo CI, and GCS read credentials for the runner** — one credential problem
+  gating two drift gates (kb-drift and record-sync).
+- **`~/jup/kb/CONTEXT.md` is stale twice over** — "nominee Operation Director", and "runs locally
+  only (127.0.0.1) — never web-published". The second is now doubly untrue: it is web-published at
+  `ops.axiara.ai`. Fixing it needs a bundle rebuild plus a `wrangler deploy`.
+- **`~/jup-kb-assistant-worker/` is still not under git** — no origin, no mirror, outside D14, and it
+  holds the deployed assistant and the only copy of `kb-bundle.js`.
+- **Codex CLI is 0.139.0 and needs ≥0.155.1** (`bun add -g @openai/codex@latest`) before Forge gives
+  a genuine cross-vendor second opinion. Until then Forge is Claude-family output.
+- **An OpenAI key with ZDR enabled**, when voice work starts (ADR-0005/0006, D16). Not needed yet.
+- **Monthly GCP cost is now live at roughly $35-60** — the ~$17-42 baseline plus IAP's ~$18
+  forwarding-rule charge, which applies whether or not anyone visits.
+- **The 403-for-non-admin path has never run against the deployment.** One user exists and signup is
+  closed, so there is no second identity to test with. Covered by the 15 local tests only.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-19-tracker-empty)
 
 > Prepended by /wrap 2026-09-19 (checkpoint 2026-09-19-tracker-empty). Supersedes checkpoint

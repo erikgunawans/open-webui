@@ -1,9 +1,9 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-19-iap (latest) — ent-os is reachable; the operating layer runs on GCP
+## Checkpoint 2026-09-19-iap (latest) — ent-os is reachable; the record sync is observable
 
-- **Session:** `/next` → Erik chose IAP from five untracked candidates → built it → verified in real Chrome.
-- **Branch:** main · **Commits:** `033479213` (runbook), + this checkpoint
+- **Session:** `/next` → Erik chose IAP from five untracked candidates → built it → verified in real Chrome → then built the record-sync `--check` and pushed the bucket.
+- **Branch:** main · **Commits:** `033479213` (runbook), `61f4d681c` (checkpoint), `5df330e4d` (sync `--check`), + this wrap
 - **Tracker: still nothing open.** This was untracked work, picked by Erik.
 - **`https://ops.axiara.ai` is live behind IAP.** Erik is `admin`. The portfolio endpoint returns real records.
 
@@ -68,6 +68,40 @@ second identity to test with. Covered by the 15 local tests; never run against t
 signup window ever. That is what ADR-0010 reaches for. It needs a vendor patch first — IAP prefixes
 the value (`accounts.google.com:erik@axiara.ai`) and the fork does not strip it — which buys a
 permanent ADR-0007 rebase burden. **Decide it as an ADR, not in passing.**
+
+### The record sync is no longer hand-carried (`5df330e4d`)
+
+`gs://jup-ops-records` is an rsync, not a live mount, so a committed record was not on the dashboard
+until someone remembered to run `sync-records.sh`. That was the last hand-carried step between a
+record and what a reader sees — the same drift class #9 closed, in a second place, and with **no way
+to even observe it**.
+
+`sync-records.sh --check` is read-only: `--dry-run` never touches the bucket, verified rather than
+assumed — a new file in the forced-failure case never landed there. It exits 1 on drift, so it can
+gate a commit or a cron without authorisation to write to deployed infrastructure.
+
+**Two things the first runs taught, both now in the code:**
+
+- **rsync proposes to SET mtime on byte-identical objects**, because an rsync'd object never carries
+  the local file's mtime. The first version counted that and reported drift on a tree that was
+  genuinely in sync — confirmed false by comparing md5s directly, which matched. A gate that cries
+  wolf gets ignored, so only `Would copy|delete|remove` count.
+- **`Would remove` is the delete direction and does not match `delete`.** The bucket-has-extra case
+  was silent until the filter named it.
+
+The sync path now stamps `.sync-manifest.json` with the commit it published, so `--check` names the
+deployed commit rather than only saying it differs. Written **last**: a manifest for a sync that
+failed would lie.
+
+**Verified in both directions**, the way #9's gate was: clean mirror of the bucket (24 files) →
+`in sync`, exit 0, no false positives. Edited record → `Would copy`. Deleted locally →
+`Would remove`. New record → `Would copy`. Uncommitted edit → `DIRTY` warning plus drift. Bad flag →
+exit 2. Missing tree → exit 1. Bucket untouched throughout.
+
+**Its first real run found genuine drift:** `records/README.md` in the bucket was missing #9's own
+ADR-0011 section — landed locally, never pushed. Erik authorised the sync; the bucket is now at
+`ac9dc29` and `--check` reports `in sync`. The live endpoint still returns 200 afterwards, so the
+GCS mount picks up a changed bucket without a restart.
 
 ---
 
