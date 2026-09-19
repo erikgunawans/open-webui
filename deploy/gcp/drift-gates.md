@@ -5,13 +5,15 @@ against what is **served**:
 
 | Gate | Compares | Blocked on |
 |---|---|---|
-| `kb-drift` | `kb/partners.md` against `records/` (#9, ADR-0011) | `JUP_REPO_TOKEN` |
+| `credential-scope` | asserts the runner cannot write to the bucket | WIF — **issued** |
+| `kb-drift` | `kb/partners.md` against `records/` (#9, ADR-0011) | `JUP_REPO_TOKEN` — **outstanding** |
 | `record-sync` | `gs://jup-ops-records` against the JUP tree (#13) | `JUP_REPO_TOKEN` + WIF |
 
-Both are committed and both currently **skip**, because neither credential exists yet. A skipped
-job is grey, not green, and the run summary names the missing secret and the drift it is therefore
-not catching. Issuing the secrets is the whole of the remaining work — there is no second code
-change.
+**The GCS half is provisioned (2026-09-19).** `GCP_WIF_PROVIDER` and `GCP_RECORDS_READER_SA` are
+set, and the `credential-scope` job proves the handshake and the credential's scope on every run.
+**Only `JUP_REPO_TOKEN` remains**, and it gates both drift checks: `kb-drift` needs the JUP checkout,
+and `record-sync` needs it too. Until it exists both stay grey — a skipped job is not a passing one,
+and the run summary names what is missing and the drift it is therefore not catching.
 
 ## Why skip rather than pass
 
@@ -42,28 +44,54 @@ door. WIF mints a short-lived token per run against GitHub's OIDC identity, so t
 leak and nothing to rotate.
 
 The service account needs **`roles/storage.objectViewer` on `gs://jup-ops-records` and nothing
-more.** The workflow asserts this at runtime: before checking anything it calls `testIamPermissions`
-for `storage.objects.create`, `.delete` and `.update`, and **fails the job if the runner holds any
-of them.** That assertion writes nothing — it asks the IAM API what it *would* be allowed to do.
+more.** The `credential-scope` job asserts this at runtime via `testIamPermissions`, and
+`record-sync` `needs:` that job — so a credential that could publish **skips** the drift check
+rather than running with it. The assertion writes nothing; it asks IAM what it *would* be allowed
+to do.
+
+**What was actually provisioned:**
+
+```
+pool      github-pool
+provider  github-provider   condition: assertion.repository == 'erikgunawans/ent-os-new-jup'
+identity  records-reader@jup-ops.iam.gserviceaccount.com
+grant     roles/storage.objectViewer on gs://jup-ops-records ONLY
+```
+
+Bucket-scoped, not project-scoped: `objectViewer` at the project would also grant read on
+`jup-ops-data`, which holds uploads this gate has no business seeing. Verified at provisioning
+time — no project-level binding, nothing on `jup-ops-data`, and `roles/storage.objectViewer`
+resolves to `get` and `list` verbs only.
+
+Restricted twice on purpose. The provider's `attribute-condition` decides **who may mint a token**;
+the `workloadIdentityUser` principalSet on the service account decides **who that token may act
+as**. Either alone would be sufficient; both means widening one does not silently widen access.
 
 The reason is the script's own shape: `sync-records.sh --check` is read-only, but bare
 `sync-records.sh` **writes to deployed infrastructure**. The workflow only ever passes `--check`;
 the credential is the second line of defence, so that a mistake in the first line cannot publish
 anything.
 
+Already set, recorded here so a rebuild can reproduce them:
+
 ```
-gh secret set GCP_WIF_PROVIDER      --repo erikgunawans/ent-os-new-jup   # projects/N/locations/global/workloadIdentityPools/POOL/providers/PROVIDER
-gh secret set GCP_RECORDS_READER_SA --repo erikgunawans/ent-os-new-jup   # records-reader@jup-ops.iam.gserviceaccount.com
+gh secret set GCP_WIF_PROVIDER      --repo erikgunawans/ent-os-new-jup \
+  --body "projects/1001937491646/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
+gh secret set GCP_RECORDS_READER_SA --repo erikgunawans/ent-os-new-jup \
+  --body "records-reader@jup-ops.iam.gserviceaccount.com"
 ```
 
-Bind the pool to this repository only, so another repo in the account cannot assume the identity.
+`--body`, never a pipe: a piped value carries a trailing newline, and this project has already
+been bitten once by a newline surviving into a credential.
 
 ## Confirming it works
 
 `gh workflow run "Drift gates" --repo erikgunawans/ent-os-new-jup`, then:
 
-- **Before the secrets** — `preflight` green, both gates grey, summary naming what is missing.
-- **After** — both gates run. Expect green; the live tree and bucket were in sync at `ac9dc29`.
+- **Now** — `preflight` and `credential-scope` green, `kb-drift` and `record-sync` grey, summary
+  naming `JUP_REPO_TOKEN`.
+- **After the PAT** — all four run. Expect green; the live tree and bucket were in sync at
+  `ac9dc29`.
 - **Forced failure** — change a `stage:` in a record in a scratch clone without regenerating
   `kb/partners.md`, and confirm `kb-drift` fails with **exit 1** and the `KB drift` annotation.
 
