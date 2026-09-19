@@ -133,6 +133,13 @@ change first**: IAP prefixes the value (`accounts.google.com:erik@axiara.ai`) an
 strip it, so the account would be created under a malformed address. Stripping it means editing
 vendor `auths.py`, which is an ADR-0007 rebase burden and belongs in `VENDOR-PATCHES.md`.
 
+**That description is incomplete — see ADR-0012 (#14) before acting on it.** The header is read in
+three places, not one, and `utils/auth.py:415` re-checks it against `user.email` on *every* request.
+Patching only the signin path therefore does not create a malformed account: it creates a correct
+account and then 401s every request against it, presenting as a session bug. ADR-0012 costs that
+properly and sets out a fork-owned middleware that normalizes the header once, leaving all three
+vendor sites unpatched. The decision is still open.
+
 Forging that header is not a risk here as long as Cloud Run keeps
 `--no-allow-unauthenticated` with `--ingress=internal-and-cloud-load-balancing` and only the IAP
 service agent holds `run.invoker`: the header cannot arrive except from IAP, which strips inbound
