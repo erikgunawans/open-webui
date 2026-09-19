@@ -7,6 +7,7 @@
 	import { showSidebar } from '$lib/stores';
 	import {
 		getPortfolio,
+		PortfolioRequestError,
 		type Engagement,
 		type EvidenceItem,
 		type Portfolio,
@@ -36,6 +37,10 @@
 	let loaded = false;
 	let portfolio: Portfolio | null = null;
 	let loadError: string | null = null;
+	// Kept apart from `loadError`: one says the reader may not see gate state, the other says
+	// the records themselves could not be trusted. Rendering them alike would tell a member
+	// without access to go and fix a record.
+	let accessDenied: string | null = null;
 
 	const gateIsHeld = (project: PortfolioProject, gate: string) =>
 		project.assessments.some((a) => a.gate === gate && a.verdict === 'pass');
@@ -61,10 +66,17 @@
 		try {
 			portfolio = await getPortfolio(localStorage.token);
 		} catch (error) {
-			// A record the projection refuses to trust surfaces here. Saying so is the point: a gate
-			// that cannot verify its own records must stop rather than render a confident blank.
-			loadError = `${error}`;
-			toast.error(loadError);
+			if (error instanceof PortfolioRequestError && error.isAccessDenied) {
+				// Signed in, and not in the operating layer. Kept apart from the refusal below: a
+				// permission answer is about this reader, and saying the records cannot be trusted
+				// would send them to fix something that is not broken.
+				accessDenied = error.message;
+			} else {
+				// A record the projection refuses to trust surfaces here. Saying so is the point: a gate
+				// that cannot verify its own records must stop rather than render a confident blank.
+				loadError = `${error}`;
+				toast.error(loadError);
+			}
 		}
 
 		loaded = true;
@@ -94,6 +106,11 @@
 			{#if !loaded}
 				<div class="flex justify-center py-16">
 					<Spinner className="size-5" />
+				</div>
+			{:else if accessDenied}
+				<div class="jup-notice">
+					<p class="font-medium">{$i18n.t('Gate state is restricted to the operating layer')}</p>
+					<p class="mt-1 text-sm">{accessDenied}</p>
 				</div>
 			{:else if loadError}
 				<div class="jup-notice jup-notice-refused">

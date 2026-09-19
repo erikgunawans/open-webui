@@ -69,19 +69,26 @@ jobs:
       - name: Run backend tests
         run: uv run --only-group dev pytest
 
-  # ── Boot baseline (#8) ───────────────────────────────────────────────────
+  # ── Runtime suite: boot baseline (#8) and the HTTP seam (#10) ────────────
   # Needs the full runtime (~2 GB: torch, opencv, pyarrow), so it is scoped to the
   # changes it guards rather than run on every backend push. Migrations change on a
   # quarterly rebase (ADR-0007), which is exactly when a revision collision appears
   # and exactly when "the app does not start at all" is the cost of missing it.
+  #
+  # The portfolio endpoint tests live here for the same reason: importing the router
+  # pulls open_webui.config, so they skip in the `--only-group dev` job above. They
+  # guard the operating-layer permission, which is the only thing between fifty
+  # workspace seats and every gate refusal, so the trigger names the router too.
   boot:
-    name: Boot baseline
+    name: Runtime suite
     runs-on: ubuntu-latest
     timeout-minutes: 25
     if: >-
       github.event_name == 'workflow_dispatch' ||
       contains(join(github.event.commits.*.modified, ','), 'migrations/') ||
-      contains(join(github.event.commits.*.added, ','), 'migrations/')
+      contains(join(github.event.commits.*.added, ','), 'migrations/') ||
+      contains(join(github.event.commits.*.modified, ','), 'jup_portfolio') ||
+      contains(join(github.event.commits.*.added, ','), 'jup_portfolio')
     steps:
       - uses: actions/checkout@v5
 
@@ -93,5 +100,5 @@ jobs:
       - name: Install the runtime tree
         run: uv sync --frozen
 
-      - name: Assert the app imports and boots, and alembic has one head
-        run: uv run pytest tests/test_boot.py -v
+      - name: Assert the app boots, alembic has one head, and the seam holds
+        run: uv run pytest tests/test_boot.py tests/test_jup_portfolio_endpoint.py -v

@@ -91,9 +91,26 @@ export type Portfolio = {
 	unavailable_reason: string | null;
 };
 
-export const getPortfolio = async (token: string = ''): Promise<Portfolio> => {
-	let error = null;
+// Carries the status so the page can tell a refusal apart from a record it cannot trust.
+// Both arrive here as a thrown error, and telling a member without access that the records
+// are untrustworthy would send them to fix something that is not broken.
+export class PortfolioRequestError extends Error {
+	readonly status: number;
 
+	constructor(status: number, message: string) {
+		super(message);
+		this.name = 'PortfolioRequestError';
+		this.status = status;
+	}
+
+	// 403 from the operating-layer permission: signed in, understood, and still no. A 401
+	// means the session is gone, which the app's own auth handling deals with elsewhere.
+	get isAccessDenied(): boolean {
+		return this.status === 403;
+	}
+}
+
+export const getPortfolio = async (token: string = ''): Promise<Portfolio> => {
 	const res = await fetch(`${WEBUI_API_BASE_URL}/portfolio/`, {
 		method: 'GET',
 		headers: {
@@ -101,20 +118,15 @@ export const getPortfolio = async (token: string = ''): Promise<Portfolio> => {
 			'Content-Type': 'application/json',
 			authorization: `Bearer ${token}`
 		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = err.detail ?? err;
-			console.error(err);
-			return null;
-		});
+	});
 
-	if (error) {
+	if (!res.ok) {
+		const body = await res.json().catch(() => null);
+		const detail = body?.detail ?? `The portfolio request failed (${res.status}).`;
+		const error = new PortfolioRequestError(res.status, `${detail}`);
+		console.error(error);
 		throw error;
 	}
 
-	return res;
+	return res.json();
 };

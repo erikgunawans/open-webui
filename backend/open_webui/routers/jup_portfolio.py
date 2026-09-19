@@ -25,19 +25,52 @@ log = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# The JUP working tree is mounted read-only at deployment. Unset is a legitimate state, not an
-# error: it yields the empty-with-reason projection below rather than a silent empty page.
-JUP_RECORDS_DIR = os.environ.get('JUP_RECORDS_DIR', '').strip() or None
-
-# The tree the records' artefact and basis paths are relative to — the JUP working tree,
-# mounted read-only (ADR-0004). Defaults to the records root's parent, which is the layout
-# `<jup>/records/{projects,gate-assessments,engagements}` produces.
+# Who may read gate state. ADR-0001 puts up to fifty seats in this workspace, and
+# `get_verified_user` admits every one of them: a refusal, what is blocking it, and every
+# counterparty's rung is not a fifty-seat surface. Story 21 of #1 asks for the view
+# "restricted to signed-in members of the operating layer", and the Director's answer to
+# what that means in terms this codebase can check is the `admin` role (2026-09-19).
 #
-# Setting it turns on artefact resolution, which is what makes a rename in the JUP tree a
-# loud failure. Unset it and citations are carried but never checked — every gate still
-# renders, each one citing a file nobody can open, which is the silent failure ADR-0004's
-# cross-repo coupling is most likely to cause.
-JUP_ARTEFACT_ROOT = os.environ.get('JUP_ARTEFACT_ROOT', '').strip() or None
+# A constant rather than a literal because the answer is a governance call that may change
+# to a group or a per-user flag; when it does, this is the one line that moves.
+OPERATING_LAYER_ROLE = 'admin'
+
+
+def get_operating_layer_user(user=Depends(get_verified_user)):
+    """Refuse a signed-in account that is not in the operating layer, distinguishably.
+
+    **403, not 401**, and that distinction is the point. `get_verified_user` answers 401 for
+    an account that is signed out, pending or not yet verified — "we do not know who you
+    are". Reusing it here would tell an ordinary member the same thing, and the frontend
+    would bounce them to a sign-in page that cannot help: they *are* signed in. 403 says
+    the request was understood, the identity accepted, and the answer is still no.
+
+    The vendor's own `get_admin_user` raises 401 for exactly this case, which is why this
+    dependency exists in the fork rather than reusing it.
+    """
+    if user.role != OPERATING_LAYER_ROLE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                'Gate state is restricted to the operating layer. This account is signed in but is not a member of it.'
+            ),
+        )
+    return user
+
+
+def _records_dir() -> Path | None:
+    """The records root, read per request rather than at import.
+
+    Per request for two reasons. A container that is restarted with a different mount should
+    serve the new one without a rebuild — and, more to the point here, module-level
+    `os.environ.get` cannot be pointed at a fixture directory without reimporting the module,
+    which is why this endpoint had no tests at all until #10.
+
+    The JUP working tree is mounted read-only at deployment. Unset is a legitimate state, not
+    an error: it yields the empty-with-reason projection rather than a silent empty page.
+    """
+    value = os.environ.get('JUP_RECORDS_DIR', '').strip()
+    return Path(value) if value else None
 
 
 class EvidenceItemResponse(BaseModel):
@@ -207,20 +240,30 @@ def _serialise(portfolio: Portfolio) -> PortfolioResponse:
 
 
 def _artefact_root(records_dir: Path | None) -> Path | None:
-    """Where the cited documents live, or None when there is nothing to check them against."""
-    if JUP_ARTEFACT_ROOT:
-        return Path(JUP_ARTEFACT_ROOT)
+    """Where the cited documents live, or None when there is nothing to check them against.
+
+    Defaults to the records root's parent, which is the layout
+    `<jup>/records/{projects,gate-assessments,engagements}` produces.
+
+    Setting it turns on artefact resolution, which is what makes a rename in the JUP tree a
+    loud failure. Unset it and citations are carried but never checked — every gate still
+    renders, each one citing a file nobody can open, which is the silent failure ADR-0004's
+    cross-repo coupling is most likely to cause.
+    """
+    value = os.environ.get('JUP_ARTEFACT_ROOT', '').strip()
+    if value:
+        return Path(value)
     return records_dir.parent if records_dir else None
 
 
 @router.get('/', response_model=PortfolioResponse)
-async def get_portfolio(user=Depends(get_verified_user)) -> PortfolioResponse:
+async def get_portfolio(user=Depends(get_operating_layer_user)) -> PortfolioResponse:
     """Return every project with its Gate Assessments and its derived Current Gate.
 
     A malformed record raises rather than being skipped: a gate that cannot verify its own
     records must stop, not render a confident blank around the hole.
     """
-    records_dir = Path(JUP_RECORDS_DIR) if JUP_RECORDS_DIR else None
+    records_dir = _records_dir()
     artefact_root = _artefact_root(records_dir)
 
     try:

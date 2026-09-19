@@ -34,6 +34,9 @@ from jup.migrations import (
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent / 'backend'
 VERSIONS_DIR = BACKEND_DIR / 'open_webui' / 'migrations' / 'versions'
+# The tracked tree `config.py` wipes at import. `tests/conftest.py` redirects STATIC_DIR away
+# from it before pytest imports any test module; the last test in this file asserts that.
+TRACKED_STATIC_DIR = BACKEND_DIR / 'open_webui' / 'static'
 
 # `open_webui/__init__.py` imports typer, so `pythonpath = ["backend"]` makes the package
 # findable under `--only-group dev` while importing it still fails. Probing the package
@@ -134,7 +137,7 @@ def test_the_application_imports_and_boots(tmp_path: Path) -> None:
     # copying rather than creating an empty directory keeps the boot realistic — swagger-ui
     # and the font assets are served from here.
     static = tmp_path / 'static'
-    shutil.copytree(BACKEND_DIR / 'open_webui' / 'static', static)
+    shutil.copytree(TRACKED_STATIC_DIR, static)
     environment = {
         **os.environ,
         'DATABASE_URL': f'sqlite:///{database}',
@@ -173,4 +176,25 @@ def test_the_application_imports_and_boots(tmp_path: Path) -> None:
     )
     assert 'BOOTED' in completed.stdout, (
         f'the app imported without reporting a route table:\n{completed.stdout[-2000:]}'
+    )
+
+
+def test_the_static_wipe_guard_is_in_place() -> None:
+    """`conftest.py` redirects STATIC_DIR before anything can import the app. Asserted here.
+
+    A landmine that fires silently needs a loud tripwire. `config.py` unlinks every file in
+    STATIC_DIR at import and repopulates from a frontend build this tree does not have, so
+    one unguarded import deletes 17 tracked vendor assets and the unlink loop swallows the
+    errors. This test fails the moment the guard stops working, rather than the working tree
+    quietly losing its favicons.
+    """
+    redirected = Path(os.environ['STATIC_DIR']).resolve()
+
+    assert redirected != TRACKED_STATIC_DIR.resolve(), (
+        f'STATIC_DIR still points at the tracked tree at {TRACKED_STATIC_DIR}. Importing '
+        'open_webui from any test will delete every file in it and put nothing back.'
+    )
+    assert (redirected / 'loader.js').is_file(), (
+        f'the throwaway static tree at {redirected} is not a copy of the real one — the app '
+        'boots against it, so an empty directory makes a boot failure look like a code bug.'
     )
