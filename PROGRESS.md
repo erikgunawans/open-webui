@@ -1,5 +1,67 @@
 # PROGRESS — ent-os-new-jup
 
+## Checkpoint 2026-09-19-gcp (latest) — ent-os runs on GCP; #1 audited, #9 and #10 opened
+
+- **Session:** `/next` → audited #1's 23 stories → opened #9/#10 → exercised the compose overlay →
+  deployed ent-os to Google Cloud.
+- **Branch:** main · **Commits:** `ae00f74f9` + this checkpoint
+- **Tracker: #1, #9, #10 open.** #9 and #10 are this session's findings, not new scope.
+
+### #1 audited, not closed — 18 met, 3 partial, 1 not met, 1 deferred by the spec
+
+Posted as a per-story table on #1. The one that matters is **story 17**: *"the dashboard reads the
+same files the board pack is built from, so the two can never disagree."* `records/` is read by
+nothing but the dashboard. Gate and partner state also lives in `kb/partners.md`, `kb/gas.md`,
+`kb/governance.md` and the board deck. They agree today — `partners.md:10` puts SKK Migas at
+Contacted, matching the record — **by hand, not by construction**. → **#9**.
+
+Story 21 is partial: the endpoint carries `get_verified_user` and nothing else, so any `user`-role
+account reads every gate refusal and counterparty rung. No endpoint tests exist at all. → **#10**.
+
+Story 13's refused-state hole (a 500 carries no payload, so no Named Non-Coverage) stays as it is —
+inlining those sentences into the template reintroduces the staleness #6 removed.
+
+### The compose overlay is exercised — 12/12, and the guard proven
+
+`docker-compose.jup.yaml` had never been run. Client-side: the `:?` guard fires, the bind is
+`read_only: true`, and the overlay **adds to** rather than replaces the vendor's data volume.
+At runtime: env vars arrive, all three record dirs read, writes and deletes refused, both cited
+artefacts resolve. Forced failure with `:rw` flipped exactly the three write checks — and deleted
+the live G1 record, which was restored from `jup@fd753ba`. **Run the writable variant against a
+copy, never `~/jup`.**
+
+The vendor image was never booted: a full `up` needs several GB and the disk sat at 100%.
+
+### ent-os is deployed to GCP — project `jup-ops`, asia-southeast2
+
+Cloud Run behind a locked ingress, Postgres 16 on a **private IP** with pgvector, records mounted
+**read-only** from GCS. Runbook and idempotent scripts in `deploy/gcp/`.
+
+**Verified in the cloud, not asserted:** alembic migrated against Postgres over VPC egress; the
+mount probe passes all seven checks in Cloud Run including the write refusal; the auth chain
+refuses at both layers (403 unauthenticated at Cloud Run, 401 from `get_verified_user`); and the
+deployed app serves `/static/favicon.png`, `loader.js`, `splash.png` and the app shell at 200.
+
+Six gcloud behaviours reported the wrong cause and are all written down in `deploy/gcp/README.md`.
+The one worth repeating: **`vite build` OOMs at node's own heap cap, not the machine's** — it failed
+identically on 8 GB and 32 GB builders, which is what rules memory out. Fixed by the `NODE_OPTIONS`
+line upstream ships commented, logged in `deploy/gcp/VENDOR-PATCHES.md` for the ADR-0007 rebase.
+
+### A landmine removed: the boot test was deleting 17 tracked files
+
+`backend/open_webui/config.py:99` unlinks **every file** in `STATIC_DIR` at import, then repopulates
+from `FRONTEND_BUILD_DIR/static`. This tree has no `build/static` unless the frontend was just built,
+so the wipe had nothing to put back — and the unlink loop swallows every exception, so it was silent.
+Every run of `tests/test_boot.py` deleted the favicons, logo, manifests and `loader.js`. A
+`git add -u` after a test run would have committed that.
+
+Fixed in our own test, not vendor code: it now copies the static tree into `tmp_path` and points
+`STATIC_DIR` there. **Suite 100 passing and the working tree stays clean after a full run** — which
+it did not before.
+
+Harmless in the container: the Cloud Build frontend produces `build/static`, so the delete-then-copy
+is a real refresh there. Confirmed by the 200s above.
+
 ## Checkpoint 2026-09-19-slice-complete (latest) — #4, #8, #5, #6, #7 closed; the slice is delivered
 
 - **Session:** `/next` → #4, then #8, #5, #6, #7 back to back.

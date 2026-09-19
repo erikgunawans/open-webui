@@ -15,6 +15,7 @@ installed — which includes CI's `--only-group dev` job, by design.
 
 import importlib.util
 import os
+import shutil
 import subprocess
 import sys
 import textwrap
@@ -128,10 +129,23 @@ def test_the_application_imports_and_boots(tmp_path: Path) -> None:
     than an exception, which only a separate process can report as one.
     """
     database = tmp_path / 'boot-baseline.db'
+
+    # A throwaway copy of the real static tree. The app requires STATIC_DIR to exist, and
+    # copying rather than creating an empty directory keeps the boot realistic — swagger-ui
+    # and the font assets are served from here.
+    static = tmp_path / 'static'
+    shutil.copytree(BACKEND_DIR / 'open_webui' / 'static', static)
     environment = {
         **os.environ,
         'DATABASE_URL': f'sqlite:///{database}',
         'DATA_DIR': str(tmp_path / 'data'),
+        # config.py unlinks EVERY file in STATIC_DIR at import and repopulates from
+        # FRONTEND_BUILD_DIR/static — which this tree does not have unless the frontend has
+        # just been built. Left at its default, importing the app deletes 17 tracked vendor
+        # assets (favicons, logo, loader.js, the manifests) and puts nothing back, silently:
+        # the unlink loop swallows every exception. Point it at a throwaway directory so a
+        # test run cannot leave the working tree dirty.
+        'STATIC_DIR': str(tmp_path / 'static'),
         'WEBUI_SECRET_KEY': 'boot-baseline',
         # Offline and disabled: this asserts the app starts, not that it can reach a model.
         'RAG_EMBEDDING_ENGINE': 'ollama',

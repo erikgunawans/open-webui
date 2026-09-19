@@ -1,3 +1,103 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-19-gcp)
+
+> Prepended by /wrap 2026-09-19 (checkpoint 2026-09-19-gcp). Supersedes checkpoint
+> 2026-09-19-slice-complete's anchor.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-19-gcp).
+
+**Anchor:** `origin/main` at `ae00f74f9` **as this was written**, or one commit ahead at this
+checkpoint's own wrap commit (subject begins `chore(session):`). Verify with
+`git log --oneline ae00f74f9..origin/main`. A single `chore(session):` commit is EXPECTED — that is
+this wrap writing itself down. Any commit in that range whose subject does NOT start
+`chore(session):` means a parallel session pushed: real drift, investigate before writing.
+
+Second repo: **erikgunawans/jup at `fd753ba`** (unchanged this session).
+
+**Current state:** **ent-os runs on Google Cloud.** Project `jup-ops`, asia-southeast2, Cloud Run
+`ent-os` rev `00001-mgd` behind a locked ingress, Postgres 16 on private IP `10.72.0.3` with
+pgvector, records mounted read-only from `gs://jup-ops-records`. Verified in the cloud: alembic
+migrated over VPC egress, the mount probe passes 7/7 including the write refusal, auth refuses at
+both layers, and static assets serve at 200. Suite **100 passing and the tree stays clean after a
+run** — it did not before this session. Tracker: **#1, #9, #10 open**.
+
+**Do next, in order:**
+1. **Build IAP — it is the only thing between here and a usable deployment.** Nobody can log in:
+   `ENABLE_SIGNUP=False` and there are zero users. Follow `deploy/gcp/iap.md`. **Erik must confirm
+   the hostname** (`ops.axiara.ai` assumed) and add the A record in Cloudflare as **DNS-only / grey
+   cloud** — proxied breaks certificate validation and the cert hangs in PROVISIONING forever. Then
+   enable signup briefly so he becomes the first user (Open WebUI makes the first account admin),
+   and turn it off again. Doing it in that order means the signup window is never reachable by
+   anyone else.
+2. **#9 — `records/` as the single source for partner and gate state.** Story 17 of #1, and the
+   highest-value open ticket. Generate the state table in `kb/partners.md` from the Engagement
+   records with a `--check` that fails CI on drift. Prose must survive regeneration byte-identical.
+   Note the deploy coupling: the Worker bundle reads 8 fixed files under `kb/`, so generated output
+   must land there to reach the assistant — and that deploy is a separate per-change authorization.
+3. **#10 — operating-layer permission and the endpoint test seam.** Carries an open question for the
+   Director: what the operating layer is in terms the code can check (role, group, or per-user flag).
+   Ask it before building. Config must move off module-level `os.environ.get` first or the endpoint
+   cannot be tested against fixtures.
+4. **Then decide #1.** With #9 and #10 tracked, closing it is defensible. The audit table is posted
+   as a comment on the issue.
+5. **Optional: automate the record sync.** `gs://jup-ops-records` is an rsync, not a live mount, so
+   a committed record is not on the dashboard until `deploy/gcp/sync-records.sh` runs. That two-step
+   is exactly the drift #9 exists to close, now in a second place.
+
+**Constraints to honor:**
+- **The test suite no longer dirties the tree — keep it that way.** `config.py:99` unlinks every file
+  in `STATIC_DIR` at import and repopulates from `FRONTEND_BUILD_DIR/static`, which this tree lacks
+  unless the frontend was just built. `tests/test_boot.py` now copies static into `tmp_path`. If a
+  future test imports the app without doing the same, it will silently delete 17 tracked vendor
+  assets again, and the unlink loop swallows every exception.
+- **Never run the writable compose variant against `~/jup`.** The `:rw` forced-failure probe deleted
+  the live G1 record. Use a copy.
+- **`vite build` OOMs at node's own heap cap, not the machine's** — it failed identically on 8 GB and
+  32 GB Cloud Build machines. The fix is `NODE_OPTIONS` in the Dockerfile; see
+  `deploy/gcp/VENDOR-PATCHES.md` and re-check it after every ADR-0007 rebase.
+- **`E2_HIGHCPU_32` is quota-blocked in asia-southeast2 on this project** but available in the global
+  Cloud Build pool (omit `--region`).
+- **Never write a secret with `cut`/`openssl` straight to `--data-file=-`** — the trailing newline
+  survives, `$(...)` strips it in shell but Cloud Run injects raw bytes, and a DB password set one
+  way and read the other fails as "password authentication failed". Use `printf '%s'`.
+- **Quote any record value containing ` #`.** YAML opens a comment at a bare hash.
+- **Run tests as `uv run --no-sync --only-group dev pytest`.** A plain `uv run pytest` triggers the
+  hatch hook's `npm run build`, which fails on a full disk and leaves the tree dirty.
+- **Fold opacity in before believing a contrast ratio.** 4.90:1 at `opacity: 0.82` composites to
+  3.75:1 and fails AA.
+- **Fork-owned Python goes in `backend/jup/`**, tests in `tests/` at the repo root.
+- **CI gates:** `ruff format --check .` (single quotes, line-length 120) plus
+  `ruff check --select=F --ignore=F401,F403,F405,F541,F811,F841`. Do not "fix" the ignore list.
+- **Interceptor cannot screenshot here** — use `interceptor eval --main` + `getComputedStyle`.
+- **`@jup/ui` is REACT and unusable in this Svelte tree.** Only the CSS custom properties port, and
+  the canonical accents are FILLS that fail AA as text — use the `-text` variants.
+- **Deploy authorization for axiara.ai/JUP is per-change, never standing** — ask every time.
+- `gh` targets **upstream** unless pinned — pass `--repo erikgunawans/ent-os-new-jup`.
+- Never push to `upstream`. Commits go **directly to `main`**; no PR is expected for a wrap.
+- **Enforcement is inlet-only** (ADR-0002); a fifth enterprise hole remains at
+  `routers/openai.py:1464` and `routers/ollama.py:1091`, behind only `get_verified_user`.
+- **Disk is tight** — it hit 100% twice this session. Check `df -h` before any large install.
+
+**Open items waiting on Erik (do not chase these yourself):**
+- **Confirm the IAP hostname and add the Cloudflare A record (grey cloud).** Blocks item 1, which
+  blocks anyone logging in at all.
+- **What is the operating layer, in terms the code can check?** Blocks #10.
+- **A contact record for SKK Migas / PGN** — a letter, minute or reply to replace the source analysis
+  as the artefact evidencing the `contacted` rung. It currently stands on the Director's own account,
+  and the record body says so.
+- **One verification only he can run** — the deployed assistant answering `Di rung mana SKK Migas
+  sekarang?` should say **Contacted**. Needs the shared JUP password.
+- **Two offers still unanswered:** (a) `~/jup/kb/CONTEXT.md` is stale twice over — "nominee Operation
+  Director", and "runs locally only (127.0.0.1) — never web-published", untrue under D13 exception v2;
+  fixing it needs a bundle rebuild plus a `wrangler deploy`. (b) `~/jup-kb-assistant-worker/` is **not
+  under git** — no origin, no mirror, outside D14, and it holds the deployed assistant.
+- **Codex CLI is 0.139.0 and needs ≥0.155.1** (`bun add -g @openai/codex@latest`) before Forge gives a
+  genuine cross-vendor second opinion. Until then Forge is Claude-family output.
+- **An OpenAI key with ZDR enabled**, when voice work starts (ADR-0005/0006, D16). Not needed yet.
+- **Monthly cost is now live:** roughly $35-60 once the IAP load balancer is up (~$18 of that is the
+  forwarding rule, charged whether or not anyone visits).
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-19-slice-complete)
 
 > Prepended by /wrap 2026-09-19 (checkpoint 2026-09-19-slice-complete). Supersedes checkpoint
