@@ -4,7 +4,10 @@
 
 - **Session:** `/next` → Erik chose IAP from five untracked candidates → built it → verified in real Chrome → then built the record-sync `--check` and pushed the bucket.
 - **Branch:** main · **Commits:** `033479213` (runbook), `61f4d681c` (checkpoint), `5df330e4d` (sync `--check`), + this wrap
-- **Tracker: still nothing open.** This was untracked work, picked by Erik.
+- **Tracker: nothing open at the time.** This was untracked work, picked by Erik.
+  **Amended 2026-09-19** — the findings recorded below are now tracked as #11 (plaintext
+  `DATABASE_URL`), #12 (no port-80 rule), #13 (cross-repo CI for both drift gates) and
+  #14 (ADR-0012, trusted-header auth). They were prose-only until then.
 - **`https://ops.axiara.ai` is live behind IAP.** Erik is `admin`. The portfolio endpoint returns real records.
 
 ### What was standing up, and what it cost
@@ -53,21 +56,22 @@ gate all working together on GCP for the first time. No console errors; 0 of 197
 **Not verified:** the 403-for-non-admin path. One user exists and signup is closed, so there is no
 second identity to test with. Covered by the 15 local tests; never run against this deployment.
 
-### Two things this session surfaced, untracked
+### Two things this session surfaced — now #11 and #12
 
-- **`DATABASE_URL` carries the Postgres password in plaintext** as a Cloud Run env var, while
+- **#11 — `DATABASE_URL` carries the Postgres password in plaintext** as a Cloud Run env var, while
   `WEBUI_SECRET_KEY` correctly uses Secret Manager. Readable with a plain `gcloud run services
   describe`. Inconsistent, and a real exposure.
-- **No port-80 forwarding rule**, so `http://ops.axiara.ai` fails rather than redirecting.
+- **#12 — no port-80 forwarding rule**, so `http://ops.axiara.ai` fails rather than redirecting.
   Deliberate — a second rule is a second standing charge — but it is a papercut.
 
-### The better shape, deliberately not taken
+### The better shape, deliberately not taken — now #14
 
 `WEBUI_AUTH_TRUSTED_EMAIL_HEADER=X-Goog-Authenticated-User-Email` would make IAP *be* the login:
 `auths.py:731` creates and authenticates straight from the IAP-verified header, no password and no
 signup window ever. That is what ADR-0010 reaches for. It needs a vendor patch first — IAP prefixes
 the value (`accounts.google.com:erik@axiara.ai`) and the fork does not strip it — which buys a
-permanent ADR-0007 rebase burden. **Decide it as an ADR, not in passing.**
+permanent ADR-0007 rebase burden. **Decide it as an ADR, not in passing** — #14 carries that
+decision, numbered ADR-0012 since 0010 and 0011 are taken.
 
 ### The record sync is no longer hand-carried (`5df330e4d`)
 
@@ -75,6 +79,10 @@ permanent ADR-0007 rebase burden. **Decide it as an ADR, not in passing.**
 until someone remembered to run `sync-records.sh`. That was the last hand-carried step between a
 record and what a reader sees — the same drift class #9 closed, in a second place, and with **no way
 to even observe it**.
+
+**It is not yet in CI — #13.** It runs when a human remembers, which is the failure mode it was
+written to end. #13 covers it together with #9's kb-drift gate, because both need the same
+credential to reach live state from a runner: one credential problem, two gates.
 
 `sync-records.sh --check` is read-only: `--dry-run` never touches the bucket, verified rather than
 assumed — a new file in the forced-failure case never landed there. It exits 1 on drift, so it can
