@@ -23,6 +23,12 @@ not reassure anyone.
 
 ## 1. `JUP_REPO_TOKEN` — reading the JUP tree
 
+> **Run `scripts/wizard-jup-repo-token.sh` instead of doing this by hand.** It opens the right page,
+> says exactly what to click, and — the part that matters — **verifies the token before storing
+> it**. The first attempt at this credential was stored unverified and failed in CI with
+> `Bad credentials`, which reads like a permissions problem and is not one. The token also expires,
+> so this is a procedure you will run again.
+
 A fine-grained personal access token, scoped to **`erikgunawans/jup` only**, with
 **Contents: Read-only**. Nothing else. It is used for one thing: `actions/checkout` fetching the
 record tree into the runner so the checkers have something to check.
