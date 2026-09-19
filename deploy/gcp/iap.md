@@ -63,9 +63,29 @@ gcloud run services add-iam-policy-binding ent-os \
   --role=roles/run.invoker
 ```
 
-The OAuth consent screen must exist before step 5; if `iap web enable` complains about a missing
-brand, configure it once in the console under **APIs & Services → OAuth consent screen** (Internal,
-if axiara.ai is a Workspace domain).
+## Three things that bite (all hit on 2026-09-19)
+
+**There is no OAuth brand to configure.** Earlier versions of this runbook said to set up a consent
+screen first. The IAP OAuth Admin APIs were shut down on 2026-03-19, and `gcloud iap web enable`
+with no `--oauth2-client-id` now uses a Google-managed OAuth client. `gcloud iap oauth-brands list`
+returns nothing and prints a deprecation warning — that is expected, not a failure. Just run
+step 5 as written.
+
+**`cloudresourcemanager.googleapis.com` must be enabled**, or step 5's
+`add-iam-policy-binding` fails with `SERVICE_DISABLED` buried at the bottom of a long error block
+that otherwise looks like a permissions problem:
+
+```sh
+gcloud services enable cloudresourcemanager.googleapis.com --project=$PROJECT
+```
+
+**The IAP service agent does not exist until you ask for it.** Step 6 fails with
+`Service account service-$PN@gcp-sa-iap.iam.gserviceaccount.com does not exist`, which reads like a
+typo in the address but is not — the agent is created lazily. Create it first:
+
+```sh
+gcloud beta services identity create --service=iap.googleapis.com --project=$PROJECT
+```
 
 ## Adding someone later
 
@@ -77,3 +97,43 @@ link, and no self-service path. That is deliberate.
 The load balancer forwarding rule is the standing charge, roughly **$18/month**, and it applies
 whether or not anyone visits. It buys the property that no unauthenticated request ever reaches
 the application.
+
+## What is actually deployed (2026-09-19)
+
+| Resource | Name | Value |
+|---|---|---|
+| Serverless NEG | `ent-os-neg` | region `asia-southeast2` → Cloud Run `ent-os` |
+| Backend service | `ent-os-backend` | global, `EXTERNAL_MANAGED`, **IAP enabled** |
+| Static IP | `ent-os-ip` | **34.111.8.177** |
+| Managed cert | `ent-os-cert` | `ops.axiara.ai` |
+| URL map / proxy / rule | `ent-os-lb` / `ent-os-proxy` / `ent-os-fr` | port 443 |
+| IAP grant | `roles/iap.httpsResourceAccessor` | `user:erik@axiara.ai` |
+| Run invoker | `roles/run.invoker` | `service-1001937491646@gcp-sa-iap.iam.gserviceaccount.com` |
+
+Only port 443 has a forwarding rule. `http://ops.axiara.ai` will not answer at all — there is no
+port-80 rule and no redirect, because a second forwarding rule is a second standing charge.
+
+## Getting the first account
+
+`ENABLE_SIGNUP=False` and `DEFAULT_USER_ROLE=pending` on the Cloud Run service, and the database has
+no users, so nobody can get in even once the certificate is live. There are two ways to create the
+first account, and they differ in kind, not just in effort.
+
+**The signup window.** Set `ENABLE_SIGNUP=True`, sign up, and the fork closes the window itself:
+`signup_handler` in `routers/auths.py:875` promotes the only user to `admin` and writes
+`ui.enable_signup = False` back to config in the same breath. So the window shuts on its own, and
+IAP means only the one granted account could have reached it anyway. Then revert the env var so a
+later revision does not reopen it.
+
+**IAP as the login.** Setting `WEBUI_AUTH_TRUSTED_EMAIL_HEADER=X-Goog-Authenticated-User-Email`
+makes `routers/auths.py:731` create and authenticate the user straight from the IAP-verified header
+— no password, no signup window, and the account is the Google identity rather than a shared
+secret. This is the better shape, and it is what ADR-0010 is reaching for, but it **needs a fork
+change first**: IAP prefixes the value (`accounts.google.com:erik@axiara.ai`) and the fork does not
+strip it, so the account would be created under a malformed address. Stripping it means editing
+vendor `auths.py`, which is an ADR-0007 rebase burden and belongs in `VENDOR-PATCHES.md`.
+
+Forging that header is not a risk here as long as Cloud Run keeps
+`--no-allow-unauthenticated` with `--ingress=internal-and-cloud-load-balancing` and only the IAP
+service agent holds `run.invoker`: the header cannot arrive except from IAP, which strips inbound
+copies of its own headers.
