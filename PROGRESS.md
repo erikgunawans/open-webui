@@ -1,6 +1,77 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-19-tracker-empty (latest) — #9, #10 and #1 closed; the tracker is empty
+## Checkpoint 2026-09-19-iap (latest) — ent-os is reachable; the operating layer runs on GCP
+
+- **Session:** `/next` → Erik chose IAP from five untracked candidates → built it → verified in real Chrome.
+- **Branch:** main · **Commits:** `033479213` (runbook), + this checkpoint
+- **Tracker: still nothing open.** This was untracked work, picked by Erik.
+- **`https://ops.axiara.ai` is live behind IAP.** Erik is `admin`. The portfolio endpoint returns real records.
+
+### What was standing up, and what it cost
+
+The load balancer is the ADR-0010 shape: Cloud Run stays `--no-allow-unauthenticated` with
+`--ingress=internal-and-cloud-load-balancing`, so the `run.app` URL refuses everyone and the only
+path in is the LB with IAP on its backend. `ent-os-neg` → `ent-os-backend` (IAP on) → `ent-os-ip`
+(**34.111.8.177**) → `ent-os-cert` → `ent-os-lb` / `ent-os-proxy` / `ent-os-fr` on 443.
+`erik@axiara.ai` holds `iap.httpsResourceAccessor`; the IAP service agent holds `run.invoker`.
+
+**`deploy/gcp/iap.md` was wrong in three places**, each failing with an error pointing away from its
+cause:
+
+1. **The OAuth consent screen step described an API Google shut down on 2026-03-19.**
+   `gcloud iap web enable` with no `--oauth2-client-id` now takes a Google-managed client.
+   `iap oauth-brands list` returning nothing is expected, not a failure.
+2. **`cloudresourcemanager.googleapis.com` must be enabled** or the IAP IAM binding fails with
+   `SERVICE_DISABLED` buried under what reads like a permissions error.
+3. **The IAP service agent does not exist until asked for.** The `run.invoker` binding fails with
+   `Service account service-$PN@gcp-sa-iap... does not exist`, which reads like a typo in the
+   address. `gcloud beta services identity create --service=iap.googleapis.com` creates it.
+
+**The cert is ACTIVE ~27 min after DNS, but does not serve immediately.** For about two minutes
+after `managed.status` flipped, TCP connected and the TLS handshake died at client hello. Poll the
+handshake, not the API status.
+
+### The first account
+
+`ENABLE_SIGNUP=True` for one revision; Erik signed up; the fork promoted him. **The window closes
+itself** — `signup_handler` (`routers/auths.py:875`) promotes the only user to `admin` and writes
+`ui.enable_signup = False` in the same transaction. `/api/config` confirms `enable_signup: false`
+independently of the env var, which was reverted anyway so a future revision cannot reopen it.
+
+A probe job against the private-IP Cloud SQL confirmed `user` and `auth` were both 0 rows first —
+had a row existed, the promotion would not fire and Erik would have landed `pending` with no admin
+to approve him. The job was deleted after; its config carried the DB password.
+
+### Verified in real Chrome (Interceptor), not asserted
+
+`GET /api/v1/portfolio/` → **200** with real records: `gas-spbg-reactivation`, G1 `fail`, the
+evidence chain (`rued-alignment` satisfied with artefact, `gas-allocation-5mmscfd` not),
+`awaiting_engagements: ["skk-migas-pgn-allocation"]`, and tier-labelled figures carrying the POTENSI
+meaning. GCS records mount, artefact-tree resolution, governance presentation rules and the admin
+gate all working together on GCP for the first time. No console errors; 0 of 197 resources failed.
+
+**Not verified:** the 403-for-non-admin path. One user exists and signup is closed, so there is no
+second identity to test with. Covered by the 15 local tests; never run against this deployment.
+
+### Two things this session surfaced, untracked
+
+- **`DATABASE_URL` carries the Postgres password in plaintext** as a Cloud Run env var, while
+  `WEBUI_SECRET_KEY` correctly uses Secret Manager. Readable with a plain `gcloud run services
+  describe`. Inconsistent, and a real exposure.
+- **No port-80 forwarding rule**, so `http://ops.axiara.ai` fails rather than redirecting.
+  Deliberate — a second rule is a second standing charge — but it is a papercut.
+
+### The better shape, deliberately not taken
+
+`WEBUI_AUTH_TRUSTED_EMAIL_HEADER=X-Goog-Authenticated-User-Email` would make IAP *be* the login:
+`auths.py:731` creates and authenticates straight from the IAP-verified header, no password and no
+signup window ever. That is what ADR-0010 reaches for. It needs a vendor patch first — IAP prefixes
+the value (`accounts.google.com:erik@axiara.ai`) and the fork does not strip it — which buys a
+permanent ADR-0007 rebase burden. **Decide it as an ADR, not in passing.**
+
+---
+
+## Checkpoint 2026-09-19-tracker-empty — #9, #10 and #1 closed; the tracker is empty
 
 - **Session:** `/next` → IAP deferred by Erik → built #9 → built #10 → re-audited and closed #1.
 - **Branch:** main · **Commits:** `ca4bed0c9` (#9), `6f8dbc6a4` (#10), + this checkpoint
