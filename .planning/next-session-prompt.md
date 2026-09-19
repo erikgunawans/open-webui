@@ -1,3 +1,123 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-19-gates)
+
+> Prepended by /wrap 2026-09-19 (checkpoint 2026-09-19-gates). Supersedes checkpoint
+> 2026-09-19-iap's anchor.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-19-gates).
+
+**Anchor:** `origin/main` at `3d8116b2c` **as this was written**, or one commit ahead at this
+checkpoint's own wrap commit (subject begins `chore(session):`). Verify with
+`git log --oneline 3d8116b2c..origin/main`. A single `chore(session):` commit is EXPECTED — that is
+this wrap writing itself down. Any commit in that range whose subject does NOT start
+`chore(session):` means a parallel session pushed: real drift, investigate before writing.
+
+Second repo: **erikgunawans/jup at `ac9dc29`**, unchanged this session, bucket in sync.
+
+**Current state: the tracker has four open items and they are all blocked on Erik.** #1–#10 closed;
+#11–#14 opened this session from the IAP checkpoint's untracked prose findings. The drift-gate
+workflow is live and runs nightly, with **two of three credentials issued** — WIF is provisioned and
+proven read-only in CI; `JUP_REPO_TOKEN` exists but is **invalid** and both drift gates fail on it.
+
+**Do next, in order:**
+1. **Ask before building anything.** Every open item is blocked on a decision or an action only
+   Erik can take. Do not start (2)–(5) unprompted.
+2. **#13 — re-mint the PAT with `./scripts/wizard-jup-repo-token.sh`.** This is the cheapest item on
+   the board and the only one with no judgement in it. The current token fails with
+   **`Bad credentials` — a 401, meaning the token STRING is wrong** (truncated paste, trailing
+   newline, or expired). An under-scoped fine-grained PAT returns **404 `Repository not found`**
+   instead, so this is NOT a permissions problem however much it reads like one. `erikgunawans` is a
+   User not an org, so pending org approval is ruled out. The wizard verifies before storing, which
+   is the step whose absence caused this. Erik must run it — it opens a browser and blocks on input.
+3. **#14 — ADR-0012 needs the Director's decision.** `docs/adr/0012-iap-as-the-login.md` is
+   **Proposed** with four costed options. Recommended is option 3, the fork-owned ASGI middleware,
+   the only one that reduces the ADR-0007 burden. Four sub-questions inside it are still open (the
+   existing account's password record, whether `pending` still means anything, how `admin` is
+   assigned, whether ADR-0001's ceiling moves). `/grill-with-docs` is the right tool for this and
+   deserves a fresh context window.
+4. **#11 — `DATABASE_URL` rotation.** Fully specified, `ready-for-human` only because it needs
+   per-change deploy authorization. **Rotate, do not merely relocate** — that credential has been
+   readable to every `run.viewer` for the life of the deployment and a deleted probe job carried it.
+   `alesha-bot@axiara.ai` holds Owner on `jup-ops`, so the capability is there; the authorization is
+   not.
+5. **#12 — port-80 redirect.** Blocked on a ~$7–9/month cost call, nothing else.
+
+**Constraints to honor:**
+- **`Bad credentials` (401) ≠ under-scoped (404).** The single most misleading error on this board.
+- **`PYTHONPATH=backend` is load-bearing for any bare `python -m jup.*`.** `pythonpath =
+  ["backend"]` is a pytest setting and does nothing outside pytest; it works locally only because a
+  full `uv sync` leaves an editable-install `.pth`, and `--only-group dev` does not install the
+  project. Without it you get `ModuleNotFoundError` and **exit 1 — which is `kb_sync`'s code for
+  DRIFT.**
+- **Exit 1 means drift; exit 2 means the gate checked NOTHING.** Never collapse them — a broken
+  runner must not read as a governance alarm.
+- **GitHub runs `run:` steps as `bash -e {0}`.** `cmd; status=$?` aborts before `$?` is read; use
+  the explicit `set +e` / capture / `set -e` shape.
+- **A gate that cannot see what it guards must not report green.** Skipped-grey plus a notice, never
+  a pass. This is why the workflow could land before its credentials.
+- **Deploy authorization for axiara.ai/JUP is per-change, never standing** — ask every time, even
+  though `alesha-bot` holds Owner. Capability is not authorization.
+- **`sync-records.sh --check` is read-only and safe anytime.** Bare `sync-records.sh` WRITES to
+  deployed infrastructure. Never reachable from CI, and the runner's credential cannot write.
+- **Do not count `Would set mtime` as drift** — rsync proposes it on byte-identical objects. Only
+  `Would copy|delete|remove` count, and `remove` is the bucket-has-extra direction.
+- **Never hand-edit inside a `<!-- BEGIN generated:... -->` region** in `kb/partners.md`.
+- **`~/jup` has `core.hooksPath .githooks`.** The pre-commit gate checks the **working tree, not the
+  staged content**, and `--no-verify` bypasses it. #13's CI closes both holes once credentialed.
+- **The KB bundle is rebuilt and NOT deployed.** The deployed assistant still answers from the pre-#9
+  `partners.md` and will tell a commissioner that Danantara and Pertamina Patra Niaga are at
+  *Contacted*. Erik declined the `wrangler deploy` on 2026-09-19 — **ask again, do not assume.**
+- **Never run the writable compose variant against `~/jup`** — the `:rw` probe deleted a live
+  record. Use a copy; every forced-failure run this session did.
+- **`vite build` OOMs at node's own heap cap**, not the machine's. Fixed by `NODE_OPTIONS` in the
+  Dockerfile; re-check after every ADR-0007 rebase. `E2_HIGHCPU_32` is quota-blocked in
+  asia-southeast2 but available in the global pool (omit `--region`).
+- **Never write a secret with `cut`/`openssl` straight to `--data-file=-`**, and use `--body` not a
+  pipe for `gh secret set` — a trailing newline survives and is injected raw.
+- **Quote any record value containing ` #`.** YAML opens a comment at a bare hash.
+- **Run tests as `uv run --no-sync --only-group dev pytest`.** A plain `uv run pytest` triggers the
+  hatch hook's `npm run build`. 141 passing as of this wrap.
+- **`config.py:99` unlinks every file in `STATIC_DIR` at import** and swallows the exception. Guarded
+  inside pytest and nowhere else; set `STATIC_DIR` on the command line and `git status` after.
+- **IAP is standing infrastructure** (~$18/mo) — `ent-os-neg` / `ent-os-backend` / `ent-os-ip`
+  (**34.111.8.177**) / `ent-os-cert` / `ent-os-lb` / `ent-os-proxy` / `ent-os-fr`. Only
+  `user:erik@axiara.ai` holds `iap.httpsResourceAccessor`; `alesha-bot` **cannot reach the app.**
+- **Interceptor cannot screenshot here** — use `interceptor eval --main` + `getComputedStyle`. Real
+  Chrome carries Erik's Google session, so `interceptor open https://ops.axiara.ai` lands
+  authenticated.
+- **Fork-owned Python goes in `backend/jup/`**, tests in `tests/` at the repo root.
+- **CI gates:** `ruff format --check .` (single quotes, line-length 120) plus
+  `ruff check --select=F --ignore=F401,F403,F405,F541,F811,F841`. Do not "fix" the ignore list.
+- `gh` targets **upstream** unless pinned — pass `--repo erikgunawans/ent-os-new-jup`.
+- Never push to `upstream`. Commits go **directly to `main`**; no PR is expected for a wrap.
+- **Enforcement is inlet-only** (ADR-0002); a fifth enterprise hole remains at
+  `routers/openai.py:1464` and `routers/ollama.py:1091`, behind only `get_verified_user`.
+
+**Open items waiting on Erik (do not chase these yourself):**
+- **Re-mint `JUP_REPO_TOKEN`** via `./scripts/wizard-jup-repo-token.sh` — #13's last blocker.
+- **The ADR-0012 decision** — #14, four options costed, recommendation on record.
+- **Deploy authorization for #11**, and the **~$7–9/month call for #12**.
+- **A contact record for SKK Migas / PGN** — still the single highest-value edit to the live
+  records. The live API returns `awaiting_engagements: ["skk-migas-pgn-allocation"]` as the G1
+  blocker, and it rests on the Director's own account.
+- **Whether to deploy the rebuilt KB bundle** — declined 2026-09-19 pending his review, and the gap
+  is live to any commissioner asking the deployed assistant today.
+- **Documents for Danantara and Pertamina Patra Niaga**, if any exist — either moves that
+  counterparty straight back into the generated table.
+- **`~/jup/kb/CONTEXT.md` is stale twice over** — "nominee Operation Director", and "runs locally
+  only (127.0.0.1) — never web-published". The second is now doubly untrue.
+- **`~/jup-kb-assistant-worker/` is still not under git** — no origin, no mirror, outside D14, and it
+  holds the deployed assistant and the only copy of `kb-bundle.js`.
+- **`~/jup` has three untracked tooling dirs** (`.agents/`, `.claude/`, `skills-lock.json`) — decide
+  whether they are committed or ignored.
+- **Codex CLI is 0.139.0 and needs ≥0.155.1** (`bun add -g @openai/codex@latest`) before Forge gives
+  a genuine cross-vendor second opinion.
+- **An OpenAI key with ZDR enabled**, when voice work starts (ADR-0005/0006, D16). Not needed yet.
+- **Monthly GCP cost is roughly $35–60.** WIF and the service account add nothing measurable.
+- **The 403-for-non-admin path has never run against the deployment.** One user exists and signup is
+  closed, so there is no second identity. Covered by the 15 local tests only.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-19-iap)
 
 > Prepended by /wrap 2026-09-19 (checkpoint 2026-09-19-iap). Supersedes checkpoint

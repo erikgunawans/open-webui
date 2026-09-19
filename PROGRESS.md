@@ -1,6 +1,125 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-19-iap (latest) — ent-os is reachable; the record sync is observable
+## Checkpoint 2026-09-19-gates (latest) — the tracker has content again, and the drift gate is half-credentialed
+
+- **Session:** `/next` → opened the four findings as #11–#14 → built #13's skip-path CI → drafted ADR-0012 → Erik authorized the GCP half → provisioned WIF → his PAT turned out broken → wrote the wizard that verifies before storing.
+- **Branch:** main · **Commits:** `5afcbc7f2`, `b6fef468d`, `0c6c80ed2`, `6effe355a`, `a0c9fdf09`, `3d8116b2c`, + this wrap
+- **Tracker: four open** — #11, #12, #13, #14. It was empty at the last checkpoint; these are that checkpoint's prose findings, finally tracked.
+- **Second repo:** erikgunawans/jup unchanged at `ac9dc29`, bucket in sync.
+
+### The findings stopped being prose (#11–#14)
+
+The IAP checkpoint recorded four things in narrative and tracked none of them. Each now has a ticket
+carrying evidence rather than a summary of it, re-verified against the live deployment rather than
+quoted: `gcloud run services describe` shows exactly one secret reference (`WEBUI_SECRET_KEY`) and a
+64-character plaintext `DATABASE_URL` beside it; `curl http://ops.axiara.ai` returns curl 52, an
+empty reply on a resolving hostname, which reads as an outage rather than "use HTTPS".
+
+#11 asks for **rotation, not relocation** — that credential has been readable to every `run.viewer`
+for the life of the deployment, and a deleted probe job carried it too. Moving it without rotating
+would file the finding without closing it.
+
+### The drift gates exist and run nightly (#13, `b6fef468d` → `a0c9fdf09`)
+
+One workflow, because it is one problem: both gates must reach state outside this repository.
+**A gate that cannot see what it guards must not report green** — green and "I could not look"
+would be the same colour — so preflight probes for each credential and the gate jobs *skip* grey,
+with a notice naming what is missing and the drift it is therefore not catching. That is what let
+the workflow land before any credential existed.
+
+**Three traps found while building it, each of which would have produced a gate that looked like it
+worked:**
+
+1. **`PYTHONPATH=backend` is load-bearing, and its absence is not a no-op.** `pythonpath =
+   ["backend"]` is a *pytest* setting; it does nothing for `python -m`. It imports locally only
+   because a full `uv sync` leaves an editable-install `.pth`, and `--only-group dev` does not
+   install the project. Without it the job dies with `ModuleNotFoundError` and **exit 1** — which is
+   `kb_sync`'s code for *drift*. The gate would have cried drift every night about a disagreement
+   that did not exist. Proven both ways against a bare venv.
+2. **GitHub runs `run:` steps as `bash -e {0}`**, so `cmd; status=$?` aborts before `$?` is read.
+   The same trap the `~/jup` pre-commit hook documents, from the other direction.
+3. **Under `set -u` an empty bash array is an unbound variable** — the notice loop failed on the one
+   path that matters most: both credentials present, nothing skipped.
+
+Exit 1 (drift) and exit 2 (broken tree) stay apart in the annotations. **Exit 2 means the gate
+checked nothing** and must not read as a governance alarm.
+
+### WIF provisioned, read-only, and proven (`6effe355a`)
+
+Erik authorized the GCP half only; #11 and #12 were declined and nothing touching the running
+service changed. Provisioned as `alesha-bot@axiara.ai`, which holds Owner on `jup-ops`.
+
+```
+pool      github-pool
+provider  github-provider   condition: assertion.repository == 'erikgunawans/ent-os-new-jup'
+identity  records-reader@jup-ops.iam.gserviceaccount.com
+grant     roles/storage.objectViewer on gs://jup-ops-records ONLY
+```
+
+**Bucket-scoped, not project-scoped:** `objectViewer` at the project would also grant read on
+`jup-ops-data`, which holds uploads this gate has no business seeing. **Restricted twice on
+purpose** — the provider's `attribute-condition` decides who may mint a token, the
+`workloadIdentityUser` principalSet decides who that token may act as. `sts.googleapis.com` had to
+be enabled; the handshake fails without it.
+
+**Keyless by choice.** A downloadable service-account key pasted into a repo secret is a long-lived
+credential in a second place — #11 arriving by another door.
+
+The assertion was a *step inside* `record-sync`, which also needs the PAT, so it could not run until
+both credentials existed. Lifted into its own `credential-scope` job gated on the GCS secrets alone,
+it proved itself immediately: **"Runner holds no write permission on jup-ops-records."**
+`record-sync` now `needs:` it, so a credential that could publish skips the drift check rather than
+running with it.
+
+Not verified locally: the OIDC handshake. **Owner does not include `serviceAccountTokenCreator`**,
+so impersonating `records-reader` was denied — and granting that binding just to test would widen
+the thing under test. The CI job is the proof, and it passed.
+
+### The PAT was already set, and already broken (`3d8116b2c`)
+
+Erik minted `JUP_REPO_TOKEN` himself at 11:03. Both drift gates still failed:
+
+```
+X kb/ agrees with records/ (live tree)   Bad credentials
+X The bucket matches the JUP tree        Bad credentials
+```
+
+**`Bad credentials` is a 401 — the token string is wrong.** An under-scoped fine-grained PAT returns
+**404 `Repository not found`** instead. So this is a truncated paste, a trailing newline, or an
+expired token — *not* a permissions mistake, though it reads exactly like one. `erikgunawans` is a
+User, not an org, which rules out pending org approval.
+
+It failed that way because **nothing exercised the credential between storing it and a nightly gate
+depending on it.** `scripts/wizard-jup-repo-token.sh` is that missing step: mint → **verify** →
+store → prove. The verify stage narrows from "is the token real" (`/user`) to "can it see the repo"
+(`/repos/jup`) to "can it read Contents" (what `actions/checkout` actually needs), so a failure
+names its own cause instead of leaving 401 to be guessed at. Its write probe writes the repository's
+**current** description back to itself — a probe that damaged the repo to prove it could would be a
+bad trade. Deliberately no `write_env`: CI-only credential, and a second copy on disk is #11.
+
+### ADR-0012 drafted, and the premise it rested on was wrong (`0c6c80ed2`)
+
+#14, the handoff and `iap.md` all described trusted-header auth as a patch to `auths.py:731`. **The
+header is read in three places across two vendor files**, and `utils/auth.py:415` re-checks it
+against `user.email` on *every* request.
+
+**So patching only the signin path does not create a malformed account — it bricks the deployment.**
+The account is created correctly, then every subsequent request compares it against the raw prefixed
+header, mismatches, and 401s. The symptom is being signed out immediately after signing in, which
+presents as a session bug rather than a prefix bug.
+
+That roughly doubles the vendor-patch surface and moves half of it into `utils/auth.py`, hotter
+upstream than `auths.py`. So the ADR carries **four** options, and the new one — a fork-owned ASGI
+middleware in `backend/jup/` normalizing the header once, leaving all three sites unpatched — is the
+only one that *reduces* the ADR-0007 burden. **LB custom headers cannot do this**: they expand only
+load-balancer-provided variables plus `origin_request_header`, with no rewrite facility. A Service
+Extension can, and is costed as option 4.
+
+Status **Proposed**. The decision is the Director's and is not recorded.
+
+---
+
+## Checkpoint 2026-09-19-iap — ent-os is reachable; the record sync is observable
 
 - **Session:** `/next` → Erik chose IAP from five untracked candidates → built it → verified in real Chrome → then built the record-sync `--check` and pushed the bucket.
 - **Branch:** main · **Commits:** `033479213` (runbook), `61f4d681c` (checkpoint), `5df330e4d` (sync `--check`), + this wrap
