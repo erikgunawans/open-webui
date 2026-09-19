@@ -1,6 +1,91 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-19-gcp (latest) — ent-os runs on GCP; #1 audited, #9 and #10 opened
+## Checkpoint 2026-09-19-tracker-empty (latest) — #9, #10 and #1 closed; the tracker is empty
+
+- **Session:** `/next` → IAP deferred by Erik → built #9 → built #10 → re-audited and closed #1.
+- **Branch:** main · **Commits:** `ca4bed0c9` (#9), `6f8dbc6a4` (#10), + this checkpoint
+- **Tracker: nothing open.** #1–#10 all closed. Suite **141 passing**, tree clean after a run.
+- **Second repo:** erikgunawans/jup at `ac9dc29`, pushed to origin *and* mirror.
+
+### #9 — `records/` is the single source for partner and gate state (ADR-0011)
+
+`jup.kb_sync` generates the partner state table and the stage-ladder line in `~/jup/kb/partners.md`
+from `records/engagements/`, reusing `STAGE_LABELS` rather than copying the vocabulary. Three
+mechanisms, because not everything can be generated:
+
+1. **Generate** the structured claims.
+2. **Refuse a second home for the vocabulary** — a ladder label used as a *table cell* outside a
+   generated region. Prose is exempt: the ladder definition teaches a reader what the table means,
+   and "The critical one" argues its case about SKK Migas and PGN/Pertagas by name.
+3. **Check** what must stay prose — the "5 mmscfd allocation is not secured" claim in `gas.md` and
+   `governance.md`, against the G1 assessments **in both directions**. Deleting the caveat fails as
+   loudly as contradicting it, because a governance caveat is a claim and its disappearance is drift.
+
+Two rows became one: the allocation is a single engagement facing SKK Migas *and* PGN/Pertagas
+(ADR-0008). A new Evidence column carries each rung's artefact.
+
+**Five counterparties lost their stage.** Danantara/Fadli Rahman, PLN, Pertamina NRE, Pertamina
+Patra Niaga and Pelindo had a rung and no record; they now sit in a second table with name and
+purpose and **no rung at all**. Three read *Contacted* before. Filing a record moves the row back up,
+and the check refuses to let it sit in both.
+
+**The gate is a hook, not CI.** Both repos are private and no cross-repo checkout is wired up, so a
+workflow would need a PAT nobody has issued. ent-os CI proves the check catches drift (six
+forced-failure cases, all exercised against a copy of the live tree first); `~/jup/.githooks/
+pre-commit` stops drift reaching a commit. Its first draft passed silently — `status=$?` after an
+`if` block reads the status of the *if construct*, which is 0 when the condition was false.
+
+### #10 — the endpoint is gated on the operating layer, and the seam is tested
+
+**The operating layer is the `admin` role** — Erik's answer, 2026-09-19, held in one named constant.
+`get_operating_layer_user` answers **403, not 401**: `get_verified_user`'s 401 means "we do not know
+who you are", and telling a signed-in member that bounces them to a sign-in page that cannot help.
+The vendor's own `get_admin_user` answers 401 here, which is why the fork has its own dependency.
+
+Configuration moved off module-level `os.environ.get`, which is why this endpoint had **zero** tests
+— no `TestClient`, no reference to `/api/v1/portfolio` anywhere in the tree. Now 15, covering signed
+out, `pending`, verified-without-permission, permitted, the payload round-trip, ADR-0008 at the wire,
+ADR-0009 against the response body, and a `RecordError` as a 500 naming the file and field. Swapping
+the handler back to `get_verified_user` fails three of them — run, not assumed.
+
+**The frontend was telling a member without access that the records could not be trusted.** Every
+thrown error rendered under *"The portfolio was refused, not emptied"*, the notice for a record the
+projection refuses to vouch for. `PortfolioRequestError` now carries the status and 403 gets its own
+notice.
+
+**Verified in real Chrome** against uvicorn + vite: `admin` renders the live records (*no gate passed,
+blocked on `gas-allocation-5mmscfd`, SKK Migas · PGN/Pertagas at Contacted, G1 refused 2026-09-19*);
+`user` gets "Gate state is restricted to the operating layer" on `.jup-notice` without
+`jup-notice-refused`; anonymous gets 401.
+
+### The static-wipe landmine fired, and is now disarmed suite-wide
+
+The first unguarded import of the router deleted all 17 tracked vendor assets — exactly what the
+previous checkpoint predicted would happen. Restored from git. `tests/conftest.py` now copies the
+static tree to a temp dir and sets `STATIC_DIR` at conftest import, before pytest imports any test
+module, so a test that imports `open_webui` anywhere is covered without having to know.
+`test_boot.py` asserts the guard holds. **Outside pytest it is still live** — an ad-hoc
+`python -c 'import open_webui...'` still wipes the tree.
+
+### #1 closed as delivered — 20 met, 1 partial by design, 1 deferred by the spec
+
+Story 17 closed by #9, stories 21 and 19 by #10. Story 13's refused-state hole stays: a `RecordError`
+500s, so there is no payload to carry the Named Non-Coverage sentences, and inlining them into the
+template reintroduces the staleness #6 removed. Story 22 was never in this slice by its own text.
+
+What remains is not code: a contact record for SKK Migas / PGN, and a `wrangler deploy` Erik has
+declined for now — the assistant still answers from the pre-#9 `partners.md`.
+
+### Decisions this session
+
+- **IAP deferred.** Erik declined the ~$18/month forwarding rule for now, so nobody can log in to the
+  Cloud Run deployment. `deploy/gcp/iap.md` is ready when he wants it.
+- **Operating layer = `admin` role**, not a group or a per-user flag.
+- **KB bundle rebuilt, not deployed.** Backed up before the rebuild; `~/jup-kb-assistant-worker` is
+  still not under git.
+
+
+## Checkpoint 2026-09-19-gcp — ent-os runs on GCP; #1 audited, #9 and #10 opened
 
 - **Session:** `/next` → audited #1's 23 stories → opened #9/#10 → exercised the compose overlay →
   deployed ent-os to Google Cloud.
@@ -62,7 +147,7 @@ it did not before.
 Harmless in the container: the Cloud Build frontend produces `build/static`, so the delete-then-copy
 is a real refresh there. Confirmed by the 200s above.
 
-## Checkpoint 2026-09-19-slice-complete (latest) — #4, #8, #5, #6, #7 closed; the slice is delivered
+## Checkpoint 2026-09-19-slice-complete — #4, #8, #5, #6, #7 closed; the slice is delivered
 
 - **Session:** `/next` → #4, then #8, #5, #6, #7 back to back.
 - **Branch:** main · **Commits:** `8305ab5d1` · `a0d9bcac2` · `0cbc71200` · `31f0390b5` · `4edec6f2a`

@@ -1,3 +1,118 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-19-tracker-empty)
+
+> Prepended by /wrap 2026-09-19 (checkpoint 2026-09-19-tracker-empty). Supersedes checkpoint
+> 2026-09-19-gcp's anchor.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-19-tracker-empty).
+
+**Anchor:** `origin/main` at `6f8dbc6a4` **as this was written**, or one commit ahead at this
+checkpoint's own wrap commit (subject begins `chore(session):`). Verify with
+`git log --oneline 6f8dbc6a4..origin/main`. A single `chore(session):` commit is EXPECTED — that is
+this wrap writing itself down. Any commit in that range whose subject does NOT start
+`chore(session):` means a parallel session pushed: real drift, investigate before writing.
+
+Second repo: **erikgunawans/jup at `ac9dc29`**, pushed to origin *and* mirror.
+
+**Current state: the tracker is empty.** #1–#10 all closed. Suite **141 passing** and the tree stays
+clean after a run. `records/` is now the single source for partner and gate state — `kb/partners.md`
+is generated from it (ADR-0011) and a `~/jup` pre-commit hook refuses a commit that leaves the two
+disagreeing. The portfolio endpoint is gated on the operating layer (the `admin` role) and has 15
+tests where it had none. ent-os runs on GCP (`jup-ops`, asia-southeast2) but **nobody can log in** —
+IAP is deferred by Erik's decision.
+
+**Do next, in order — none of this is tracked, so confirm before building:**
+1. **Ask what he wants first.** There is no frontier ticket. The five candidates are below, and
+   picking one is his call, not a default. Do not start (2)–(5) unprompted.
+2. **Automate the record sync.** `gs://jup-ops-records` is an rsync, not a live mount, so a committed
+   record is not on the cloud dashboard until `deploy/gcp/sync-records.sh` runs. This is the same
+   drift class #9 closed, in a second place — and now the *only* hand-carried step left between a
+   record and what a reader sees. A read-only `--check` that diffs local against the bucket is the
+   safe half; the write half touches deployed infrastructure and needs authorisation.
+3. **Cross-repo CI for the kb-drift gate.** #9's check runs in ent-os CI against fixtures, and
+   against the live tree only via `~/jup/.githooks/pre-commit`. Both repos are private, so a
+   workflow needs a PAT Erik must issue. The hook checks the **working tree, not the staged
+   content**, so a partial stage can still commit drift — that is the hole CI would close.
+4. **IAP**, if he changes his mind. `deploy/gcp/iap.md` is written and ready. Needs a hostname
+   (`ops.axiara.ai` assumed), a Cloudflare A record at **DNS-only / grey cloud** — proxied breaks
+   certificate validation and the cert hangs in PROVISIONING forever — and ~$18/month standing.
+   Then enable signup briefly so he becomes the first user (Open WebUI makes the first account
+   admin) and turn it off again, in that order, so the signup window is never reachable by anyone
+   else.
+5. **Upstream rebase (ADR-0007)**, if the quarter is up. `deploy/gcp/VENDOR-PATCHES.md` lists the
+   `NODE_OPTIONS` Dockerfile patch that must be re-applied, and `tests/test_boot.py`'s alembic head
+   checks are the guard to run first.
+
+**Constraints to honor:**
+- **The static wipe is guarded inside pytest and nowhere else.** `tests/conftest.py` redirects
+  `STATIC_DIR` at conftest import, before pytest imports any test module, and `test_boot.py` asserts
+  it. But `config.py:99` still unlinks every file in `STATIC_DIR` at import and swallows every
+  exception, so any ad-hoc `python -c 'import open_webui...'` deletes 17 tracked vendor assets. It
+  fired once this session doing exactly that. Set `STATIC_DIR` on the command line, and
+  `git status` afterwards.
+- **Never hand-edit inside a `<!-- BEGIN generated:... -->` region** in `kb/partners.md`. Edit the
+  record and run `uv run --no-sync --only-group dev python -m jup.kb_sync --jup-root ~/jup`.
+- **`~/jup` has `core.hooksPath .githooks` set.** A commit touching `records/` or `kb/` runs the
+  drift check. `--no-verify` bypasses it; say why if you use it.
+- **The KB bundle is rebuilt and NOT deployed** (backed up to the session scratchpad before the
+  rebuild). The deployed assistant still answers from the pre-#9 `partners.md`, so it will still say
+  Danantara and Pertamina Patra Niaga are at *Contacted*. A `wrangler deploy` changes what a
+  commissioner is told and **Erik declined it on 2026-09-19** — ask again, do not assume.
+- **Never run the writable compose variant against `~/jup`.** The `:rw` forced-failure probe deleted
+  the live G1 record. Use a copy.
+- **`vite build` OOMs at node's own heap cap, not the machine's** — identical failure on 8 GB and
+  32 GB Cloud Build machines. Fixed by `NODE_OPTIONS` in the Dockerfile; re-check after every
+  ADR-0007 rebase. `E2_HIGHCPU_32` is quota-blocked in asia-southeast2 but available in the global
+  pool (omit `--region`).
+- **Never write a secret with `cut`/`openssl` straight to `--data-file=-`** — the trailing newline
+  survives and Cloud Run injects raw bytes. Use `printf '%s'`.
+- **Quote any record value containing ` #`.** YAML opens a comment at a bare hash.
+- **Run tests as `uv run --no-sync --only-group dev pytest`.** A plain `uv run pytest` triggers the
+  hatch hook's `npm run build`, which fails on a full disk and leaves the tree dirty. The endpoint
+  tests need the full runtime and skip under `--only-group dev`; CI's `Runtime suite` job runs them,
+  triggered on `migrations/` or `jup_portfolio`.
+- **Fold opacity in before believing a contrast ratio.** 4.90:1 at `opacity: 0.82` composites to
+  3.75:1 and fails AA.
+- **Fork-owned Python goes in `backend/jup/`**, tests in `tests/` at the repo root.
+- **CI gates:** `ruff format --check .` (single quotes, line-length 120) plus
+  `ruff check --select=F --ignore=F401,F403,F405,F541,F811,F841`. Do not "fix" the ignore list.
+- **Interceptor cannot screenshot here** — use `interceptor eval --main` + `getComputedStyle`. The
+  dev-server route works, though: uvicorn on 8080 with `OFFLINE_MODE=true`,
+  `RAG_EMBEDDING_ENGINE=ollama` and a throwaway `STATIC_DIR`, plus `npx vite dev --port 5173`, comes
+  up in under a minute and vite binds `localhost`, not `127.0.0.1`.
+- **`@jup/ui` is REACT and unusable in this Svelte tree.** Only the CSS custom properties port, and
+  the canonical accents are FILLS that fail AA as text — use the `-text` variants.
+- **Deploy authorization for axiara.ai/JUP is per-change, never standing** — ask every time.
+- `gh` targets **upstream** unless pinned — pass `--repo erikgunawans/ent-os-new-jup`.
+- Never push to `upstream`. Commits go **directly to `main`**; no PR is expected for a wrap.
+- **Enforcement is inlet-only** (ADR-0002); a fifth enterprise hole remains at
+  `routers/openai.py:1464` and `routers/ollama.py:1091`, behind only `get_verified_user`.
+- **Disk is tight** — 8.7 GB free at wrap. Check `df -h` before any large install.
+
+**Open items waiting on Erik (do not chase these yourself):**
+- **A contact record for SKK Migas / PGN** — a letter, minute or reply to replace the source analysis
+  as the artefact evidencing the `contacted` rung. It stands on the Director's own account, and the
+  record body says so. This is the single highest-value edit to the live records.
+- **Whether to deploy the rebuilt KB bundle.** Declined on 2026-09-19; he wanted to review the
+  `partners.md` change first, since three counterparties that read *Contacted* now read as having no
+  record at all.
+- **Documents for Danantara and Pertamina Patra Niaga**, if any exist — either one would move that
+  counterparty straight back into the generated table.
+- **A PAT for cross-repo CI**, to move the kb-drift gate off the pre-commit hook.
+- **IAP: hostname + Cloudflare A record (grey cloud) + the ~$18/month.** Deferred, not refused.
+- **One verification only he can run** — the deployed assistant answering `Di rung mana SKK Migas
+  sekarang?` should say **Contacted**. Needs the shared JUP password.
+- **`~/jup/kb/CONTEXT.md` is stale twice over** — "nominee Operation Director", and "runs locally
+  only (127.0.0.1) — never web-published", untrue under D13 exception v2. Fixing it needs a bundle
+  rebuild plus a `wrangler deploy`.
+- **`~/jup-kb-assistant-worker/` is still not under git** — no origin, no mirror, outside D14, and it
+  holds the deployed assistant and the only copy of `kb-bundle.js`.
+- **Codex CLI is 0.139.0 and needs ≥0.155.1** (`bun add -g @openai/codex@latest`) before Forge gives
+  a genuine cross-vendor second opinion. Until then Forge is Claude-family output.
+- **An OpenAI key with ZDR enabled**, when voice work starts (ADR-0005/0006, D16). Not needed yet.
+- **Monthly GCP cost is live** at roughly $17-42 without the load balancer; IAP would add ~$18.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-19-gcp)
 
 > Prepended by /wrap 2026-09-19 (checkpoint 2026-09-19-gcp). Supersedes checkpoint
