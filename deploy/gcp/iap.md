@@ -138,7 +138,11 @@ three places, not one, and `utils/auth.py:415` re-checks it against `user.email`
 Patching only the signin path therefore does not create a malformed account: it creates a correct
 account and then 401s every request against it, presenting as a session bug. ADR-0012 costs that
 properly and sets out a fork-owned middleware that normalizes the header once, leaving all three
-vendor sites unpatched. The decision is still open.
+vendor sites unpatched. **Accepted 2026-09-19: option 3, the middleware.** `admin` comes from an
+explicit allowlist rather than from being the first row, `DEFAULT_USER_ROLE=pending` stays, and the
+existing account is migrated with its password left dormant — dormant *because* ingress is
+`internal-and-cloud-load-balancing`, so loosening ingress obliges clearing it. Nothing is
+implemented yet; the ticket is the work.
 
 Forging that header is not a risk here as long as Cloud Run keeps
 `--no-allow-unauthenticated` with `--ingress=internal-and-cloud-load-balancing` and only the IAP

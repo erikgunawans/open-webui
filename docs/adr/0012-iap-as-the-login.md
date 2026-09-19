@@ -1,8 +1,8 @@
 # Should IAP be the login?
 
-**Status: Proposed — the decision is the Director's and is not recorded here yet.** Everything below
-is the analysis the decision needs, including one finding that changes which options are real.
-Issue #14.
+**Status: Accepted 2026-09-19 — Erik Gunawan Supriatna, Director, Operation & Business
+Development.** Option 3. The analysis that produced it is kept below unchanged, including the
+finding that ruled out option 2. Issue #14.
 
 `https://ops.axiara.ai` authenticates twice. IAP authenticates at the load balancer, and then Open
 WebUI authenticates again against its own password record. Erik holds a password for an application
@@ -88,14 +88,40 @@ parameters) plus `origin_request_header`. There is no variable referencing an ar
 header and no substring or rewrite facility. The load balancer can *overwrite* a header with a
 static value; it cannot *derive* one from what the client sent.
 
-## What the decision still has to settle
+## What the decision settled
 
-- The existing `erik@axiara.ai` account and its password record — migrated, or kept as a fallback
-- Whether `DEFAULT_USER_ROLE=pending` still means anything once reaching the app at all requires an
-  `iap.httpsResourceAccessor` binding
-- How `admin` is assigned to the first trusted-header account, given the current mechanism is
-  "be the only row in the table"
-- Whether any of this changes ADR-0001's fifty-seat ceiling
+**The mechanism: option 3, a fork-owned ASGI middleware.** It normalizes
+`X-Goog-Authenticated-User-Email` to its bare address before routing, so all three read sites see a
+clean value and none of them is patched. The deciding argument is not cost, it is the shape of the
+failure: option 2's lost patch is a production login loop that reads as a session bug, and option
+3's is a missing registration line that a test catches. An outage you can misdiagnose is worse than
+one you cannot.
+
+**`admin` is assigned from an explicit allowlist**, read by fork-owned code in `backend/jup/`
+alongside the middleware. The admin set stops being a side effect of which row was inserted first.
+"Be the only row in the table" was a manoeuvre, and the same objection the ADR raises against the
+signup window applies to it.
+
+**`DEFAULT_USER_ROLE=pending` stays.** IAP access and operating-layer access remain separable: a
+person can be admitted to the app without being handed the admin role the operating layer requires.
+That keeps the 403 path meaningful (ADR-0010's reading of the operating layer as an admin-role
+surface), and it costs nothing while exactly one user exists.
+
+**The existing `erik@axiara.ai` account is migrated and its password record left dormant.** The row
+holds `admin` and all existing data, so it is kept rather than recreated. The password is not
+cleared: `auths.py:393` already refuses password changes in trusted-header mode, and
+`--ingress=internal-and-cloud-load-balancing` means there is no path to the app that bypasses IAP.
+Clearing it would be a data change to the vendor's user table, needing its own migration and test,
+to close a hole that the ingress setting already closes. **If ingress is ever loosened, that
+reasoning expires and the password must be cleared** — recorded here because the dependency is not
+visible from the user table.
+
+**ADR-0001's fifty-seat ceiling does not move.** It is a licensing limit, not a capacity one, so
+nothing here touches the number. What changes is that it becomes countable at a better place: the
+seat list is now the set of `iap.httpsResourceAccessor` principals, which sits upstream of the app
+rather than inside its user table. Bindings are standing while the ceiling counts end users over a
+rolling thirty days, so counting bindings over-counts — the conservative direction for a license
+ceiling, and the right one to err in.
 
 ## Consequences
 
