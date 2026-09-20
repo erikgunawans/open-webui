@@ -1,3 +1,141 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-21-after)
+
+> Prepended by /wrap 2026-09-21 (checkpoint 2026-09-21-after). Supersedes checkpoint
+> 2026-09-21-wired's anchor.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-21-after).
+
+**Anchor:** `origin/main` at `66dca0463` **as this was written**, or one commit ahead at this
+checkpoint's own wrap commit (subject begins `chore(session):`). Verify with
+`git log --oneline 66dca0463..origin/main`. A single `chore(session):` commit is EXPECTED — that is
+this wrap writing itself down. Any commit in that range whose subject does NOT start
+`chore(session):` means a parallel session pushed: real drift, investigate before writing.
+
+**Three repos now, all clean and pushed:**
+- **ent-os-new-jup** `66dca0463` — working tree clean, everything pushed.
+- **erikgunawans/jup** `9cd0b90` — pushed to `origin` **and** the `mirror` at `~/Backups/jup.git`
+  (D14). Still three untracked tooling dirs (`.agents/`, `.claude/`, `skills-lock.json`).
+- **erikgunawans/jup-kb-assistant-worker** `119c46f` — **NEW this session**, private, with a local
+  bare mirror. Was not under version control at all.
+
+**Current state: #1–#15 are closed; #16 is the only open issue, and it is real work.** The portfolio
+slice is live at `ops.axiara.ai` behind IAP on Cloud Run revision `ent-os-00005-jhc`. The ADR-0012
+IAP login is deployed and verified. The KB assistant is deployed at Worker version `cafea287`. All
+CI gates are green except `Release to PyPI`, which is permanent upstream noise.
+
+**Do next, in order:**
+1. **#16 — implement ADR-0002 fail-closed enforcement.** This is the frontier and it is substantial.
+   **Start by settling the policy with Erik, before writing code:** the ADR fixes *where* guards
+   attach, never *what* they enforce. `~/jup/kb/serve.ts` already implements a fail-closed guard in
+   CODE not prompt — it refuses a turn outright when Tier-2 gas figures are presented as profit or
+   margin without the revenue-not-margin caveat (D11), and audits answered and refused turns alike.
+   D13 records that guard was ported verbatim into the Cloudflare Worker. Porting it a third time is
+   the obvious candidate; whether the operating layer's policy is exactly that, or wider, is Erik's
+   call. The three attachment points and every trap are in the issue body — read it, do not re-derive.
+2. **Then, and only then, the 403-for-non-admin test against the deployment.** Ordering settled by
+   Erik 2026-09-21 and it is not a preference: `get_verified_user` 401s on any role outside the
+   verified set and `DEFAULT_USER_ROLE=pending`, so a fresh second identity gets **401, not 403**.
+   Reaching the 403 needs an account promoted to `user` — which is exactly the condition that makes
+   #16 exploitable. Testing for the gap would create the exposure.
+3. **If Erik defers #16's policy question**, the unblocked work is small and listed under "Open
+   items" below. Do not invent work beyond it.
+
+**Constraints to honor:**
+- **Deploy authorization is per-change, never standing**, even though `alesha-bot` holds Owner.
+  Capability is not authorization. This session's #15 deploy and Worker deploy were each authorized
+  explicitly.
+- **`gcloud` credentials expire and cannot reauth non-interactively.** `gcloud auth login` must be
+  run by Erik in the terminal. Same for `./scripts/wizard-jup-repo-token.sh`, which reads hidden
+  stdin: in `! ` bash mode it gets EOF and reports "No token entered" as if the user erred.
+- **`~/jup/kb/CONTEXT.md` is the deployed assistant's OPERATING CONTEXT**, not documentation —
+  `build-kb-bundle.ts:43` bundles it. A stale line there is the live system asserting something
+  false about itself. Editing the source changes nothing live: rebuild with
+  `bun build-kb-bundle.ts`, then `bunx wrangler deploy`.
+- **After ANY Worker deploy, re-check the gate — all must be 401 unauthenticated:** `/JUP/`,
+  `/JUP/DECISIONS.md`, `/JUP/COO/`, and **`POST /JUP/api/chat`**. The POST is the important one: it
+  exercises the Worker's OWN auth check, not `.htaccess`, which Workers bypass at the edge. D13
+  records that as a real gap caught before first deploy.
+- **`CONTEXT.md:26` points at `decisions.md`, which does not exist in `kb/`. That is NOT a bug** —
+  `build-kb-bundle.ts:37` maps it to `~/jup/DECISIONS.md`. Verify before "fixing" it.
+- **Cloud Build runs the LEGACY docker builder**, which does not define `$BUILDPLATFORM`. The
+  `ARG BUILDPLATFORM=linux/amd64` above `Dockerfile:27` is what makes the image buildable at all.
+  **Do not delete it for looking redundant** — it looks redundant exactly when BuildKit is in use,
+  which is no longer guaranteed. Reproduces in BOTH build pools; moving pools does not help.
+- **The global build pool is a quota choice, NOT the platform fix**, and machine size has never
+  cured the vite OOM — that is node's own heap cap and failed identically on 8 GB and 32 GB.
+  `NODE_OPTIONS` in the Dockerfile fixes it. Both files say so; do not re-conflate them.
+- **The ruff gate is pinned to the lock.** CI runs `uv run --frozen --only-group dev ruff`, both
+  sides 0.15.18, 276 files. The `uvx ruff@latest` pre-push check is **RETIRED** — it now reports
+  failures CI will not have. Raising ruff is a deliberate `uv lock --upgrade-package ruff`.
+- **`.prettierignore` covers fork prose and `tests/fixtures/`.** Do not "tidy" it: `/wrap` rewrites
+  `PROGRESS.md` and this file every session and neither is prettier-clean, so removing the ignore
+  re-reds Frontend Build at the next checkpoint. Fixtures are excluded because a fixture's value is
+  its exact bytes — prettier rewrites `malformed-unterminated-frontmatter/projects/runaway.md`.
+- **When a gate is "run tools, then assert clean tree", reproduce the WHOLE step sequence in a fresh
+  clone.** Verifying only the command you changed missed `i18n:parse` and cost a red push.
+- **`sync-records.sh` excludes filesystem junk via `$JUNK_RE`, defined above the `--check` path that
+  uses it first.** The write path rsyncs a filesystem, the CI gate compares a git checkout — any
+  gitignored file rsync can see becomes drift no commit can resolve. Widen `JUNK_RE`; never delete
+  from the bucket to fix it.
+- **Drift-gate `preflight` tests only that a secret is NON-EMPTY, not valid.** A stale
+  `JUP_REPO_TOKEN` does not skip — it runs and fails at `actions/checkout` with `Bad credentials`.
+  Will matter the day the PAT expires.
+- **`Bad credentials` (401) ≠ under-scoped (404).** Still the most misleading error on this board.
+- **Exit 1 means drift; exit 2 means the gate checked NOTHING.** Never collapse them.
+- **`sync-records.sh --check` is read-only and safe anytime.** Bare `sync-records.sh` WRITES to
+  deployed infrastructure.
+- **`main.py` registers the allowlist FIRST and the normalizer SECOND.** Starlette runs the
+  last-added outermost. Swapping them leaves both installed and working; only
+  `tests/test_jup_iap_registration.py` notices.
+- **Do not patch `auths.py:393`, `auths.py:736` or `utils/auth.py:415` "just to be safe."** A test
+  asserts none of them imports the normalizer.
+- **Run tests as `uv run --no-sync --only-group dev pytest`.** A plain `uv run pytest` triggers the
+  hatch hook's `npm run build`.
+- **`find tests/fixtures -type d -empty` before pushing** — git does not track empty dirs; that was
+  23 silent CI failures.
+- **`PYTHONPATH=backend` is load-bearing** for any bare `python -m jup.*`; `pythonpath = ["backend"]`
+  is a pytest setting and does nothing outside pytest.
+- **`config.py:99` unlinks every file in `STATIC_DIR` at import** and swallows the exception.
+  `tests/conftest.py` redirects it; outside pytest, set `STATIC_DIR` and `git status` after.
+- **`--set-secrets` replaces the WHOLE secret block**; `--update-secrets` cannot convert an existing
+  plain env var (needs `--remove-env-vars=NAME`). **`DATABASE_URL` is a secret reference — do not
+  reintroduce the plaintext form.** `database-url` embeds the instance private IP (10.72.0.3).
+- **`deploy.sh`'s env heredoc is unquoted** so `$ADMIN_EMAILS` expands — **no backticks in that
+  block**; they get executed.
+- **Loosening Cloud Run ingress obliges clearing the dormant password** (ADR-0012) and makes
+  `WEBUI_AUTH_TRUSTED_EMAIL_HEADER` a login bypass.
+- **IAP is standing infrastructure** (~$18/mo, GCP ~$35–60/mo total). Only `user:erik@axiara.ai`
+  holds `iap.httpsResourceAccessor`; **`alesha-bot` cannot reach the app** — browser verification
+  must go through **Interceptor in real Chrome**, and Interceptor **cannot screenshot here** (use
+  `interceptor eval --main`).
+- **Never hand-edit inside a `<!-- BEGIN generated:... -->` region** in `kb/partners.md`.
+- **`~/jup` has `core.hooksPath .githooks`.** The pre-commit gate checks the working tree, not the
+  staged content, and `--no-verify` bypasses it.
+- **Never run the writable compose variant against `~/jup`** — the `:rw` probe deleted a live record.
+- **Quote any record value containing ` #`.** YAML opens a comment at a bare hash.
+- **Fork-owned Python goes in `backend/jup/`**, tests in `tests/` at the repo root.
+- `gh` targets **upstream** unless pinned — pass `--repo erikgunawans/ent-os-new-jup`.
+- Never push to `upstream`. Commits go **directly to `main`**; no PR is expected for a wrap.
+
+**Open items waiting on Erik (do not chase these yourself):**
+- **#16's policy question** — port `kb/serve.ts`'s tier-discipline guard verbatim, or define a wider
+  operating-layer policy? Blocks the only open issue. NEW this session.
+- **A contact record for SKK Migas / PGN** — still the highest-value edit to the live records; the
+  live API returns `awaiting_engagements: ["skk-migas-pgn-allocation"]` as the G1 blocker. Needs a
+  real contact event; ADR-0009 discipline forbids manufacturing one.
+- **Documents for Danantara and Pertamina Patra Niaga**, if any exist.
+- **`~/jup`'s three untracked tooling dirs** (`.agents/`, `.claude/`, `skills-lock.json`) — track or
+  ignore, still undecided.
+- **Codex CLI is 0.139.0 and needs ≥0.155.1** before Forge gives a genuine second opinion.
+- **An OpenAI key with ZDR enabled**, when voice work starts (ADR-0005/0006, D16). Not needed yet.
+- **The 403-for-non-admin path has never run against the deployment** — gated behind #16, see above.
+- **#12 reopens the moment a second IAP binding exists** — that is when someone types the hostname
+  by hand and reads the port-80 failure as an outage.
+- **`Release to PyPI` fails on every commit** — inapplicable upstream workflow. Left as-is, but it
+  trains people to ignore a red X, which is how `Frontend Build` hid for three days.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-21-wired)
 
 > Prepended by /wrap 2026-09-21 (checkpoint 2026-09-21-wired). Supersedes checkpoint
