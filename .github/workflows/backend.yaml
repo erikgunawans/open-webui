@@ -32,18 +32,21 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v6
+      # Ruff comes from the lock, not from PyPI's latest. An unpinned install put CI
+      # on 0.16.x while the lock pinned 0.15.18, and 0.16 formats python inside
+      # fenced markdown blocks: 437 files checked here against 276 locally, so a push
+      # could only discover the difference by failing. --frozen is what makes the two
+      # agree — bumping the version is now a deliberate `uv lock --upgrade-package ruff`.
+      - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Install formatter
-        run: pip install "ruff>=0.15.5"
+          enable-cache: true
 
       - name: Verify formatting
-        run: ruff format --check . --exclude .venv --exclude venv
+        run: uv run --frozen --only-group dev ruff format --check . --exclude .venv --exclude venv
 
       - name: Detect logic errors
-        run: ruff check --select=F --ignore=F401,F403,F405,F541,F811,F841 --output-format=github .
+        run: uv run --frozen --only-group dev ruff check --select=F --ignore=F401,F403,F405,F541,F811,F841 --output-format=github .
 
   # ── Backend test suite ───────────────────────────────────────────────────
   pytest:

@@ -94,6 +94,13 @@ Pinning CI to the lock, or raising the dev group's floor, would close it — not
 a gate-policy decision rather than a silent fix. Until then: check with
 `uvx ruff@latest format --check . --exclude .venv --exclude venv` before pushing markdown.
 
+**Resolved 2026-09-21 — Erik chose to pin CI to the lock.** `format-check` now runs
+`uv run --frozen --only-group dev ruff …` instead of `pip install "ruff>=0.15.5"`, so CI and the
+local venv are the same 0.15.18 and both check 276 files. The `uvx ruff@latest` pre-push check is
+**retired** — it now reports failures CI will not have. Raising the version is henceforth a
+deliberate `uv lock --upgrade-package ruff`, which lands in the lock, which the workflow's own
+`paths:` filter already watches.
+
 ### What #15 still needs
 
 Criteria 7 and 8 — sign-in produces no prefix, and the existing account survives — need a
