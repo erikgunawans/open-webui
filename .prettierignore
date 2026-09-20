@@ -312,3 +312,33 @@ cypress/screenshots
 
 
 /static/*
+# ─────────────────────────────────────────────────────────────────────────────
+# JUP: fork-owned prose and test fixtures.
+#
+# `npm run format` runs prettier --write over **/*.md, and `frontend.yaml` then
+# runs `git diff --exit-code`. Every fork-owned markdown file prettier disagrees
+# with therefore reds the Frontend Build gate — which is why that gate has been
+# failing on every commit since 2026-09-19 while nothing was actually wrong with
+# the frontend.
+#
+# Formatting them once does not fix it. `/wrap` rewrites PROGRESS.md and
+# .planning/next-session-prompt.md every session and neither comes out
+# prettier-clean, so the gate would go red again at the next checkpoint. The
+# only stable answer is to let prettier own the vendor frontend it was added
+# for, and not the fork's prose.
+#
+# tests/fixtures/ is excluded for a stronger reason: a fixture's value is its
+# exact bytes. prettier rewrites them today (it inserts a blank line into
+# malformed-unterminated-frontmatter/projects/runaway.md), and while the suite
+# still passes, a fixture whose whole job is to be malformed must not be
+# silently repaired by a formatter — that converts a refusal test into a no-op
+# that still reports green.
+.planning/
+.design-sync/
+PROGRESS.md
+docs/adr/
+docs/agents/
+docs/architecture/
+docs/design-system/
+deploy/
+tests/fixtures/
