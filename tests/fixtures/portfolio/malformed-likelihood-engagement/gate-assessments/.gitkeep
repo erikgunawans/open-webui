@@ -1,0 +1,7 @@
+# Git does not track an empty directory, and this one is deliberately empty: the fixture is a
+# records tree whose projects have no gate assessments yet. Without this file the directory
+# simply does not exist in a fresh clone, `project_portfolio` refuses the whole tree with
+# "has no gate-assessments/ subdirectory", and the suite passes locally while failing in CI —
+# which is exactly what happened, undetected, for several commits.
+#
+# `_load_assessments` globs '*.md', so this file is never read as a record.
