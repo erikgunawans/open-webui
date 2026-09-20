@@ -1,3 +1,122 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-20-closes)
+
+> Prepended by /wrap 2026-09-20 (checkpoint 2026-09-20-closes). Supersedes checkpoint
+> 2026-09-19-gates's anchor.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-20-closes).
+
+**Anchor:** `origin/main` at `9d9cdd52c` **as this was written**, or one commit ahead at this
+checkpoint's own wrap commit (subject begins `chore(session):`). Verify with
+`git log --oneline 9d9cdd52c..origin/main`. A single `chore(session):` commit is EXPECTED — that is
+this wrap writing itself down. Any commit in that range whose subject does NOT start
+`chore(session):` means a parallel session pushed: real drift, investigate before writing.
+
+Second repo: **erikgunawans/jup at `ac9dc29`**, unchanged, bucket in sync.
+
+**Current state: the board went from four blocked items to two.** #11, #12 and #14 closed this
+session. **#13** is unchanged and still blocked on Erik. **#15** is new — the ADR-0012
+implementation, and its first two modules are already committed **unwired**.
+
+**Do next, in order:**
+1. **Finish #15. This is the only agent-shaped work on the board.** `backend/jup/iap_identity.py`
+   and `backend/jup/admin_allowlist.py` are written, formatted, linted and smoke-tested, but
+   **nothing imports them**, so they currently change no behaviour. Remaining, in order: the
+   `main.py` registration (import + two `add_middleware` lines), tests, the `VENDOR-PATCHES.md`
+   entry, and `WEBUI_AUTH_TRUSTED_EMAIL_HEADER` + `JUP_ADMIN_EMAILS` in `deploy.sh`.
+   **Erik scoped this to code and tests — do NOT deploy it.** Deploying changes how he logs in, and
+   a wrong middleware locks him out of `ops.axiara.ai`.
+2. **Split the tests the way this repo already does.** The pure functions (`normalize_iap_value`,
+   `normalize_headers`, `parse_admin_allowlist`, `ensure_admin` with an injected fake) need no
+   vendor runtime and belong in the `--only-group dev` job. The registration guard — the test that
+   fails when the `main.py` line is lost — imports the app and must carry the same
+   `importlib.util.find_spec` skip guard as `tests/test_jup_portfolio_endpoint.py`.
+3. **#13 — still Erik's.** `./scripts/wizard-jup-repo-token.sh`. The secret is still dated
+   `2026-09-19T11:03:30Z`, so it has not been re-minted and both drift gates still fail.
+4. **Ask Erik what the `axiara.ai/JUP` page actually calls** — he took that check. See the open
+   items below; it decides whether the KB deploy closed anything.
+
+**Constraints to honor:**
+- **Do not deploy #15.** Code and tests only, by Erik's explicit scoping.
+- **`admin_allowlist.py` imports `jup.iap_identity`, so `PYTHONPATH=backend` is load-bearing** for
+  any bare `python -m jup.*`. `pythonpath = ["backend"]` is a pytest setting and does nothing
+  outside pytest. Without it: `ModuleNotFoundError` and **exit 1 — which is `kb_sync`'s code for
+  DRIFT.**
+- **Exit 1 means drift; exit 2 means the gate checked NOTHING.** Never collapse them.
+- **`Bad credentials` (401) ≠ under-scoped (404).** Still the most misleading error on this board.
+- **Do not patch `auths.py:736` "just to be safe"** while adding the middleware. ADR-0012 chose
+  option 3 precisely to leave all three vendor read sites untouched; a belt-and-braces patch re-adds
+  the surface the decision exists to avoid.
+- **The middleware must mutate the ASGI `scope` headers, not a `BaseHTTPMiddleware` request.**
+  `utils/auth.py` reads `request.headers`, which is a view over the scope.
+- **Header names in an ASGI scope are lowercase bytes.**
+- **`--set-secrets` replaces the WHOLE secret block** — name every secret in one flag or the omitted
+  one is silently dropped. **`--update-secrets` cannot convert an existing plain env var**; it needs
+  `--remove-env-vars=NAME` in the same command.
+- **`DATABASE_URL` is now a secret reference. Do not reintroduce the plaintext form** — `deploy.sh`
+  used to rebuild it from `db-password` on every run, which would have reverted #11 silently.
+- **`database-url` embeds the instance private IP (10.72.0.3).** If `jup-ops-db` is recreated on a
+  different address, add a new secret version; nothing in `deploy.sh` notices.
+- **Loosening Cloud Run ingress obliges clearing the dormant password** (ADR-0012). The dependency
+  is invisible from the user table.
+- **Deploy authorization for axiara.ai/JUP is per-change, never standing** — ask every time, even
+  though `alesha-bot` holds Owner. Capability is not authorization.
+- **Run tests as `uv run --no-sync --only-group dev pytest`.** A plain `uv run pytest` triggers the
+  hatch hook's `npm run build`.
+- **`config.py:99` unlinks every file in `STATIC_DIR` at import** and swallows the exception.
+  `tests/conftest.py` redirects it; outside pytest, set `STATIC_DIR` and `git status` after.
+- **CI gates:** `ruff format --check .` (single quotes, line-length 120) plus
+  `ruff check --select=F --ignore=F401,F403,F405,F541,F811,F841`. Do not "fix" the ignore list.
+- **`sync-records.sh --check` is read-only and safe anytime.** Bare `sync-records.sh` WRITES to
+  deployed infrastructure.
+- **Do not count `Would set mtime` as drift** — only `Would copy|delete|remove`.
+- **Never hand-edit inside a `<!-- BEGIN generated:... -->` region** in `kb/partners.md`.
+- **`~/jup` has `core.hooksPath .githooks`.** The pre-commit gate checks the working tree, not the
+  staged content, and `--no-verify` bypasses it.
+- **Never run the writable compose variant against `~/jup`** — the `:rw` probe deleted a live
+  record. Use a copy.
+- **`vite build` OOMs at node's own heap cap.** Fixed by `NODE_OPTIONS` in the Dockerfile; re-check
+  after every ADR-0007 rebase. `E2_HIGHCPU_32` is quota-blocked in asia-southeast2 but available in
+  the global pool (omit `--region`).
+- **Never write a secret with `cut`/`openssl` straight to `--data-file=-`**, and use `--body` not a
+  pipe for `gh secret set`.
+- **Quote any record value containing ` #`.** YAML opens a comment at a bare hash.
+- **IAP is standing infrastructure** (~$18/mo). Only `user:erik@axiara.ai` holds
+  `iap.httpsResourceAccessor`; `alesha-bot` **cannot reach the app**, so live verification must go
+  through Interceptor in real Chrome, which carries Erik's Google session.
+- **Interceptor cannot screenshot here** — use `interceptor eval --main` + `getComputedStyle`, or
+  read text. `axiara.ai/JUP/` will 401 and may raise a basic-auth modal; do not fight it.
+- **Fork-owned Python goes in `backend/jup/`**, tests in `tests/` at the repo root.
+- `gh` targets **upstream** unless pinned — pass `--repo erikgunawans/ent-os-new-jup`.
+- Never push to `upstream`. Commits go **directly to `main`**; no PR is expected for a wrap.
+- **Enforcement is inlet-only** (ADR-0002); a fifth enterprise hole remains at
+  `routers/openai.py:1464` and `routers/ollama.py:1091`, behind only `get_verified_user`.
+
+**Open items waiting on Erik (do not chase these yourself):**
+- **Re-mint `JUP_REPO_TOKEN`** via `./scripts/wizard-jup-repo-token.sh` — #13's only blocker,
+  unchanged since 2026-09-19T11:03:30Z.
+- **Does `axiara.ai/JUP` actually call the deployed Worker?** He took this check. The Worker is live
+  at version `b75e6a15` with corrected partner data, but the page is 401 behind `.htaccess` and the
+  July README says it calls `http://127.0.0.1:4173/api/chat`. **If that is still true, the KB deploy
+  closed nothing** and a commissioner still gets the stale answer. Ask before assuming it is fixed.
+- **A contact record for SKK Migas / PGN** — still the highest-value edit to the live records. The
+  live API returns `awaiting_engagements: ["skk-migas-pgn-allocation"]` as the G1 blocker.
+- **Documents for Danantara and Pertamina Patra Niaga**, if any exist.
+- **`~/jup/kb/CONTEXT.md` is stale twice over** — "nominee Operation Director", and "runs locally
+  only (127.0.0.1) — never web-published".
+- **`~/jup-kb-assistant-worker/` is still not under git** — no origin, no mirror, and it holds the
+  deployed assistant and the only copy of `kb-bundle.js`. It just shipped a production deploy from
+  an unversioned directory.
+- **`~/jup` has three untracked tooling dirs** (`.agents/`, `.claude/`, `skills-lock.json`).
+- **Codex CLI is 0.139.0 and needs ≥0.155.1** before Forge gives a genuine second opinion.
+- **An OpenAI key with ZDR enabled**, when voice work starts (ADR-0005/0006, D16). Not needed yet.
+- **Monthly GCP cost is roughly $35–60.**
+- **The 403-for-non-admin path has never run against the deployment.** One user exists and signup is
+  closed, so there is no second identity. Covered by the 15 local tests only.
+- **#12 reopens the moment a second IAP binding exists** — that is when someone types the hostname
+  by hand and reads the port-80 failure as an outage.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-19-gates)
 
 > Prepended by /wrap 2026-09-19 (checkpoint 2026-09-19-gates). Supersedes checkpoint

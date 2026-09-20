@@ -1,6 +1,100 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-19-gates (latest) — the tracker has content again, and the drift gate is half-credentialed
+## Checkpoint 2026-09-20-closes (latest) — the blocked board cleared, and the ADR became a ticket
+
+- **Session:** `/next` → every open item was blocked on Erik, so the first act was to ask → he authorized all four → KB bundle deployed → #11 rotated and closed → ADR-0012 decided and implemented-as-#15 → #12 closed won't-fix → started #15's code.
+- **Branch:** main · **Commits:** `675cbb59d`, `9d9cdd52c`, + this wrap
+- **Tracker: four open → two.** #11, #12, #14 closed. #13 still blocked on Erik. **#15 is new** — the ADR-0012 implementation.
+- **Second repo:** erikgunawans/jup unchanged at `ac9dc29`, bucket in sync.
+
+### The handoff's first instruction was "ask", and it was right
+
+Every one of #11–#14 was blocked on a decision or an action only Erik could take, so the session
+opened with a question rather than work. He authorized all four at once, which is what made the rest
+of the session possible. Worth keeping as a pattern: a board where every item is human-blocked is
+not a board an agent should start guessing at.
+
+### #11 — rotated, and the deploy script would have quietly undone it (`675cbb59d`)
+
+The credential is now the `database-url` secret, referenced the way `WEBUI_SECRET_KEY` always was.
+Revision `ent-os-00004-cr2` serves 100%, and `GET /api/v1/portfolio/` returns 200 with real records
+through IAP. The password was **rotated, not relocated** — `db-password` versions 1 and 2 are
+disabled, version 3 carries the new value so the two secrets cannot disagree.
+
+**The part that mattered was not the rotation.** `deploy.sh` rebuilt `DATABASE_URL` from
+`db-password` on every run, so the next deploy would have put the plaintext form straight back and
+the issue would have reopened itself without anyone touching it. That lookup is deleted, and
+`provision.sh` now creates `database-url` instead. A fix that a routine deploy reverts is not a fix.
+
+Two gcloud traps, both recorded in `deploy/gcp/README.md`:
+
+1. **`--update-secrets` alone cannot convert an existing plain env var.** It fails with *"already
+   been set with a different type"*, which reads like a permissions or format problem. It needs
+   `--remove-env-vars=X` in the **same** command, so no revision exists half-converted.
+2. **`--set-secrets` replaces the entire secret block, silently.** Naming one secret drops every
+   other reference — `WEBUI_SECRET_KEY` would have vanished.
+
+### ADR-0012 is Accepted, and the decision produced a ticket (`9d9cdd52c`, #14 → #15)
+
+Option 3, the fork-owned middleware. I verified the load-bearing finding before recommending, since
+it is the whole reason option 2 is a trap: `utils/auth.py:415` really does re-check the header
+against `user.email` on **every request**. Patching only `auths.py:736` therefore creates a
+*correct* account and then 401s everything after it — presenting as a session bug, with nothing
+pointing at a prefix.
+
+**The deciding argument turned out not to be cost.** It is the shape of the failure: a lost vendor
+patch is a production login loop, and a lost middleware registration is a failing test. An outage
+you can misdiagnose is worse than one you cannot.
+
+Four sub-questions settled: `admin` comes from an explicit allowlist rather than insertion order;
+`DEFAULT_USER_ROLE=pending` stays, keeping IAP access and operating-layer access separable; the
+existing account is migrated with its password **dormant, not cleared**; ADR-0001's ceiling does not
+move, though the seat list becomes the IAP binding set, which over-counts — the safe direction.
+
+The dormant password rests on `--ingress=internal-and-cloud-load-balancing`. That dependency is
+recorded in the ADR because it is invisible from the user table: **loosen ingress and the password
+must be cleared.**
+
+### #12 closed as won't-fix, with the condition to reopen
+
+~$7–9/month against a ~$35–60/month deployment, to fix a failure Chrome already routes around by
+auto-upgrading to HTTPS. Erik's call. **The reopen condition is a second IAP binding** — a second
+person is the first one to type the hostname by hand and read the failure as "the system is down".
+Recorded rather than deferred, so it stops consuming a decision slot every session.
+
+### The KB bundle is deployed, and the caveat outlives the deploy
+
+Version `b75e6a15` is live at 100%, replacing a 2026-09-18T21:32 deployment — which confirms the
+stale-bundle diagnosis, since #9 landed at 10:43 on the 19th. `--check` proves the bundle current
+against `records/`, and it carries the corrected text.
+
+**What is NOT proven is that the page reaches the Worker.** `axiara.ai/JUP/` is 401 behind Hostinger
+`.htaccess`, so the end-to-end question could not be asked. The worker README (July) says the
+deployed page is a lobby-only teaser whose assistant code calls `http://127.0.0.1:4173/api/chat`. If
+that is still true, **this deploy closed nothing** and the commissioner gap is exactly where it was.
+Erik took the check.
+
+### #15 started — the modules exist, nothing is wired
+
+Two fork-owned modules written, formatted, linted and smoke-tested, but **imported by nothing**, so
+they change no behaviour and are safe on main:
+
+- `backend/jup/iap_identity.py` — `normalize_iap_value` plus a pure ASGI middleware. `rsplit` on the
+  **last** colon, because a provider can carry a path (`securetoken.google.com/proj:user`) while
+  neither an address nor a numeric subject can contain a colon. A malformed value
+  (`accounts.google.com:`) is passed through **unchanged** rather than normalized to `''` — handing
+  `auths.py` an empty string is how a malformed header becomes a malformed user instead of a
+  rejected request.
+- `backend/jup/admin_allowlist.py` — `JUP_ADMIN_EMAILS`, and a middleware that settles the role
+  **after** the inner app, once per address per process. After, because a first-ever signin has not
+  created the account yet when the request arrives; a startup-only pass would miss precisely the
+  person the list was just edited for. It never demotes: "the list shrank" and "this instance
+  started before the list grew" are indistinguishable from there.
+
+**Still to do:** the `main.py` registration, the tests, the `VENDOR-PATCHES.md` entry, the env vars
+in `deploy.sh`. No deploy — Erik scoped this to code and tests.
+
+## Checkpoint 2026-09-19-gates — the tracker has content again, and the drift gate is half-credentialed
 
 - **Session:** `/next` → opened the four findings as #11–#14 → built #13's skip-path CI → drafted ADR-0012 → Erik authorized the GCP half → provisioned WIF → his PAT turned out broken → wrote the wizard that verifies before storing.
 - **Branch:** main · **Commits:** `5afcbc7f2`, `b6fef468d`, `0c6c80ed2`, `6effe355a`, `a0c9fdf09`, `3d8116b2c`, + this wrap
