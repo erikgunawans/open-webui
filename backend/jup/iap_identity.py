@@ -61,20 +61,17 @@ def normalize_headers(headers: Iterable[tuple[bytes, bytes]]) -> list[tuple[byte
     """Return the ASGI header list with every IAP identity header normalized.
 
     Header names in an ASGI scope are lowercase bytes, so the comparison is exact and needs
-    no case folding. Values are latin-1 per the ASGI spec; an address that somehow is not
-    decodable is left alone rather than guessed at.
+    no case folding. Values are latin-1 per the ASGI spec, and latin-1 maps all 256 byte
+    values, so neither the decode nor the re-encode can fail and neither is guarded. A guard
+    here would be unreachable code asserting a safety it never provides.
     """
     normalized: list[tuple[bytes, bytes]] = []
     for name, value in headers:
         if name not in IAP_HEADERS:
             normalized.append((name, value))
             continue
-        try:
-            decoded = value.decode('latin-1')
-        except UnicodeDecodeError:
-            normalized.append((name, value))
-            continue
-        normalized.append((name, normalize_iap_value(decoded).encode('latin-1')))
+        decoded = normalize_iap_value(value.decode('latin-1'))
+        normalized.append((name, decoded.encode('latin-1')))
     return normalized
 
 

@@ -6,6 +6,9 @@ PROJECT="${PROJECT:-jup-ops}"
 REGION="${REGION:-asia-southeast2}"
 SERVICE="${SERVICE:-ent-os}"
 INSTANCE="${INSTANCE:-jup-ops-db}"
+# Who holds `admin`, per ADR-0012. Overridable here rather than hardcoded below because the admin
+# set is the one value on this service that changes for reasons unrelated to a code change.
+ADMIN_EMAILS="${JUP_ADMIN_EMAILS:-erik@axiara.ai}"
 REPO="asia-southeast2-docker.pkg.dev/$PROJECT/ent-os/ent-os"
 SHA="$(git rev-parse --short HEAD)"
 
@@ -36,6 +39,21 @@ JUP_ARTEFACT_ROOT: "/srv/jup"
 ENABLE_SIGNUP: "False"
 DEFAULT_USER_ROLE: "pending"
 ENV: "prod"
+# ADR-0012, the IAP login. This header is set by IAP itself and cannot be spoofed from outside,
+# because --ingress=internal-and-cloud-load-balancing above means there is no path to the service
+# that does not pass through the load balancer. LOOSENING THAT INGRESS MAKES THIS HEADER A LOGIN
+# BYPASS, and also obliges clearing the dormant password on the existing account — a dependency
+# that is invisible from the user table, which is why it is written down in both places.
+#
+# The value arrives prefixed (accounts.google.com:erik@axiara.ai). IapIdentityHeaderMiddleware
+# strips that in the ASGI scope before any vendor code reads it; see VENDOR-PATCHES.md.
+#
+# No backticks anywhere in this heredoc: the delimiter is unquoted so that $ADMIN_EMAILS expands,
+# which leaves command substitution live for everything else, comments included.
+WEBUI_AUTH_TRUSTED_EMAIL_HEADER: "X-Goog-Authenticated-User-Email"
+# DEFAULT_USER_ROLE stays "pending" above: being admitted by IAP and holding the admin role the
+# operating layer requires stay separable, which is what keeps the 403 path meaningful.
+JUP_ADMIN_EMAILS: "$ADMIN_EMAILS"
 EOF
 
 echo "==> deploying to Cloud Run"

@@ -42,6 +42,8 @@ from starsessions import (
 )
 from starsessions.stores.redis import RedisStore
 
+from jup.admin_allowlist import AdminAllowlistMiddleware
+from jup.iap_identity import IapIdentityHeaderMiddleware
 from open_webui.config import (
     BYPASS_ADMIN_ACCESS_CONTROL,
     CACHE_DIR,
@@ -813,6 +815,20 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*'],
 )
+
+
+# ADR-0012. These two lines ARE the vendor surface of the IAP login — the decision chose a
+# fork-owned middleware over patching `routers/auths.py` and `utils/auth.py` precisely so that
+# losing it on a rebase fails a test instead of producing a login loop in production. If a
+# rebase drops them, `tests/test_jup_iap_registration.py` says so by name. Do not replace them
+# with a patch to any vendor auth read site (`auths.py:393`, `auths.py:736`, `utils/auth.py:415`);
+# leaving all three untouched is the whole point of the decision.
+#
+# Last added runs outermost, so registering the allowlist first and the normalizer second puts
+# the normalizer on the outside: every layer below it, the allowlist included, reads an identity
+# header that has already had IAP's `accounts.google.com:` prefix removed.
+app.add_middleware(AdminAllowlistMiddleware)
+app.add_middleware(IapIdentityHeaderMiddleware)
 
 
 app.mount('/ws', socket_app)
