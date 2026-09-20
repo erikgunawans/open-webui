@@ -1,6 +1,93 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-21-wired (latest) — #15 wired and guarded, and CI was red the whole time
+## Checkpoint 2026-09-21-deployed (latest) — #15 deployed and closed, and three red gates explained
+
+- **Session:** `/next` → all four open questions answered by Erik → #15 deployed and verified → the ruff gate pinned → two further red gates found and fixed.
+- **Branch:** main · **Commits:** `728d190d3`, `615a27072`, `ef0256cae`, `13a612db7`
+- **Deployment:** revision `ent-os-00005-jhc`, image `ent-os:615a27072`, serving 100%.
+- **Tracker: one open.** #15 **closed**. #13 unchanged, still blocked on `JUP_REPO_TOKEN`.
+- **Second repo:** erikgunawans/jup unchanged at `ac9dc29`. Not touched this session.
+
+### #15 — deployed with per-change authorization, criteria 7 and 8 met
+
+Rollback to `ent-os-00004-cr2` was staged and an on-demand Cloud SQL backup taken before the
+deploy. Neither was needed.
+
+**Criterion 7.** `POST /api/v1/auths/signin` through IAP, carrying a deliberately wrong email *and*
+password in the body, returned `erik@axiara.ai` / `admin` / id `beda5418-…`. Because the body was
+wrong, the identity can only have come from the header. Four consecutive `GET /api/v1/auths/`
+returned `[200,200,200,200]` — the load-bearing half, since `utils/auth.py:415` compares
+`user.email != trusted_email` on **every** request and raises `401 User mismatch` on any
+difference. A still-prefixed header could not return 200 once.
+
+**Criterion 8.** Same row, not a recreation: `created_at` 2026-09-19 12:28:56 GMT+7, two days
+before the deploy; still `admin`; `user_count` 1 before and after the signin call, so no second
+prefixed row. `/api/v1/portfolio/` returns the live records.
+
+Invariants held: `DEFAULT_USER_ROLE=pending`, `ENABLE_SIGNUP=False`, `DATABASE_URL` and
+`WEBUI_SECRET_KEY` still secret references, ingress still `internal-and-cloud-load-balancing`.
+
+**Still not covered:** the 403-for-non-admin path has never run against the deployment. One
+identity exists and signup is closed, so there is no second account to refuse.
+
+### The image was not buildable at all (`615a27072`)
+
+Three builds were needed and the first two failures were not #15's code. Cloud Build now falls back
+to the **legacy docker builder**, which does not define the BuildKit-predefined `$BUILDPLATFORM`, so
+`Dockerfile:27` expanded empty and died at step 13/65 with `failed to parse platform` — a message
+that accuses the Dockerfile rather than the builder. **It reproduces in both the regional and the
+global pool**, so the first fix attempted (moving pools) was wrong and was corrected before pushing.
+Fixed with an `ARG BUILDPLATFORM=linux/amd64` default, recorded in `VENDOR-PATCHES.md`.
+
+The build pool is still global, but on its own merits only — `e2-highcpu-32` has no quota in
+`asia-southeast2`. `deploy.sh` and the README now say explicitly that the split is **not**
+load-bearing, so it is not later mistaken for the fix. Note also that the vite OOM is node's own
+heap cap and failed identically on 8 GB and 32 GB: machine size has never been the cure, and
+`VENDOR-PATCHES.md:14-18` said so before this session claimed otherwise.
+
+### Frontend Build had been red since 2026-09-19, for two independent reasons
+
+Neither had anything to do with the frontend. `npm run format` runs prettier `--write` over
+`**/*.md` and the next step is `git diff --exit-code`.
+
+**Cause one (`ef0256cae`):** 43 fork-owned markdown files were not prettier-clean. Formatting them
+once would not have held — `/wrap` rewrites `PROGRESS.md` and `.planning/next-session-prompt.md`
+every session and neither comes out clean, so the gate would re-red at the next checkpoint. They are
+now in `.prettierignore`, along with `tests/fixtures/`: a fixture's value is its exact bytes, and
+prettier inserts a blank line into `malformed-unterminated-frontmatter/projects/runaway.md`. The
+suite still passes with every fixture prettified (184 passed, verified in a clean clone), so that
+one is latent rather than broken — but a fixture whose job is to be malformed must not be quietly
+repaired by a formatter.
+
+**Cause two (`13a612db7`):** 29 JUP strings had been added to the Svelte source without the locales
+ever being regenerated — "Current Gate", "Engagement", "Blocked on", "Gate state is restricted to
+the operating layer". `i18next-parser` re-added them on every run, so the tree came out dirty.
+Regenerated: 1856 lines added, 0 deleted, 64 locale files, nothing outside
+`src/lib/i18n/locales/`.
+
+**Method note worth keeping:** cause two was only found because the first fix was pushed on the
+strength of verifying *half* the gate locally. Verify the whole step sequence in a clean clone, not
+the one command you changed. The final check ran prettier **and** `i18n:parse` and asserted zero
+dirty files.
+
+`Format & Build` is now green through step 8, **"Production build", which had never executed on any
+previous run** because step 7 always failed first. That gate was not merely red; it was not testing
+anything.
+
+### The ruff gate, closed (`728d190d3`)
+
+Erik chose pinning CI to the lock. `format-check` runs `uv run --frozen --only-group dev ruff`, so
+CI and the local venv are both 0.15.18 and both check 276 files. The `uvx ruff@latest` pre-push
+check is retired. Raising the version is now a deliberate `uv lock --upgrade-package ruff`, which
+lands in `uv.lock`, which the workflow's `paths:` filter already watches.
+
+### `Release to PyPI` is permanent noise
+
+It fails on every commit, including ones predating this session. Inapplicable upstream workflow. It
+is worth knowing because a permanently red gate is where a real failure hides — which is exactly
+what `Frontend Build` turned out to be.
+
+## Checkpoint 2026-09-21-wired — #15 wired and guarded, and CI was red the whole time
 
 - **Session:** `/next` → item 1 was #15's unwired modules → registered, tested, documented → CI went red → the red predated this session by five commits.
 - **Branch:** main · **Commits:** `4aa919128`, `9041af1fe`, `faaadae54`
