@@ -12,6 +12,22 @@ PROJECT="${PROJECT:-jup-ops}"
 DIRS="records deliverables SOURCES"
 MANIFEST_OBJECT="$BUCKET/.sync-manifest.json"
 
+# Filesystem junk that must never reach the bucket, and must never be compared.
+#
+# This is a correctness fix, not tidiness. The two halves of this script look at
+# DIFFERENT things: the write path rsyncs a working FILESYSTEM from a Mac, while the CI
+# gate compares against a git CHECKOUT. `.DS_Store` is in ~/jup/.gitignore, so it exists
+# on the filesystem and can never exist in the checkout — rsync published it once, and
+# from then on CI reported permanent, unfixable drift ("Would remove ....DS_Store") for
+# a file no commit could ever add. Deleting the object alone would not hold: the next
+# local sync would upload it again.
+#
+# Excluding on BOTH paths is what makes the local writer and the CI reader agree about
+# what the tree contains. Every gitignored file rsync can see has this same shape.
+#
+# Must stay defined above the --check path, which uses it first.
+JUNK_RE='(^|/)(\.DS_Store|Thumbs\.db|\._[^/]*)$'
+
 MODE=sync
 case "${1:-}" in
   --check) MODE=check ;;
@@ -49,6 +65,7 @@ if [ "$MODE" = check ]; then
     # a tree that is genuinely in sync, and a gate that cries wolf gets ignored.
     out=$(gcloud storage rsync "$JUP_TREE/$dir" "$BUCKET/$dir" \
       --recursive --delete-unmatched-destination-objects --checksums-only --dry-run \
+      --exclude="$JUNK_RE" \
       --project="$PROJECT" 2>&1 \
       | grep -E '^Would (copy|delete|remove)' || true)
     if [ -n "$out" ]; then
@@ -79,9 +96,12 @@ fi
 
 HEAD_SHA=$(local_head)
 echo "syncing from $JUP_TREE @ $HEAD_SHA"
+
 for dir in $DIRS; do
   gcloud storage rsync "$JUP_TREE/$dir" "$BUCKET/$dir" \
-    --recursive --delete-unmatched-destination-objects --project="$PROJECT"
+    --recursive --delete-unmatched-destination-objects \
+    --exclude="$JUNK_RE" \
+    --project="$PROJECT"
 done
 
 # Stamp what was published, so --check can name the deployed commit rather than only

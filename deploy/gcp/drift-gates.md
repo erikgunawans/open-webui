@@ -114,3 +114,18 @@ but only because a full `uv sync` leaves an editable-install `.pth` pointing at 
 CI's `--only-group dev` does not install the project. Without the explicit `PYTHONPATH: backend` in
 the workflow, the job dies with `ModuleNotFoundError` and **exit 1** — indistinguishable, to
 anything reading the exit code, from real drift.
+
+## Filesystem junk, and why the two halves disagreed
+
+The write path rsyncs a working **filesystem** from a Mac; the CI gate compares against a git
+**checkout**. `.DS_Store` is in `~/jup/.gitignore`, so it lives on the filesystem and can never
+appear in the checkout. A local sync published one to `deliverables/`, and from then on
+`record-sync` reported drift — `Would remove ...deliverables/.DS_Store` — that **no commit could
+ever resolve**.
+
+Both rsync invocations now pass `--exclude="$JUNK_RE"` (`.DS_Store`, `Thumbs.db`, AppleDouble
+`._*`). Excluding on both paths is the point: deleting the stray object alone would not have held,
+because the next local sync would upload it again.
+
+**Every gitignored file rsync can see has this shape.** If a new one appears, widen `JUNK_RE` in
+`deploy/gcp/sync-records.sh` rather than deleting from the bucket.
