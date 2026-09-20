@@ -30,6 +30,7 @@ uncomments it themselves, take theirs and re-check the value is at least 8192.
 ```python
 from jup.admin_allowlist import AdminAllowlistMiddleware
 from jup.iap_identity import IapIdentityHeaderMiddleware
+
 ...
 app.add_middleware(AdminAllowlistMiddleware)
 app.add_middleware(IapIdentityHeaderMiddleware)
