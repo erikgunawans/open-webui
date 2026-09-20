@@ -1,6 +1,38 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-21-deployed (latest) — #15 deployed and closed, and three red gates explained
+## Checkpoint 2026-09-21-clear (latest) — the board is empty; #13 and #15 both closed
+
+- **Session:** `/next` → all four questions answered → #15 deployed and closed → three red gates fixed → token re-minted → #13 closed.
+- **Branch:** main · **Commits:** `728d190d3`, `615a27072`, `ef0256cae`, `13a612db7`, `c918b7d6a`, `d33360fa0`
+- **Tracker: ZERO open issues.** First time.
+- **Second repo:** erikgunawans/jup unchanged at `ac9dc29`, bucket in sync.
+
+### #13 — both drift gates live and green (`d33360fa0`)
+
+`JUP_REPO_TOKEN` re-minted 2026-09-20T20:50:21Z. All four jobs pass: `preflight` skips nothing,
+`credential-scope` confirms the runner holds no write permission on the bucket, `kb-drift` agrees
+with the live `records/`, `record-sync` reports `in sync` at `ac9dc29`.
+
+**The first live run failed, and that was the valuable part.** `record-sync` exited 1 on real
+drift: `Would remove gs://jup-ops-records/deliverables/.DS_Store`. Not litter — a structural bug.
+The write path rsyncs a working **filesystem** from a Mac; the gate compares against a git
+**checkout**. `.DS_Store` is gitignored in `~/jup`, so it exists on the filesystem and can never
+exist in the checkout: the gate would have reported drift **no commit could ever resolve**.
+Deleting the object would not have held either, since the next local sync re-uploads it. Both rsync
+calls now `--exclude="$JUNK_RE"`. `JUNK_RE` sits with the other config, above the `--check` path
+that uses it first — defined lower it would have been unbound under `set -u` on the path that runs
+first.
+
+Verified on both sides: `--check` against the live filesystem exits 0, and CI's checkout also says
+`in sync`. Local and CI agreeing is the point; their disagreeing was the bug.
+
+**Gap recorded, not fixed:** `preflight` tests only that a secret is **non-empty**, not valid. The
+run two minutes before the new token landed did not skip — it ran with the stale token and failed
+at `actions/checkout` with `Bad credentials`. Honest (red, and annotated as a checkout failure, not
+as drift), but "present" and "valid" are different and only the first is guarded. It will matter
+the day this PAT expires.
+
+## Checkpoint 2026-09-21-deployed — #15 deployed and closed, and three red gates explained
 
 - **Session:** `/next` → all four open questions answered by Erik → #15 deployed and verified → the ruff gate pinned → two further red gates found and fixed.
 - **Branch:** main · **Commits:** `728d190d3`, `615a27072`, `ef0256cae`, `13a612db7`
