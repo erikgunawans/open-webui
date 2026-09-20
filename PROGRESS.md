@@ -1,6 +1,49 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-21-clear (latest) — the board is empty; #13 and #15 both closed
+## Checkpoint 2026-09-21-after (latest) — backlog cleared, then four gaps taken off the shelf
+
+- **Tracker: #16 open** (ADR-0002 enforcement), filed deliberately. #1–#15 all closed.
+- **Cross-repo:** `~/jup` at `9cd0b90`; new repo `erikgunawans/jup-kb-assistant-worker` at `96b9464`+1.
+
+### The assistant had been lying about its own deployment for two months
+
+`~/jup/kb/CONTEXT.md` told the assistant it "runs locally only (`127.0.0.1`) — never web-published
+(Decision D13)". D13's **own status field** has read *"STANDING RULE, superseded 2026-07-14 by a
+broader exception"* since that date, and Exception v2 records the full hub plus this assistant
+serving from `axiara.ai/JUP` behind a password gate.
+
+Not inert prose: `build-kb-bundle.ts:43` bundles `CONTEXT.md` as the assistant's **operating
+context**. Asked whether the material was exposed, that line was the answer. Corrected, rebuilt
+(8 sources, 53293 bytes), deployed as Worker version `cafea287` (was `b75e6a15`).
+
+**Post-deploy control check — all 401 unauthenticated:** `/JUP/`, `/JUP/api/chat` (POST too),
+`/JUP/DECISIONS.md`, `/JUP/COO/`. The POST matters most: that is the Worker's **own** auth check,
+not `.htaccess`, because Workers run at the edge and would otherwise bypass it — the gap D13 records
+as caught before first deploy. Content itself is unverified; it sits behind Erik's password.
+
+### `~/jup-kb-assistant-worker` was not under version control at all
+
+Not "no remote" — not a git repo. It held `worker.js` as deployed, `wrangler.toml`, the builder, and
+the **only copy** of `kb-bundle.js`. Now `erikgunawans/jup-kb-assistant-worker`, **private**, plus a
+local bare mirror — D14 says never let `origin` become the only backup, and that reasoning does not
+stop at the repo it was written for. No secrets committed; `wrangler.toml` carries identifiers, not
+credentials, which is a reason the repo is private rather than a reason to redact.
+
+### #16 — ADR-0002 is Accepted and entirely unimplemented
+
+Not "one remaining hole", which is how the previous handoff framed it. Verified: `VENDOR-PATCHES.md`
+has three entries and none is enforcement, `utils/chat.py:151` is pristine, and no `jup` import
+exists in `utils/chat.py`, `routers/openai.py` or `routers/ollama.py`. **Every model call in the
+operating layer currently reaches its provider ungoverned.**
+
+### Why the 403 test cannot be done first
+
+`get_verified_user` 401s on any role outside the verified set and `DEFAULT_USER_ROLE=pending`, so a
+fresh second identity gets **401, not 403**. Reaching the 403 requires promoting an account to
+`user` — which is exactly the condition that makes #16 exploitable. **#16 must land before the 403
+path can be proven in production.** Erik's call, taken 2026-09-21.
+
+## Checkpoint 2026-09-21-clear — the board is empty; #13 and #15 both closed
 
 - **Session:** `/next` → all four questions answered → #15 deployed and closed → three red gates fixed → token re-minted → #13 closed.
 - **Branch:** main · **Commits:** `728d190d3`, `615a27072`, `ef0256cae`, `13a612db7`, `c918b7d6a`, `d33360fa0`
