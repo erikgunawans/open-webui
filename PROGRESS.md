@@ -1,6 +1,109 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-20-closes (latest) — the blocked board cleared, and the ADR became a ticket
+## Checkpoint 2026-09-21-wired (latest) — #15 wired and guarded, and CI was red the whole time
+
+- **Session:** `/next` → item 1 was #15's unwired modules → registered, tested, documented → CI went red → the red predated this session by five commits.
+- **Branch:** main · **Commits:** `4aa919128`, `9041af1fe`, `faaadae54`
+- **Tests:** 201 passed locally; 184 passed / 17 skipped in a fresh clone against a runtime-less venv (the CI dev job).
+- **Python CI: green for the first time in at least five pushes.** All four jobs.
+- **Tracker: two open, unchanged in count.** #15 is code-complete and blocked on deploy authorization; #13 still blocked on Erik.
+- **Second repo:** erikgunawans/jup unchanged at `ac9dc29`, bucket in sync. Not touched this session.
+
+### #15 — the modules were real but inert, and now they are registered (`4aa919128`)
+
+`backend/jup/iap_identity.py` and `backend/jup/admin_allowlist.py` were committed last session
+**unwired**: nothing imported them, so they changed no behaviour at all. `main.py` now imports both
+and registers them.
+
+The order is load-bearing and counter-intuitive. Starlette runs the **last**-added middleware
+outermost, so the allowlist is added *first* and the normalizer *second* — which puts the
+normalizer on the outside, where every layer below it (the allowlist included) reads an identity
+header that has already had IAP's `accounts.google.com:` prefix removed.
+
+### The guard, and proving it can actually fail
+
+ADR-0012's Consequences section asks for a test by name, and the whole argument for choosing a
+middleware over a vendor patch rests on it: *a lost patch is a production login loop, a lost
+registration line is a failing test.* `tests/test_jup_iap_registration.py` is the second half of
+that sentence.
+
+Three of its checks read `main.py` as **source** and need no runtime, so they run in the
+`--only-group dev` job on every push. That matters more than the runtime check: it is the one that
+actually fires on a rebase. Verified against the real mutations rather than assumed —
+
+| mutation | runtime-less job |
+|---|---|
+| both `add_middleware` lines deleted | 3 failed, 3 passed, in 0.06s |
+| the two lines swapped | 2 failed |
+| unmodified | 6 passed, 1 skipped |
+
+A fourth check asserts the **inverse** — that neither `routers/auths.py` nor `utils/auth.py`
+imports the normalizer — because the "just to be safe" patch in #15's Traps is exactly what
+re-adds the surface option 3 exists to remove. `git diff` against the upstream merge-base
+(`0a7c15832`) confirms both files are byte-identical to upstream.
+
+**Its ordering assertions are relational, not absolute, and that was a correction.** The first
+version asserted `stack[0] == NORMALIZER` and failed: the vendor registers its session middleware
+at the very bottom of `main.py`, inside a `try/except`, so it lands outside these two and *which*
+class it is depends on whether Redis resolved. Pinning an index would fail on that alone, and it is
+harmless — the session layers read a cookie, never `x-goog-authenticated-user-email`.
+
+### Two defects found in this session's own work, before they shipped
+
+**`deploy.sh` heredoc.** The env-vars heredoc is unquoted (`<<EOF`) so `$ADMIN_EMAILS` expands —
+which leaves command substitution live for **everything** inside it, comments included. Backticks
+in the first draft of the new comments were executed: `accounts.google.com:erik@axiara.ai: command
+not found`. Caught by rendering the heredoc and checking stderr rather than by reading it. The
+block is now backtick-free with a comment saying why, and the rendered file is verified to parse to
+ten non-empty string values.
+
+**An unreachable branch in `iap_identity.py`.** `except UnicodeDecodeError` around
+`value.decode('latin-1')` could never fire — latin-1 maps all 256 byte values — and its docstring
+claimed a safety it did not provide. Removed, with a test that a high-byte address survives the
+round trip.
+
+### Python CI had been red since before this session, and nobody noticed (`faaadae54`)
+
+The first push went red, which is what prompted looking — and the `pytest` job had failed on
+**every** commit for at least five pushes, including checkpoint 2026-09-20-closes's own wrap
+(`2f859eefb`). 23 failures in `test_portfolio.py`, every one of them green locally.
+
+**Git does not track empty directories.** Fifteen fixture record trees under
+`tests/fixtures/portfolio/` have a deliberately empty `gate-assessments/`. They existed on this
+machine and were simply absent from every fresh clone, so `project_portfolio` refused each whole
+tree as unavailable. The failures never name the cause: half read `DID NOT RAISE RecordError`,
+because an unavailable tree is *returned* rather than raised over, which reads as a validation bug.
+
+Fixed with a `.gitkeep` per directory, each explaining why it exists (`_load_assessments` globs
+`*.md`, so none is read as a record). Verified in an actual fresh clone: 184 passed, 17 skipped,
+where it had been 23 failed.
+
+This was outside #15's scope and taken anyway, on the reasoning that **a registration guard landing
+in a CI nobody trusts is not a guard.**
+
+### A gate gap left open deliberately, because it is Erik's call
+
+`.github/workflows/backend.yaml` runs `pip install "ruff>=0.15.5"` — **unpinned**, so CI always
+takes the newest release. The lock pins the local venv. Today that was 0.16.8 in CI against
+0.15.18 locally, and they disagree about scope: local checks 276 files, CI checks 437, because
+0.16 formats python code blocks **inside markdown** and 0.15 does not. That is what turned the
+first push red, on the VENDOR-PATCHES.md entry.
+
+The local gate is therefore permanently weaker than CI and the gap widens with every ruff release.
+Pinning CI to the lock, or raising the dev group's floor, would close it — not taken, because it is
+a gate-policy decision rather than a silent fix. Until then: check with
+`uvx ruff@latest format --check . --exclude .venv --exclude venv` before pushing markdown.
+
+### What #15 still needs
+
+Criteria 7 and 8 — sign-in produces no prefix, and the existing account survives — need a
+**deployment**, which was explicitly out of scope. Both are marked blocked on the issue rather than
+left ambiguous. Only `user:erik@axiara.ai` holds `iap.httpsResourceAccessor`, so a wrong middleware
+locks out the one identity that could repair it. Deploy authorization is per-change and was not
+assumed.
+
+
+## Checkpoint 2026-09-20-closes — the blocked board cleared, and the ADR became a ticket
 
 - **Session:** `/next` → every open item was blocked on Erik, so the first act was to ask → he authorized all four → KB bundle deployed → #11 rotated and closed → ADR-0012 decided and implemented-as-#15 → #12 closed won't-fix → started #15's code.
 - **Branch:** main · **Commits:** `675cbb59d`, `9d9cdd52c`, + this wrap
