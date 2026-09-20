@@ -15,6 +15,7 @@ import aiohttp
 from aiocache import cached
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
+from jup import governance as jup_governance
 from open_webui.config import UPLOAD_DIR
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.env import (
@@ -1097,6 +1098,11 @@ async def generate_chat_completion(
     user=Depends(get_verified_user),  # noqa: B008
 ):
     """Forward a chat completion request to an Ollama backend."""
+    # JUP (ADR-0002): mounted directly behind only `get_verified_user`, so a user's API key
+    # reaches a provider here without passing the pipeline. Refuse an ungoverned turn.
+    if refusal := jup_governance.refuse_if_ungoverned(form_data, state=request.state, user_id=user.id, route='ollama'):
+        raise HTTPException(status_code=refusal.status_code, detail=refusal.detail)
+
     if not await Config.get('ollama.enable'):
         raise HTTPException(status_code=503, detail=ERROR_MESSAGES.OLLAMA_API_DISABLED)
 

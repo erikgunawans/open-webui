@@ -18,6 +18,7 @@ from fastapi.responses import (
     PlainTextResponse,
     StreamingResponse,
 )
+from jup import governance as jup_governance
 from open_webui.config import (
     CACHE_DIR,
 )
@@ -1467,6 +1468,11 @@ async def generate_chat_completion(
     form_data: dict,
     user=Depends(get_verified_user),
 ):
+    # JUP (ADR-0002): mounted directly behind only `get_verified_user`, so a user's API key
+    # reaches a provider here without passing the pipeline. Refuse an ungoverned turn.
+    if refusal := jup_governance.refuse_if_ungoverned(form_data, state=request.state, user_id=user.id, route='openai'):
+        raise HTTPException(status_code=refusal.status_code, detail=refusal.detail)
+
     if not await Config.get('openai.enable'):
         raise HTTPException(status_code=503, detail='OpenAI API is disabled')
 

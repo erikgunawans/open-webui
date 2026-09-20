@@ -8,6 +8,7 @@ from typing import Any, Optional
 
 from aiocache import cached
 from fastapi import HTTPException, Request, status
+from jup import governance as jup_governance
 from open_webui.env import BYPASS_MODEL_ACCESS_CONTROL, GLOBAL_LOG_LEVEL
 from open_webui.functions import generate_function_chat_completion
 from open_webui.models.models import Models
@@ -173,6 +174,15 @@ async def generate_chat_completion(
                 **form_data['metadata'],
                 **request.state.metadata,
             }
+
+    # JUP (ADR-0002): the only in-process funnel to every provider. Attach the operating
+    # contract and stamp the turn as governed. Placed after the metadata merge so the task
+    # exemption can see `metadata.task`, and before the direct-connection branch so that path
+    # is covered too. Reached again on every tool-loop turn, which is what restores the
+    # contract after `middleware.py:5873` strips the system message. Guarded by
+    # tests/test_jup_governance.py — do not drop on an upstream rebase.
+    if refusal := jup_governance.admit(form_data, state=request.state, user_id=getattr(user, 'id', None)):
+        raise HTTPException(status_code=refusal.status_code, detail=refusal.detail)
 
     if getattr(request.state, 'direct', False) and hasattr(request.state, 'model'):
         # Merge the direct connection model into server models so that

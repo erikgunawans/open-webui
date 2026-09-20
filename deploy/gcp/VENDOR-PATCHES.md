@@ -87,3 +87,65 @@ the normalizer, because a belt-and-braces patch re-adds the surface this decisio
 upstream's and changes between releases, so a rebase can resolve a conflict there by taking
 upstream's side and drop all three lines without any marker surviving. Do not resolve it by patching
 `auths.py` or `utils/auth.py` instead — run the test.
+
+## Three fail-closed governance guards — `utils/chat.py`, `routers/openai.py`, `routers/ollama.py`
+
+**What:** one call per file, plus `from jup import governance as jup_governance`. All logic lives in
+`backend/jup/governance.py`; the vendor files carry nothing but the call.
+
+```python
+# backend/open_webui/utils/chat.py — in generate_chat_completion, after the metadata merge
+if refusal := jup_governance.admit(form_data, state=request.state, user_id=getattr(user, 'id', None)):
+    raise HTTPException(status_code=refusal.status_code, detail=refusal.detail)
+
+# backend/open_webui/routers/{openai,ollama}.py — at the head of generate_chat_completion
+if refusal := jup_governance.refuse_if_ungoverned(form_data, state=request.state, user_id=user.id, route='openai'):
+    raise HTTPException(status_code=refusal.status_code, detail=refusal.detail)
+```
+
+Two lines each, and the shape is identical in all three: the guard decides, the vendor file raises
+its own framework's exception. `backend/jup/` is not allowed to import FastAPI, and a governance
+refusal surfacing as a 500 would read as a server fault rather than the deliberate 403 it is.
+
+**Why:** ADR-0002, and issue #16. `utils/chat.py`'s `generate_chat_completion` is the only in-process
+funnel to every provider, so that is where the JUP operating contract is attached and the turn is
+stamped governed. The two router functions are mounted directly behind only `get_verified_user`, so a
+normal user's API key reaches a provider there without passing the funnel at all — they refuse any
+turn that is neither stamped nor genuinely carrying the contract.
+
+**The funnel guard refuses too, and that is not ceremonial.** `generate_direct_chat_completion` (a
+direct connection) and `generate_function_chat_completion` (a pipe model) are dispatched from the
+funnel and never reach a router guard, so for those two branches it is the only control in the path.
+It attaches the contract and then *verifies* it attached; a payload it cannot govern — `messages`
+present but not a list — is refused rather than forwarded, and is left unmodified rather than
+repaired, because silently rewriting a caller's payload discards what they sent.
+
+**Why the funnel call is not the first statement:** it sits after the `request.state` and metadata
+assignments because the task exemption cannot be read before `form_data['metadata']` is merged. Those
+preceding statements are pure bookkeeping — no `await`, no `return`, no `raise` — and a test asserts
+exactly that rather than asserting a line number.
+
+**Why it re-attaches on every turn:** the tool loop strips the system message before re-entering
+(`utils/middleware.py:5873` calls `replace_system_message_content('', ...)`, then `:5994` and `:6214`
+call back into the funnel). A contract attached once at turn one is gone by turn two. Attaching on
+every pass is self-healing.
+
+**Do not hand the guard `bypass_filter`.** It is an access-control flag that
+`generate_chat_completion` sets to `True` unconditionally under `BYPASS_MODEL_ACCESS_CONTROL`, so a
+guard honouring it would be off in exactly the deployments that need it. A test asserts no line
+calling the guard mentions `bypass`.
+
+**If dropped:** silent, and the same shape as the ADR-0012 registrations. The app boots, chat works,
+and model calls are simply ungoverned again — which looks identical to a healthy deployment. The
+audit trail stops recording, which is the only externally visible symptom.
+
+**The test that catches it:** `tests/test_jup_governance.py`. Source-level checks run with no runtime
+— so they run in CI's `--only-group dev` job, on every push — and assert, per file, that the import
+and the call are present, that nothing before the call can `await`/`return`/`raise`, and that no
+guard line was handed a bypass flag. The behavioural half proves the refusal path, the turn-two
+tool-loop case, that a forged `metadata.task` buys nothing on a direct route, and that the trail
+records admitted, exempt and refused alike.
+
+**Conflict risk:** `utils/chat.py` is stable (nine touches in twelve months) and cheap to carry.
+`routers/openai.py` is not — 59 commits in six months — which is why its guard is a head insert that
+can be re-checked at a glance. Re-check all three by running the test, not by reading the diff.
