@@ -24,6 +24,14 @@ ARG UID=0
 ARG GID=0
 
 ######## WebUI frontend ########
+# JUP: BUILDPLATFORM is a BuildKit-predefined arg. Cloud Build's builder now runs the LEGACY
+# docker builder ("the legacy builder is deprecated ... install the buildx component"), which
+# does not define it, so `--platform=` below expanded empty and the build died here with
+# "failed to parse platform" — a message that accuses the Dockerfile rather than the builder.
+# Declaring it with a default fixes the legacy path without touching the BuildKit one: BuildKit
+# predefines BUILDPLATFORM and its value wins over an ARG default. Remove only once Cloud Build
+# runs BuildKit again AND you have proven it, not because this line looks redundant.
+ARG BUILDPLATFORM=linux/amd64
 FROM --platform=$BUILDPLATFORM node:22-alpine3.20 AS build
 ARG BUILD_HASH
 

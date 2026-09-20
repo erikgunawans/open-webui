@@ -23,6 +23,31 @@ frontend build step. No silent degradation.
 **Conflict risk:** low. One line, in a block upstream maintains for this purpose. If upstream
 uncomments it themselves, take theirs and re-check the value is at least 8192.
 
+## `Dockerfile` — `ARG BUILDPLATFORM=linux/amd64` above the frontend stage
+
+**What:** declares `BUILDPLATFORM` with a default immediately before
+`FROM --platform=$BUILDPLATFORM node:22-alpine3.20 AS build`.
+
+**Why:** `BUILDPLATFORM` is a BuildKit-*predefined* arg. Cloud Build's builder switched to the
+legacy docker builder (it now prints *"the legacy builder is deprecated ... install the buildx
+component"*), and the legacy builder does not define it — so `--platform=` expands to the empty
+string and the build dies at step 13/65 with *"failed to parse platform: "" is an invalid
+component"*. That message accuses the Dockerfile, which is why the first two attempts at this were
+spent looking at the wrong file. It reproduces identically in the regional and the global build
+pool, so it is not a pool or quota problem.
+
+**Why a default is safe:** BuildKit predefines `BUILDPLATFORM` and its value takes precedence over
+an `ARG` default, so a BuildKit build is unaffected and still cross-compiles correctly. Only the
+legacy path changes, and only from "empty" to "linux/amd64" — which is what Cloud Build builds on
+anyway.
+
+**If dropped:** the image cannot be built at all while Cloud Build runs the legacy builder. Loud
+and immediate, at the same step. No silent degradation.
+
+**Conflict risk:** low, but it sits one line above a vendor `FROM`, so a rebase that rewrites the
+frontend stage will surface it. Do **not** delete it merely because it looks redundant — it looks
+redundant precisely when BuildKit is in use, which is not guaranteed.
+
 ## `backend/open_webui/main.py` — two `app.add_middleware` lines and their import
 
 **What:** registers the fork's two ASGI middlewares, defined in `backend/jup/`:

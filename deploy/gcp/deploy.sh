@@ -4,6 +4,19 @@ set -euo pipefail
 
 PROJECT="${PROJECT:-jup-ops}"
 REGION="${REGION:-asia-southeast2}"
+# The BUILD pool is deliberately NOT $REGION: E2_HIGHCPU_32 is quota-blocked in
+# asia-southeast2 on this project but available globally, and the global pool is where the
+# only build that has ever succeeded here (2026-09-19) actually ran. The deploy below still
+# targets $REGION; only the build is global.
+#
+# This is a quota and speed choice, NOT a fix for the "failed to parse platform" failure --
+# that one reproduces identically in both pools and is fixed in the Dockerfile. Do not read
+# the split as making the build work. See VENDOR-PATCHES.md.
+#
+# Machine size is likewise not a memory fix: the vite OOM is node's own heap cap and failed
+# identically on 8 GB and 32 GB. NODE_OPTIONS in the Dockerfile is what fixes that.
+BUILD_REGION="${BUILD_REGION:-global}"
+BUILD_MACHINE="${BUILD_MACHINE:-e2-highcpu-32}"
 SERVICE="${SERVICE:-ent-os}"
 INSTANCE="${INSTANCE:-jup-ops-db}"
 # Who holds `admin`, per ADR-0012. Overridable here rather than hardcoded below because the admin
@@ -15,8 +28,8 @@ SHA="$(git rev-parse --short HEAD)"
 [ -z "$(git status --porcelain)" ] || { echo "refusing to deploy a dirty tree" >&2; git status --short >&2; exit 1; }
 
 echo "==> building $REPO:$SHA"
-gcloud builds submit --project="$PROJECT" --region="$REGION" \
-  --tag="$REPO:$SHA" --timeout=3600s --machine-type=e2-highcpu-8
+gcloud builds submit --project="$PROJECT" --region="$BUILD_REGION" \
+  --tag="$REPO:$SHA" --timeout=3600s --machine-type="$BUILD_MACHINE"
 
 # DATABASE_URL is NOT assembled here. The whole connection string lives in the `database-url`
 # secret and reaches the service as a secret reference (#11). Building it here from `db-password`

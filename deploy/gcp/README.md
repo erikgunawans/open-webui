@@ -114,3 +114,13 @@ gcloud builds triggers create github \
 ```
 
 That needs the Cloud Build GitHub app connected to the repo first, which is a console step.
+
+**`deploy.sh` builds in the `global` pool, not in `asia-southeast2`** — `e2-highcpu-32` is
+quota-blocked in this region on this project, and global is where the only successful build so far
+actually ran. Only the *deploy* is regional; copy that split into any trigger you create.
+
+Separately: Cloud Build now runs the **legacy docker builder**, which does not define
+`$BUILDPLATFORM`. That kills the build at `Dockerfile:27` with `failed to parse platform`, a message
+that accuses the Dockerfile rather than the builder. It reproduces in **both** pools, so changing
+region does not help — the fix is the `ARG BUILDPLATFORM` default in the Dockerfile, recorded in
+`VENDOR-PATCHES.md`.
