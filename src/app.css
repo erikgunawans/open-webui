@@ -48,7 +48,8 @@ code {
 }
 
 .editor-selection {
-	background: rgba(180, 213, 255, 0.5);
+	/* JUP institutional blue at low alpha, not a generic blue tint. */
+	background: rgba(30, 111, 176, 0.22);
 	border-radius: 2px;
 }
 
@@ -150,7 +151,7 @@ li p {
 
 ::-webkit-scrollbar-thumb {
 	--tw-border-opacity: 1;
-	background-color: rgba(215, 215, 215, 0.6);
+	background-color: rgba(210, 218, 207, 0.6); /* cast-matched to #d7d7d7's lightness */
 	border-color: rgba(255, 255, 255, var(--tw-border-opacity));
 	border-radius: 9999px;
 	border-width: 1px;
@@ -158,7 +159,7 @@ li p {
 
 /* Dark theme scrollbar styles */
 .dark ::-webkit-scrollbar-thumb {
-	background-color: rgba(67, 67, 67, 0.6); /* Darker color for dark theme */
+	background-color: rgba(61, 70, 63, 0.6); /* cast-matched to #434343's lightness */
 	border-color: rgba(0, 0, 0, var(--tw-border-opacity));
 }
 
@@ -174,7 +175,7 @@ li p {
 
 select {
 	color-scheme: light;
-	background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+	background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23677768' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
 	background-position: right 0rem center;
 	background-repeat: no-repeat;
 	background-size: 1.5em 1.5em;
@@ -211,35 +212,35 @@ select {
 .shimmer {
 	background: linear-gradient(
 		110deg,
-		#b4b4b4 0%,
-		#b4b4b4 43%,
-		#e8e8e8 50%,
-		#b4b4b4 57%,
-		#b4b4b4 100%
+		#acb9a9 0%,
+		#acb9a9 43%,
+		#e5eae3 50%,
+		#acb9a9 57%,
+		#acb9a9 100%
 	);
 	background-size: 200% 100%;
 	background-clip: text;
 	-webkit-background-clip: text;
 	-webkit-text-fill-color: transparent;
 	animation: shimmer 1.5s cubic-bezier(0.7, 0, 1, 0.4) infinite;
-	color: #b4b4b4;
+	color: #acb9a9;
 }
 
 :global(.dark) .shimmer {
 	background: linear-gradient(
 		110deg,
-		#9a9a9a 0%,
-		#9a9a9a 43%,
-		#5e5e5e 50%,
-		#9a9a9a 57%,
-		#9a9a9a 100%
+		#909f8f 0%,
+		#909f8f 43%,
+		#556257 50%,
+		#909f8f 57%,
+		#909f8f 100%
 	);
 	background-size: 200% 100%;
 	background-clip: text;
 	-webkit-background-clip: text;
 	-webkit-text-fill-color: transparent;
 	animation: shimmer 1.5s cubic-bezier(0.7, 0, 1, 0.4) infinite;
-	color: #9a9a9a;
+	color: #909f8f;
 }
 
 @keyframes smoothFadeIn {
@@ -747,14 +748,13 @@ html.high-contrast.dark .ProseMirror p.is-editor-empty:first-child::before {
 	white-space: nowrap;
 }
 
+/* The page is paper and cards are white — canonical is explicit that a canvas
+   is never pure #FFF and ink is never pure #000. Both values flip with `.dark`
+   in src/jup-tokens.css, so one rule replaces the former light/dark pair (the
+   dark half of which was #171717, a neutral that matched no token here). */
 body {
-	background: #fff;
-	color: #000;
-}
-
-.dark body {
-	background: #171717;
-	color: #eee;
+	background: var(--jup-paper);
+	color: var(--jup-ink);
 }
 
 /* Position the handle relative to each LI */

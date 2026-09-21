@@ -1,27 +1,99 @@
 @import 'tailwindcss';
+@import './jup-tokens.css';
 
 @config '../tailwind.config.js';
 
+/*
+  JUP identity, applied at the token layer so the whole product inherits it
+  without a single component being edited. Canonical source and the reasoning
+  behind each value: `src/jup-tokens.css`.
+
+  ── Why the gray ramp is re-tinted rather than re-pointed ───────────────────
+  The instinct is to map these steps onto canonical surface names — gray-200
+  to --jup-line, gray-850 to --jup-surface. That breaks the product. This ramp
+  is overwhelmingly TEXT, not surfaces: gray-500 has 1078 text uses out of
+  1095, gray-400 has 866 of 899, and most steps are used in BOTH modes
+  (gray-300 is 324 light / 293 dark). Re-pointing a step to a canonical
+  surface value moves its lightness, and every `text-gray-400 dark:text-…`
+  pair that 663 components were built around silently loses contrast.
+
+  So each step keeps its EXACT lightness and gains only JUP's green cast:
+  hue drifting 134°→158° light-to-dark and chroma peaking ~0.030 mid-ramp,
+  both measured off the canonical neutrals (--jup-paper is L .9725 C .0073
+  H 132.4; --jup-ink is L .2284 C .0227 H 165.8; --jup-line is L .8988
+  C .0194 H 140.5).
+
+  Every step's L is identical to the vendor value it replaces. Adding chroma at
+  a fixed L still nudges relative luminance, so the WCAG ratios were measured
+  rather than assumed: across all 12 steps against both white and the dark
+  surface, the largest shift is 0.17 and most are under 0.10. The hierarchy the
+  components were built on survives; the dead gray becomes JUP's green-cast
+  neutral.
+*/
 @theme {
+	/* `--app-font-family` is the user's own override from the Interface
+	   settings panel and must keep winning; only the fallback becomes JUP. */
 	--font-sans:
-		var(--app-font-family, -apple-system), BlinkMacSystemFont, 'Inter', 'Vazirmatn', ui-sans-serif,
-		system-ui, 'Segoe UI', Roboto, Ubuntu, Cantarell, 'Noto Sans', sans-serif, 'Helvetica Neue',
-		Arial, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+		var(--app-font-family, 'IBM Plex Sans'), -apple-system, BlinkMacSystemFont, 'Segoe UI',
+		system-ui, 'Helvetica Neue', Arial, 'Inter', 'Vazirmatn', ui-sans-serif, Roboto, Ubuntu,
+		Cantarell, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+		'Noto Color Emoji';
 	--font-primary: var(--font-sans);
 	--font-secondary: var(--font-sans);
+	--font-display: var(--jup-font-display);
+	--font-mono: var(--jup-font-mono);
 
-	--color-gray-50: oklch(0.98 0 0);
-	--color-gray-100: oklch(0.94 0 0);
-	--color-gray-200: oklch(0.92 0 0);
-	--color-gray-300: oklch(0.85 0 0);
-	--color-gray-400: oklch(0.77 0 0);
-	--color-gray-500: oklch(0.69 0 0);
-	--color-gray-600: oklch(0.51 0 0);
-	--color-gray-700: oklch(0.42 0 0);
-	--color-gray-800: oklch(0.32 0 0);
-	--color-gray-850: oklch(0.27 0 0);
-	--color-gray-900: oklch(0.2 0 0);
-	--color-gray-950: oklch(0.16 0 0);
+	/* Neutral ramp — lightness preserved exactly, JUP green cast added. */
+	--color-gray-50: oklch(0.98 0.006 134);
+	--color-gray-100: oklch(0.94 0.013 137);
+	--color-gray-200: oklch(0.92 0.017 139);
+	--color-gray-300: oklch(0.85 0.021 143);
+	--color-gray-400: oklch(0.77 0.023 148);
+	--color-gray-500: oklch(0.69 0.025 152);
+	--color-gray-600: oklch(0.51 0.029 156);
+	--color-gray-700: oklch(0.42 0.03 158);
+	--color-gray-800: oklch(0.32 0.031 156);
+	--color-gray-850: oklch(0.27 0.026 157);
+	--color-gray-900: oklch(0.2 0.02 158);
+	--color-gray-950: oklch(0.16 0.013 156);
+
+	/* Brand green. `brand` is the fill; `brand-text` is the one that is legible
+	   as a word — #079F4E on paper is 3.20:1 and fails AA. */
+	--color-brand-50: oklch(0.96 0.025 151);
+	--color-brand-100: oklch(0.92 0.05 151);
+	--color-brand-200: oklch(0.86 0.08 151);
+	--color-brand-300: oklch(0.78 0.115 151);
+	--color-brand-400: oklch(0.7 0.14 151);
+	--color-brand-500: #079f4e;
+	--color-brand-600: #026e35;
+	--color-brand-700: oklch(0.4 0.105 152);
+	--color-brand-800: #01411f;
+	--color-brand-900: oklch(0.26 0.065 152);
+
+	/* Institutional blue. The app already uses blue-400/500 as its selection and
+	   focus border pair (80 and 82 uses), and those two land exactly on the
+	   canonical light/dark blue — so the retint needs no component change. */
+	--color-blue-300: oklch(0.8 0.09 245);
+	--color-blue-400: #5aa6e0;
+	--color-blue-500: #1e6fb0;
+	--color-blue-600: oklch(0.45 0.13 248);
+	--color-blue-700: #123a5a;
+
+	/* Geometry — JUP 2.0 is rounded: panels 16, controls 10. `rounded-lg` is the
+	   workhorse control radius here (480 uses) and `rounded-xl` the panel (365). */
+	--radius-sm: 6px;
+	--radius-md: 8px;
+	--radius-lg: var(--jup-radius-sm);
+	--radius-xl: var(--jup-radius);
+	--radius-2xl: 20px;
+	--radius-3xl: 24px;
+
+	/* Elevation — real, and green-cast to match the surfaces it sits on. */
+	--shadow-xs: 0 1px 1px rgba(15, 45, 25, 0.04);
+	--shadow-sm: 0 1px 2px rgba(15, 45, 25, 0.05);
+	--shadow-md: var(--jup-shadow);
+	--shadow-lg: var(--jup-shadow);
+	--shadow-xl: var(--jup-shadow-lg);
 }
 
 /*
@@ -75,7 +147,11 @@
 	}
 
 	input[type='checkbox']:checked {
-		@apply bg-blue-600 border-blue-600;
+		/* Green, not blue: canonical gives green action and affirmation, and blue
+		   institution and navigation weight. brand-600 (#026E35) rather than
+		   brand-500, so the white checkmark clears contrast comfortably — white on
+		   #079F4E is only 3.23:1. */
+		@apply bg-brand-600 border-brand-600;
 	}
 
 	input[type='checkbox']:after {

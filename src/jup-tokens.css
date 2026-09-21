@@ -1,0 +1,159 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   JUP identity — VENDORED FROM THE CANONICAL LAYER. Do not hand-edit values.
+
+   Source of truth: ~/jup/brand/tokens/colors.css — the layer Erik ratified
+   2026-09-18 over the Graphic Standard Manual 2023 palette (#00A550 / Space
+   Grotesk). The `jup-design` skill still ships that rejected GSM palette; do
+   not copy tokens out of it.
+
+   Names are the CANONICAL names (--jup-brand, --jup-ink, --jup-paper,
+   --jup-line) so one vocabulary spans this fork, @jup/ui and
+   @jup/design-system. If canonical changes, re-vendor — do not patch.
+
+   ── One deliberate adaptation ──────────────────────────────────────────────
+   Canonical expresses dark mode as `@media (prefers-color-scheme: dark)`.
+   This app does not: it toggles `.dark` on <html> and offers an explicit light
+   theme. Honouring the media query here would darken the UI of someone who
+   chose light while their OS is dark, so the dark values hang off `.dark`
+   only. Values are unchanged; only the selector differs.
+
+   ── Contrast, which the palette does not encode ────────────────────────────
+   The canonical accents are tuned as FILLS and several fail AA as text. The
+   `-text` variants below exist for words and are the ones to reach for:
+
+     --jup-brand      #079F4E as text on paper is 3.20:1 — FAILS AA
+     --jup-brand-text #026E35                      5.92:1 — use this
+
+   Labels on filled surfaces differ per hue: brand and amber want the ink
+   label (white fails at 3.45 and 3.03); blue and red want white. In dark
+   every accent is a pastel on near-black, so accents clear AA as text
+   unmodified and every filled surface wants the dark label — darkening them
+   in dark makes contrast worse.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+	/* surfaces — the page is paper, cards are white */
+	--jup-paper: #f4f7f2;
+	--jup-surface: #ffffff;
+	--jup-surface-2: #edf2ea;
+	--jup-surface-3: #e3ece1;
+
+	/* ink */
+	--jup-ink: #12201a;
+	--jup-ink-soft: #42544a;
+	--jup-ink-faint: #6a7b70;
+
+	/* lines */
+	--jup-line: #d7e1d5;
+	--jup-line-soft: #e7eee5;
+
+	/* brand — -text is the legible-as-a-word variant */
+	--jup-brand: #079f4e;
+	--jup-brand-deep: #026e35;
+	--jup-brand-dark: #01411f;
+	--jup-brand-text: #026e35;
+
+	/* institutional and sector hues */
+	--jup-blue: #1e6fb0;
+	--jup-navy: #123a5a;
+	--jup-orange: #ef7a1a;
+	--jup-amber: #c4890f;
+	--jup-red: #d23a34;
+	--jup-gold: #dca62e;
+
+	--jup-gas: #1e6fb0;
+	--jup-gas-bg: #e6f0f8;
+	--jup-sun: #eab308;
+	--jup-sun-bg: #fbf3d6;
+	--jup-h2: #8b5cf6;
+	--jup-h2-bg: #f1ebfb;
+
+	/* movement and gates */
+	--jup-up: #079f4e;
+	--jup-down: #d23a34;
+	--jup-gate: #1e6fb0;
+	--jup-defer: #d98218;
+	--jup-neu: #8a9a8e;
+	--jup-up-bg: #e7f4e9;
+	--jup-down-bg: #fbe7e6;
+	--jup-gate-bg: #e6f0f8;
+	--jup-defer-bg: #fbeedd;
+	--jup-neu-bg: #eef2ee;
+
+	/* labels on filled surfaces — per hue, not one value */
+	--jup-text-on-brand: #12201a;
+	--jup-text-on-amber: #12201a;
+	--jup-text-on-blue: #ffffff;
+	--jup-text-on-red: #ffffff;
+
+	/* elevation — JUP 2.0 is elevated, not flat */
+	--jup-shadow: 0 1px 2px rgba(15, 45, 25, 0.05), 0 8px 26px rgba(15, 45, 25, 0.07);
+	--jup-shadow-lg: 0 16px 46px rgba(15, 45, 25, 0.12);
+
+	/* geometry — panels 16, controls 10 */
+	--jup-radius: 16px;
+	--jup-radius-sm: 10px;
+
+	/* type — stacks degrade to the system face until the webfonts are served */
+	--jup-font-sans:
+		'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, 'Helvetica Neue',
+		Arial, sans-serif;
+	--jup-font-display: 'Fraunces', 'Georgia', serif;
+	--jup-font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+	--jup-measure: 74ch;
+}
+
+.dark {
+	--jup-paper: #0c120e;
+	--jup-surface: #141e18;
+	--jup-surface-2: #1a261e;
+	--jup-surface-3: #202f25;
+
+	--jup-ink: #e8f0e9;
+	--jup-ink-soft: #a9b8ad;
+	--jup-ink-faint: #7b8b80;
+
+	--jup-line: #283a2d;
+	--jup-line-soft: #213027;
+
+	/* in dark the accents are pastels and clear AA as text unmodified, so
+	   -text collapses onto the accent rather than darkening it */
+	--jup-brand: #23c46e;
+	--jup-brand-deep: #5ddc98;
+	--jup-brand-dark: #01411f;
+	--jup-brand-text: #23c46e;
+
+	--jup-blue: #5aa6e0;
+	--jup-navy: #8fc0e8;
+	--jup-orange: #f79a4b;
+	--jup-amber: #e3b24e;
+	--jup-red: #eb6058;
+	--jup-gold: #e9c05c;
+
+	--jup-gas: #5aa6e0;
+	--jup-gas-bg: #152838;
+	--jup-sun: #f4cb44;
+	--jup-sun-bg: #2c2710;
+	--jup-h2: #a98bf0;
+	--jup-h2-bg: #211a33;
+
+	--jup-up: #23c46e;
+	--jup-down: #eb6058;
+	--jup-gate: #5aa6e0;
+	--jup-defer: #f0994a;
+	--jup-neu: #8fa093;
+	--jup-up-bg: #16301d;
+	--jup-down-bg: #33191a;
+	--jup-gate-bg: #152838;
+	--jup-defer-bg: #31240f;
+	--jup-neu-bg: #1c271f;
+
+	/* every filled surface wants the dark label in dark */
+	--jup-text-on-brand: #0c120e;
+	--jup-text-on-amber: #0c120e;
+	--jup-text-on-blue: #0c120e;
+	--jup-text-on-red: #0c120e;
+
+	--jup-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.4);
+	--jup-shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.5);
+}
