@@ -1124,9 +1124,9 @@
 			inert={!$showSidebar}
 			class="h-screen max-h-[100dvh] min-h-screen select-none {$mobile
 				? visible
-					? 'bg-gray-50 dark:bg-gray-950 z-50'
+					? 'bg-[var(--jup-paper)] z-50'
 					: 'bg-transparent z-0 pointer-events-none'
-				: `bg-gray-50 dark:bg-gray-950 z-50 ${$showSidebar ? '' : 'pointer-events-none'}`} {$isApp
+				: `bg-[var(--jup-paper)] z-50 ${$showSidebar ? '' : 'pointer-events-none'}`} {$isApp
 				? `ml-[4.5rem] md:ml-0 `
 				: $mobile
 					? ''
@@ -1138,7 +1138,7 @@
 			data-state={$showSidebar}
 		>
 			<div
-				class=" my-auto flex flex-col justify-between h-screen max-h-[100dvh] w-[var(--sidebar-width)] overflow-x-hidden scrollbar-hidden z-50 border-e border-gray-50 dark:border-gray-850/30"
+				class=" my-auto flex flex-col justify-between h-screen max-h-[100dvh] w-[var(--sidebar-width)] overflow-x-hidden scrollbar-hidden z-50"
 			>
 				<div
 					class="sidebar px-1 pt-1.5 pb-1 flex justify-between space-x-1 text-gray-600 dark:text-gray-400 sticky top-0 z-10 -mb-2"
@@ -1193,7 +1193,7 @@
 					<div
 						class="{scrollTop > 0
 							? 'visible'
-							: 'invisible'} sidebar-bg-gradient-to-b bg-linear-to-b from-gray-50 dark:from-gray-950 to-transparent from-50% pointer-events-none absolute inset-0 -z-10 -mb-6"
+							: 'invisible'} sidebar-bg-gradient-to-b bg-linear-to-b from-[var(--jup-paper)] to-transparent from-50% pointer-events-none absolute inset-0 -z-10 -mb-6"
 					></div>
 				</div>
 
@@ -1702,7 +1702,7 @@
 
 				<div class="px-1 pt-1 pb-1.5 sticky bottom-0 z-10 -mt-2 sidebar">
 					<div
-						class=" sidebar-bg-gradient-to-t bg-linear-to-t from-gray-50 dark:from-gray-950 to-transparent from-50% pointer-events-none absolute inset-0 -z-10 -mt-6"
+						class=" sidebar-bg-gradient-to-t bg-linear-to-t from-[var(--jup-paper)] to-transparent from-50% pointer-events-none absolute inset-0 -z-10 -mt-6"
 					></div>
 					<div class="flex flex-col">
 						{#if $user !== undefined && $user !== null}

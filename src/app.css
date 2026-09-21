@@ -757,6 +757,28 @@ body {
 	color: var(--jup-ink);
 }
 
+/* ── The inset main panel ──────────────────────────────────────────────────
+   `#main-content` in (app)/+layout.svelte used to be `display: contents`, so
+   each page's own root became the flex sibling of the sidebar and sized itself
+   against the VIEWPORT — `h-screen max-h-[100dvh]`, plus a max-width that
+   subtracts `--sidebar-width` because it was sitting beside the sidebar itself.
+
+   Now that main is a real, inset, rounded panel, both of those are wrong: a
+   100vh child overflows a panel that is 100vh minus its margins, and the
+   max-width subtracts a sidebar the child no longer sits next to, narrowing
+   every page by a second sidebar's worth.
+
+   Re-pointing them here rather than editing each page root keeps this to one
+   rule instead of a change in every route — and routes are vendor files that
+   rebase quarterly (ADR-0007), so each one edited is a conflict carried
+   forever. `#main-content > *` is an id plus a child selector, which outranks
+   the utility classes it has to beat. */
+#main-content > * {
+	height: 100%;
+	max-height: 100%;
+	max-width: 100%;
+}
+
 /* Position the handle relative to each LI */
 .pm-li--with-handle {
 	position: relative;

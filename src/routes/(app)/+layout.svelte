@@ -470,7 +470,7 @@
 {#if $user}
 	<div class="app relative">
 		<div
-			class=" text-gray-700 dark:text-gray-100 bg-white dark:bg-gray-900 h-screen max-h-[100dvh] overflow-auto flex flex-row justify-end"
+			class=" text-gray-700 dark:text-gray-100 bg-[var(--jup-paper)] h-screen max-h-[100dvh] overflow-auto flex flex-row justify-end"
 		>
 			{#if !['user', 'admin'].includes($user?.role)}
 				<AccountPending />
@@ -533,7 +533,29 @@
 				<Sidebar />
 
 				{#if loaded}
-					<main id="main-content" class="contents">
+					<!-- The inset panel. The shell behind it is --jup-paper and this is
+					     --jup-surface, which is canonical's own "the page is paper, cards are
+					     white" rule expressed structurally rather than only in colour.
+
+					     This was `display: contents`, which creates no box — so each page's
+					     own root acted as the flex sibling of the sidebar and sized itself
+					     against the VIEWPORT (`h-screen`, and a max-width that subtracts the
+					     sidebar). A real box here changes that contract, so `#main-content > *`
+					     in app.css re-points those children at this panel instead. That rule
+					     and this element are a pair; neither works alone.
+
+					     The sidebar is `fixed`, not a flex sibling, so the width cap below is
+					     what keeps this panel clear of it — the row is `justify-end`, so a
+					     capped width right-aligns into the space the sidebar leaves. That is
+					     the same trick each page root used to do for itself; it moves here
+					     because the panel is now the thing that sits beside the sidebar.
+					     The 1rem subtracted is `me-2` plus the gap that shows the shell. -->
+					<main
+						id="main-content"
+						class="relative z-10 flex flex-col flex-1 min-w-0 my-2 me-2 h-[calc(100dvh-1rem)] overflow-hidden rounded-xl border border-[var(--jup-line)] bg-[var(--jup-surface)] shadow-[var(--jup-shadow)] {$showSidebar
+							? 'md:max-w-[calc(100%-var(--sidebar-width)-1rem)]'
+							: 'max-w-[calc(100%-1rem)]'}"
+					>
 						<slot />
 					</main>
 				{:else}
