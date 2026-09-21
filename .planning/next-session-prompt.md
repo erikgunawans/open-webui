@@ -1,3 +1,76 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-22-live)
+
+> Prepended by /wrap 2026-09-22 (checkpoint 2026-09-22-live). Supersedes checkpoint
+> 2026-09-21-after's anchor.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-22-live).
+
+**Anchor:** `origin/main` at `e95a9dfc7` **as this was written**, or one commit ahead at this
+checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-22-live`). Verify
+with `git log --oneline e95a9dfc7..origin/main`. Any other commit in that range is a parallel push.
+
+**Current state:** #16 (ADR-0002) is implemented AND deployed, but still OPEN — held for evidence.
+The UI carries the canonical `~/jup/brand` identity plus the inset shell/panel layout. `e95a9dfc7`
+was deployed at wrap time (per-change authorization from Erik); the revision before it is
+`ent-os-00007-rr8`. **Zero models are configured**: the OpenAI connection points at
+`https://openrouter.ai/api/v1` but the key is empty.
+
+**Do next, in order:**
+1. **Confirm the `e95a9dfc7` deploy** if the wrap did not: new revision at 100%, digest matches the
+   Cloud Build of `e95a9dfc7`, clean start, `ops.axiara.ai` → 302. Then, via Interceptor, confirm
+   `#sidebar-resizer` computes `border-right-color: rgba(0, 0, 0, 0)` on the live page.
+2. **Close #16 on evidence** — blocked on the OpenRouter key (Erik). Once `/api/models` returns >0
+   and one chat turn runs, `gcloud logging read 'resource.labels.service_name="ent-os" AND
+   textPayload:"jup.governance"' --project=jup-ops` must show an `admitted` entry with
+   `contract: attached`. Quote it in the closing comment.
+3. **Draft the typed-chat provider decision for `~/jup/DECISIONS.md`** (D16 class) — OpenRouter is a
+   broker, so processing location is per upstream model. Draft for Erik's review; do not write a
+   governance decision into the record without him. Pair it with OpenRouter's "exclude providers
+   that train on prompts" account policy.
+4. **The 403-for-non-admin test against the deployment** — now unblocked by #16, but every step
+   needs Erik: a second Google identity, his authorization for a time-boxed
+   `roles/iap.httpsResourceAccessor` grant, signing in from a separate Chrome profile (expect 401
+   while `pending`), Erik promoting it to `user`, then `/api/v1/portfolio/` must return 403. Remove
+   the binding afterwards.
+
+**Constraints to honor:**
+- **Deploy authorization is per-change, never standing.** `alesha-bot` holding Owner is capability,
+  not authorization.
+- **Verify on the LIVE app via Interceptor** — it drives Erik's Chrome and passes IAP as him. Do not
+  build a static mock and call it verification. Interceptor cannot screenshot here: use
+  `interceptor eval --main` with getComputedStyle.
+- **"The UI didn't change" after a deploy = stale HTML shell in the browser.** Fetch the served CSS
+  first; ⌘⇧R fixes it. No service worker is registered.
+- **Local frontend build needs `NODE_OPTIONS=--max-old-space-size=8192`** or it OOMs.
+- **Capture exit codes without a pipe** — `cmd; echo EXIT=$?`. `| tail`/`| tee` reported a failed
+  build as exit 0 this session.
+- **Palette = `~/jup/brand`.** The `jup-design` skill ships the REJECTED GSM 2023 palette; never copy
+  tokens from it. Its content rules still apply.
+- **Never re-point the gray ramp at canonical surface names** — it is mostly text; preserve each
+  step's OKLCH L and change only hue/chroma.
+- **`#main-content` and the `#main-content > *` rule in `app.css` are a pair.** The sidebar is
+  `fixed`; the panel's max-width cap is what keeps it clear. Do not "simplify" either alone.
+- **ADR-0002 guards:** the vendor lines take no `bypass` argument (a test asserts it); the stamp
+  stays on `request.state`; the funnel call must stay after the metadata merge.
+- **The OpenRouter connection lives in the app DB**, set via `/openai/config/update` — not in
+  `deploy.sh`. Never put the key in chat or in a committed file.
+- Carried forward, still true: `ARG BUILDPLATFORM` in the Dockerfile is load-bearing (legacy
+  builder); `--set-secrets` replaces the whole block and `DATABASE_URL` stays a secret reference;
+  no backticks in `deploy.sh`'s env heredoc; run tests as `uv run --no-sync --only-group dev pytest`;
+  `find tests/fixtures -type d -empty` before pushing; `.prettierignore` covers fork prose — do not
+  tidy it; `gh` needs `--repo erikgunawans/ent-os-new-jup`; commits go directly to `main`.
+
+**Open items waiting on Erik:**
+- **The OpenRouter API key** (Admin Settings → Connections). Unblocks #16's closure.
+- **The typed-chat provider decision** — D16 left it open; OpenRouter makes it live.
+- **A second identity + authorization for the IAP grant** for the 403 test.
+- **Webfonts** — IBM Plex Sans / Fraunces / IBM Plex Mono exist nowhere on this machine; the UI is
+  JUP in colour and geometry but still Inter. Self-host vs Google Fonts.
+- Still standing: an SKK Migas / PGN contact record; Danantara and Pertamina Patra Niaga documents;
+  `~/jup`'s three untracked tooling dirs; Codex CLI ≥0.155.1 before Forge is useful.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-21-after)
 
 > Prepended by /wrap 2026-09-21 (checkpoint 2026-09-21-after). Supersedes checkpoint

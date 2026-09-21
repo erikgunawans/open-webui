@@ -1,6 +1,78 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-21-after (latest) — backlog cleared, then four gaps taken off the shelf
+## Checkpoint 2026-09-22-live (latest) — #16 enforced in production, the UI carries JUP, OpenRouter half-wired
+
+- **Tracker: #16 open** — implemented and deployed; held open only for audit evidence (see below).
+- **Commits:** `50173d4dc` (#16), `0341bced5` (token layer), `c3e8e5fcb` (inset panel), `e95a9dfc7` (divider fix).
+- **Revisions:** `ent-os-00006-gl2` (#16) → `ent-os-00007-rr8` (UI through `c3e8e5fcb`) → `e95a9dfc7` deployed at wrap time, authorized per-change by Erik.
+
+### #16 — ADR-0002 fail-closed enforcement is live, and still open on purpose
+
+Policy settled by Erik 2026-09-21: **a governed turn must carry the JUP operating contract in its
+system message, or it is refused**; every turn audited (admitted / exempt / refused). Governed =
+user-facing chat turns including every tool-loop turn; named internal tasks (title, tags, follow-up,
+emoji, query, image-prompt, autocomplete, native function_calling, MoA) exempt by a tested allowlist.
+Recorded in ADR-0002 itself.
+
+`kb/serve.ts`'s D11 guard could **not** be ported a third time: it inspects the *answer*, which works
+only because it is non-streaming. Every ADR-0002 attachment point is an inlet. The contract instead
+carries D11's revenue-not-margin rule into the model's context.
+
+Load-bearing details, all tested (26 cases, verified to fail when a patch is dropped):
+- `utils/chat.py` attaches + stamps on **every** turn — `middleware.py:5873` strips the system
+  message before the tool loop re-enters at `:5994`/`:6214`, so attach-once would be gone by turn two.
+- The funnel **also refuses**: the direct-connection and pipe branches never reach a router guard.
+- The stamp lives on `request.state`, never `form_data`; the task exemption is honoured only for a
+  stamped turn, or a direct caller exempts itself with `metadata.task`.
+- `bypass_filter` is ignored by design (`BYPASS_MODEL_ACCESS_CONTROL` forces it True).
+- `backend/jup/` cannot import FastAPI, so guards *return* a refusal and the vendor line raises 403.
+
+**Why still open:** zero `jup.governance` log entries exist, because **zero models are configured**,
+so no chat turn has ever run on the governed build. Close it on the first real audit entry.
+
+**Audit durability:** `DATA_DIR` is unset in `deploy.sh` and `/srv/jup` is read-only, so the JSONL
+file is ephemeral. Every entry also hits `log.info('jup.governance …')` → Cloud Logging, which is the
+durable trail. Query:
+`gcloud logging read 'resource.labels.service_name="ent-os" AND textPayload:"jup.governance"' --project=jup-ops`
+
+### The UI now carries the canonical JUP identity
+
+Palette = `~/jup/brand` (ratified 2026-09-18), **not** the GSM 2023 palette the `jup-design` skill
+still ships — re-confirmed with Erik before starting. Three files, then a layout pass:
+- `src/jup-tokens.css` vendored `--jup-*` layer; dark hangs off `.dark`, not the media query.
+- The gray ramp was **re-tinted, not re-pointed**: it is overwhelmingly TEXT (gray-500: 1078 of 1095
+  uses), so each step kept its exact OKLCH L and gained only the green cast. Largest WCAG shift 0.17.
+- Inset shell/panel (Erik's reference): shell `--jup-paper`, panel `--jup-surface`, 16px, 8px inset.
+  `main` was `display: contents` and the sidebar is `fixed`; one `#main-content > *` rule re-points
+  every route root (all six route groups declare `h-screen` there) instead of editing vendor routes.
+- Resting sidebar dividers removed (`#sidebar-resizer` border-r was the visible line).
+
+**"The UI didn't change" was browser cache, not the deploy.** Served CSS contained the build; the
+browser held a stale HTML shell pointing at old asset hashes. No service worker. ⌘⇧R.
+
+### Interceptor reaches the live app through IAP
+
+It drives Erik's Chrome, which carries his Google session. This session wrongly claimed twice that
+the app was unverifiable because `alesha-bot` lacks IAP access, and verified against a static mock
+instead. Verify against the live deployment first.
+
+### OpenRouter — connection set, key missing
+
+Erik chose OpenRouter. The OpenAI connection was re-pointed to `https://openrouter.ai/api/v1` via the
+admin API (`/openai/config/update`) — **stored in the app DB, not in `deploy.sh`**. The key field is
+empty by design; Erik enters it in Admin Settings → Connections. `/api/models` still returns 0.
+
+**Governance:** D16 governs voice only and explicitly leaves the typed chat path undecided.
+OpenRouter is a broker — processing location is per upstream model. Wants a `DECISIONS.md` row and
+OpenRouter's "exclude providers that train on prompts" policy. Not drafted yet.
+
+### Traps that cost time this session
+
+- Local `npm run build` OOMs without `NODE_OPTIONS=--max-old-space-size=8192` (Dockerfile sets it).
+- A background command's reported exit code is the LAST command's — `| tail` / `| tee` masked a
+  failed build once. Capture `$?` immediately, no pipe.
+
+## Checkpoint 2026-09-21-after — backlog cleared, then four gaps taken off the shelf
 
 - **Tracker: #16 open** (ADR-0002 enforcement), filed deliberately. #1–#15 all closed.
 - **Cross-repo:** `~/jup` at `9cd0b90`; new repo `erikgunawans/jup-kb-assistant-worker` at `96b9464`+1.
