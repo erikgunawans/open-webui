@@ -27,3 +27,5 @@ services:
       - 'JUP_ARTEFACT_ROOT=/srv/jup'
       # Indonesian first: a browser with no saved language opens in Bahasa Indonesia.
       - 'DEFAULT_LOCALE=id-ID'
+      # The product name; the vendor appends " (Open WebUI)". White-labelling rests on ADR-0001.
+      - 'WEBUI_NAME=JUP'

@@ -135,6 +135,7 @@
 								>
 									<button
 										aria-hidden={models.length <= 1}
+										tabindex={models.length <= 1 ? -1 : 0}
 										aria-label={$i18n.t('Get information on {{name}} in the UI', {
 											name: models[modelIdx]?.name
 										})}
@@ -160,22 +161,22 @@
 						</div>
 					</div>
 
-					<div
-						class=" text-2xl @sm:text-2xl line-clamp-1 flex items-center"
+					<!-- JUP: a greeting, not the model slug, and the page's heading. First name only:
+					     the account holds the full legal name, and a greeting is not a form. -->
+					<h1
+						class=" text-2xl @sm:text-2xl font-normal line-clamp-1 flex items-center"
 						in:fade={{ duration: 100 }}
 					>
-						<!-- JUP: a greeting, not the model slug. The model is already named in the
-						     selector above, and a provider id is not something to be welcomed by. -->
-						{$i18n.t('Hello, {{name}}', { name: $user?.name })}
-					</div>
+						{$i18n.t('Hello, {{name}}', { name: ($user?.name ?? '').split(' ')[0] })}
+					</h1>
 				</div>
 
-				<!-- JUP: the one thing a new chat should say before anything is typed. Worded to
-				     claim exactly what ADR-0002 enforces: the contract is attached to every governed
-				     turn, a turn without it is refused, and every turn is audited. -->
+				<!-- JUP: the one thing a new chat should say before anything is typed. It describes
+				     what the contract instructs (backend/jup/governance.py rules 1 and 2) rather than
+				     promising what a model will do, and states the audit ADR-0002 enforces. -->
 				<p class="mt-2 px-5 max-w-xl text-sm font-normal text-gray-600 dark:text-gray-400">
 					{$i18n.t(
-						'Every answer here is bound by the JUP operating contract. A request without it is refused, and every request is logged.'
+						'The assistant works under the JUP operating contract: it says what it does not know instead of inventing it, and never presents revenue as margin. Every request is logged.'
 					)}
 				</p>
 
@@ -251,7 +252,7 @@
 						{onToolApprovalModeChange}
 						{stopResponse}
 						{createMessagePair}
-						placeholder={$i18n.t('How can I help you today?')}
+						placeholder={$i18n.t('Attach a document or ask a question…')}
 						{onChange}
 						{onUpload}
 						{onUpdate}
