@@ -1,3 +1,62 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-22-gsm)
+
+> Prepended by /wrap 2026-09-22 (checkpoint 2026-09-22-gsm). Supersedes checkpoint 2026-09-22-live's anchor.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-22-gsm).
+
+**Anchor:** `origin/main` at `b585967d9` **as this was written**, or one commit ahead at this
+checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-22-gsm`). Verify
+with `git log --oneline b585967d9..origin/main`. Any other commit in that range is a parallel push.
+
+**Current state:** live on `ent-os-00011-npn` (`b585967d9`; rollback `ent-os-00010-mtx`). **Zero open
+issues** — #16 closed on the audit line. 403-for-non-admin **passed** on the deployment. Typed chat =
+OpenRouter → Xiaomi MiMo only (D17). The UI is the **GSM 2023** brand (D18): Space Grotesk, Pigment
+Green/Polynesian Blue/Rich Black, square-cut, near-flat, main panel 14px. Impeccable critique: **22/40**.
+
+**Do next, in order** (Erik chose: portfolio first, Indonesian-first, top-3 scope):
+1. **`$impeccable onboard`** — `/portfolio` has NO entry point anywhere in `src` (P0). Add "Portofolio"
+   under New Chat in `Sidebar.svelte`; admin landing on `/portfolio`. Indonesian-first: default locale
+   `id-ID`, `<html lang="id">` (`src/app.html:2`), fill the empty id-ID portfolio strings, "Rp 63,3 miliar",
+   fix "Tier 2 · POTENSI". Snapshot: `.impeccable/critique/2026-09-22T16-41-57Z__src-routes-app-layout-svelte.md`.
+2. **`$impeccable clarify`** — chat home: replace the model-slug hero with a sentence-case Indonesian JUP
+   greeting stating the contract is active; 3–4 JUP suggestions (`default_prompt_suggestions`); hide
+   "Arena Model".
+3. **`$impeccable polish`** — sidebar metadata fails AA in light (timestamps `#acb6bf` 1.8:1 at 10px,
+   labels 2.4:1, ⌘ hints 1.82:1) → gray-600, 12px floor; Chat Menu buttons 20×20 → 24px. Then re-critique.
+4. Out of this scope but recorded: contract indicator in chat (`harden`), portfolio type pass (`typeset`).
+
+**Constraints to honor:**
+- **Deploy authorization is per-change, never standing.** Every deploy this session was asked for.
+- **Verify on the LIVE app via Interceptor**, `eval --main` + getComputedStyle (no screenshots here).
+  **Guard every mutating eval with `location.host==='ops.axiara.ai'`** — the driven tab drifted to
+  localhost Storymaker this session.
+- After a deploy, "UI didn't change" = stale HTML shell: fetch served CSS, then ⌘⇧R.
+- **Brand = GSM 2023 (D18).** Tokens only from `~/jup/brand/tokens/colors.css`; **measure contrast, never
+  copy the jup-design skill's table** (its `#008A43` text is 4.45:1, fails). Pigment Green is a fill;
+  brand words are `#006C34` light / `#4AC287` dark. Structure square except the 14px main panel.
+- Gray ramp is text: preserve OKLCH L, change hue/chroma only. `#main-content` and `#main-content > *`
+  in `app.css` are a pair.
+- ADR-0002 guards: no `bypass` arg on vendor lines; stamp on `request.state`; funnel after metadata merge.
+- OpenRouter connection + `model_ids` allowlist live in the app DB (`/openai/config/update`); never put
+  the key in chat or a file. Adding a model is a dated, named act (D17).
+- Local build: `NODE_OPTIONS=--max-old-space-size=8192`. Capture exit codes without a pipe.
+- Carried: `ARG BUILDPLATFORM` load-bearing; `--set-secrets` replaces the whole block; no backticks in
+  `deploy.sh`'s heredoc; tests `uv run --no-sync --only-group dev pytest`; `find tests/fixtures -type d
+  -empty` before pushing; `gh` needs `--repo erikgunawans/ent-os-new-jup`; commits go to `main`.
+
+**Open items waiting on Erik:**
+- **Logo / favicon / "Open WebUI" name** — Open WebUI licence call (≤50-user clause, I believe); on a yes,
+  JUP logogram as supplied + product name.
+- **Sector/chart hues with no GSM equivalent** (sun, H2, orange, gold) — D18c.
+- **`~/jup` deliverables** still carry the old brand inline (`JUP-Brand-System.html`, plan deck…).
+- **`wrangler deploy`** in `~/jup-kb-assistant-worker` (bundle `02ca8b1` carries D17 + D18).
+- **OpenRouter privacy toggles** (logging off, exclude training providers) — unconfirmed (D17d).
+- **Where `@jup/design-system` lives.**
+- Still standing: SKK Migas / PGN contact record; Danantara and Pertamina Patra Niaga documents;
+  `~/jup`'s three untracked tooling dirs; Codex CLI ≥0.155.1 before Forge is useful.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-22-live)
 
 > Prepended by /wrap 2026-09-22 (checkpoint 2026-09-22-live). Supersedes checkpoint

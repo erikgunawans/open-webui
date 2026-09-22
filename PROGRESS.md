@@ -1,6 +1,59 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-22-live (latest) — #16 enforced in production, the UI carries JUP, OpenRouter half-wired
+## Checkpoint 2026-09-22-gsm (latest) — #16 closed, 403 test passed, GSM 2023 brand live, D17/D18 recorded
+
+- **Session:** `/next` → e95a9dfc7 deploy confirmed → OpenRouter key in, MiMo allowlisted, #16 closed on evidence → D17 → 403 test passed → dark seam fixed → GSM 2023 rebrand everywhere (D18) → panel radius 14px → impeccable critique 22/40.
+- **Tracker: zero open issues** — #16 closed 2026-09-22 with the audit line quoted.
+- **Live:** `ent-os-00011-npn` (`b585967d9`, digest `sha256:b2779a93…df1f`). Chain today: `00008-wnn` (e95a9dfc7) → `00009-ds4` (1ddd29d02) → `00010-mtx` (a66ead2ce, GSM) → `00011-npn` (14px panel).
+
+### #16 closed on evidence
+
+OpenRouter key entered by Erik (app DB). The connection exposed all ~445 OpenRouter models, so D17's
+allowlist was set: `OPENAI_API_CONFIGS["0"].model_ids = ["xiaomi/mimo-v2.6-pro-ultraspeed"]`.
+One turn via `/api/chat/completions` → 200, provider Xiaomi, and Cloud Logging:
+`jup.governance {'event':'admitted','model':'xiaomi/mimo-v2.6-pro-ultraspeed','contract':'attached'}`
+at 2026-09-22T12:07:15Z on `ent-os-00008-wnn`.
+
+### D17 — typed chat provider (in `~/jup/DECISIONS.md`, `ea84443`)
+
+OpenRouter → Xiaomi MiMo only. OpenRouter lists **one** endpoint for it: Xiaomi, HQ China, DCs SG/NL.
+Erik accepted processing outside Indonesia and Xiaomi's terms knowingly. **Unconfirmed:** OpenRouter
+account privacy toggles (D17d). One endpoint, no fallback.
+
+### 403-for-non-admin — PASSED on the deployment
+
+alesha-bot@axiara.ai, time-boxed IAP grant (IAM condition expiry), Incognito, role `user` confirmed via
+`/api/v1/auths/` → `/api/v1/portfolio/` **403** at 15:11:05, 15:12:32, 15:15:43 UTC. Gap: the pending→401
+rung was not captured (Erik promoted first). A 200 at 15:12:20 was Erik's admin profile — provable
+because `utils/auth.py:415` 401s any session whose user ≠ IAP identity. Cleanup: binding removed, account
+back to `pending`.
+
+### D18 — the GSM 2023 is the one JUP brand (reverses 2026-09-18)
+
+- ent-os `a66ead2ce`: `src/jup-tokens.css` is the single token layer (portfolio's `jup-brand.css`
+  folded in); gray ramp keeps OKLCH L, takes GSM hue 248; GSM green/blue ramps; radius sm2/md4/lg4/xl4/
+  2xl6/4xl10; shadows near-absent (none in dark); Space Grotesk + Space Mono self-hosted
+  (`static/assets/fonts`). Main panel shadowless, **14px** radius (Erik's one exception, `b585967d9`).
+- `~/jup` `72ea747`: D18 + `brand/tokens/colors.css` (same names, GSM values; dark from the inverse
+  scope; sun/H2/orange/gold flagged "not GSM", D18c). KB bundle rebuilt `02ca8b1` (needs `wrangler deploy`).
+- `@jup/ui` `f8929ce`: identity.css regenerated from canonical; `validate:tokens` 43/36 0 drift; check green.
+- **Skill contrast table is wrong**: `#008A43` text = 4.45:1 on white (fails). Words use `#006C34`.
+- Live-verified both themes: Space Grotesk loaded, page `#F0F1F1`/`#011627`, panel white/`#0B2135`,
+  radius 14px, shadow none, sidebar = shell colour (seam gone).
+
+### Impeccable critique — 22/40 (`.impeccable/critique/2026-09-22T16-41-57Z__…md`)
+
+P0 `/portfolio` has **no entry point** in `src`. P1 chat home is stock Open WebUI (model slug hero,
+stock prompts, 👋). P1 sidebar metadata fails AA in light (timestamps 1.8:1 at 10px, labels 2.4:1).
+P1 contract invisible in chat. P2 portfolio type (11 sizes, 12 elements <12px, 122ch) + English-only.
+Erik chose: **portfolio first, Indonesian-first, top 3** → onboard, clarify, polish.
+
+### Next
+1. `$impeccable onboard` — "Portofolio" in the sidebar, admin landing, id-ID default + `lang="id"`, id-ID portfolio copy.
+2. `$impeccable clarify` — chat home: Indonesian JUP greeting + 3–4 JUP suggestions, hide Arena Model.
+3. `$impeccable polish` — sidebar metadata to gray-600/12px, 24px targets; then re-critique.
+
+## Checkpoint 2026-09-22-live — #16 enforced in production, the UI carries JUP, OpenRouter half-wired
 
 - **Tracker: #16 open** — implemented and deployed; held open only for audit evidence (see below).
 - **Commits:** `50173d4dc` (#16), `0341bced5` (token layer), `c3e8e5fcb` (inset panel), `e95a9dfc7` (divider fix).
