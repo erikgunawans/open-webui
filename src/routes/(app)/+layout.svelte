@@ -549,10 +549,16 @@
 					     capped width right-aligns into the space the sidebar leaves. That is
 					     the same trick each page root used to do for itself; it moves here
 					     because the panel is now the thing that sits beside the sidebar.
-					     The 1rem subtracted is `me-2` plus the gap that shows the shell. -->
+					     The 1rem subtracted is `me-2` plus the gap that shows the shell.
+
+					     No shadow in dark. The dark --jup-shadow (0 8px 28px at 0.4) spills
+					     into the 8px gaps and darkens the shell there, but the sidebar is
+					     fixed above it and keeps plain --jup-paper, so the sidebar reads as a
+					     lighter slab cut off from the frame by a seam. On near-black a shadow
+					     lifts nothing anyway; the border and the surface step carry the edge. -->
 					<main
 						id="main-content"
-						class="relative z-10 flex flex-col flex-1 min-w-0 my-2 me-2 h-[calc(100dvh-1rem)] overflow-hidden rounded-xl border border-[var(--jup-line)] bg-[var(--jup-surface)] shadow-[var(--jup-shadow)] {$showSidebar
+						class="relative z-10 flex flex-col flex-1 min-w-0 my-2 me-2 h-[calc(100dvh-1rem)] overflow-hidden rounded-xl border border-[var(--jup-line)] bg-[var(--jup-surface)] shadow-[var(--jup-shadow)] dark:shadow-none {$showSidebar
 							? 'md:max-w-[calc(100%-var(--sidebar-width)-1rem)]'
 							: 'max-w-[calc(100%-1rem)]'}"
 					>
