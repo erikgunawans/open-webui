@@ -84,6 +84,7 @@
 	import EditPencilIcon from './Sidebar/icons/EditPencil.svelte';
 	import NotesIcon from './Sidebar/icons/Notes.svelte';
 	import SearchIcon from './Sidebar/icons/Search.svelte';
+	import GateLadderIcon from './Sidebar/icons/GateLadder.svelte';
 	import Sidebar from '../icons/Sidebar.svelte';
 	import WorkspaceIcon from './Sidebar/icons/Workspace.svelte';
 	import HotkeyHint from '../common/HotkeyHint.svelte';
@@ -217,6 +218,12 @@
 	};
 
 	$: activeMenuItemId = getActiveMenuItemId($page.url.pathname);
+
+	// JUP: the Portfolio entry. Shown only to the operating layer (the admin role), because for
+	// anyone else the page is a 403 — a link that leads only to a refusal is not an entry point.
+	$: showPortfolio = $user?.role === 'admin';
+	$: portfolioActive =
+		$page.url.pathname === '/portfolio' || $page.url.pathname.startsWith('/portfolio/');
 
 	const initPinnedMenuSortable = () => {
 		const el = document.getElementById('pinned-menu-items-list');
@@ -1025,6 +1032,34 @@
 						</Tooltip>
 					</div>
 
+					{#if showPortfolio}
+						<div>
+							<Tooltip content={$i18n.t('Portfolio')} placement="right">
+								<a
+									class=" cursor-pointer flex size-8 items-center justify-center transition group"
+									href="/portfolio"
+									on:click={async (e) => {
+										e.stopImmediatePropagation();
+										e.preventDefault();
+										goto('/portfolio');
+										itemClickHandler();
+									}}
+									draggable="false"
+									aria-label={$i18n.t('Portfolio')}
+									aria-current={portfolioActive ? 'page' : undefined}
+								>
+									<div
+										class="self-center flex size-[calc(30px*var(--app-text-scale,1))] items-center justify-center rounded-lg transition {portfolioActive
+											? 'bg-black/[0.035] dark:bg-white/[0.045]'
+											: 'group-hover:bg-gray-100 dark:group-hover:bg-gray-900'}"
+									>
+										<GateLadderIcon className="size-4" strokeWidth="1.5" />
+									</div>
+								</a>
+							</Tooltip>
+						</div>
+					{/if}
+
 					{#each pinnedItems as itemId (itemId)}
 						{@const meta = getMenuItemMeta(itemId)}
 						{#if meta && isMenuItemVisible(itemId)}
@@ -1249,6 +1284,32 @@
 								<HotkeyHint name="search" className=" hover-reveal " />
 							</button>
 						</div>
+
+						{#if showPortfolio}
+							<div class="px-1 flex justify-center text-gray-700 dark:text-gray-300">
+								<a
+									id="sidebar-portfolio-button"
+									class="grow flex items-center space-x-2 rounded-xl px-2 py-1.5 transition outline-none {portfolioActive
+										? 'bg-black/[0.035] dark:bg-white/[0.045]'
+										: 'hover:bg-gray-100 dark:hover:bg-gray-900'}"
+									href="/portfolio"
+									on:click={itemClickHandler}
+									draggable="false"
+									aria-label={$i18n.t('Portfolio')}
+									aria-current={portfolioActive ? 'page' : undefined}
+								>
+									<div class="self-center flex size-4 shrink-0 items-center justify-center">
+										<GateLadderIcon className="size-4" strokeWidth="1.5" />
+									</div>
+
+									<div class="flex flex-1 self-center translate-y-[0.5px]">
+										<div class=" self-center text-[0.8125rem] leading-5">
+											{$i18n.t('Portfolio')}
+										</div>
+									</div>
+								</a>
+							</div>
+						{/if}
 
 						<div id="pinned-menu-items-list">
 							{#each pinnedItems as itemId (itemId)}

@@ -52,6 +52,9 @@ JUP_ARTEFACT_ROOT: "/srv/jup"
 ENABLE_SIGNUP: "False"
 DEFAULT_USER_ROLE: "pending"
 ENV: "prod"
+# Indonesian first: a browser with no saved language opens in Bahasa Indonesia. One already
+# holding a locale in localStorage keeps it; Settings > General switches it.
+DEFAULT_LOCALE: "id-ID"
 # ADR-0012, the IAP login. This header is set by IAP itself and cannot be spoofed from outside,
 # because --ingress=internal-and-cloud-load-balancing above means there is no path to the service
 # that does not pass through the load balancer. LOOSENING THAT INGRESS MAKES THIS HEADER A LOGIN

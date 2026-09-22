@@ -25,3 +25,5 @@ services:
       # artefact resolution, so a rename in the JUP tree is a loud refusal rather than a
       # dashboard quietly citing documents nobody can open.
       - 'JUP_ARTEFACT_ROOT=/srv/jup'
+      # Indonesian first: a browser with no saved language opens in Bahasa Indonesia.
+      - 'DEFAULT_LOCALE=id-ID'

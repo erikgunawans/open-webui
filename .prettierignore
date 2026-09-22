@@ -335,6 +335,8 @@ cypress/screenshots
 # that still reports green.
 .planning/
 .design-sync/
+# Impeccable writes its critique snapshots here; tool output, like /wrap's files, is not formatted.
+.impeccable/
 PROGRESS.md
 docs/adr/
 docs/agents/

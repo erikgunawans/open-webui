@@ -24,13 +24,67 @@
 	// The Engagement Stage ladder (ADR-0008), lowest rung first. Rendering the whole ladder
 	// rather than only the rung reached is what makes a stage read as a position on a scale
 	// — and what makes `No contact` legible as a recorded position rather than an absence.
-	const STAGES = [
-		{ slug: 'no-contact', label: 'No contact' },
-		{ slug: 'contacted', label: 'Contacted' },
-		{ slug: 'in-discussion', label: 'In discussion' },
-		{ slug: 'written-intent', label: 'Written intent' },
-		{ slug: 'executed', label: 'Executed' }
-	];
+	const STAGES = ['no-contact', 'contacted', 'in-discussion', 'written-intent', 'executed'];
+
+	// The projection (backend/jup/portfolio.py) writes its labels and sentences in English and
+	// stays the single source of what they say. They are translated here, at render time, keyed
+	// by the slug or tier code the payload already carries, or by the English sentence itself.
+	// Every key is written out as a literal translate call so `i18n:parse` keeps it; a sentence the backend
+	// rewords misses the map and renders in its English, never as a stale translation.
+	// tests/test_portfolio_i18n.py fails when that happens.
+	$: stageLabels = {
+		'no-contact': $i18n.t('No contact'),
+		contacted: $i18n.t('Contacted'),
+		'in-discussion': $i18n.t('In discussion'),
+		'written-intent': $i18n.t('Written intent'),
+		executed: $i18n.t('Executed')
+	} as Record<string, string>;
+
+	$: tierLabels = {
+		FAKTA: $i18n.t('Tier 1 · FAKTA'),
+		POTENSI: $i18n.t('Tier 2 · POTENSI'),
+		ILUSTRATIF: $i18n.t('Tier 3 · ILUSTRATIF')
+	} as Record<string, string>;
+
+	$: tierMeanings = {
+		FAKTA: $i18n.t('Feasibility economics — NPV, IRR and payback from the business plan.'),
+		POTENSI: $i18n.t('Top-line revenue potential. Never margin: B-to-G prices are government-set.'),
+		ILUSTRATIF: $i18n.t('Order-of-magnitude sizing from capacity targets and unit costs.')
+	} as Record<string, string>;
+
+	$: serverText = {
+		'This shows what was assessed, not whether the assessment was right. It cannot detect a record that is well-formed and wrong.':
+			$i18n.t(
+				'This shows what was assessed, not whether the assessment was right. It cannot detect a record that is well-formed and wrong.'
+			),
+		'A project with no assessment has not been evaluated. It has not passed, and it has not failed.':
+			$i18n.t(
+				'A project with no assessment has not been evaluated. It has not passed, and it has not failed.'
+			),
+		'Current Gate says a gate was passed on the day it was signed. It is not a statement about the project today.':
+			$i18n.t(
+				'Current Gate says a gate was passed on the day it was signed. It is not a statement about the project today.'
+			),
+		'Figures carry the basis they rest on and are never combined across bases (D11). Nothing here totals a portfolio.':
+			$i18n.t(
+				'Figures carry the basis they rest on and are never combined across bases (D11). Nothing here totals a portfolio.'
+			),
+		'An engagement sits on the rung its artefact evidences. This states where it stands — never whether it will close (ADR-0009).':
+			$i18n.t(
+				'An engagement sits on the rung its artefact evidences. This states where it stands — never whether it will close (ADR-0009).'
+			),
+		"A rung records a document, not a counterparty's intent. Judgement about intent stays with the Director and outside this system.":
+			$i18n.t(
+				"A rung records a document, not a counterparty's intent. Judgement about intent stays with the Director and outside this system."
+			),
+		'No records directory is configured, so no projects were read.': $i18n.t(
+			'No records directory is configured, so no projects were read.'
+		),
+		'Gate state is restricted to the operating layer. This account is signed in but is not a member of it.':
+			$i18n.t(
+				'Gate state is restricted to the operating layer. This account is signed in but is not a member of it.'
+			)
+	} as Record<string, string>;
 
 	let loaded = false;
 	let portfolio: Portfolio | null = null;
@@ -52,6 +106,11 @@
 	$: engagementsById = new Map((portfolio?.engagements ?? []).map((item) => [item.id, item]));
 
 	const engagementOf = (id: string): Engagement | undefined => engagementsById.get(id);
+
+	// The rung in the reader's language. `labels` is passed in rather than read from scope so the
+	// template re-renders when the language changes.
+	const stageOf = (engagement: Engagement | undefined, labels: Record<string, string>) =>
+		engagement ? (labels[engagement.stage] ?? engagement.stage_label) : undefined;
 
 	// What the record cites the requirement against — an artefact path or an Engagement id. The
 	// parser has already refused any item carrying neither, so there is no empty case to render.
@@ -108,7 +167,7 @@
 			{:else if accessDenied}
 				<div class="jup-notice">
 					<p class="font-medium">{$i18n.t('Gate state is restricted to the operating layer')}</p>
-					<p class="mt-1 text-sm">{accessDenied}</p>
+					<p class="mt-1 text-sm">{serverText[accessDenied] ?? accessDenied}</p>
 				</div>
 			{:else if loadError}
 				<div class="jup-notice jup-notice-refused">
@@ -118,7 +177,9 @@
 			{:else if portfolio?.unavailable_reason}
 				<div class="jup-notice">
 					<p class="font-medium">{$i18n.t('No records available')}</p>
-					<p class="mt-1 text-sm">{portfolio.unavailable_reason}</p>
+					<p class="mt-1 text-sm">
+						{serverText[portfolio.unavailable_reason] ?? portfolio.unavailable_reason}
+					</p>
 				</div>
 			{:else if (portfolio?.projects ?? []).length === 0}
 				<div class="jup-notice">
@@ -168,7 +229,7 @@
 													<!-- The resolved citation: whose reply this is waiting for, and the rung
 													     they are actually on — never a guess at whether they will say yes. -->
 													<span class="jup-meta text-xs">
-														{held?.counterparty.join(', ')}&nbsp;·&nbsp;{held?.stage_label}
+														{held?.counterparty.join(', ')}&nbsp;·&nbsp;{stageOf(held, stageLabels)}
 													</span>
 												{:else}
 													<span class="jup-meta text-xs">
@@ -247,9 +308,10 @@
 														: $i18n.t('Outstanding, waived')}:
 													{#each assessment.awaiting_engagements as id, index (id)}{index > 0
 															? ', '
-															: ''}{engagementOf(id)?.counterparty.join(', ') ??
-															id}&nbsp;({engagementOf(id)?.stage_label ??
-															$i18n.t('unresolved')}){/each}
+															: ''}{engagementOf(id)?.counterparty.join(', ') ?? id}&nbsp;({stageOf(
+															engagementOf(id),
+															stageLabels
+														) ?? $i18n.t('unresolved')}){/each}
 												</p>
 											{/if}
 										</li>
@@ -267,8 +329,8 @@
 								<div class="jup-figures">
 									{#each project.figures_by_tier as group (group.tier)}
 										<section class="jup-tier">
-											<p class="jup-tier-label">{group.label}</p>
-											<p class="jup-tier-meaning">{group.meaning}</p>
+											<p class="jup-tier-label">{tierLabels[group.tier] ?? group.label}</p>
+											<p class="jup-tier-meaning">{tierMeanings[group.tier] ?? group.meaning}</p>
 											<ul class="jup-figure-list">
 												{#each group.figures as figure (figure.label)}
 													<li class="jup-figure">
@@ -298,7 +360,7 @@
 							<p class="jup-non-coverage-label">{$i18n.t('What this view does not prove')}</p>
 							<ul class="jup-non-coverage-list">
 								{#each portfolio?.engagement_non_coverage ?? [] as statement (statement)}
-									<li>{statement}</li>
+									<li>{serverText[statement] ?? statement}</li>
 								{/each}
 							</ul>
 						</aside>
@@ -315,19 +377,21 @@
 												{engagement.id}{#if engagement.pillar}&nbsp;·&nbsp;{engagement.pillar}{/if}
 											</p>
 										</div>
-										<span class="jup-pill jup-pill-stage">{engagement.stage_label}</span>
+										<span class="jup-pill jup-pill-stage"
+											>{stageLabels[engagement.stage] ?? engagement.stage_label}</span
+										>
 									</div>
 
 									<p class="jup-purpose mt-2 text-sm">{engagement.purpose}</p>
 
 									<ol class="jup-ladder" aria-label={$i18n.t('Engagement stage ladder')}>
-										{#each STAGES as stage (stage.slug)}
+										{#each STAGES as stage (stage)}
 											<li
 												class="jup-rung"
-												class:jup-rung-held={stage.slug === engagement.stage}
-												title={stage.label}
+												class:jup-rung-held={stage === engagement.stage}
+												title={stageLabels[stage]}
 											>
-												{stage.label}
+												{stageLabels[stage]}
 											</li>
 										{/each}
 									</ol>
@@ -351,7 +415,7 @@
 					<p class="jup-non-coverage-label">{$i18n.t('What this view does not prove')}</p>
 					<ul class="jup-non-coverage-list">
 						{#each portfolio?.non_coverage ?? [] as statement (statement)}
-							<li>{statement}</li>
+							<li>{serverText[statement] ?? statement}</li>
 						{/each}
 					</ul>
 				</aside>
