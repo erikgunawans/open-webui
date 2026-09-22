@@ -546,7 +546,7 @@
 
 	<!-- Time ago indicator -->
 	{#if (updatedAt ?? createdAt) && !showInlineActions && !($mobile && !readonly)}
-		<div class="shrink-0 self-center text-[0.625rem] text-gray-400 dark:text-gray-500 pl-2">
+		<div class="shrink-0 self-center text-xs text-gray-600 dark:text-gray-500 pl-2">
 			{formatTimeAgo((updatedAt ?? createdAt) as number)}
 		</div>
 	{/if}
@@ -694,7 +694,7 @@
 				>
 					<Tooltip content={$i18n.t('Generate')}>
 						<button
-							class="flex size-5 items-center justify-center self-center dark:hover:text-white transition disabled:cursor-not-allowed"
+							class="flex size-6 items-center justify-center self-center dark:hover:text-white transition disabled:cursor-not-allowed"
 							id="generate-title-button"
 							disabled={generating}
 							on:click={() => {
@@ -709,7 +709,7 @@
 				<div class=" flex items-center self-center space-x-1.5">
 					<Tooltip content={$i18n.t('Archive')} className="flex items-center">
 						<button
-							class="flex size-5 items-center justify-center self-center dark:hover:text-white transition disabled:cursor-not-allowed"
+							class="flex size-6 items-center justify-center self-center dark:hover:text-white transition disabled:cursor-not-allowed"
 							disabled={archiving}
 							on:click={() => {
 								archiveChatHandler(id);
@@ -769,7 +769,7 @@
 						<button
 							type="button"
 							aria-label="Chat Menu"
-							class="flex size-5 items-center justify-center self-center dark:hover:text-white transition m-0"
+							class="flex size-6 items-center justify-center self-center dark:hover:text-white transition m-0"
 						>
 							<MoreHorizontalIcon className="size-3.5" strokeWidth="2" />
 						</button>
