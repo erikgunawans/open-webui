@@ -1148,6 +1148,7 @@
 	"Every {{count}} hours_other": "Hvørjar {{count}} tímar",
 	"Every {{count}} minutes_one": "Hvønn {{count}} minutt",
 	"Every {{count}} minutes_other": "Hvørjar {{count}} minuttir",
+	"Every answer here is bound by the JUP operating contract. A request without it is refused, and every request is logged.": "",
 	"Every minute": "Hvønn minutt",
 	"Evidence required": "",
 	"Evidenced by": "",

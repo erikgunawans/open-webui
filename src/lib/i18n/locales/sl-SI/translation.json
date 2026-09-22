@@ -1168,6 +1168,7 @@
 	"Every {{count}} minutes_two": "Vsaki {{count}} minuti",
 	"Every {{count}} minutes_few": "Vsake {{count}} minute",
 	"Every {{count}} minutes_other": "Vsakih {{count}} minut",
+	"Every answer here is bound by the JUP operating contract. A request without it is refused, and every request is logged.": "",
 	"Every minute": "Vsako minuto",
 	"Evidence required": "",
 	"Evidenced by": "",

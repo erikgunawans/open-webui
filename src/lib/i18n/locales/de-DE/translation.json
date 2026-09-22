@@ -1148,6 +1148,7 @@
 	"Every {{count}} hours_other": "Alle {{count}} Stunden",
 	"Every {{count}} minutes_one": "Jede Minute",
 	"Every {{count}} minutes_other": "Alle {{count}} Minuten",
+	"Every answer here is bound by the JUP operating contract. A request without it is refused, and every request is logged.": "",
 	"Every minute": "Jede Minute",
 	"Evidence required": "",
 	"Evidenced by": "",

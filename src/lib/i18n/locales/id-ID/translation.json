@@ -1148,6 +1148,7 @@
 	"Every {{count}} hours_other": "",
 	"Every {{count}} minutes_one": "Setiap {{count}} menit",
 	"Every {{count}} minutes_other": "",
+	"Every answer here is bound by the JUP operating contract. A request without it is refused, and every request is logged.": "Setiap jawaban di sini terikat kontrak operasional JUP. Permintaan tanpa kontrak itu ditolak, dan setiap permintaan dicatat.",
 	"Every minute": "",
 	"Evidence required": "Bukti yang disyaratkan",
 	"Evidenced by": "Dibuktikan oleh",

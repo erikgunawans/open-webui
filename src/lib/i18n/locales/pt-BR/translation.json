@@ -1158,6 +1158,7 @@
 	"Every {{count}} minutes_one": "A cada {{count}} minuto",
 	"Every {{count}} minutes_many": "A cada {{count}} minutos",
 	"Every {{count}} minutes_other": "A cada {{count}} minutos",
+	"Every answer here is bound by the JUP operating contract. A request without it is refused, and every request is logged.": "",
 	"Every minute": "A cada minuto",
 	"Evidence required": "",
 	"Evidenced by": "",

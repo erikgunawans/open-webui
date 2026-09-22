@@ -1148,6 +1148,7 @@
 	"Every {{count}} hours_other": "每 {{count}} 小时",
 	"Every {{count}} minutes_one": "每 {{count}} 分钟",
 	"Every {{count}} minutes_other": "每 {{count}} 分钟",
+	"Every answer here is bound by the JUP operating contract. A request without it is refused, and every request is logged.": "",
 	"Every minute": "每分钟",
 	"Evidence required": "",
 	"Evidenced by": "",

@@ -164,21 +164,20 @@
 						class=" text-2xl @sm:text-2xl line-clamp-1 flex items-center"
 						in:fade={{ duration: 100 }}
 					>
-						{#if models[selectedModelIdx]?.name}
-							<Tooltip
-								content={models[selectedModelIdx]?.name}
-								placement="top"
-								className=" flex items-center "
-							>
-								<span class="line-clamp-1">
-									{models[selectedModelIdx]?.name}
-								</span>
-							</Tooltip>
-						{:else}
-							{$i18n.t('Hello, {{name}}', { name: $user?.name })}
-						{/if}
+						<!-- JUP: a greeting, not the model slug. The model is already named in the
+						     selector above, and a provider id is not something to be welcomed by. -->
+						{$i18n.t('Hello, {{name}}', { name: $user?.name })}
 					</div>
 				</div>
+
+				<!-- JUP: the one thing a new chat should say before anything is typed. Worded to
+				     claim exactly what ADR-0002 enforces: the contract is attached to every governed
+				     turn, a turn without it is refused, and every turn is audited. -->
+				<p class="mt-2 px-5 max-w-xl text-sm font-normal text-gray-600 dark:text-gray-400">
+					{$i18n.t(
+						'Every answer here is bound by the JUP operating contract. A request without it is refused, and every request is logged.'
+					)}
+				</p>
 
 				<div class="flex mt-1 mb-2">
 					<div in:fade={{ duration: 100, delay: 50 }}>

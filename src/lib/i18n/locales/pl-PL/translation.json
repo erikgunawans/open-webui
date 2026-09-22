@@ -1168,6 +1168,7 @@
 	"Every {{count}} minutes_few": "Co {{count}} minuty",
 	"Every {{count}} minutes_many": "Co {{count}} minut",
 	"Every {{count}} minutes_other": "Co {{count}} minut",
+	"Every answer here is bound by the JUP operating contract. A request without it is refused, and every request is logged.": "",
 	"Every minute": "Co minutę",
 	"Evidence required": "",
 	"Evidenced by": "",
