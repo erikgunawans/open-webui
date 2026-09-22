@@ -551,14 +551,14 @@
 					     because the panel is now the thing that sits beside the sidebar.
 					     The 1rem subtracted is `me-2` plus the gap that shows the shell.
 
-					     Shadowless, with a 12px radius. The GSM keeps structure at radius 0; Erik
-					     chose 12px for this one panel on 2026-09-22, as the single deliberate
+					     Shadowless, with a 14px radius. The GSM keeps structure at radius 0; Erik
+					     chose 14px for this one panel on 2026-09-22, as the single deliberate
 					     exception. The hairline and the surface step carry the edge.
 					     A shadow here also spilled into the 8px gaps and darkened the shell around the panel but
 					     not under the fixed sidebar, cutting the sidebar off from the frame. -->
 					<main
 						id="main-content"
-						class="relative z-10 flex flex-col flex-1 min-w-0 my-2 me-2 h-[calc(100dvh-1rem)] overflow-hidden rounded-[12px] border border-[var(--jup-line)] bg-[var(--jup-surface)] {$showSidebar
+						class="relative z-10 flex flex-col flex-1 min-w-0 my-2 me-2 h-[calc(100dvh-1rem)] overflow-hidden rounded-[14px] border border-[var(--jup-line)] bg-[var(--jup-surface)] {$showSidebar
 							? 'md:max-w-[calc(100%-var(--sidebar-width)-1rem)]'
 							: 'max-w-[calc(100%-1rem)]'}"
 					>
