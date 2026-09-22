@@ -5,36 +5,29 @@
 
 /*
   JUP identity, applied at the token layer so the whole product inherits it
-  without a single component being edited. Canonical source and the reasoning
-  behind each value: `src/jup-tokens.css`.
+  without a single component being edited. Source and the reasoning behind each
+  value: `src/jup-tokens.css` (Graphic Standard Manual 2023, D18).
 
   ── Why the gray ramp is re-tinted rather than re-pointed ───────────────────
-  The instinct is to map these steps onto canonical surface names — gray-200
-  to --jup-line, gray-850 to --jup-surface. That breaks the product. This ramp
-  is overwhelmingly TEXT, not surfaces: gray-500 has 1078 text uses out of
-  1095, gray-400 has 866 of 899, and most steps are used in BOTH modes
-  (gray-300 is 324 light / 293 dark). Re-pointing a step to a canonical
-  surface value moves its lightness, and every `text-gray-400 dark:text-…`
-  pair that 663 components were built around silently loses contrast.
+  The instinct is to map these steps onto token surface names — gray-200 to
+  --jup-line, gray-850 to --jup-surface. That breaks the product. This ramp is
+  overwhelmingly TEXT, not surfaces: gray-500 has 1078 text uses out of 1095,
+  gray-400 has 866 of 899, and most steps are used in BOTH modes (gray-300 is
+  324 light / 293 dark). Re-pointing a step moves its lightness, and every
+  `text-gray-400 dark:text-…` pair that 663 components were built around
+  silently loses contrast.
 
-  So each step keeps its EXACT lightness and gains only JUP's green cast:
-  hue drifting 134°→158° light-to-dark and chroma peaking ~0.030 mid-ramp,
-  both measured off the canonical neutrals (--jup-paper is L .9725 C .0073
-  H 132.4; --jup-ink is L .2284 C .0227 H 165.8; --jup-line is L .8988
-  C .0194 H 140.5).
-
-  Every step's L is identical to the vendor value it replaces. Adding chroma at
-  a fixed L still nudges relative luminance, so the WCAG ratios were measured
-  rather than assumed: across all 12 steps against both white and the dark
-  surface, the largest shift is 0.17 and most are under 0.10. The hierarchy the
-  components were built on survives; the dead gray becomes JUP's green-cast
-  neutral.
+  So each step keeps its EXACT lightness and takes only the GSM neutrals' cast:
+  hue ~248 (blue, off Rich Black #011627), chroma rising as the step darkens,
+  interpolated by L off the manual's own neutral ramp (neutral-100 L .923
+  C .005 → neutral-500 L .502 C .038 → neutral-800 L .241 C .048). The dark
+  steps therefore land on blue-black, the GSM's ink, instead of green-black.
 */
 @theme {
 	/* `--app-font-family` is the user's own override from the Interface
 	   settings panel and must keep winning; only the fallback becomes JUP. */
 	--font-sans:
-		var(--app-font-family, 'IBM Plex Sans'), -apple-system, BlinkMacSystemFont, 'Segoe UI',
+		var(--app-font-family, 'Space Grotesk'), -apple-system, BlinkMacSystemFont, 'Segoe UI',
 		system-ui, 'Helvetica Neue', Arial, 'Inter', 'Vazirmatn', ui-sans-serif, Roboto, Ubuntu,
 		Cantarell, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
 		'Noto Color Emoji';
@@ -43,57 +36,65 @@
 	--font-display: var(--jup-font-display);
 	--font-mono: var(--jup-font-mono);
 
-	/* Neutral ramp — lightness preserved exactly, JUP green cast added. */
-	--color-gray-50: oklch(0.98 0.006 134);
-	--color-gray-100: oklch(0.94 0.013 137);
-	--color-gray-200: oklch(0.92 0.017 139);
-	--color-gray-300: oklch(0.85 0.021 143);
-	--color-gray-400: oklch(0.77 0.023 148);
-	--color-gray-500: oklch(0.69 0.025 152);
-	--color-gray-600: oklch(0.51 0.029 156);
-	--color-gray-700: oklch(0.42 0.03 158);
-	--color-gray-800: oklch(0.32 0.031 156);
-	--color-gray-850: oklch(0.27 0.026 157);
-	--color-gray-900: oklch(0.2 0.02 158);
-	--color-gray-950: oklch(0.16 0.013 156);
+	/* Neutral ramp — lightness preserved exactly, GSM blue cast added. */
+	--color-gray-50: oklch(0.98 0.002 248);
+	--color-gray-100: oklch(0.94 0.004 248);
+	--color-gray-200: oklch(0.92 0.005 248);
+	--color-gray-300: oklch(0.85 0.012 248);
+	--color-gray-400: oklch(0.77 0.018 248);
+	--color-gray-500: oklch(0.69 0.023 248);
+	--color-gray-600: oklch(0.51 0.037 248);
+	--color-gray-700: oklch(0.42 0.041 248);
+	--color-gray-800: oklch(0.32 0.047 248);
+	--color-gray-850: oklch(0.27 0.048 248);
+	--color-gray-900: oklch(0.2 0.045 246);
+	--color-gray-950: oklch(0.16 0.04 246);
 
-	/* Brand green. `brand` is the fill; `brand-text` is the one that is legible
-	   as a word — #079F4E on paper is 3.20:1 and fails AA. */
-	--color-brand-50: oklch(0.96 0.025 151);
-	--color-brand-100: oklch(0.92 0.05 151);
-	--color-brand-200: oklch(0.86 0.08 151);
-	--color-brand-300: oklch(0.78 0.115 151);
-	--color-brand-400: oklch(0.7 0.14 151);
-	--color-brand-500: #079f4e;
-	--color-brand-600: #026e35;
-	--color-brand-700: oklch(0.4 0.105 152);
-	--color-brand-800: #01411f;
-	--color-brand-900: oklch(0.26 0.065 152);
+	/* Pigment Green, the GSM ramp verbatim (500 is the identity colour). As
+	   text use 700 in light: 600 is 3.93:1 on the page and fails AA. */
+	--color-brand-50: #e6f6ee;
+	--color-brand-100: #c0e9d4;
+	--color-brand-200: #86d6ae;
+	--color-brand-300: #4ac287;
+	--color-brand-400: #16b168;
+	--color-brand-500: #00a550;
+	--color-brand-600: #008a43;
+	--color-brand-700: #006c34;
+	--color-brand-800: #004f26;
+	--color-brand-900: #00351a;
 
-	/* Institutional blue. The app already uses blue-400/500 as its selection and
-	   focus border pair (80 and 82 uses), and those two land exactly on the
-	   canonical light/dark blue — so the retint needs no component change. */
-	--color-blue-300: oklch(0.8 0.09 245);
-	--color-blue-400: #5aa6e0;
-	--color-blue-500: #1e6fb0;
-	--color-blue-600: oklch(0.45 0.13 248);
-	--color-blue-700: #123a5a;
+	/* Polynesian Blue. The app uses blue-400/500 as its dark/light selection and
+	   focus border pair (80 and 82 uses), so 500 is the identity blue for light
+	   and 400 is the ramp's 300 step, which clears 3:1 as a border on Rich Black
+	   (4.46:1). Steps are the GSM ramp; only 400 is shifted one step lighter. */
+	--color-blue-300: #85aad2;
+	--color-blue-400: #4a80bc;
+	--color-blue-500: #004999;
+	--color-blue-600: #003e82;
+	--color-blue-700: #003066;
 
-	/* Geometry — JUP 2.0 is rounded: panels 16, controls 10. `rounded-lg` is the
-	   workhorse control radius here (480 uses) and `rounded-xl` the panel (365). */
-	--radius-sm: 6px;
-	--radius-md: 8px;
+	/* Geometry — the GSM is square-cut: structure is 0, controls 4, modals 10
+	   (tokens/radius.css). Here `rounded-lg` is the workhorse control radius
+	   (485 uses) and `rounded-xl` mostly menus and inputs (402), so both are
+	   controls. Structural surfaces opt out explicitly with `rounded-none`.
+	   `rounded-full` is untouched: pills and avatars keep it. */
+	--radius-sm: 2px;
+	--radius-md: 4px;
 	--radius-lg: var(--jup-radius-sm);
-	--radius-xl: var(--jup-radius);
-	--radius-2xl: 20px;
-	--radius-3xl: 24px;
+	--radius-xl: var(--jup-radius-sm);
+	--radius-2xl: 6px;
+	--radius-3xl: 6px;
+	--radius-4xl: var(--jup-radius-modal);
 
-	/* Elevation — real, and green-cast to match the surfaces it sits on. */
-	--shadow-xs: 0 1px 1px rgba(15, 45, 25, 0.04);
-	--shadow-sm: 0 1px 2px rgba(15, 45, 25, 0.05);
+	/* Elevation — almost absent (GSM 4.6). If a JUP page looks like it has drop
+	   shadows, they are too strong; only the largest step, for modals and
+	   toasts, reads as a shadow at all. */
+	--shadow-xs: 0 1px 1px rgba(1, 22, 39, 0.04);
+	--shadow-sm: var(--jup-shadow);
 	--shadow-md: var(--jup-shadow);
-	--shadow-lg: var(--jup-shadow);
+	--shadow-lg: var(--jup-shadow-md);
 	--shadow-xl: var(--jup-shadow-lg);
+	--shadow-2xl: var(--jup-shadow-lg);
 }
 
 /*

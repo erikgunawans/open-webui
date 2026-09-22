@@ -15,8 +15,6 @@
 	} from '$lib/apis/portfolio';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 
-	import '$lib/styles/jup-brand.css';
-
 	const i18n = getContext<Writable<i18nType>>('i18n');
 
 	// The fail-closed stage gates, in ladder order. Rendering the whole ladder rather than only the
@@ -364,7 +362,7 @@
 
 <style>
 	/* Colour comes from the ported JUP tokens. Accents are fills, so every word uses a `-text`
-	 * variant — see src/lib/styles/jup-brand.css for the measured ratios. */
+	 * variant — see src/jup-tokens.css for the measured ratios. */
 	.jup-portfolio {
 		background: var(--jup-paper);
 	}
@@ -543,7 +541,7 @@
 
 	.jup-requirement {
 		color: var(--jup-ink);
-		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-family: var(--jup-font-mono);
 		font-size: 0.76rem;
 	}
 

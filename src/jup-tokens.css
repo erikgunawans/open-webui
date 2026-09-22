@@ -1,159 +1,133 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   JUP identity — VENDORED FROM THE CANONICAL LAYER. Do not hand-edit values.
+   JUP identity: the Graphic Standard Manual 2023 (GSM), via the `jup-design`
+   skill. Erik reversed the 2026-09-18 choice of ~/jup/brand on 2026-09-22 and
+   made the GSM the one JUP brand everywhere (~/jup DECISIONS D18).
 
-   Source of truth: ~/jup/brand/tokens/colors.css — the layer Erik ratified
-   2026-09-18 over the Graphic Standard Manual 2023 palette (#00A550 / Space
-   Grotesk). The `jup-design` skill still ships that rejected GSM palette; do
-   not copy tokens out of it.
+   The four identity colours are fixed by the manual (p.23) and must not be
+   altered: Pigment Green #00A550, Polynesian Blue #004999, Rich Black
+   #011627, Anti-flash White #F0F1F1. Everything else is a ramp step from the
+   skill's tokens/colors.css, or is derived below and says so.
 
-   Names are the CANONICAL names (--jup-brand, --jup-ink, --jup-paper,
-   --jup-line) so one vocabulary spans this fork, @jup/ui and
-   @jup/design-system. If canonical changes, re-vendor — do not patch.
+   Names stay the ones this app already consumes (--jup-paper, --jup-ink,
+   --jup-line, ...), so the swap is a value change, not a rename across files.
 
-   ── One deliberate adaptation ──────────────────────────────────────────────
-   Canonical expresses dark mode as `@media (prefers-color-scheme: dark)`.
-   This app does not: it toggles `.dark` on <html> and offers an explicit light
-   theme. Honouring the media query here would darken the UI of someone who
-   chose light while their OS is dark, so the dark values hang off `.dark`
-   only. Values are unchanged; only the selector differs.
+   ── Contrast, measured rather than copied ──────────────────────────────────
+   The skill's own table overstates two pairs. Measured:
+     #008A43 (its --jup-text-brand) as text on white  4.45:1  FAILS AA
+                                        on the page    3.93:1  FAILS AA
+     #006C34 (green-700)                on the page    5.81:1  use this
+     Rich Black on Pigment Green   5.67:1 (the skill says 13.8)
+     White on Pigment Green        3.23:1 (button labels >=14px/500 only)
+   So Pigment Green is a FILL, and brand-coloured words use green-700 in
+   light and green-300 in dark (8.17:1 on Rich Black).
 
-   ── Contrast, which the palette does not encode ────────────────────────────
-   The canonical accents are tuned as FILLS and several fail AA as text. The
-   `-text` variants below exist for words and are the ones to reach for:
-
-     --jup-brand      #079F4E as text on paper is 3.20:1 — FAILS AA
-     --jup-brand-text #026E35                      5.92:1 — use this
-
-   Labels on filled surfaces differ per hue: brand and amber want the ink
-   label (white fails at 3.45 and 3.03); blue and red want white. In dark
-   every accent is a pastel on near-black, so accents clear AA as text
-   unmodified and every filled surface wants the dark label — darkening them
-   in dark makes contrast worse.
+   ── Dark is derived, not specified ─────────────────────────────────────────
+   The GSM has no dark mode. It has an inverse scope for dark sections (Rich
+   Black page, neutral-800 cards, white-alpha rules and text), and the dark
+   register below is that scope made solid: each alpha value is flattened over
+   the ground it sits on, so borders and text do not shift with what is behind
+   them. It hangs off `.dark`, not prefers-color-scheme, because this app lets
+   people pick light on a dark OS.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-	/* surfaces — the page is paper, cards are white */
-	--jup-paper: #f4f7f2;
+	/* surfaces: the page is Anti-flash White, cards are white (GSM 4.6) */
+	--jup-paper: #f0f1f1;
 	--jup-surface: #ffffff;
-	--jup-surface-2: #edf2ea;
-	--jup-surface-3: #e3ece1;
+	--jup-surface-2: #e3e6e9; /* neutral-100, sunken */
+	--jup-surface-3: #ced4da; /* neutral-200 */
 
-	/* ink */
-	--jup-ink: #12201a;
-	--jup-ink-soft: #42544a;
-	--jup-ink-faint: #6a7b70;
+	/* ink: Rich Black, never pure black */
+	--jup-ink: #011627; /* 16.20:1 on paper */
+	--jup-ink-soft: #35485c; /* neutral-600, 8.31:1 on paper */
+	--jup-ink-faint: #536679; /* neutral-500, 5.24:1 on paper */
 
-	/* lines */
-	--jup-line: #d7e1d5;
-	--jup-line-soft: #e7eee5;
+	/* rules are hairlines */
+	--jup-line: #ced4da; /* neutral-200, border-default */
+	--jup-line-soft: #e3e6e9; /* neutral-100, border-subtle */
 
-	/* brand — -text is the legible-as-a-word variant */
-	--jup-brand: #079f4e;
-	--jup-brand-deep: #026e35;
-	--jup-brand-dark: #01411f;
-	--jup-brand-text: #026e35;
+	/* brand: Pigment Green is the fill; -text is the one legible as a word */
+	--jup-brand: #00a550;
+	--jup-brand-deep: #008a43; /* green-600, hover */
+	--jup-brand-dark: #006c34; /* green-700, press */
+	--jup-brand-text: #006c34; /* 5.81:1 on paper */
 
-	/* institutional and sector hues */
-	--jup-blue: #1e6fb0;
-	--jup-navy: #123a5a;
-	--jup-orange: #ef7a1a;
-	--jup-amber: #c4890f;
-	--jup-red: #d23a34;
-	--jup-gold: #dca62e;
+	/* the institutional second voice */
+	--jup-blue: #004999;
+	--jup-navy: #003066; /* blue-700 */
 
-	--jup-gas: #1e6fb0;
-	--jup-gas-bg: #e6f0f8;
-	--jup-sun: #eab308;
-	--jup-sun-bg: #fbf3d6;
-	--jup-h2: #8b5cf6;
-	--jup-h2-bg: #f1ebfb;
+	/* state: success and info reuse the identity hues; warning and danger are
+	   the only non-manual colours in the system (skill README, additions) */
+	--jup-up-bg: #e6f6ee;
+	--jup-up-text: #006c34; /* 5.88:1 on up-bg */
+	--jup-down-bg: #fbe9e7;
+	--jup-down-text: #b3261e; /* 5.58:1 on down-bg */
+	--jup-gate-bg: #e6edf5;
+	--jup-gate-text: #004999; /* 7.38:1 on gate-bg */
+	--jup-defer-bg: #fbf0de;
+	--jup-defer-text: #8a5200; /* 5.66:1 on defer-bg */
+	--jup-neu-bg: #e3e6e9;
+	--jup-neu-text: #35485c; /* 7.51:1 on neu-bg */
 
-	/* movement and gates */
-	--jup-up: #079f4e;
-	--jup-down: #d23a34;
-	--jup-gate: #1e6fb0;
-	--jup-defer: #d98218;
-	--jup-neu: #8a9a8e;
-	--jup-up-bg: #e7f4e9;
-	--jup-down-bg: #fbe7e6;
-	--jup-gate-bg: #e6f0f8;
-	--jup-defer-bg: #fbeedd;
-	--jup-neu-bg: #eef2ee;
+	/* labels on filled surfaces */
+	--jup-text-on-brand: #ffffff; /* 3.23:1: button labels >=14px/500 only */
+	--jup-text-on-blue: #ffffff; /* 8.70:1 */
 
-	/* labels on filled surfaces — per hue, not one value */
-	--jup-text-on-brand: #12201a;
-	--jup-text-on-amber: #12201a;
-	--jup-text-on-blue: #ffffff;
-	--jup-text-on-red: #ffffff;
+	/* elevation: flat and print-derived; shadows are a last resort (GSM 4.6) */
+	--jup-shadow: 0 1px 2px rgba(1, 22, 39, 0.06);
+	--jup-shadow-md: 0 2px 8px rgba(1, 22, 39, 0.08);
+	--jup-shadow-lg: 0 10px 30px rgba(1, 22, 39, 0.12);
 
-	/* elevation — JUP 2.0 is elevated, not flat */
-	--jup-shadow: 0 1px 2px rgba(15, 45, 25, 0.05), 0 8px 26px rgba(15, 45, 25, 0.07);
-	--jup-shadow-lg: 0 16px 46px rgba(15, 45, 25, 0.12);
+	/* geometry: square by default, curvature only on things you touch */
+	--jup-radius: 0px; /* structural: panels, cards */
+	--jup-radius-sm: 4px; /* controls */
+	--jup-radius-modal: 10px;
 
-	/* geometry — panels 16, controls 10 */
-	--jup-radius: 16px;
-	--jup-radius-sm: 10px;
-
-	/* type — stacks degrade to the system face until the webfonts are served */
+	/* type: Space Grotesk does all the work; Space Mono only for figures and code */
 	--jup-font-sans:
-		'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, 'Helvetica Neue',
-		Arial, sans-serif;
-	--jup-font-display: 'Fraunces', 'Georgia', serif;
-	--jup-font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-	--jup-measure: 74ch;
+		'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+	--jup-font-display: var(--jup-font-sans);
+	--jup-font-mono: 'Space Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+	--jup-measure: 68ch;
 }
 
 .dark {
-	--jup-paper: #0c120e;
-	--jup-surface: #141e18;
-	--jup-surface-2: #1a261e;
-	--jup-surface-3: #202f25;
+	--jup-paper: #011627; /* Rich Black */
+	--jup-surface: #0b2135; /* neutral-800 */
+	--jup-surface-2: #172c3f; /* white 5% over surface */
+	--jup-surface-3: #1c3348; /* neutral-700 */
 
-	--jup-ink: #e8f0e9;
-	--jup-ink-soft: #a9b8ad;
-	--jup-ink-faint: #7b8b80;
+	--jup-ink: #f0f1f1; /* Anti-flash White, 16.20:1 on paper */
+	--jup-ink-soft: #c2c7cb; /* white 76% over Rich Black, 9.61:1 on surface */
+	--jup-ink-faint: #8f98a0; /* white 56% over Rich Black, 5.59:1 on surface */
 
-	--jup-line: #283a2d;
-	--jup-line-soft: #213027;
+	--jup-line: #3c4d5d; /* white 20% over surface */
+	--jup-line-soft: #283c4d; /* white 12% over surface */
 
-	/* in dark the accents are pastels and clear AA as text unmodified, so
-	   -text collapses onto the accent rather than darkening it */
-	--jup-brand: #23c46e;
-	--jup-brand-deep: #5ddc98;
-	--jup-brand-dark: #01411f;
-	--jup-brand-text: #23c46e;
+	--jup-brand: #00a550; /* the identity colour does not change in dark */
+	--jup-brand-deep: #16b168; /* green-400 */
+	--jup-brand-dark: #008a43;
+	--jup-brand-text: #4ac287; /* green-300, 8.17:1 on paper */
 
-	--jup-blue: #5aa6e0;
-	--jup-navy: #8fc0e8;
-	--jup-orange: #f79a4b;
-	--jup-amber: #e3b24e;
-	--jup-red: #eb6058;
-	--jup-gold: #e9c05c;
+	--jup-blue: #85aad2; /* blue-200, the inverse scope's brand-alt text */
+	--jup-navy: #c0d3e8; /* blue-100 */
 
-	--jup-gas: #5aa6e0;
-	--jup-gas-bg: #152838;
-	--jup-sun: #f4cb44;
-	--jup-sun-bg: #2c2710;
-	--jup-h2: #a98bf0;
-	--jup-h2-bg: #211a33;
+	--jup-up-bg: #093339; /* green 14% over surface */
+	--jup-up-text: #4ac287; /* 6.06:1 */
+	--jup-down-bg: #302230; /* danger 22% over surface */
+	--jup-down-text: #ee8b80; /* 6.18:1 */
+	--jup-gate-bg: #082c51; /* blue 28% over surface */
+	--jup-gate-text: #85aad2; /* 5.83:1 */
+	--jup-defer-bg: #2f2f26; /* warning 28% over surface */
+	--jup-defer-text: #e3b04f; /* 6.81:1 */
+	--jup-neu-bg: #1c3348;
+	--jup-neu-text: #a7b2bc; /* 6.02:1 */
 
-	--jup-up: #23c46e;
-	--jup-down: #eb6058;
-	--jup-gate: #5aa6e0;
-	--jup-defer: #f0994a;
-	--jup-neu: #8fa093;
-	--jup-up-bg: #16301d;
-	--jup-down-bg: #33191a;
-	--jup-gate-bg: #152838;
-	--jup-defer-bg: #31240f;
-	--jup-neu-bg: #1c271f;
+	--jup-text-on-brand: #011627; /* dark label on the fill in dark */
+	--jup-text-on-blue: #ffffff;
 
-	/* every filled surface wants the dark label in dark */
-	--jup-text-on-brand: #0c120e;
-	--jup-text-on-amber: #0c120e;
-	--jup-text-on-blue: #0c120e;
-	--jup-text-on-red: #0c120e;
-
-	--jup-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.4);
-	--jup-shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.5);
+	/* a shadow on near-black lifts nothing and only darkens what is around it */
+	--jup-shadow: none;
+	--jup-shadow-md: none;
+	--jup-shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.45); /* modals and toasts only */
 }

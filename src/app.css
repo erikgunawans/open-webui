@@ -12,6 +12,73 @@
 	font-display: swap;
 }
 
+/* JUP identity typeface (GSM 2023 p.28), self-hosted from the jup-design skill so
+   the app makes no third-party font request. Space Grotesk is variable 300-700;
+   Space Mono (400/700) is for figures and code only. Both are SIL OFL. */
+@font-face {
+	font-family: 'Space Grotesk';
+	font-style: normal;
+	font-weight: 300 700;
+	font-display: swap;
+	src: url('/assets/fonts/space-grotesk-latin.woff2') format('woff2');
+	unicode-range:
+		U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+		U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+	font-family: 'Space Grotesk';
+	font-style: normal;
+	font-weight: 300 700;
+	font-display: swap;
+	src: url('/assets/fonts/space-grotesk-latin-ext.woff2') format('woff2');
+	unicode-range:
+		U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+		U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+		U+A720-A7FF;
+}
+@font-face {
+	font-family: 'Space Mono';
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url('/assets/fonts/space-mono-400-latin.woff2') format('woff2');
+	unicode-range:
+		U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+		U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+	font-family: 'Space Mono';
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url('/assets/fonts/space-mono-400-latin-ext.woff2') format('woff2');
+	unicode-range:
+		U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+		U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+		U+A720-A7FF;
+}
+@font-face {
+	font-family: 'Space Mono';
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: url('/assets/fonts/space-mono-700-latin.woff2') format('woff2');
+	unicode-range:
+		U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+		U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+	font-family: 'Space Mono';
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: url('/assets/fonts/space-mono-700-latin-ext.woff2') format('woff2');
+	unicode-range:
+		U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+		U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+		U+A720-A7FF;
+}
+
 /* --app-text-scale is updated via the UI Scale slider (Interface.svelte) */
 :root {
 	--app-text-scale: 1;
@@ -48,8 +115,8 @@ code {
 }
 
 .editor-selection {
-	/* JUP institutional blue at low alpha, not a generic blue tint. */
-	background: rgba(30, 111, 176, 0.22);
+	/* Polynesian Blue at low alpha, not a generic blue tint. */
+	background: rgba(0, 73, 153, 0.22);
 	border-radius: 2px;
 }
 
@@ -151,7 +218,7 @@ li p {
 
 ::-webkit-scrollbar-thumb {
 	--tw-border-opacity: 1;
-	background-color: rgba(210, 218, 207, 0.6); /* cast-matched to #d7d7d7's lightness */
+	background-color: rgba(210, 216, 221, 0.6); /* cast-matched to #d7d7d7's lightness */
 	border-color: rgba(255, 255, 255, var(--tw-border-opacity));
 	border-radius: 9999px;
 	border-width: 1px;
@@ -159,7 +226,7 @@ li p {
 
 /* Dark theme scrollbar styles */
 .dark ::-webkit-scrollbar-thumb {
-	background-color: rgba(61, 70, 63, 0.6); /* cast-matched to #434343's lightness */
+	background-color: rgba(49, 69, 89, 0.6); /* cast-matched to #434343's lightness */
 	border-color: rgba(0, 0, 0, var(--tw-border-opacity));
 }
 
@@ -212,35 +279,35 @@ select {
 .shimmer {
 	background: linear-gradient(
 		110deg,
-		#acb9a9 0%,
-		#acb9a9 43%,
-		#e5eae3 50%,
-		#acb9a9 57%,
-		#acb9a9 100%
+		#acb6c0 0%,
+		#acb6c0 43%,
+		#e6e9eb 50%,
+		#acb6c0 57%,
+		#acb6c0 100%
 	);
 	background-size: 200% 100%;
 	background-clip: text;
 	-webkit-background-clip: text;
 	-webkit-text-fill-color: transparent;
 	animation: shimmer 1.5s cubic-bezier(0.7, 0, 1, 0.4) infinite;
-	color: #acb9a9;
+	color: #acb6c0;
 }
 
 :global(.dark) .shimmer {
 	background: linear-gradient(
 		110deg,
-		#909f8f 0%,
-		#909f8f 43%,
-		#556257 50%,
-		#909f8f 57%,
-		#909f8f 100%
+		#8f9ca8 0%,
+		#8f9ca8 43%,
+		#4d6073 50%,
+		#8f9ca8 57%,
+		#8f9ca8 100%
 	);
 	background-size: 200% 100%;
 	background-clip: text;
 	-webkit-background-clip: text;
 	-webkit-text-fill-color: transparent;
 	animation: shimmer 1.5s cubic-bezier(0.7, 0, 1, 0.4) infinite;
-	color: #909f8f;
+	color: #8f9ca8;
 }
 
 @keyframes smoothFadeIn {
@@ -763,7 +830,7 @@ body {
    against the VIEWPORT — `h-screen max-h-[100dvh]`, plus a max-width that
    subtracts `--sidebar-width` because it was sitting beside the sidebar itself.
 
-   Now that main is a real, inset, rounded panel, both of those are wrong: a
+   Now that main is a real, inset panel, both of those are wrong: a
    100vh child overflows a panel that is 100vh minus its margins, and the
    max-width subtracts a sidebar the child no longer sits next to, narrowing
    every page by a second sidebar's worth.
