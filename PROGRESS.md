@@ -1,6 +1,45 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-23-brand (latest) — handoff items 1–3 shipped, BangJayaOS lockup, Portfolio pass, holaOS compared
+## Checkpoint 2026-09-23-agentic (latest) — Phase 0–3 of the agentic-capabilities plan shipped
+
+- **Session:** `/next` → item 1 plan (3 read-only code traces) → Erik approved it, with records in the KB and memory kept for staff → Phase 0 governance fixes → 0e permissions baseline → KB loader + "JUP Strategy KB" → 3 JUP skills → 16 holaOS skills ported → `portfolio_status` tool.
+- **Live:** `ent-os-00019-snl` (`47cf5c86e`). Chain today: `00017-nfp` → `00018-6g2` (Phase 0, `e7856e0ef`) → `00019-snl`. Every deploy and DB write was authorized per change. Rollback: `00018-6g2`.
+- **Plan of record:** `.planning/agentic-capabilities-plan.md` (Progress section at the top).
+
+### What shipped (all live-verified via Interceptor and the Cloud Run audit log)
+
+- **Phase 0, governance holes.** These were masked only because non-admins hold no model grant.
+  - Six raw passthroughs are now refused outright by `jup.governance.refuse_passthrough`: `openai /responses` and five Ollama routes. Live they return 403 and write `refused` audit lines.
+  - MoA is removed from `EXEMPT_TASKS`.
+  - `retrieval /process/url` and `/process/web` now enforce `chat.web_upload`.
+  - ADR-0002 is amended, and `VENDOR-PATCHES.md` has a new entry.
+  - deploy.sh: `ENABLE_OLLAMA_API=False` (seed only), no pip install on tool save, no HuggingFace auto-update at boot.
+- **0e DB write:** a deny-by-default `user.permissions`, and `ollama.enable=false`. Before-values are in `.planning/0e-before-values-2026-09-23.json`.
+- **Phase 1, knowledge base.**
+  - `deploy/gcp/sync-kb.ts` uses the vendor's incremental sync through Erik's tab.
+  - "JUP Strategy KB" (`82f7d2f7-…`) holds 12 files from `~/jup` `1e1d4b6`: `kb/*.md` minus CONTEXT.md, plus DECISIONS.md and `records/**`. Grants are empty (admin only).
+  - It is attached to Asisten JUP. Native tool calling retrieves with citations, and no exempt query-generation call is made.
+- **Phase 2, skills.**
+  - `skills/` is the source of truth, and `deploy/gcp/sync-skills.ts` upserts it. It never sends grants on update, so grants set by hand survive.
+  - Three JUP skills: tier discipline, gate walkthrough, and the Indonesian briefing. The briefing was made self-contained after a live test showed a referenced skill is not loaded.
+  - 16 holaOS skills were ported from `a6b58be`. The copy was read-only; the licence texts and a NOTICE with the skip reasons are in the repo. Prettier ignores `skills/`.
+- **Phase 3, tools.**
+  - `jup/portfolio_tool.py` renders the `project_portfolio` projection. It refuses non-admins, since the role now lives in `jup.portfolio.OPERATING_LAYER_ROLE`, and fails closed on a bad record.
+  - `tools/portfolio_status.py` is a single-call wrapper, and a test enforces that.
+  - `sync-tools.ts` created the tool, and it is attached via `meta.toolIds`.
+- **Shared runner:** `deploy/gcp/lib/in-tab.ts`. It stages payloads in 2.5 KB chunks, because `interceptor eval` dies at about 8 KB, and it host-guards and polls every call.
+- **MiMo does native tool calls** (verified).
+- **Tests:** 283 pass.
+
+### Open at checkpoint
+
+- **`portfolio_status` was NOT called in its first live test.** "Proyek mana yang sudah lolos G1?" was answered correctly ("none, SPBG refused on the allocation"), but through the KB tools. The chat recorded no toolIds. It is unknown whether the `?q=` auto-submit sends the model's default toolIds.
+- **The record's Rp 10 miliar reactivation capex is labelled Tier 2 · POTENSI.** D11 defines POTENSI as revenue, so this is a data fix for Erik in `~/jup`.
+- **D19 is not written:** records are in scope for typed chat, and unreleased terms must never be filed in `records/`.
+- **The "JUP Staff" group is unnamed.** The model, KB, skills and tool are all admin-only until then.
+- **The KB is a copy.** Re-run `bun deploy/gcp/sync-kb.ts` after any `~/jup` commit to `kb/`, `records/` or `DECISIONS.md`.
+
+## Checkpoint 2026-09-23-brand — handoff items 1–3 shipped, BangJayaOS lockup, Portfolio pass, holaOS compared
 
 - **Session:** `/next` → onboard (Portfolio entry, admin landing, id-ID) → clarify (greeting, JUP
   suggestions, Arena off) → polish (sidebar AA) → re-critique 23/40 → JUP white-label (ADR-0001) →

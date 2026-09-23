@@ -1,3 +1,81 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-23-agentic)
+
+> Prepended by /wrap 2026-09-23 (checkpoint 2026-09-23-agentic). Supersedes checkpoint 2026-09-23-brand's anchor.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-23-agentic). Then read `.planning/agentic-capabilities-plan.md`.
+
+**Anchor:** `origin/main` at `47cf5c86e` **as this was written**, or one commit ahead at this
+checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-23-agentic`).
+Verify with `git log --oneline 47cf5c86e..origin/main`. Any other commit in that range is a parallel push.
+
+**Current state:**
+- Live on `ent-os-00019-snl` (`47cf5c86e`); rollback is `00018-6g2`.
+- Phases 0–3 of the agentic plan are live:
+  - The passthrough routes are refused, MoA is governed, and URL fetch is gated.
+  - The user permissions default to deny.
+  - "JUP Strategy KB" is attached to Asisten JUP.
+  - 19 skills are loaded: 3 JUP and 16 holaOS.
+  - The `portfolio_status` tool is created and attached.
+- Everything is admin-only (empty grants). 283 tests pass.
+
+**Do next, in order:**
+1. **Make `portfolio_status` actually get called.** Its first live test answered correctly but used the KB tools instead, and the chat recorded no toolIds.
+   - Find out whether the UI sends the model's `meta.toolIds` on a `?q=` auto-submit. Test in a normal typed chat with the tool toggled in the composer.
+   - If it is offered but not chosen, add a line to the model's system prompt or the tier skill: "for gate state, call portfolio_status".
+   - Verify via the chat's `output` function_call names plus an audit line per loop turn.
+2. **Phase 4 (memory):** decided. Keep it on for staff with background review off; there is nothing to build. Write the staff onboarding note that states it.
+3. **Phase 5 (automations):** a weekly portfolio digest to Erik, admin-only. It runs through the governed funnel, and each run creates a chat. It needs Erik's per-change OK.
+4. **Carried from before:**
+   - Critique leftovers: blocker owner, next step and date; English record data under id-ID; the half-translated sidebar; Portfolio sort, filter and deep links.
+   - The stale `deploy/gcp/README.md` claim about the portfolio permission (#10).
+
+**Constraints to honor:**
+- **Deploy and DB-config authorization is per change, never standing.** Record the before-values; the `.planning/*before*.json` files are the pattern.
+- **Admin writes go through Erik's tab.** Use `deploy/gcp/lib/in-tab.ts` or the `sync-kb.ts`, `sync-skills.ts` and `sync-tools.ts` scripts.
+  - `interceptor eval` dies at about 8 KB of source and has a 15 s timeout. Chunk the payload and poll.
+  - Guard every eval with `location.host==='ops.axiara.ai'`.
+- **Stale caches:** after a deploy, `fetch(url,{cache:'reload'})`, then navigate. After toggling `.dark`, wait 600ms.
+- **Browser-driving agents run sequentially.**
+- **`~/holaboss-ai` is READ-ONLY.** The ported skills are in `skills/holaos/`, and `NOTICE.md` records the licence position. If BangJayaOS is ever offered outside JUP, re-check with Holaboss.
+- **`skills/` and `tools/` are the source of truth for the DB rows.** Edit the files, then run the sync script.
+  - Tool files must stay single-call wrappers over a tested `jup.*` module; a test enforces this.
+  - Syncs never send grants on update.
+- **The KB is a copy of `~/jup`.** Re-run `bun deploy/gcp/sync-kb.ts` after any change to `kb/`, `records/` or `DECISIONS.md`. `--check` exits 1 on drift.
+- **Config and governance:**
+  - PersistentConfig lives in the DB, including `ollama.enable`. Env vars only seed a fresh DB.
+  - ADR-0002 guards: no `bypass`; stamp on `request.state`; funnel after the metadata merge; passthroughs refused outright.
+- **Brand:**
+  - Identity colours: green `#00A550`, blue `#004999`, Rich Black `#011627`. Words: `#006C34` / `#4AC287`. Measure contrast; never copy it.
+  - Square-cut shapes; type scale 12/14/16/20/24px.
+- **Build, tooling and CI:**
+  - bun/bunx, never npm/npx.
+  - `NODE_OPTIONS=--max-old-space-size=8192` for local builds.
+  - Capture exit codes without a pipe.
+  - Replay the whole CI frontend sequence; prettier covers `**/*.md`.
+  - Tests: `uv run --no-sync --only-group dev pytest`.
+  - `gh` needs `--repo erikgunawans/ent-os-new-jup`. Commits go to `main`.
+  - `ARG BUILDPLATFORM` is load-bearing. No backticks in deploy.sh's heredoc.
+  - gcloud may need `! gcloud auth login` before a deploy.
+  - The Release to PyPI job always fails; this is pre-existing and harmless.
+
+**Open items waiting on Erik:**
+- **D19** for `~/jup/DECISIONS.md`: records are in scope for typed chat (D17, Xiaomi), and unreleased commercial terms must never be filed in `records/`. It needs his wording OK.
+- **"JUP Staff" group membership.** Until he names it, the model, KB, skills and tool are admin-only. The group counts against the 50-seat ceiling (ADR-0001).
+- **Tier of the Rp 10 miliar SPBG reactivation capex** in `~/jup/records/projects/gas-spbg-reactivation.md`. It is labelled Tier 2 · POTENSI, but POTENSI is defined as revenue.
+- **Carried:**
+  - A square JUP mark source file.
+  - OpenRouter privacy toggles (D17d).
+  - `wrangler deploy` in `~/jup-kb-assistant-worker`.
+  - Sector/chart hues (D18c).
+  - Where `@jup/design-system` lives.
+  - Old brand inline in `~/jup` deliverables.
+  - SKK Migas/PGN contact record.
+  - Danantara and Pertamina Patra Niaga docs.
+  - `~/jup`'s untracked tooling dirs.
+  - Codex CLI ≥0.155.1 before Forge is useful.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-23-brand)
 
 > Prepended by /wrap 2026-09-23 (checkpoint 2026-09-23-brand). Supersedes checkpoint 2026-09-22-gsm's anchor.
