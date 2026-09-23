@@ -1,3 +1,77 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-23-depth)
+
+> Prepended by /wrap 2026-09-23 (checkpoint 2026-09-23-depth). Supersedes checkpoint 2026-09-23-agentic's anchor.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-23-depth). Then read `.planning/agent-depth-plan.md`, or run `/agent-depth`.
+
+**Anchor:** `origin/main` at `e75bbd507` **as this was written**, or one commit ahead at this
+checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-23-depth`).
+Verify with `git log --oneline e75bbd507..origin/main`. Any other commit in that range is a parallel push.
+
+**Current state:**
+- Live on `ent-os-00020-lwb` (`254da9640`); rollback is `00019-snl`.
+- The app is named **Asisten JUP**, with Erik's logo system (JUP logogram + wordmark). BangJayaOS is gone.
+- `?q=` chats now get the model's default tools, and `portfolio_status` is called live.
+- The staff memory note is at `docs/staff/onboarding-memori.md`.
+- **Agent-depth plan:** Erik approved the direction. Enhance Asisten JUP (tracks A, E, V, I); Hermes is parked (X1).
+- 301 tests pass. Everything is admin-only (empty grants).
+
+**Do next, in order:**
+1. **E1, tool-call audit.** I proposed E1 then A2 at wrap; Erik has not confirmed the order yet, so check first.
+   - Build one `jup.governance` audit line per tool invocation: user, chat, tool id, outcome and argument size, never argument content.
+   - Find the tool-execution point in `utils/middleware.py`'s tool loop, keep the vendor surface minimal, and add a lost-patch test plus a `VENDOR-PATCHES.md` entry.
+   - The deploy needs Erik's per-change OK. Verify live: one `portfolio_status` call and one KB tool call each produce a line in Cloud Logging.
+2. **A2, subagents + timers.** A DB config write that needs Erik's per-change OK. Record before-values in `.planning/*before*.json`, then verify one delegated task produces an audit line per subagent turn.
+3. **A1, weekly portfolio digest.** Needs Erik's day and time (WIB) and his OK.
+4. **A3, code interpreter for staff (Pyodide).** A DB permission write that needs his OK.
+5. **Carried:**
+   - Critique leftovers: blocker owner, next step and date; English record data under id-ID; the half-translated sidebar; Portfolio sort, filter and deep links; the Portfolio `<title>` has no app name.
+   - The stale `deploy/gcp/README.md` claim about the portfolio permission (#10).
+   - CI "Create and publish Docker images": the CUDA and Ollama variants failed on `259429034` at "Build Docker image". Not investigated, and not our deploy path (we build on Cloud Build).
+
+**Constraints to honor:**
+- **Deploy and DB-config authorization is per change, never standing.** Record before-values.
+- **Agent depth is built inside the governed harness.** Do not propose adopting an external agent runtime unless Erik reopens X1. Every new tool must get an E1 audit line.
+- **`/agent-depth` reads the ledger in `.planning/agent-depth-plan.md`.** Change a phase's status by editing that table: five columns; statuses live, in-progress, ready, blocked, planned or parked.
+- **Admin writes go through Erik's tab** (`deploy/gcp/lib/in-tab.ts` and the `sync-*.ts` scripts).
+  - `interceptor eval` dies at about 8 KB and times out at 15 s.
+  - Guard every eval with `location.host==='ops.axiara.ai'`.
+  - A new managed tab (`interceptor tab new`) renders empty for about 20 s; poll it.
+- **To prove a tool was offered,** read `tool_ids` in the request body (hook `fetch` after load, then send a typed chat). To prove it was chosen, read the assistant `output` function_call names. The chat record never stores toolIds.
+- **Stale caches:** after a deploy, `fetch(url,{cache:'reload'})`, then navigate. After toggling `.dark`, wait 600ms.
+- **`~/holaboss-ai` is READ-ONLY.**
+- **`skills/` and `tools/` are the source of truth for the DB rows.** Tool files stay single-call wrappers over a tested `jup.*` module. The KB is a copy of `~/jup`; re-run `bun deploy/gcp/sync-kb.ts` after changes.
+- **Brand:**
+  - The logogram is never redrawn or recoloured. Regenerate icons with `bun deploy/gcp/brand/build-icons.ts`.
+  - `static/static` and `backend/open_webui/static` must stay identical; a test enforces this.
+  - Measure contrast; never copy it.
+- **Config and governance:**
+  - PersistentConfig lives in the DB. `WEBUI_NAME` is env-only.
+  - ADR-0002 guards: no `bypass`; passthroughs are refused.
+- **Build, tooling and CI:**
+  - bun/bunx only.
+  - `NODE_OPTIONS=--max-old-space-size=8192` for local builds.
+  - Capture exit codes without a pipe.
+  - Replay the whole CI frontend sequence (format, i18n:parse, `git diff --exit-code`, build).
+  - Tests: `uv run --no-sync --only-group dev pytest`.
+  - `gh` needs `--repo erikgunawans/ent-os-new-jup`. Commits go to `main`.
+  - The Release to PyPI job always fails; this is pre-existing and harmless.
+
+**Open items waiting on Erik:**
+- **Plan decisions:**
+  - The E1→A2 order.
+  - A1's day and time.
+  - The JUP decision on US voice processing under ZDR, plus the named voice KB set (V1).
+  - A sandbox VM budget (E2).
+  - The ADR-0012 machine-identity amendment (E7).
+  - One D-decision per new egress: search engine, MCP server, channel, integration.
+- **D19** wording (records in scope for typed chat; unreleased terms never in `records/`).
+- **"JUP Staff" group membership.** It counts against the 50-seat ceiling.
+- **Tier of the Rp 10 miliar SPBG capex** (labelled Tier 2 · POTENSI, but POTENSI means revenue).
+- **Carried:** a square JUP mark source; OpenRouter privacy toggles (D17d); `wrangler deploy` in `~/jup-kb-assistant-worker`; sector/chart hues (D18c); `@jup/design-system` location; old brand in `~/jup` deliverables; the SKK Migas/PGN contact record; Danantara and Pertamina Patra Niaga docs; `~/jup`'s untracked tooling dirs; Codex CLI ≥0.155.1.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-23-agentic)
 
 > Prepended by /wrap 2026-09-23 (checkpoint 2026-09-23-agentic). Supersedes checkpoint 2026-09-23-brand's anchor.

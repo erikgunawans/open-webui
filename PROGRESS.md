@@ -1,6 +1,46 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-23-agentic (latest) — Phase 0–3 of the agentic-capabilities plan shipped
+## Checkpoint 2026-09-23-depth (latest) — ?q= tools fixed, Asisten JUP rebrand live, agent-depth plan approved in direction
+
+- **Session:** `/next` → item 1 root-caused and fixed (`?q=` tools race) → item 2 staff memory note → rename to Asisten JUP + logo system → deploy `00020-lwb` verified live → holaOS comparison re-shown → agent-depth plan + `/agent-depth` → Erik: enhance Asisten JUP, park Hermes.
+- **Live:** `ent-os-00020-lwb` (`254da9640`, contains `d010e877c`). Deployed with Erik's OK; before-value and rollback `00019-snl`.
+- **Tests:** 301 pass (`uv run --no-sync --only-group dev pytest`). Local format, i18n parse and production build clean.
+
+### What shipped
+
+- **`?q=` auto-submit now offers the model's default tools** (`d010e877c`).
+  - Root cause: the vendor `setDefaults()` returned early while a run was in flight. On a fresh load that run awaits the tool list, so `initNewChat`'s `?q=` submit sent no `tool_ids`.
+  - A typed chat was unaffected because a person types slower than three fetches.
+  - Fix: waiters await the in-flight run via `defaultsSettled()`, and `?q=` awaits it before submitting. The patch and entry are in `VENDOR-PATCHES.md`, with a test in `tests/test_chat_default_tools_patch.py` that fails against the old file.
+  - Verified live on `00020-lwb`: a fresh `/?q=` chat called `portfolio_status` and answered correctly.
+  - Earlier note corrected: "the chat recorded no toolIds" proved nothing, because user messages never store toolIds. The evidence is the request body and the assistant `output` function_call names.
+- **Staff memory note** at `docs/staff/onboarding-memori.md` (Indonesian). Memory is on and background review off (Phase 4). The assistant itself can add, update or delete memories through the builtin memory tools, since the model's capabilities are null and so default to on. `search_chats` is scoped to the caller.
+- **Rebrand to Asisten JUP** (`254da9640`), from Erik's "Logo Asisten JUP" logo system.
+  - `WEBUI_NAME: "Asisten JUP"`. The `' (Open WebUI)'` suffix is patched out of `env.py` under LICENSE clause 4 and ADR-0001. Title and manifest follow.
+  - The sidebar lockup is panel 1a: logogram + "Asisten **JUP**" (JUP `#004999`, 8.70:1) + "JAKARTA UTILITAS" at 0.2em tracking (the file uses 0.34em, which overshoots at 19px). Dark mode is single-colour white.
+  - `deploy/gcp/brand/build-icons.ts` builds all 12 icons from the official rasters in `deploy/gcp/brand/` by trim and scale only. App icons follow panel 1c.
+  - The BangJayaOS marks are removed. `tests/test_brand_asisten_jup.py` guards the suffix and the two static dirs.
+  - Verified live with getComputedStyle probes in both themes; the name comes from `/api/config`, and the BangJayaOS mark returns 404.
+- **Agent-depth plan** at `.planning/agent-depth-plan.md` (`259429034`, `e75bbd507`).
+  - `/agent-depth [track]` runs `scripts/agent-depth.ts`, which parses the plan's `## Phase ledger` table.
+  - Erik approved the direction: enhance Asisten JUP rather than adopt Hermes, and Hermes is parked as X1.
+  - Tracks: A (Open WebUI native: digest, subagents, code interpreter, web search, MCP), V (ChatGPT Live per ADR-0005/0006), E (tool-call audit, sandbox VM with gVisor and an egress proxy, Open Terminal, Playwright MCP, risky-tool approvals, skill proposals, messaging gateway), I (integrations via MCP).
+
+### Research recorded
+
+- **holaOS inventory, read-only.** 3 runtimes (pi in-process, Claude Code with `bypassPermissions`, Codex auto-approving), 96 tools, 89 Composio integrations proxied via `api.holaboss.ai`, and 8 channels. There is no voice and no audit log.
+- **Hermes Agent.** NousResearch/hermes-agent, MIT, v0.21.4 (2026-09-21).
+  - It is single-tenant by design and needs one writer on a persistent disk.
+  - It skips dangerous-command checks inside containers.
+  - Its auxiliary LLM calls must be pinned to our endpoint, with no fallbacks.
+- **Open WebUI drives an external Open Terminal server** through `routers/terminals.py`, with tools from its OpenAPI spec.
+
+### Open at checkpoint
+
+- **CI:** the "Create and publish Docker images" CUDA and Ollama variants failed on `259429034` at "Build Docker image". Earlier runs were all cancelled when newer pushes superseded them. The cause is not investigated. Our deploy builds on Cloud Build, so it is unaffected.
+- The Portfolio page's `<title>` is "Portfolio", with no app name. This is pre-existing.
+
+## Checkpoint 2026-09-23-agentic — Phase 0–3 of the agentic-capabilities plan shipped
 
 - **Session:** `/next` → item 1 plan (3 read-only code traces) → Erik approved it, with records in the KB and memory kept for staff → Phase 0 governance fixes → 0e permissions baseline → KB loader + "JUP Strategy KB" → 3 JUP skills → 16 holaOS skills ported → `portfolio_status` tool.
 - **Live:** `ent-os-00019-snl` (`47cf5c86e`). Chain today: `00017-nfp` → `00018-6g2` (Phase 0, `e7856e0ef`) → `00019-snl`. Every deploy and DB write was authorized per change. Rollback: `00018-6g2`.
