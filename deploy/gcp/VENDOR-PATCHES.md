@@ -326,3 +326,24 @@ details and context preview as just "dialog". Both now point at their `<h2>`, ve
 **The test that catches it:** `tests/test_modal_accessible_name.py`.
 
 **Conflict risk:** low. Keep the prop and the attribute.
+
+## Ruang Pimpinan's own migration graph runs at boot — `backend/open_webui/main.py` (2026-09-24)
+
+**What:** two imports, `run_leadership_migrations` from `jup.leadership.migrate` and
+`ENABLE_DB_MIGRATIONS` from `open_webui.env`, plus one guarded call,
+`if ENABLE_DB_MIGRATIONS: run_leadership_migrations(engine)`. The call sits just before the fork
+routers are mounted.
+
+**Why:** leadership tables migrate on their own alembic graph with their own version table,
+`jup_alembic_version` (ADR-0014), so a quarterly rebase can't give the vendor graph a second head.
+The call runs on the vendor engine after the vendor upgrade. It never raises: a failure is logged
+and leaves only Ruang Pimpinan unavailable.
+
+**If dropped:** silent. The app boots, the leadership tables never get created, and the workflow
+routes refuse with 503 because the schema is not ready.
+
+**The test that catches it:** `tests/test_leadership_migration_seam.py` (source read, runs under
+`--only-group dev`), and the boot test in `tests/test_boot.py`, which asserts `schema_ready()` after
+a real import.
+
+**Conflict risk:** low. Keep the call ahead of the `jup_leadership` mount.

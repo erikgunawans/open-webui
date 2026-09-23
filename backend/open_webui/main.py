@@ -44,6 +44,7 @@ from starsessions.stores.redis import RedisStore
 
 from jup.admin_allowlist import AdminAllowlistMiddleware
 from jup.iap_identity import IapIdentityHeaderMiddleware
+from jup.leadership.migrate import run_leadership_migrations
 from open_webui.config import (
     BYPASS_ADMIN_ACCESS_CONTROL,
     CACHE_DIR,
@@ -87,6 +88,7 @@ from open_webui.env import (
     ENABLE_AUDIT_GET_REQUESTS,
     ENABLE_COMPRESSION_MIDDLEWARE,
     ENABLE_CUSTOM_MODEL_FALLBACK,
+    ENABLE_DB_MIGRATIONS,
     ENABLE_EASTER_EGGS,
     # OAuth Back-Channel Logout
     ENABLE_OAUTH_BACKCHANNEL_LOGOUT,
@@ -876,6 +878,10 @@ app.include_router(utils.router, prefix='/api/v1/utils', tags=['utils'])
 app.include_router(terminals.router, prefix='/api/v1/terminals', tags=['terminals'])
 app.include_router(automations.router, prefix='/api/v1/automations', tags=['automations'])
 app.include_router(calendar.router, prefix='/api/v1/calendars', tags=['calendars'])
+# JUP: Ruang Pimpinan's tables migrate on their own graph after the vendor upgrade (ADR-0014); see
+# VENDOR-PATCHES.md. A failure is logged and leaves only that section unavailable.
+if ENABLE_DB_MIGRATIONS:
+    run_leadership_migrations(engine)
 app.include_router(jup_portfolio.router, prefix='/api/v1/portfolio', tags=['portfolio'])
 app.include_router(jup_leadership.router, prefix='/api/v1/leadership', tags=['leadership'])
 
