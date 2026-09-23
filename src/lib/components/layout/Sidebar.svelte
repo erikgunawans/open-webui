@@ -24,7 +24,6 @@
 		isApp,
 		visiblePinnedModels,
 		selectedFolder,
-		WEBUI_NAME,
 		sidebarWidth
 	} from '$lib/stores';
 	import {
@@ -85,6 +84,7 @@
 	import NotesIcon from './Sidebar/icons/Notes.svelte';
 	import SearchIcon from './Sidebar/icons/Search.svelte';
 	import GateLadderIcon from './Sidebar/icons/GateLadder.svelte';
+	import BangJayaLockup from './Sidebar/BangJayaLockup.svelte';
 	import Sidebar from '../icons/Sidebar.svelte';
 	import WorkspaceIcon from './Sidebar/icons/Workspace.svelte';
 	import HotkeyHint from '../common/HotkeyHint.svelte';
@@ -970,12 +970,10 @@
 							<div
 								class="self-center flex size-[calc(30px*var(--app-text-scale,1))] items-center justify-center rounded-lg transition group-hover:bg-gray-100 dark:group-hover:bg-gray-900"
 							>
-								<!-- LICENSE covers this Open WebUI sidebar logo.
-							Do not alter, remove, obscure, or replace it except as LICENSE permits:
-							https://docs.openwebui.com/license. -->
+								<!-- JUP: the BangJayaOS mark alone; the guideline drops the logotype below 28px. -->
 								<img
-									src="{WEBUI_BASE_URL}/static/favicon.png"
-									class="sidebar-new-chat-icon size-5 rounded-full group-hover:hidden"
+									src="{WEBUI_BASE_URL}/static/bangjayaos-mark.svg"
+									class="sidebar-new-chat-icon size-5 group-hover:hidden"
 									alt=""
 								/>
 
@@ -1178,33 +1176,17 @@
 				<div
 					class="sidebar px-1 pt-1.5 pb-1 flex justify-between space-x-1 text-gray-600 dark:text-gray-400 sticky top-0 z-10 -mb-2"
 				>
+					<!-- JUP: the BangJayaOS lockup replaces the Open WebUI logo and name. Replacing the
+					     branding rests on LICENSE clause 4 and the fifty-user ceiling (ADR-0001). -->
 					<a
-						class="flex items-center rounded-xl size-8.5 h-full justify-center hover:bg-gray-100 dark:hover:bg-gray-900 transition no-drag-region"
+						id="sidebar-webui-name"
 						href="/"
+						class="flex flex-1 items-center pl-1.5 pr-0.5 py-1 no-drag-region"
 						draggable="false"
+						aria-label="BangJayaOS"
 						on:click={newChatHandler}
 					>
-						<!-- LICENSE covers this Open WebUI sidebar logo.
-					Do not alter, remove, obscure, or replace it except as LICENSE permits:
-					https://docs.openwebui.com/license. -->
-						<img
-							crossorigin="anonymous"
-							src="{WEBUI_BASE_URL}/static/favicon.png"
-							class="sidebar-new-chat-icon size-5 rounded-full"
-							alt=""
-						/>
-					</a>
-
-					<a href="/" class="flex flex-1 px-0.5" on:click={newChatHandler}>
-						<!-- LICENSE covers this Open WebUI sidebar name.
-					Do not alter, remove, obscure, or replace it except as LICENSE permits:
-					https://docs.openwebui.com/license. -->
-						<div
-							id="sidebar-webui-name"
-							class=" self-center font-normal text-gray-700 dark:text-gray-200"
-						>
-							{$WEBUI_NAME}
-						</div>
+						<BangJayaLockup />
 					</a>
 					<Tooltip
 						content={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')}
