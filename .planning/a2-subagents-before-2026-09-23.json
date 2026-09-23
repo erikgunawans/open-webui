@@ -1,0 +1,11 @@
+{
+  "_what": "A2 before-values: GET /api/v1/configs/subagents on ops.axiara.ai, read 2026-09-23 via Erik's tab, before any A2 write.",
+  "_restore": "POST this object (without _ keys) to /api/v1/configs/subagents as admin.",
+  "ENABLE_SUBAGENTS": false,
+  "SUBAGENTS_BACKGROUND_ENABLED": false,
+  "SUBAGENTS_MAX_CONCURRENT": 20,
+  "SUBAGENTS_MAX_ASYNC": 20,
+  "SUBAGENTS_MAX_ITERATIONS": 30,
+  "SUBAGENTS_MAX_OUTPUT": 30000,
+  "SUBAGENTS_SYSTEM_PROMPT": ""
+}
