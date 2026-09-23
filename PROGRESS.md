@@ -1,6 +1,42 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-24-leadership (latest) — E5 decided (ADR-0013), Portfolio sort/filter/deep links live, Ruang Pimpinan P1 built
+## Checkpoint 2026-09-24-p2t0 (latest) — P1 gaps fixed, Ruang Pimpinan enabled (Erik only), P2 plan approved, T0 built
+
+- **Session:** `/next`. A1 wasn't due (22:00Z) → item 3, the P1 gap walk, found three defects and fixed them → Erik: deploy → push → enable Ruang Pimpinan → Erik-only grant → P2 plan → approved → build T0 → `/wrap`.
+- **Live:** `ent-os-00027-lrc` (image `dd15a3100` + `JUP_LEADERSHIP_ENABLED=true`, `JUP_LEADERSHIP_SAMPLE_FILE=/srv/jup/leadership/illustrative-seed.json`). Chain: `00025-s4l` → `00026-mvj` (deploy `dd15a3100`) → `00027-lrc` (env only). Rollback: `00026-mvj` (section dormant) or `00025-s4l`. Before-values: `.planning/deploy-e3126777a-before-2026-09-24.json`, `.planning/leadership-enable-before-2026-09-24.json`.
+- **`origin/main` is ahead of live** by docs and T0 (`055470184`: the migration graph, not deployed; it is inert until deployed and creates only `jup_alembic_version`).
+- **Tests:** 474 dev-group pass + 1 skip (the Postgres case); 46 leadership/boot tests with the runtime pass + the same skip. svelte-check at baseline 7794 / 202.
+
+### What shipped
+
+- **P1 gap walk** (`e3126777a`, live on `00026-mvj`+). Evidence in `docs/ruang-pimpinan/status.md`.
+  - **The admin group editor deleted the `jup` grant on Save.** `EditGroupModal.svelte` rebuilt `permissions` from six vendor keys. Reproduced in real Chrome (board-only reader went `["board"]` → `[]`), patched in `init()` and reset, vendor-patch entry + `tests/test_group_editor_keeps_jup_permissions.py`.
+  - **Dialogs had no accessible name.** Vendor `Modal.svelte` takes `ariaLabelledby`; the source and context dialogs are named. Entry + `tests/test_modal_accessible_name.py`.
+  - **No mobile sidebar toggle on fork pages**, Portfolio (live) and Ruang Pimpinan: a phone reader was stranded. `src/lib/components/jup/MobileSidebarToggle.svelte` in both headers; verified live at 390 px.
+  - Keyboard order and rings (6.57:1 light, 7.29:1 dark), text scale 150/200 % and the dialog trap/Escape all passed.
+- **Ruang Pimpinan enabled in production** with Erik's per-step OKs: deploy, flag + sample, grant.
+  - The sample is at `gs://jup-ops-records/leadership/`, outside the `records/` tree that `sync-records.sh` mirrors **with delete**.
+  - Both env values are in `deploy.sh` (`aeffc1009`), because `--env-vars-file` replaces the whole environment.
+  - Group `Ruang Pimpinan — uji` (`e5657398…`): Board + RKA, member Erik only. Both views verified rendering the sample live.
+- **P2 plan** (`docs/ruang-pimpinan/p2-plan.md`), approved by Erik with decisions E-1 (app DB, append-only events), E-2 (own alembic graph), E-3 (evidence in the storage bucket, not vendor Files).
+- **P2 T0** (`055470184`, not deployed): ADR-0014; `backend/jup/leadership/migrations/` with version table `jup_alembic_version` and empty base `jl0001`; `jup.leadership.migrate` runs on the vendor engine and never raises (`schema_ready()`); a guarded `main.py` call (vendor-patch entry + `tests/test_leadership_migration_seam.py`); `test_boot.py`'s graph checks cover both graphs and the boot asserts `schema_ready()`.
+
+### Findings
+
+- **Docker's pull filled the disk.** 3.2 GB free → 137 MB during `docker pull postgres:16`; Docker Desktop then answered 500s and now reports "unable to start". The disk recovered to 2.3 GB on its own. The Postgres 16 check for T0 is still open.
+- **The PAI security hook blocks `rm -r` on scratchpad paths** under `/private/tmp` as "system root". Don't route around it.
+- **The local venv has no `psycopg2`,** so the Postgres test needs a driver; the strongest check is the built image booting against Postgres 16.
+- `capabilities` answers 200 `enabled:false` when the flag is off (the other routes 503). status.md corrected.
+- A hidden driven tab has no window focus and paused `requestAnimationFrame`: `:focus-visible` never matches and rAF animations never finish. Measure rules and state instead.
+- Synthetic Tab keys don't move focus in Interceptor; OS-level keys go to the front app, so don't use them.
+
+### Open at checkpoint
+
+- **A1:** the 05:00 WIB (22:00Z) fire of `fc3e9381…`. Erik's ops tab was still open at 20:29Z (now id 893472588).
+- **T0 on Postgres 16**, then T1 on Erik's review of T0.
+- Push of `055470184` was not yet OK'd when the wrap began; the wrap pushes it.
+
+## Checkpoint 2026-09-24-leadership — E5 decided (ADR-0013), Portfolio sort/filter/deep links live, Ruang Pimpinan P1 built
 
 - **Session:** `/next`. The A1 test hadn't fired yet (05:00 WIB is still ahead), so I moved to E5: a grilling session produced ADR-0013. Erik then approved Portfolio polish with a deploy; I deployed it, found two defects live, fixed them and redeployed. Erik then handed over the approved Ruang Pimpinan design (read-only package), authorised P1 with local verification, and I built and verified it. `/wrap`.
 - **Live:** `ent-os-00025-s4l` (`ba81ffa5b`, Portfolio). Rollback: `00024-ddh`, then `00023-pcd`. **`origin/main` is ahead of live:** the three Ruang Pimpinan commits (`34dbd9421`, `ad63a9133`, `57a9b3bd3`) are pushed but not deployed. The next deploy ships them. They stay dormant until `JUP_LEADERSHIP_ENABLED` is set and a group grant exists.

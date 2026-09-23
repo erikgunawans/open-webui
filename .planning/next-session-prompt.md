@@ -1,3 +1,113 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-24-p2t0)
+
+> Prepended by /wrap 2026-09-24 (checkpoint 2026-09-24-p2t0). Supersedes checkpoint 2026-09-24-leadership's anchor.
+
+Resume ent-os-new-jup. Read PROGRESS.md first (top checkpoint 2026-09-24-p2t0).
+
+**Anchor:** `origin/main` at `055470184` **as this was written**, or one commit ahead at this
+checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-24-p2t0`).
+Verify with `git log --oneline 055470184..origin/main`. Any other commit in that range is a parallel push.
+
+**Current state:**
+- **Live:** `ent-os-00027-lrc` (image `dd15a3100` plus the two `JUP_LEADERSHIP_*` env values).
+  Rollback: `00026-mvj` (section dormant), then `00025-s4l`.
+- **Ruang Pimpinan is enabled in production for Erik only:**
+  - group `Ruang Pimpinan — uji`, Board and RKA views
+  - illustrative sample at `gs://jup-ops-records/leadership/illustrative-seed.json`
+- **P2 plan approved** (`docs/ruang-pimpinan/p2-plan.md`; ADR-0014).
+- **T0 is built and pushed but not deployed:** the migration graph `jl0001` and version table
+  `jup_alembic_version`.
+
+**Do next, in order:**
+1. **Read the A1 timing test.** Automation `fc3e9381-f433-4d7b-a11f-25e0cf496c2b` fires at 22:00Z
+   2026-09-23 (05:00 WIB 2026-09-24).
+   - **Check the clock first.**
+   - `gcloud logging read` the `jup.governance` lines for 21:58–22:12Z and the
+     `run.googleapis.com/requests` log for 21:30–22:10Z.
+   - **Any request in that window voids the test.** Erik's ops tab (now 893472588) was still open
+     at 20:29Z.
+   - Then GET `/api/v1/automations/<id>/runs` and DELETE `/api/v1/automations/<id>/delete` through a
+     fresh ops tab. Close the tab afterwards.
+2. **Act on the result:**
+   - **On time and valid:** ask Erik's OK for the real digest, "Ringkasan mingguan portofolio JUP",
+     `RRULE:FREQ=WEEKLY;BYDAY=MO;BYHOUR=9;BYMINUTE=0`, on Asisten JUP, owned by Erik, admin-only.
+   - **Late:** price `--no-cpu-throttling` for 1× 2 vCPU / 4 GiB in asia-southeast2.
+   - **Invalid:** rerun with no ops tab open anywhere.
+   - Then set A1's row in `.planning/agent-depth-plan.md`.
+3. **Verify T0 on Postgres 16.** Docker Desktop reported "unable to start" after the disk filled;
+   Erik has to restart it.
+   - `docker run -d --rm --name jl-pg16 -e POSTGRES_PASSWORD=local -e POSTGRES_DB=jl -p 55432:5432 postgres:16`
+     (the image is already pulled).
+   - Then `JUP_TEST_POSTGRES_URL=postgresql://postgres:local@127.0.0.1:55432/jl uv run --no-sync pytest tests/test_leadership_migrate.py`.
+     The local venv lacks `psycopg2`, so add it to that run (e.g. `uv run --no-sync --with psycopg2-binary`).
+   - Stop the container afterwards and check `df -h /` first.
+4. **P2 T1** (storage layer, event tables, `unit_of_work`), **after Erik reviews T0.** The review
+   points are after T0, after T4, and before any deploy.
+5. **Carried:**
+   - Per-turn `admitted` audit lines carry no chat id.
+   - Critique leftovers: the blocker's owner, next step and date; English UI chrome and record-data
+     mix under id-ID; the half-translated sidebar ("Open Sidebar" shows in English).
+   - The stale portfolio-permission claim in `deploy/gcp/README.md` (#10).
+   - The CI Docker CUDA and Ollama variants that failed on `259429034`.
+
+**Constraints to honor:**
+- **Deploy, DB-config and production-grant authorization is per change, never standing.**
+  - Record before-values in `.planning/*before*.json`.
+  - Pushing needs its own OK, except inside `/wrap`.
+  - A new Ruang Pimpinan reader is a new grant: its own OK.
+- **Ruang Pimpinan's approved decisions and ADR-0014 are settled; don't reopen them.**
+  - The PIC submits; only the configured BOD policy closes; admin is not BOD.
+  - Snapshots and baselines are immutable.
+  - Events are append-only.
+  - Leadership tables migrate only on the `jup` graph.
+  - Evidence is never in vendor Files.
+- **`deploy.sh` uses `--env-vars-file`, which replaces the whole environment.** A value set only with
+  `gcloud run services update` vanishes on the next deploy, so put it in `deploy.sh`.
+- **`sync-records.sh` deletes unmatched objects** under `records/`, `deliverables/` and `SOURCES/`.
+  Anything else in `gs://jup-ops-records` goes under its own prefix.
+- **Read-only directories:** `~/Documents/ChatGPT/KPI-Dashboard-JUP` (the handoff package) and
+  `~/holaboss-ai`.
+- **Agent depth is built inside the governed harness.** Hermes stays parked. Each new tool needs an
+  E1 audit line and an ADR-0013 risk class.
+- **Admin writes go through Erik's tab:**
+  - Guard every eval with `location.host`.
+  - Evals die at about 8 KB.
+  - Close every tab you open.
+  - Local dev server: Vite on 5050, backend on 8080. The backend needs `WEBUI_SECRET_KEY` when
+    started with uvicorn directly.
+- **Scheduled-job timing tests:** no ops tab open anywhere; watch only through Cloud Logging.
+- **Tooling:**
+  - bun and bunx only; Python is approved in this fork.
+  - Backend tests: `uv run --no-sync --only-group dev pytest`, or `uv run --no-sync pytest` for HTTP
+    and boot.
+  - svelte-check baseline: 7794 / 202, after `svelte-kit sync`. Lint baselines: `middleware.py` 62,
+    `subagents.py` 6, `main.py` 3 fixable.
+  - Importing the app outside pytest wipes `backend/open_webui/static`, so set `STATIC_DIR` to a
+    scratch copy.
+  - Deploy with `bash deploy/gcp/deploy.sh` (about 15 min, refuses a dirty tree).
+  - **The disk is tight** (about 2.3 GB free). A Docker image pull can fill it; check `df -h /`
+    before pulling.
+  - The PAI security hook blocks `rm -r` under `/private/tmp`, so don't route around it.
+
+**Open items waiting on Erik:**
+- **Review T0** (ADR-0014 first), then say whether T1 goes ahead.
+- **Restart Docker Desktop**, and free disk if he can.
+- **A1:** the real digest create, or the CPU-throttling decision.
+- **Ruang Pimpinan company decisions:** BOD and PIC identities; individual vs collective BOD
+  closure; publication authority; KPI owners and definitions; retention, backup and data location
+  for leadership records; Dynamics details from IT; the CRM choice.
+- **Codex CLI upgrade**, so Forge can run its pinned model.
+- **Plan decisions:** V1 (US voice under ZDR), E2 (sandbox VM budget), E7 (ADR-0012 amendment), and
+  a D-decision for each new egress (A4, A5, channels, integrations).
+- **"JUP Staff" group membership** (it counts against the 50-seat ceiling).
+- **D19 wording**, and the Rp 10 miliar SPBG capex tier labelled POTENSI.
+- **Carried:** a square JUP mark; OpenRouter privacy toggles (D17d); `wrangler deploy` in
+  `~/jup-kb-assistant-worker`; D18c hues; the `@jup/design-system` location; the old brand in
+  `~/jup` deliverables; the SKK Migas/PGN contact; the Danantara and Pertamina Patra Niaga docs;
+  `~/jup`'s untracked tooling directories.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-24-leadership)
 
 > Prepended by /wrap 2026-09-24 (checkpoint 2026-09-24-leadership). Supersedes checkpoint 2026-09-24-audit's anchor.
