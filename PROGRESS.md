@@ -1,6 +1,51 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-24-audit (latest) — E1 tool-call audit, A2 subagents, A3 code interpreter, subagent parent link
+## Checkpoint 2026-09-24-leadership (latest) — E5 decided (ADR-0013), Portfolio sort/filter/deep links live, Ruang Pimpinan P1 built
+
+- **Session:** `/next`. The A1 test hadn't fired yet (05:00 WIB is still ahead), so I moved to E5: a grilling session produced ADR-0013. Erik then approved Portfolio polish with a deploy; I deployed it, found two defects live, fixed them and redeployed. Erik then handed over the approved Ruang Pimpinan design (read-only package), authorised P1 with local verification, and I built and verified it. `/wrap`.
+- **Live:** `ent-os-00025-s4l` (`ba81ffa5b`, Portfolio). Rollback: `00024-ddh`, then `00023-pcd`. **`origin/main` is ahead of live:** the three Ruang Pimpinan commits (`34dbd9421`, `ad63a9133`, `57a9b3bd3`) are pushed but not deployed. The next deploy ships them. They stay dormant until `JUP_LEADERSHIP_ENABLED` is set and a group grant exists.
+- **Tests:** 112 leadership domain tests plus the registration tests; 26 leadership HTTP tests with the runtime (`uv run --no-sync pytest`, no skips); 18 Vitest; 15 Portfolio API tests unchanged. `svelte-check` is at the pre-change baseline (7794 errors / 202 warnings).
+
+### What shipped
+
+- **ADR-0013: risky tool calls need the asking user to approve them** (E5, `9e2ef8ab5`). Decided, not built.
+  - Three risk classes: `read`, `write_own` and `external`; a tool with no class counts as `external`.
+  - The gate is enforced on the server; a chat's `ask`/`full` switch can't bypass it.
+  - The asking user approves each call; an unanswered approval times out after 10 minutes.
+  - Automations, subagents and channels all fail closed.
+  - The decision goes into the E1 audit line.
+  - The vendor's `ask` mode was ruled insufficient: it pauses every tool, it's user-controlled, automations and channels bypass it, and it records nothing in the audit.
+  - The ledger now shows E5 `ready`; E3, E4 and A5 depend on it.
+- **Portfolio: sort, filter and deep links** (`19c590898`, `ba81ffa5b`; live on `00025-s4l`).
+  - Search, pillar and status filters and sort live in the query string. Cards carry `#project-`/`#engagement-` ids, and the "Blocked on" counterparty links to its engagement card.
+  - The title is "Portfolio / Asisten JUP". There's no sort by figure (D11).
+  - Two defects were found live and fixed: counterparty search hid the project, and CSS `:target` never matched cards that render after load.
+- **Ruang Pimpinan P1** (handoff: `~/Documents/ChatGPT/KPI-Dashboard-JUP/docs/handovers/2026-09-24-ruang-pimpinan-claude-code/`, read-only).
+  - **Backend:** `backend/jup/leadership/` (records, policy, reader) and `routers/jup_leadership.py` at `/api/v1/leadership`, serving capabilities, overview and sources.
+    - Access is default-deny, admins included: each view needs an exact-boolean group grant for both the view and the scope, checked on every request.
+    - Responses are `private, no-store`, errors included.
+  - **Frontend:** `src/routes/(app)/ruang-pimpinan/`, `src/lib/components/leadership/`, and a sidebar entry after Portofolio in both variants. id-ID translated.
+  - The evidence and the acceptance-ID map are in `docs/ruang-pimpinan/status.md`.
+  - The router registration in `main.py` has a `VENDOR-PATCHES.md` entry and a source-read test.
+  - Forge wrote `records.py` on GPT-5.5, because the installed Codex CLI can't run the pinned gpt-5.4. It caught and fixed a Unicode-digit bug.
+
+### Findings
+
+- **The handoff mis-stated the timing:** it said A1 "fired", but 05:00 WIB was still in the future. Check the clock before reading logs for a scheduled event.
+- **Open WebUI's group API stores unknown permission keys intact:** the `jup.ruang_pimpinan` grant came back through `/groups/id/{id}` unchanged. It is not yet tested whether the admin group editor preserves it on save.
+- **The i18n extractor only sees literal calls.** `$i18n.t(MAP[x])` is invisible to it, and `i18n:parse` deletes those translations. Use reactive maps of literal `$i18n.t('...')` calls, as Portfolio does.
+- **A 422 is a `RequestValidationError`, not an `HTTPException`,** so a route class that stamps headers must catch both.
+- **Interceptor's `back` did not move the driven tab;** `history.back()` in the page did.
+- **svelte-check reports route-type comparison errors for new routes** until `svelte-kit sync` runs. `bun run check` syncs first; bare `bunx svelte-check` does not.
+- **Local dev verification was cheap this time:** the runtime and the MiniLM model were already cached. Boot with scratch `STATIC_DIR` and `DATA_DIR`. A same-origin iframe gives a real 390 px viewport with no probe file.
+- **The disk is at 100% with about 3.5 GB free.**
+
+### Open at checkpoint
+
+- **A1: read the 05:00 WIB (22:00Z, 2026-09-23) fire of `fc3e9381…`.** Erik's ops tab 893472375 was still polling at 17:46Z, so check the request log for 21:30–22:10Z first. Then delete the automation.
+- **Ruang Pimpinan P1 gaps:** text scale, keyboard-only use and the mobile drawer were not walked. P2 needs a plan (migrations, audited reads, BOD/PIC identities). P3 needs its own ADR on top of ADR-0013.
+
+## Checkpoint 2026-09-24-audit — E1 tool-call audit, A2 subagents, A3 code interpreter, subagent parent link
 
 - **Session:** `/next` → E1 built, deployed and verified → Erik confirmed E1 then A2 → A2 DB write → A1 day and time set (Mon 09:00 WIB) plus a timing test → A3 DB permission → code-interpreter audit line → subagent parent link via `/tdd` → `/wrap`.
 - **Live:** `ent-os-00023-pcd` (`53ae50d34`). Chain: `00020-lwb` → `00021-tbv` (E1, `2a68e6a0b`) → `00022-bs8` (CI audit, `365fdf183`) → `00023-pcd`. Every deploy and DB write had Erik's OK for that change. Rollback: `00022-bs8`.

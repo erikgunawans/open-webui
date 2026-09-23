@@ -1,3 +1,87 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-24-leadership)
+
+> Prepended by /wrap 2026-09-24 (checkpoint 2026-09-24-leadership). Supersedes checkpoint 2026-09-24-audit's anchor.
+
+Resume ent-os-new-jup. Read PROGRESS.md first (top checkpoint 2026-09-24-leadership).
+
+**Anchor:** `origin/main` at `57a9b3bd3` **as this was written**, or one commit ahead at this
+checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-24-leadership`).
+Verify with `git log --oneline 57a9b3bd3..origin/main`. Any other commit in that range is a parallel push.
+
+**Current state:**
+- Live on `ent-os-00025-s4l` (`ba81ffa5b`: Portfolio sort, filter and deep links). Rollback is `00024-ddh`.
+- **`origin/main` is ahead of live:** the Ruang Pimpinan P1 commits (`34dbd9421`, `ad63a9133`, `57a9b3bd3`) are pushed but not deployed. Any deploy ships them dormant: the flag is off, there are no grants, and the sidebar entry stays hidden.
+- **E5 is decided (ADR-0013), not built.** It ships with the first of E3, E4 or A5.
+- Ruang Pimpinan status and acceptance-ID evidence: `docs/ruang-pimpinan/status.md`.
+
+**Do next, in order:**
+1. **Read the A1 timing test.** Automation `fc3e9381-f433-4d7b-a11f-25e0cf496c2b` was due to fire at 05:00 WIB 2026-09-24 (22:00Z, 2026-09-23).
+   - **Check the clock first:** the last handoff claimed it had fired, before it had.
+   - `gcloud logging read` the `jup.governance` lines for 21:58–22:12Z, and the `run.googleapis.com/requests` log for 21:30–22:10Z.
+   - **Any request in that window voids the test.** Erik's ops tab 893472375 was still polling at 17:46Z.
+   - Then read the automation's run record and delete it through Erik's tab: GET `/api/v1/automations/<id>/runs`, DELETE `/api/v1/automations/<id>/delete`.
+2. **Act on the result.**
+   - **On time and valid:** ask Erik's OK to create "Ringkasan mingguan portofolio JUP" with `RRULE:FREQ=WEEKLY;BYDAY=MO;BYHOUR=9;BYMINUTE=0`, on Asisten JUP, owned by Erik, admin-only.
+   - **Late or missed:** get the exact monthly cost of `--no-cpu-throttling` for 1× 2 vCPU / 4 GiB in asia-southeast2 and put it to Erik.
+   - **Invalid (a request in the window):** rerun the test the same way, with no ops tab open anywhere.
+   - Then set A1's row in `.planning/agent-depth-plan.md`.
+3. **Ruang Pimpinan: close the P1 gaps.** Walk text scale above 100%, keyboard-only use and the mobile drawer on the local dev server (recipe in `docs/ruang-pimpinan/status.md`). Test whether the admin group editor keeps the `jup` permission key when it saves.
+4. **Ruang Pimpinan P2 plan.** Expand the roadmap's P2 brief into a task plan against the current code: action events, PIC evidence, BOD closure, snapshots, RKA baselines, reviewed imports. Migrations must pass the JUP alembic head guard, and reads and state changes need audit lines.
+   - **Plan means stop:** present the plan, don't build it.
+5. **Carried:**
+   - Per-turn `admitted` audit lines carry no chat id.
+   - Critique leftovers: the blocker's owner, next step and date; English record data under id-ID; the half-translated sidebar.
+   - The stale portfolio-permission claim in `deploy/gcp/README.md` (#10).
+   - The CI Docker CUDA and Ollama variants that failed on `259429034`.
+
+**Constraints to honor:**
+- **Deploy, DB-config and production-grant authorization is per change, never standing.** Record before-values in `.planning/*before*.json`.
+  - Pushing needs its own OK too; the handoff package says not to infer it.
+  - Enabling Ruang Pimpinan in production is three separate OKs: the deploy, the flag plus sample file, and the group grant.
+- **Ruang Pimpinan's approved decisions are settled; don't reopen them:**
+  - one sidebar entry opening two views, in layout A
+  - the PIC submits and only the BOD closes; admin is not BOD
+  - current data and meeting records stay separate, and baselines are never overwritten
+  - agents prepare changes, and execution waits for an authorized confirmation
+  - Dynamics variant and CRM choice are open but don't block the foundation
+- **Read-only directories:**
+  - `~/Documents/ChatGPT/KPI-Dashboard-JUP` (the handoff package lives there).
+  - `~/holaboss-ai`.
+- **Agent depth is built inside the governed harness.** Hermes stays parked.
+  - Every new tool needs an E1 audit line and, under ADR-0013, a risk class.
+  - The ledger is `.planning/agent-depth-plan.md` (five columns, statuses edited in place).
+- **Admin writes go through Erik's tab** (`deploy/gcp/lib/in-tab.ts`).
+  - Guard every eval with `location.host`.
+  - Evals die at about 8 KB.
+  - Close any tab you open.
+  - On localhost the dev server is 5050, not 5173, because of the Storymaker collision.
+- **Scheduled-job timing tests:** no ops tab open anywhere; watch only through Cloud Logging.
+- **i18n:**
+  - Only literal `$i18n.t('...')` calls are extracted, so maps must be reactive objects of literal calls.
+  - After `bun run i18n:parse`, check the id-ID diff for empty values.
+- **Tooling:**
+  - bun and bunx only; Python is approved in this fork.
+  - Backend tests: `uv run --no-sync --only-group dev pytest`. The HTTP seams run with `uv run --no-sync pytest`, since the runtime is installed.
+  - Type check with `bunx svelte-kit sync` before `svelte-check`. The baseline is 7794 errors / 202 warnings.
+  - Lint baselines: `middleware.py` 62, `subagents.py` 6.
+  - `NODE_OPTIONS=--max-old-space-size=8192`. Capture exit codes without a pipe.
+  - Deploy with `bash deploy/gcp/deploy.sh` (about 15 min). Commits go to `main`.
+  - **Importing the app outside pytest wipes `backend/open_webui/static`:** always set `STATIC_DIR` to a scratch copy.
+  - The disk is at 100% with about 3.5 GB free.
+
+**Open items waiting on Erik:**
+- **A1:** the real digest create, or, if the test was late, the CPU-throttling decision.
+- **Ruang Pimpinan:**
+  - Whether and when to enable P1 in production (deploy, flag, grant).
+  - The company decisions that gate live use: KPI owners and definitions; the BOD and PIC identity mapping and whether BOD closes individually or collectively; publication authority; retention and backup; the Dynamics product details from IT; the CRM choice.
+- **Codex CLI upgrade**, so Forge can run its pinned model.
+- **Plan decisions:** V1 (US voice under ZDR), E2 (sandbox VM budget), E7 (ADR-0012 machine-identity amendment), and a D-decision for each new egress: A4 search, A5 MCP, and each channel and integration.
+- **"JUP Staff" group membership.** It counts against the 50-seat ceiling, and A3 reaches nobody without it.
+- **D19 wording**, and the Rp 10 miliar SPBG capex tier currently labelled POTENSI.
+- **Carried:** a square JUP mark source; OpenRouter privacy toggles (D17d); `wrangler deploy` in `~/jup-kb-assistant-worker`; D18c hues; the `@jup/design-system` location; the old brand in `~/jup` deliverables; the SKK Migas/PGN contact; the Danantara and Pertamina Patra Niaga docs; `~/jup`'s untracked tooling directories.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-24-audit)
 
 > Prepended by /wrap 2026-09-24 (checkpoint 2026-09-24-audit). Supersedes checkpoint 2026-09-23-depth's anchor.
