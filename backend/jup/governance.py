@@ -352,6 +352,58 @@ def refuse_passthrough(*, user_id: str | None = None, route: str = '', model: An
     return GovernanceRefusal(reason)
 
 
+def audit_tool_call(
+    *,
+    name: str,
+    arguments: Any,
+    tool: dict | None,
+    result: Any,
+    error: bool,
+    user_id: str | None,
+    chat_id: str | None,
+    mode: str,
+) -> None:
+    """Append one `tool_call` entry for one tool invocation. Never raises.
+
+    `admit()` writes a line per *model turn*; a turn can run several tools, and the tool is where
+    the agent touches data, so a trail with only turn lines cannot say which tool read what for
+    whom. This is that line (agent-depth plan, E1).
+
+    **Argument size, never argument content.** Arguments carry whatever the user asked about, and
+    the trail is read far more widely than the chat it came from; the byte count is enough to
+    spot a runaway or an exfiltration-shaped call without copying the payload into a second place.
+
+    `outcome` is `unparsed` when the model's JSON could not be read (the native loop resolves no
+    tool and a `None` result for that), `not_found` when it named a tool it was not offered, and
+    otherwise `error`
+    or `ok` per the vendor's own error test, which the caller passes in as `error` so this package
+    does not re-derive — and drift from — the vendor's definition of a failed tool.
+    """
+    try:
+        if isinstance(arguments, str):
+            size = len(arguments.encode('utf-8'))
+        elif arguments is None:
+            size = 0
+        else:
+            size = len(json.dumps(arguments, default=str, ensure_ascii=False).encode('utf-8'))
+        if not tool:
+            outcome = 'unparsed' if result is None else 'not_found'
+        else:
+            outcome = 'error' if error else 'ok'
+        audit(
+            'tool_call',
+            mode=mode,
+            user=user_id,
+            chat=chat_id,
+            tool=name,
+            tool_id=(tool or {}).get('tool_id') or None,
+            outcome=outcome,
+            arg_bytes=size,
+        )
+    except Exception:
+        log.exception('jup.governance could not audit the tool call %r', name)
+
+
 def assert_governed(form_data: dict, *, state: Any = None, user_id: str | None = None, route: str = '') -> None:
     """The raising form of `refuse_if_ungoverned`, for callers with no framework of their own."""
     refusal = refuse_if_ungoverned(form_data, state=state, user_id=user_id, route=route)
@@ -371,6 +423,7 @@ __all__ = [
     'attach_contract',
     'audit',
     'audit_path',
+    'audit_tool_call',
     'carries_contract',
     'refuse_passthrough',
     'task_of',

@@ -217,3 +217,29 @@ same ground the logo replacement already rests on (ADR-0001).
 
 **Conflict risk:** low. Upstream rarely touches these lines, but they carry a LICENSE comment that
 merges will keep reasserting.
+
+## One audit line per tool call — `backend/open_webui/utils/middleware.py` (2026-09-23)
+
+**What:** one import (`from jup import governance as jup_governance`) and three calls to
+`jup_governance.audit_tool_call(...)`. There is one call at each place the vendor runs a tool:
+
+- the native tool loop in `streaming_chat_response_handler`, straight after each result is unpacked (`mode='native'`);
+- `drain_approved_tool_calls`, after the status is decided (`mode='approved'`);
+- the legacy prompt-based `chat_completion_tools_handler`, after the call returns (`mode='default'`).
+
+Each writes a `tool_call` line with the user, chat, tool name, `tool_id`, outcome
+(`ok`/`error`/`not_found`/`unparsed`) and argument size in bytes. It never writes argument
+content. All the logic is in `jup/governance.py`, and the call never raises.
+
+**Why:** agent-depth plan E1. `admit()` writes one line per model turn, but a turn can run several
+tools, and the tool is where the agent touches data. Every later tool (subagents, code
+interpreter, MCP) is only as accountable as this line.
+
+**If dropped:** silent. Tools still run and answers still arrive, but the trail loses the per-tool
+lines.
+
+**The test that catches it:** `tests/test_jup_tool_call_audit.py`. Against the unpatched file,
+6 of its tests fail.
+
+**Conflict risk:** moderate. The tool loop changes upstream often. Re-apply each call right after
+the site's result is known, and before any `continue` that skips a call.

@@ -19,6 +19,7 @@ from uuid import uuid4
 from aiocache import cached
 from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
+from jup import governance as jup_governance
 from open_webui.config import (
     CACHE_DIR,
     CODE_INTERPRETER_BLOCKED_MODULES,
@@ -1410,6 +1411,16 @@ async def chat_completion_tools_handler(
 
                 except Exception as e:
                     tool_result = {'error': str(e)}
+                jup_governance.audit_tool_call(
+                    name=tool_function_name,
+                    arguments=tool_function_params,
+                    tool=tool,
+                    result=tool_result,
+                    error=_is_tool_result_error(tool_result),
+                    user_id=getattr(user, 'id', None),
+                    chat_id=metadata.get('chat_id'),
+                    mode='default',
+                )
 
                 tool_result, tool_result_files, tool_result_embeds = await process_tool_result(
                     request,
@@ -3306,6 +3317,16 @@ async def drain_approved_tool_calls(request, form_data, user, model, metadata) -
         item['arguments'] = tool_call.get('function', {}).get('arguments', '{}')
         output_parts = [{'type': 'input_text', 'text': result.get('content', '')}]
         item['status'] = 'failed' if _is_tool_result_error(result.get('content', '')) else 'completed'
+        jup_governance.audit_tool_call(
+            name=item.get('name', ''),
+            arguments=item['arguments'],
+            tool=metadata.get('tools', {}).get(item.get('name', '')),
+            result=result.get('content'),
+            error=item['status'] == 'failed',
+            user_id=getattr(user, 'id', None),
+            chat_id=chat_id,
+            mode='approved',
+        )
         display_files = []
         for file_item in result.get('files', []):
             if file_item.get('type') == 'image' and file_item.get('url', '').startswith('data:'):
@@ -5728,6 +5749,16 @@ async def streaming_chat_response_handler(response, ctx):
                         tool_call_id = tool_call.get('id', '')
                         tool_function_name = tool_call.get('function', {}).get('name', '')
                         tool_function_params, tool_result, tool, tool_type, direct_tool = tool_results[id(tool_call)]
+                        jup_governance.audit_tool_call(
+                            name=tool_function_name,
+                            arguments=tool_call.get('function', {}).get('arguments'),
+                            tool=tool,
+                            result=tool_result,
+                            error=_is_tool_result_error(tool_result),
+                            user_id=getattr(user, 'id', None),
+                            chat_id=metadata.get('chat_id'),
+                            mode='native',
+                        )
                         if tool_result is None:
                             results.append(
                                 {

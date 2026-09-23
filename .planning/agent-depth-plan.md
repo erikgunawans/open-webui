@@ -33,7 +33,7 @@ design. The sandbox work for terminal and browser is needed on either path.
 | A1  | Automations: weekly portfolio digest                    | ready   | cron                               | Erik: day/time and per-change OK             |
 | A2  | Subagents + timers (Open WebUI native)                  | ready   | delegation                         | Erik: per-change OK (DB config)              |
 | A3  | Code interpreter for staff (Pyodide, in-browser)        | ready   | code execution                     | Erik: per-change OK (DB permission)          |
-| E1  | Tool-call audit: one audit line per tool invocation     | ready   | the audit trail for every tool     | Erik: deploy OK                              |
+| E1  | Tool-call audit: one audit line per tool invocation     | in-progress | the audit trail for every tool | built + tested; Erik: deploy OK            |
 | A4  | Web search + URL fetch                                  | blocked | web search                         | D-decision: search engine and egress         |
 | A5  | MCP tool servers                                        | blocked | MCP                                | D-decision per server: what it reaches       |
 | V1  | ChatGPT Live voice — backend delegation endpoint        | blocked | voice (holaOS has none)            | JUP D-decision on US processing (ADR-0006)   |
