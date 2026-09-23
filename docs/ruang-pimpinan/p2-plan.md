@@ -1,6 +1,6 @@
 # Ruang Pimpinan P2 — durable board workflows: task plan
 
-**Status: plan only, not authorised to build.** Written 2026-09-24 against `main` at `d59a145dd`
+**Status: plan approved by Erik 2026-09-24, including decisions E-1, E-2 and E-3. Building starts on his word.** Written 2026-09-24 against `main` at `d59a145dd`
 (P1 live on `ent-os-00027-lrc`, Erik-only grant, illustrative sample).
 
 Source of intent: the approved design and the P2 brief in the read-only handoff package
@@ -34,7 +34,7 @@ at the end, and a separate OK for each one.
   (`e3126777a`). New `jup.ruang_pimpinan.*` capabilities can use the same mechanism as the read
   grant.
 
-## Three engineering decisions to take before T1 (my recommendation first)
+## Three engineering decisions (approved by Erik 2026-09-24 as recommended)
 
 **E-1. Where the workflow records live → the app database, with an append-only event log, recorded
 as ADR-0014.** ADR-0004 rejected a table because a row has no provenance. P2's shape is different:
