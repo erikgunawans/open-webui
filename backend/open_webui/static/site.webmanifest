@@ -1,6 +1,6 @@
 {
-  "name": "JUP (Open WebUI)",
-  "short_name": "JUP",
+  "name": "Asisten JUP",
+  "short_name": "Asisten JUP",
   "icons": [
     {
       "src": "/static/web-app-manifest-192x192.png",

@@ -55,9 +55,9 @@ ENV: "prod"
 # Indonesian first: a browser with no saved language opens in Bahasa Indonesia. One already
 # holding a locale in localStorage keeps it; Settings > General switches it.
 DEFAULT_LOCALE: "id-ID"
-# The product name. The vendor appends " (Open WebUI)", so the UI reads "JUP (Open WebUI)";
-# replacing the branding at all rests on LICENSE clause 4 and the fifty-user ceiling (ADR-0001).
-WEBUI_NAME: "JUP"
+# The product name, shown as-is: the " (Open WebUI)" suffix is patched out of env.py. Replacing
+# the branding at all rests on LICENSE clause 4 and the fifty-user ceiling (ADR-0001).
+WEBUI_NAME: "Asisten JUP"
 # Agentic-capabilities plan, Phase 0 (2026-09-23).
 # There is no Ollama backend. This value only SEEDS the DB key ollama.enable on a fresh database;
 # on the live DB the key already exists and was switched off through the admin API. The

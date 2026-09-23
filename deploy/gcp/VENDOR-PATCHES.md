@@ -201,3 +201,19 @@ model's default tools.
 
 **Conflict risk:** moderate. `setDefaults` changes upstream now and then. Keep the waiting wrapper
 and re-apply the upstream body inside `applyDefaults`.
+
+## The name carries no " (Open WebUI)" suffix — `backend/open_webui/env.py` (2026-09-23)
+
+**What:** the two lines that append `' (Open WebUI)'` to any custom `WEBUI_NAME` are replaced by a
+comment. With `WEBUI_NAME: "Asisten JUP"` in deploy.sh, the app reads exactly "Asisten JUP".
+
+**Why:** Erik renamed the app to Asisten JUP on 2026-09-23. LICENSE clause 4 permits removing the
+Open WebUI branding while end users stay at fifty or fewer in any rolling 30 days. That is the
+same ground the logo replacement already rests on (ADR-0001).
+
+**If dropped:** silent. The name reads "Asisten JUP (Open WebUI)" again.
+
+**The test that catches it:** `tests/test_brand_asisten_jup.py`.
+
+**Conflict risk:** low. Upstream rarely touches these lines, but they carry a LICENSE comment that
+merges will keep reasserting.
