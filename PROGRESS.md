@@ -1,6 +1,43 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-23-depth (latest) — ?q= tools fixed, Asisten JUP rebrand live, agent-depth plan approved in direction
+## Checkpoint 2026-09-24-audit (latest) — E1 tool-call audit, A2 subagents, A3 code interpreter, subagent parent link
+
+- **Session:** `/next` → E1 built, deployed and verified → Erik confirmed E1 then A2 → A2 DB write → A1 day and time set (Mon 09:00 WIB) plus a timing test → A3 DB permission → code-interpreter audit line → subagent parent link via `/tdd` → `/wrap`.
+- **Live:** `ent-os-00023-pcd` (`53ae50d34`). Chain: `00020-lwb` → `00021-tbv` (E1, `2a68e6a0b`) → `00022-bs8` (CI audit, `365fdf183`) → `00023-pcd`. Every deploy and DB write had Erik's OK for that change. Rollback: `00022-bs8`.
+- **Tests:** 322 pass (`uv run --no-sync --only-group dev pytest`). Both vendor files are at their pre-change lint baselines (middleware 62, subagents 6).
+
+### What shipped
+
+- **E1: one audit line per tool call.** `jup.governance.audit_tool_call` writes `tool_call` entries: user, chat, tool, `tool_id`, outcome (`ok`/`error`/`not_found`/`unparsed`) and `arg_bytes`. It never writes argument content, and it never raises.
+  - There are four call sites in `utils/middleware.py`: `native`, `approved`, `default` and the legacy `code_interpreter` block.
+  - Verified live: `portfolio_status` → 1 line, and a KB chat → `query_knowledge_files` + `grep_knowledge_files`.
+- **A2: subagents on.** The DB write set `ENABLE_SUBAGENTS` true and `max_concurrent` 20→2. Background stays off. Before-values are in `.planning/a2-subagents-before-2026-09-23.json`.
+  - A delegated task verified that every subagent turn is `admitted` with the contract and every tool call is audited.
+  - Subagents re-enter `CHAT_COMPLETION_HANDLER`, so they are fully governed.
+- **A3: code interpreter for staff.** The default permission `features.code_interpreter` went from false to true; that was the only diff. Before-values are in `.planning/a3-permissions-before-2026-09-23.json`.
+  - The engine was already Pyodide and Jupyter is empty. It reaches nobody until staff get a model grant.
+  - **Correction recorded:** in native mode the code interpreter is the builtin tool `execute_code`, and E1's native line already covered it (verified live). The `365fdf183` insert covers the legacy text-parsed path.
+- **Subagent → parent link** (`53ae50d34`, built with TDD).
+  - `subagents.py` stamps `child_request.state.jup_parent_chat_id`, on `request.state` so it can't be forged.
+  - All four audit sites pass `state=request.state`.
+  - Verified live: the subagent's `portfolio_status` line carries `parent_chat` = the delegating chat.
+- **A1 timing test** (in progress).
+  - A one-off automation ran at 23:00:01 WIB, on time, called `portfolio_status` (outcome ok), and its run record says `success`.
+  - **This proves nothing about throttling.** Erik's Portfolio tab was open and polling, and an open tab keeps Cloud Run's CPU awake.
+  - A second test, `fc3e9381-f433-4d7b-a11f-25e0cf496c2b`, fires once at **05:00 WIB 2026-09-24 (22:00Z)**. The service has `minScale=1` but request-based CPU (throttled).
+
+### Findings
+
+- `/api/v1/auths/` does **not** return `timezone`. The stored value is set from the browser on every load (`+layout.svelte:1283`), so Erik's is `Asia/Jakarta`, and an automation `BYHOUR=9` means 09:00 WIB.
+- `?code-interpreter=true` in the URL turns the code interpreter on for a `?q=` chat.
+- `interceptor tabs` works even when `eval` times out. "Tabs cannot be edited right now" came before a full extension disconnect.
+
+### Open at checkpoint
+
+- **Read the 05:00 WIB timing-test result.** Check the audit lines at 22:00Z and the request log from 21:30Z to 22:10Z. A request in that window means the test is invalid. Then delete `fc3e9381…`.
+- Admitted (per-turn) lines still carry no chat id. Only `tool_call` lines link chats.
+
+## Checkpoint 2026-09-23-depth — ?q= tools fixed, Asisten JUP rebrand live, agent-depth plan approved in direction
 
 - **Session:** `/next` → item 1 root-caused and fixed (`?q=` tools race) → item 2 staff memory note → rename to Asisten JUP + logo system → deploy `00020-lwb` verified live → holaOS comparison re-shown → agent-depth plan + `/agent-depth` → Erik: enhance Asisten JUP, park Hermes.
 - **Live:** `ent-os-00020-lwb` (`254da9640`, contains `d010e877c`). Deployed with Erik's OK; before-value and rollback `00019-snl`.

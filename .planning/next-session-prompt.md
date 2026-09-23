@@ -1,3 +1,77 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-24-audit)
+
+> Prepended by /wrap 2026-09-24 (checkpoint 2026-09-24-audit). Supersedes checkpoint 2026-09-23-depth's anchor.
+
+Resume ent-os-new-jup. Read PROGRESS.md first (top checkpoint 2026-09-24-audit), then run `/agent-depth`.
+
+**Anchor:** `origin/main` at `53ae50d34` **as this was written**, or one commit ahead at this
+checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-24-audit`).
+Verify with `git log --oneline 53ae50d34..origin/main`. Any other commit in that range is a parallel push.
+
+**Current state:**
+- Live on `ent-os-00023-pcd` (`53ae50d34`); rollback is `00022-bs8`. 322 tests pass.
+- **E1 is live:** every tool call writes a `jup.governance` `tool_call` line with user, chat, tool, `tool_id`, outcome and `arg_bytes`, never argument content. Subagent lines add `parent_chat`.
+- **A2 is live:** subagents on, background off, `max_concurrent` 2.
+- **A3 is live:** `features.code_interpreter` is granted by default, on the Pyodide engine.
+- **A1 is in progress:** the digest runs Monday 09:00 WIB, and a throttling timing test is pending.
+- Everything is still admin-only, because non-admins have no model grant.
+
+**Do next, in order:**
+1. **Read the A1 timing test.** Automation `fc3e9381-f433-4d7b-a11f-25e0cf496c2b` fired once at 05:00 WIB 2026-09-24 (22:00Z).
+   - The watcher output may be gone, so re-query: `gcloud logging read` the audit lines for 21:58–22:12Z, and the `run.googleapis.com/requests` log for 21:30–22:10Z.
+   - **Any request in that window invalidates the test** (see memory `cloud-run-throttle-test-needs-no-open-tab`).
+   - Then read its run record and delete it: `$TMPDIR/a1/delete.ts` is gone after a restart, so use `runInTab` with GET `/api/v1/automations/<id>/runs`, then DELETE `/api/v1/automations/<id>/delete`.
+2. **Act on the result.**
+   - **On time and valid:** ask Erik's OK to create the real digest, "Ringkasan mingguan portofolio JUP", with `RRULE:FREQ=WEEKLY;BYDAY=MO;BYHOUR=9;BYMINUTE=0` (his stored timezone is Asia/Jakarta), on Asisten JUP, owned by Erik, admin-only.
+   - **Late or missed:** get the exact monthly cost of `--no-cpu-throttling` for 1× 2 vCPU / 4 GiB in asia-southeast2, and put the decision to Erik.
+   - Then set A1 in the ledger.
+3. **E5 (approval step for risky tools):** run `/grill-with-docs` first. Which tools are risky, who approves, and is the vendor `tool_approval_mode: ask` enough? Record the answer as an ADR. `/compact` before implementing.
+4. **Carried:**
+   - Per-turn `admitted` lines carry no chat id.
+   - Critique leftovers: the blocker owner, next step and date; English record data under id-ID; the half-translated sidebar; Portfolio sort, filter and deep links; the Portfolio `<title>` lacks the app name.
+   - The stale `deploy/gcp/README.md` portfolio-permission claim (#10).
+   - The CI Docker CUDA and Ollama variants failed on `259429034` (not our deploy path).
+
+**Constraints to honor:**
+- **Deploy and DB-config authorization is per change, never standing.** Record before-values in `.planning/*before*.json`.
+- **Agent depth is built inside the governed harness.** Hermes (X1) stays parked unless Erik reopens it. Every new tool or capability needs an E1 audit line, so check which path it runs through.
+- **The ledger is `.planning/agent-depth-plan.md`.** Edit rows in place: five columns; statuses live, in-progress, ready, blocked, planned or parked.
+- **Admin writes go through Erik's tab** (`deploy/gcp/lib/in-tab.ts`).
+  - Guard every eval with `location.host==='ops.axiara.ai'`.
+  - Eval dies at about 8 KB and times out at 15 s.
+  - `interceptor tabs` works even when `eval` hangs.
+  - Close any ops tab you open.
+- **Scheduled-job timing tests:** no ops tab open anywhere, and watch only through Cloud Logging. `/api/v1/auths/` does not return `timezone`.
+- **Evidence:** to prove a tool was offered, read `tool_ids` in the request body. To prove it was chosen, read the `tool_call` audit lines or the `output` function_call names.
+- **Stale caches:** after a deploy, `fetch(url,{cache:'reload'})`, then navigate.
+- **`~/holaboss-ai` is READ-ONLY.** `skills/` and `tools/` are the source of truth for the DB rows. The KB is a copy of `~/jup` (`bun deploy/gcp/sync-kb.ts`).
+- **Brand:**
+  - Never redraw or recolour the logogram.
+  - `static/static` and `backend/open_webui/static` must stay identical.
+  - Measure contrast.
+- **Tooling:**
+  - bun/bunx only; Python is approved in this fork.
+  - `NODE_OPTIONS=--max-old-space-size=8192`.
+  - Capture exit codes without a pipe.
+  - Tests: `uv run --no-sync --only-group dev pytest`.
+  - Lint baselines: `middleware.py` 62 and `subagents.py` 6 pre-existing errors. Don't add to them.
+  - `gh` needs `--repo erikgunawans/ent-os-new-jup`. Commits go to `main`.
+  - Deploy with `bash deploy/gcp/deploy.sh` (Cloud Build, about 15 min).
+
+**Open items waiting on Erik:**
+- **A1:** the real digest create, which needs his per-change OK. If the test was late, the CPU-throttling decision.
+- **Plan decisions:**
+  - US voice processing under ZDR and the voice KB set (V1).
+  - The sandbox VM budget (E2).
+  - The ADR-0012 machine-identity amendment (E7).
+  - One D-decision per new egress: search engine (A4), MCP server (A5), channel, integration.
+- **D19** wording.
+- **"JUP Staff" group membership.** It counts against the 50-seat ceiling, and until it exists A3 reaches nobody.
+- **The Rp 10 miliar SPBG capex tier.** It is labelled POTENSI, but POTENSI means revenue.
+- **Carried:** a square JUP mark source; OpenRouter privacy toggles (D17d); `wrangler deploy` in `~/jup-kb-assistant-worker`; D18c hues; `@jup/design-system` location; old brand in `~/jup` deliverables; the SKK Migas/PGN contact; the Danantara and Pertamina Patra Niaga docs; `~/jup` untracked tooling dirs; Codex CLI ≥0.155.1.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-23-depth)
 
 > Prepended by /wrap 2026-09-23 (checkpoint 2026-09-23-depth). Supersedes checkpoint 2026-09-23-agentic's anchor.
