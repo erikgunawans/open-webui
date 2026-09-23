@@ -5,6 +5,20 @@ Status: **APPROVED by Erik 2026-09-23.** His decisions:
 - **Memory:** kept on for staff, with background review off.
 - **"JUP Staff" membership:** not yet named.
 
+## Progress
+- **Phase 0 is live.** It shipped as `990c26c39` on revision `ent-os-00018-6g2`. Checks on the live app:
+  - `/openai/responses` returns 403.
+  - The Ollama `/v1/chat/completions` and `/api/generate` routes return 403.
+  - Each refusal writes a `refused` audit line.
+  - Normal chat is still `admitted` with the contract attached.
+  - The 0e baseline was written and read back. The before-values are in `.planning/0e-before-values-2026-09-23.json`.
+- **Phase 1 is live.**
+  - `deploy/gcp/sync-kb.ts` (`07a784f95`) loaded 12 files from `~/jup` `1e1d4b6` into "JUP Strategy KB" (`82f7d2f7-d7f4-4042-968a-64cbc958b98c`). Grants are empty, so it is admin only. `--check` shows 12 unmodified.
+  - The knowledge base is attached to Asisten JUP through `meta.knowledge`. The model's before-value is in `.planning/phase1-model-before-2026-09-23.json`.
+  - Live test: asking the SKK Migas stage question returned "Contacted" with 4 sources, `partners.md`, `gas.md` and both records.
+  - The audit log shows two `admitted`/`attached` turns (the question and the continuation after the tool call) and no query-generation call, because native mode skips that exempt call.
+- **The Phase 3 precondition is met.** MiMo on OpenRouter returned a correct native `tool_calls` entry.
+
 Correction found during execution: `ollama.enable` is DB-seeded, so the deploy.sh env var only seeds a fresh DB. The live switch belongs in the 0e DB write.
 
 How to read the tables:
