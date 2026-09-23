@@ -1,6 +1,6 @@
 ---
-description: Show the agent-depth phases (holaOS gap, ChatGPT Live voice, Hermes runtime) and what each waits on
-argument-hint: '[A|V|H|I|P] — optional track filter'
+description: Show the agent-depth phases (holaOS gap, Asisten JUP harness enhancements, ChatGPT Live voice) and what each waits on
+argument-hint: '[A|E|V|I|P|X] — optional track filter'
 allowed-tools: Bash(bun scripts/agent-depth.ts:*)
 ---
 
@@ -17,8 +17,8 @@ only reads it. After the output, add at most three lines:
 
 - the **next** phase and what it waits on;
 - any item in "Decisions Erik owns" that is blocking a `ready` or `blocked` phase;
-- if the plan's Status line still says DRAFT, say that nothing may be executed until Erik approves.
+- remind that each deploy and each DB write still needs Erik's per-change OK.
 
 Do not start work on a phase from this command. When a phase's status changes, edit the ledger row
 in the plan (keep the table's five columns and the status vocabulary: live, in-progress, ready,
-blocked, planned) — never a copy elsewhere.
+blocked, planned, parked) — never a copy elsewhere.

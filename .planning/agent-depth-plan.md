@@ -1,56 +1,70 @@
-# Plan — close the agent-depth gap with holaOS, add ChatGPT Live voice and a Hermes runtime
+# Plan — close the agent-depth gap with holaOS by enhancing Asisten JUP, and add ChatGPT Live voice
 
-Status: **DRAFT, awaiting Erik's approval (2026-09-23).** Nothing here is executed until he approves
-it. Each deploy and each DB write still needs his per-change OK.
+Status: **Direction approved by Erik 2026-09-23: enhance Asisten JUP as the main path; the Hermes runtime is parked.** Each deploy and each DB write still needs his per-change OK.
 
-Supersedes nothing. It continues `.planning/agentic-capabilities-plan.md`: Phases 0–4 there are
-live, and its Phase 5 is carried into this ledger as A1.
+Continues `.planning/agentic-capabilities-plan.md`: its Phases 0–4 are live, and its Phase 5 is
+carried here as A1.
 
 `/agent-depth` prints the ledger below. **Keep the table's shape**, because
-`scripts/agent-depth.ts` parses it. Status is one of `live`, `in-progress`, `ready`, `blocked` or
-`planned`.
+`scripts/agent-depth.ts` parses it. Status is one of `live`, `in-progress`, `ready`, `blocked`,
+`planned` or `parked`.
+
+## Why enhance rather than adopt Hermes (decided 2026-09-23)
+
+With Hermes the agent loop lives outside our system, so we would govern its model calls and stay
+blind to its tool calls, memory writes and self-written skills. Running it safely would take eight
+conditions: one instance per user, all model calls through our funnel, disposable containers,
+an egress allowlist, no secrets on the box, reviewed skills, tool-call audit and a pinned version.
+That is a second agent platform to secure.
+
+Open WebUI already ships, or has a native slot for, most of what Hermes offers. What it lacks we
+build here, inside the funnel, the contract, the audit trail, per-user RBAC and multi-user by
+design. The sandbox work for terminal and browser is needed on either path.
 
 ## Phase ledger
 
-| ID  | Phase                                                | Status  | Closes the gap on                        | Waits on                                     |
-| --- | ---------------------------------------------------- | ------- | ---------------------------------------- | -------------------------------------------- |
-| P0  | Governance holes closed                              | live    | the precondition for everything below    | —                                            |
-| P1  | JUP Strategy KB (RAG, pgvector)                      | live    | knowledge / memory recall                | —                                            |
-| P2  | Skills: 3 JUP + 16 ported holaOS                     | live    | skills                                   | —                                            |
-| P3  | `portfolio_status` tool                              | live    | domain tools                             | —                                            |
-| P4  | Memory on for staff, review off                      | live    | memory                                   | —                                            |
-| A1  | Automations: weekly portfolio digest                 | ready   | cron                                     | Erik: day/time and per-change OK             |
-| A2  | Subagents + timers (Open WebUI native)               | ready   | delegation (`delegate_task`)             | Erik: per-change OK (DB config)              |
-| A3  | Code interpreter for staff (Pyodide, in-browser)     | ready   | code execution                           | Erik: per-change OK (DB permission)          |
-| A4  | Web search + URL fetch                               | blocked | web search                               | D-decision: search engine and egress         |
-| A5  | MCP tool servers                                     | blocked | MCP, integrations                        | D-decision per server: what it reaches       |
-| V1  | ChatGPT Live voice — backend delegation endpoint     | blocked | voice (holaOS has none)                  | JUP D-decision on US processing (ADR-0006)   |
-| V2  | ChatGPT Live voice — call UI and voice KB scope      | planned | voice                                    | V1                                           |
-| H1  | Hermes host: private GCE VM, single writer           | blocked | agent runtime #2                         | Erik: GCE cost OK, D-decision on runtime     |
-| H2  | Hermes' LLM calls routed through our funnel          | planned | governance of runtime #2                 | ADR-0012 amendment: a machine identity       |
-| H3  | Hermes exposed as an admin-only model in the chat    | planned | agent runtime #2                         | H1, H2                                       |
-| H4  | Hermes tools: sandboxed terminal, files, browser     | planned | terminal, browser, files                 | H3, egress allowlist                         |
-| H5  | Hermes messaging gateway (Telegram / WhatsApp)       | planned | chat channels                            | H3, D-decision per channel                   |
-| H6  | Hermes for staff: one profile per user               | planned | multi-user runtime                       | H4, "JUP Staff" group named                  |
-| I1  | Integrations via MCP (Google Workspace first)        | planned | integrations                             | A5, D-decision per integration               |
+| ID  | Phase                                                   | Status  | Closes the gap on                  | Waits on                                     |
+| --- | ------------------------------------------------------- | ------- | ---------------------------------- | -------------------------------------------- |
+| P0  | Governance holes closed                                 | live    | the precondition for everything    | —                                            |
+| P1  | JUP Strategy KB (RAG, pgvector)                         | live    | knowledge / memory recall          | —                                            |
+| P2  | Skills: 3 JUP + 16 ported holaOS                        | live    | skills                             | —                                            |
+| P3  | `portfolio_status` tool                                 | live    | domain tools                       | —                                            |
+| P4  | Memory on for staff, review off                         | live    | memory                             | —                                            |
+| A1  | Automations: weekly portfolio digest                    | ready   | cron                               | Erik: day/time and per-change OK             |
+| A2  | Subagents + timers (Open WebUI native)                  | ready   | delegation                         | Erik: per-change OK (DB config)              |
+| A3  | Code interpreter for staff (Pyodide, in-browser)        | ready   | code execution                     | Erik: per-change OK (DB permission)          |
+| E1  | Tool-call audit: one audit line per tool invocation     | ready   | the audit trail for every tool     | Erik: deploy OK                              |
+| A4  | Web search + URL fetch                                  | blocked | web search                         | D-decision: search engine and egress         |
+| A5  | MCP tool servers                                        | blocked | MCP                                | D-decision per server: what it reaches       |
+| V1  | ChatGPT Live voice — backend delegation endpoint        | blocked | voice (holaOS has none)            | JUP D-decision on US processing (ADR-0006)   |
+| V2  | ChatGPT Live voice — call UI and voice KB scope         | planned | voice                              | V1                                           |
+| E2  | Sandbox host: private VM, gVisor containers, egress proxy | planned | the fence for E3 and E4          | Erik: VM budget                              |
+| E3  | Terminal via Open Terminal in the sandbox, admin-only   | planned | terminal, files                    | E1, E2                                       |
+| E4  | Browser automation via Playwright MCP in the sandbox    | planned | browser                            | A5, E2                                       |
+| E5  | Approval step for risky tool calls                      | planned | long autonomous runs               | E1                                           |
+| E6  | Skill proposals: agent drafts, admin approves, sync     | planned | self-improving skills              | E1                                           |
+| E7  | Messaging gateway (Telegram first, then WhatsApp)       | planned | chat channels                      | ADR-0012 amendment, D-decision per channel   |
+| I1  | Integrations via MCP (Google Workspace first)           | planned | integrations                       | A5, D-decision per integration               |
+| X1  | Hermes as an admin-only lab runtime                     | parked  | runtime experiments                | Erik reopens it                              |
 
 ## Where the gap is (holaOS `a6b58be` vs Asisten JUP `254da9640`)
 
-| Capability     | holaOS                                                     | Asisten JUP today                         | Closed by      |
-| -------------- | ---------------------------------------------------------- | ----------------------------------------- | -------------- |
-| Runtimes       | 3: pi (in-process), Claude Code, Codex; all auto-approve   | 1: the model's native tool loop           | H1–H4          |
-| Tools          | 96 built-in (files, bash, 33 browser, cron, apps, media)   | builtins (KB, memory, chats, notes) + 1   | A2–A5, H4      |
-| Integrations   | 89 via Composio, proxied through `api.holaboss.ai`         | none                                      | A5, I1         |
-| Channels       | 8 (Telegram, Slack, Discord, Feishu, DingTalk, QQ, WeCom, WeChat) | web only                           | H5             |
-| Voice          | **none**                                                   | none (ADR-0005/0006 decided, no code)     | V1–V2          |
-| Cron           | 60 s cron worker, workflow graph                           | automations exist, none configured        | A1, Hermes cron |
-| Subagents      | `delegate_task` family                                     | native, off                               | A2             |
-| Web search     | Holaboss search + Exa                                      | off                                       | A4             |
-| Governance     | none: bypassed approvals, no sandbox, no audit             | funnel + contract + audit + deny-default  | keep it        |
+| Capability   | holaOS                                                            | Asisten JUP today                        | Closed by  |
+| ------------ | ----------------------------------------------------------------- | ---------------------------------------- | ---------- |
+| Agent loop   | 3 runtimes: pi (in-process), Claude Code, Codex; all auto-approve | 1: the model's native tool loop          | E1–E6      |
+| Tools        | 96 built-in (files, bash, 33 browser, cron, apps, media)          | builtins (KB, memory, chats, notes) + 1  | A2–A5, E3, E4 |
+| Integrations | 89 via Composio, proxied through `api.holaboss.ai`                | none                                     | A5, I1     |
+| Channels     | 8 (Telegram, Slack, Discord, Feishu, DingTalk, QQ, WeCom, WeChat) | web only                                 | E7         |
+| Voice        | **none**                                                          | none (ADR-0005/0006 decided, no code)    | V1–V2      |
+| Cron         | 60 s cron worker, workflow graph                                  | automations exist, none configured       | A1         |
+| Subagents    | `delegate_task` family                                            | native, off                              | A2         |
+| Web search   | Holaboss search + Exa                                             | off                                      | A4         |
+| Self-improving skills | the agent writes its own                                 | admin-managed only                       | E6 (reviewed) |
+| Governance   | none: bypassed approvals, no sandbox, no audit                    | funnel + contract + audit + deny-default | keep it    |
 
-We do not copy holaOS's governance posture. Every phase below keeps ADR-0002: **each model turn
-passes `generate_chat_completion`, carries the contract and writes an audit line.** A capability
-that can't meet that isn't turned on.
+We do not copy holaOS's governance posture. Every phase keeps ADR-0002: **each model turn passes
+`generate_chat_completion`, carries the contract and writes an audit line**, and from E1 on each
+tool call writes one too. A capability that can't meet that isn't turned on.
 
 ## Track A — Open WebUI capability we already ship (cheap, config-only)
 
@@ -92,71 +106,47 @@ surface, because we see the whole answer before a word is spoken.
   `gpt-live-1`, `/v1/live/sessions` and `session.thinking.append`. Re-read OpenAI's docs before
   writing code.
 
-## Track H — Hermes Agent as a second runtime
+## Track E — enhance the Asisten JUP harness
 
-**What Hermes is (researched 2026-09-23).**
-- NousResearch/hermes-agent, MIT, Python. v0.21.4 released 2026-09-21, with weekly releases and
-  heavy churn.
-- It has an optional OpenAI-compatible API server: `/v1/chat/completions`, `/v1/runs` with an
-  approval endpoint, and `/api/jobs` for cron. The docs include an Open WebUI integration guide.
-- Toolsets: terminal (local, docker, ssh, modal …), files, browser, cron, `delegate_task`, memory,
-  self-written skills, an MCP client, and 30+ messaging adapters.
-- **It is single-tenant by design.** Multi-user means one profile per user.
-- It needs a persistent disk with exactly one writer (SQLite WAL). The docs say never to run two
-  gateways on one data dir.
+- **E1 Tool-call audit.** Today the audit trail has a line per model turn, not per tool call.
+  Add one `jup.governance` line per tool invocation: user, chat, tool id, outcome, and argument
+  size rather than argument content. It comes first because every later tool is only as
+  accountable as this line. Verify by running `portfolio_status` and a KB tool and finding one
+  line each in Cloud Logging.
+- **E2 Sandbox host.** A private VM in `asia-southeast2` on the `default` VPC. ent-os already has
+  Direct VPC egress there and can reach it on a private IP. Workloads run in gVisor (`runsc`)
+  containers, one per session and deleted after it. All outbound traffic goes through an
+  allowlist proxy, and nothing on the box holds secrets or JUP records. Cloud Run cannot host this:
+  it has no container runtime for per-session sandboxes.
+- **E3 Terminal.** Open WebUI already drives an external **Open Terminal** server: our backend
+  proxies `routers/terminals.py`, and the tools come from its OpenAPI spec (traced 2026-09-23).
+  Host Open Terminal inside E2 and attach it admin-only (`terminal_server.connections`). Each
+  command runs inside the model's governed tool loop and gets an E1 audit line.
+- **E4 Browser.** A Playwright MCP server in E2, attached through A5. Browsing reaches only what
+  the egress proxy allows.
+- **E5 Approvals.** Tools marked risky (terminal writes, browser form submits, anything outbound)
+  pause for the user's explicit confirmation before they run. The decision is recorded in the E1
+  audit line. Design first: find out what Open WebUI's tool-call UI already offers before building.
+- **E6 Skill proposals.** A `propose_skill` tool lets the agent draft a skill from a repeated
+  task into a review queue. An admin approves it into `skills/`, and `sync-skills.ts` publishes it.
+  This is the self-improvement Hermes has, with a human gate that Hermes lacks.
+- **E7 Messaging gateway.** A thin service for Telegram first, then WhatsApp. It maps a verified
+  account to one JUP user and calls our pipeline as that user, so every channel turn is governed
+  and audited like typed chat. It needs one machine identity: an ADR-0012 amendment, decided
+  before code. Each channel is new egress, so each needs a D-decision.
 
-**Architecture.**
+## Parked — Hermes Agent (X1)
 
-```
-browser ──IAP──▶ ent-os (Cloud Run) ──funnel+contract+audit──▶ Hermes API (private GCE VM)
-                     ▲                                               │
-                     └──── every Hermes LLM call (custom provider) ◀─┘
-                                 funnel+contract+audit ──▶ OpenRouter/MiMo
-```
-
-- **H1 Host.**
-  - An `e2-standard-2`-class VM in `asia-southeast2`, private IP only, on the `default` VPC. ent-os
-    already has Direct VPC egress there, so it can reach the VM.
-  - A persistent disk for `/opt/data`, using the official `nousresearch/hermes-agent` image,
-    version-pinned.
-  - Cloud Run is **not** the host: it scales out, has no Docker daemon for sandboxed terminals, and
-    cron needs an always-on process.
-- **H2 Governed model routing.** This is the load-bearing part.
-  - Hermes' `model.provider: custom` points at **our** OpenAI-compatible endpoint, never at OpenRouter.
-  - Every auxiliary task is pinned to the same endpoint: compression, titles, vision, web
-    summarisation, MoA and the approval classifier. There are no `fallback_providers` or
-    `fallback_chain`s, so no call can leave by another road.
-  - Our endpoint sits behind IAP, and ADR-0012 rejects any session whose user isn't the IAP
-    identity. So Hermes needs **one scoped machine identity**: an internal-ingress path, a
-    service-account-bound key, and nothing but `/api/chat/completions`. That's an ADR-0012
-    amendment, decided before any code.
-- **H3 Exposure.**
-  - Hermes becomes an OpenAI-compatible connection in Open WebUI, shown as a model such as
-    "Asisten JUP · Agen", with empty grants (admin-only).
-  - The outer turn is governed at the funnel, and Hermes' inner turns are governed again by H2.
-    Both write audit lines.
-- **H4 Tools.**
-  - The terminal uses the docker backend, one container per session, not persistent, with egress
-    limited to an allowlist. Hermes skips its dangerous-command checks inside containers, so the
-    container **is** the boundary.
-  - `approvals.unattended_mode: deny` stays on. Off: `computer_use`, `homeassistant`, `image_gen`,
-    `tts`, and the `model_catalog` fetch. Telemetry stays off (its default).
-- **H5 Channels.** Telegram or WhatsApp through Hermes' gateway. This closes holaOS's channel gap.
-  Each channel is new egress plus an identity-mapping problem, so it needs a D-decision per channel.
-- **H6 Staff.** One Hermes profile per staff member (own key, own memory). This waits on the "JUP
-  Staff" group and the 50-seat ceiling (ADR-0001).
-
-**Open risks.**
-- Heavy upstream churn: pin the version and upgrade deliberately.
-- An open issue (#31346) where an SSE MCP server fails on Cloud Run. It doesn't bite on GCE.
-- The client system message is layered on Hermes' own core prompt, not substituted for it. Our
-  contract still arrives on every inner turn through H2, which is the guarantee that matters.
+Researched 2026-09-23: NousResearch/hermes-agent, MIT, v0.21.4. It is single-tenant by design,
+needs one writer on a persistent disk, and skips its dangerous-command checks inside containers.
+Parked by Erik's decision. If reopened, it is an admin-only lab runtime on its own VM, never
+touching staff or records, and its model calls go through our funnel with no fallbacks.
 
 ## Decisions Erik owns, in the order they unblock work
 
-1. Approve this plan and its order (A → V → H).
-2. **A1:** the digest's day and time (WIB).
+1. **A1:** the digest's day and time (WIB).
+2. **A2, A3, E1:** a per-change OK for each (a DB config write, a DB permission, a deploy).
 3. **V:** the JUP decision on US processing of voice under ZDR, and the named voice KB set.
-4. **H1:** a GCE VM budget for the Hermes host.
-5. **H2:** the ADR-0012 amendment for one machine identity.
-6. **A4/A5/H5/I1:** one D-decision per new egress: search engine, MCP server, channel, integration.
+4. **E2:** a VM budget for the sandbox host.
+5. **E7:** the ADR-0012 amendment for one machine identity.
+6. **A4/A5/E7/I1:** one D-decision per new egress: search engine, MCP server, channel, integration.

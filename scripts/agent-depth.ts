@@ -7,7 +7,7 @@
 import { join } from 'node:path';
 
 const PLAN = join(import.meta.dir, '..', '.planning', 'agent-depth-plan.md');
-const STATUSES = ['live', 'in-progress', 'ready', 'blocked', 'planned'] as const;
+const STATUSES = ['live', 'in-progress', 'ready', 'blocked', 'planned', 'parked'] as const;
 type Status = (typeof STATUSES)[number];
 type Row = { id: string; phase: string; status: Status; closes: string; waits: string };
 
@@ -16,7 +16,8 @@ const ICON: Record<Status, string> = {
 	'in-progress': '◐',
 	ready: '○',
 	blocked: '■',
-	planned: '·'
+	planned: '·',
+	parked: '–'
 };
 
 function ledger(markdown: string): Row[] {
@@ -65,7 +66,7 @@ for (const r of rows) {
 const count = (s: Status) => rows.filter((r) => r.status === s).length;
 console.log(
 	`\n${count('live')} live · ${count('in-progress')} in progress · ${count('ready')} ready · ` +
-		`${count('blocked')} blocked · ${count('planned')} planned`
+		`${count('blocked')} blocked · ${count('planned')} planned · ${count('parked')} parked`
 );
 const next = rows.find((r) => r.status === 'in-progress') ?? rows.find((r) => r.status === 'ready');
 if (next)
