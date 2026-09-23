@@ -35,13 +35,13 @@ design. The sandbox work for terminal and browser is needed on either path.
 | A3  | Code interpreter for staff (Pyodide, in-browser)        | live    | code execution                     | —                                            |
 | E1  | Tool-call audit: one audit line per tool invocation     | live    | the audit trail for every tool     | —                                            |
 | A4  | Web search + URL fetch                                  | blocked | web search                         | D-decision: search engine and egress         |
-| A5  | MCP tool servers                                        | blocked | MCP                                | D-decision per server: what it reaches       |
+| A5  | MCP tool servers                                        | blocked | MCP                                | D-decision per server; E5 gate (ADR-0013)    |
 | V1  | ChatGPT Live voice — backend delegation endpoint        | blocked | voice (holaOS has none)            | JUP D-decision on US processing (ADR-0006)   |
 | V2  | ChatGPT Live voice — call UI and voice KB scope         | planned | voice                              | V1                                           |
 | E2  | Sandbox host: private VM, gVisor containers, egress proxy | planned | the fence for E3 and E4          | Erik: VM budget                              |
-| E3  | Terminal via Open Terminal in the sandbox, admin-only   | planned | terminal, files                    | E1, E2                                       |
-| E4  | Browser automation via Playwright MCP in the sandbox    | planned | browser                            | A5, E2                                       |
-| E5  | Approval step for risky tool calls                      | planned | long autonomous runs               | E1                                           |
+| E3  | Terminal via Open Terminal in the sandbox, admin-only   | planned | terminal, files                    | E1, E2, E5                                   |
+| E4  | Browser automation via Playwright MCP in the sandbox    | planned | browser                            | A5, E2, E5                                   |
+| E5  | Approval step for risky tool calls (ADR-0013)           | ready   | long autonomous runs               | ships with first of E3/E4/A5                 |
 | E6  | Skill proposals: agent drafts, admin approves, sync     | planned | self-improving skills              | E1                                           |
 | E7  | Messaging gateway (Telegram first, then WhatsApp)       | planned | chat channels                      | ADR-0012 amendment, D-decision per channel   |
 | I1  | Integrations via MCP (Google Workspace first)           | planned | integrations                       | A5, D-decision per integration               |
@@ -126,7 +126,9 @@ surface, because we see the whole answer before a word is spoken.
   the egress proxy allows.
 - **E5 Approvals.** Tools marked risky (terminal writes, browser form submits, anything outbound)
   pause for the user's explicit confirmation before they run. The decision is recorded in the E1
-  audit line. Design first: find out what Open WebUI's tool-call UI already offers before building.
+  audit line. Decided 2026-09-24 in ADR-0013: three risk classes (`read`, `write_own`, `external`),
+  unclassified means `external`, the asking user approves each call, 10-minute timeout, and every
+  unattended path (automations, subagents, channels) fails closed. Ships with the first of E3/E4/A5.
 - **E6 Skill proposals.** A `propose_skill` tool lets the agent draft a skill from a repeated
   task into a review queue. An admin approves it into `skills/`, and `sync-skills.ts` publishes it.
   This is the self-improvement Hermes has, with a human gate that Hermes lacks.
