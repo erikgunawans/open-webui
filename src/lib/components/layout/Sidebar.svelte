@@ -973,7 +973,12 @@
 								<!-- JUP: the BangJayaOS mark alone; the guideline drops the logotype below 28px. -->
 								<img
 									src="{WEBUI_BASE_URL}/static/bangjayaos-mark.svg"
-									class="sidebar-new-chat-icon size-5 group-hover:hidden"
+									class="sidebar-new-chat-icon size-5 group-hover:hidden dark:hidden"
+									alt=""
+								/>
+								<img
+									src="{WEBUI_BASE_URL}/static/bangjayaos-mark-dark.svg"
+									class="sidebar-new-chat-icon size-5 hidden dark:block dark:group-hover:hidden"
 									alt=""
 								/>
 

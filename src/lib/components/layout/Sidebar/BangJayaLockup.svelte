@@ -1,13 +1,25 @@
 <script lang="ts">
 	// JUP: the BangJayaOS lockup (BangJayaOS Brand Guidelines, "Lockup"): mark, a 1px divider,
 	// then the logotype and tagline, set flat. The mark keeps JUP's identity colours in both
-	// themes — Pigment Green outer, Polynesian Blue inner — so only the type and divider invert.
+	// themes: Pigment Green outer, Polynesian Blue inner. On Rich Black the blue measures 2.11:1,
+	// so the dark mark takes JUP's dark blue token #85AAD2 (7.58:1), Erik's call 2026-09-23.
 	// Live text rather than an image, so it stays sharp and follows the theme.
 	import { WEBUI_BASE_URL } from '$lib/constants';
 </script>
 
 <div class="bj-lockup">
-	<img src="{WEBUI_BASE_URL}/static/bangjayaos-mark.svg" alt="" class="bj-mark" draggable="false" />
+	<img
+		src="{WEBUI_BASE_URL}/static/bangjayaos-mark.svg"
+		alt=""
+		class="bj-mark dark:hidden"
+		draggable="false"
+	/>
+	<img
+		src="{WEBUI_BASE_URL}/static/bangjayaos-mark-dark.svg"
+		alt=""
+		class="bj-mark hidden dark:block"
+		draggable="false"
+	/>
 	<span class="bj-divider" aria-hidden="true"></span>
 	<div class="bj-type">
 		<span class="bj-wordmark">BangJaya<span class="bj-os">OS</span></span>
