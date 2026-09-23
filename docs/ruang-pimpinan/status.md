@@ -8,13 +8,13 @@ file records what exists in this repository and what the evidence for it is.
 **P1 (native read foundation) is implemented and verified locally. It is not deployed, not enabled
 anywhere, and holds no real grant.** The whole product is P1–P5; P1 is not completion.
 
-| Item     | State                                                                                                                                                                   |
-| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Commits  | `34dbd9421` (records, policy, API), `ad63a9133` (views, sidebar, preview), plus this file and two id-ID fixes                                                           |
-| Pushed   | Yes, 2026-09-24 (`34dbd9421`, `ad63a9133`, `57a9b3bd3`). Not deployed.                                                                                                  |
-| Deployed | No. `JUP_LEADERSHIP_ENABLED` is unset in production, so the API answers 503 and the sidebar entry never shows.                                                          |
-| Data     | Illustrative only: `tests/fixtures/leadership/illustrative-seed.json`, figures from the 18 Sep 2026 BOD deck and the RKA 2027 Draft 1, labelled unverified and partial. |
-| Grants   | None in production. Local verification used synthetic users and groups in a scratch database.                                                                           |
+| Item     | State                                                                                                                                                                                                          |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Commits  | `34dbd9421` (records, policy, API), `ad63a9133` (views, sidebar, preview), plus this file and two id-ID fixes                                                                                                  |
+| Pushed   | Yes, 2026-09-24 (`34dbd9421`, `ad63a9133`, `57a9b3bd3`). Not deployed.                                                                                                                                         |
+| Deployed | Dormant on `ent-os-00026-mvj` (`dd15a3100`, 2026-09-24). `JUP_LEADERSHIP_ENABLED` is unset, so capabilities answers `enabled: false`, the other routes 503, and the sidebar entry never shows (verified live). |
+| Data     | Illustrative only: `tests/fixtures/leadership/illustrative-seed.json`, figures from the 18 Sep 2026 BOD deck and the RKA 2027 Draft 1, labelled unverified and partial.                                        |
+| Grants   | None in production. Local verification used synthetic users and groups in a scratch database.                                                                                                                  |
 
 ## Where it lives
 
