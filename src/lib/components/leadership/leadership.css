@@ -1,0 +1,416 @@
+/* Ruang Pimpinan. Every colour is a JUP token, so light, dark and the GSM contrast rules come from
+ * src/jup-tokens.css rather than being restated here. Accents are fills; words use the `-text`
+ * tokens. Structure is square (--jup-radius), controls take --jup-radius-sm, and the 14px inset
+ * panel around all of this belongs to the app shell.
+ *
+ * Type scale follows Portfolio: 12 / 14 / 16 / 20 / 24px, labels 12px, sentences 14px, running text
+ * held to a 68ch measure. Sizes are rem so the app's text-scale setting applies. */
+
+.jlp-root {
+	color: var(--jup-ink);
+}
+
+.jlp-section {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+	background: var(--jup-surface);
+}
+
+.jlp-scroll {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+.jlp-container {
+	margin: 0 auto;
+	width: 100%;
+	max-width: 72rem;
+	padding: 1.5rem 1.25rem 3rem;
+}
+
+.jlp-header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
+.jlp-title {
+	font-family: var(--jup-font-display);
+	font-size: 1.5rem;
+	font-weight: 600;
+}
+
+.jlp-subtitle {
+	color: var(--jup-ink-soft);
+	font-size: 0.875rem;
+	max-width: 68ch;
+	margin-top: 0.25rem;
+}
+
+.jlp-tabs {
+	display: flex;
+	gap: 0.25rem;
+	margin-top: 1rem;
+	border-bottom: 1px solid var(--jup-line);
+}
+
+.jlp-tab {
+	padding: 0.5rem 0.85rem;
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: var(--jup-ink-soft);
+	border-bottom: 2px solid transparent;
+	margin-bottom: -1px;
+}
+
+.jlp-tab:hover {
+	color: var(--jup-ink);
+}
+
+.jlp-tab[aria-current='page'] {
+	color: var(--jup-ink);
+	border-bottom-color: var(--jup-brand-text);
+	font-weight: 600;
+}
+
+.jlp-tab:focus-visible,
+.jlp-link:focus-visible,
+.jlp-button:focus-visible,
+.jlp-table-scroll:focus-visible {
+	outline: 2px solid var(--jup-brand-text);
+	outline-offset: 2px;
+}
+
+.jlp-context-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem 0.9rem;
+	margin: 1rem 0;
+	font-size: 0.875rem;
+}
+
+.jlp-context-label {
+	font-weight: 600;
+}
+
+.jlp-badge {
+	background: var(--jup-defer-bg);
+	color: var(--jup-defer-text);
+	border-radius: var(--jup-radius-sm);
+	padding: 0.2rem 0.55rem;
+	font-size: 0.75rem;
+}
+
+.jlp-button {
+	margin-left: auto;
+	border: 1px solid var(--jup-line);
+	border-radius: var(--jup-radius-sm);
+	background: var(--jup-surface);
+	color: var(--jup-ink);
+	padding: 0.35rem 0.75rem;
+	font-size: 0.875rem;
+}
+
+.jlp-button:hover {
+	border-color: var(--jup-ink-soft);
+}
+
+.jlp-meta {
+	color: var(--jup-ink-soft);
+	font-size: 0.75rem;
+}
+
+.jlp-block {
+	display: block;
+	margin-top: 0.15rem;
+}
+
+.jlp-link {
+	color: var(--jup-brand-text);
+	font-size: 0.75rem;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+.jlp-status {
+	font-size: 0.75rem;
+	font-weight: 500;
+	color: var(--jup-neu-text);
+}
+
+.jlp-negative {
+	color: var(--jup-down-text);
+}
+
+.jlp-metric-row {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+	gap: 0.75rem;
+}
+
+.jlp-metric {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	background: var(--jup-surface);
+	border: 1px solid var(--jup-line);
+	border-radius: var(--jup-radius);
+	padding: 1rem 1.1rem;
+}
+
+.jlp-metric-selected,
+.jlp-row-selected {
+	outline: 2px solid var(--jup-brand-text);
+	outline-offset: -2px;
+}
+
+.jlp-metric-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.jlp-metric-label {
+	font-size: 0.875rem;
+	font-weight: 600;
+}
+
+.jlp-kind {
+	color: var(--jup-ink-soft);
+	font-size: 0.75rem;
+}
+
+.jlp-metric-value {
+	font-family: var(--jup-font-mono);
+	font-size: 1.5rem;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+
+.jlp-metric-missing {
+	font-size: 1rem;
+	font-weight: 600;
+	color: var(--jup-neu-text);
+}
+
+.jlp-variance {
+	font-size: 0.875rem;
+	font-weight: 500;
+}
+
+.jlp-metric-foot {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: 0.4rem;
+	margin-top: auto;
+	padding-top: 0.5rem;
+	border-top: 1px solid var(--jup-line-soft);
+}
+
+.jlp-metric-buttons,
+.jlp-row-buttons {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 0.6rem;
+}
+
+.jlp-row-buttons {
+	margin-top: 0.3rem;
+}
+
+.jlp-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+	gap: 0.75rem;
+	margin-top: 0.75rem;
+}
+
+@media (max-width: 900px) {
+	.jlp-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.jlp-button {
+		margin-left: 0;
+	}
+}
+
+.jlp-surface {
+	background: var(--jup-surface);
+	border: 1px solid var(--jup-line);
+	border-radius: var(--jup-radius);
+	padding: 1rem 1.1rem;
+	min-width: 0;
+}
+
+.jlp-surface-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.jlp-surface-title {
+	font-size: 1rem;
+	font-weight: 600;
+	margin-bottom: 0.35rem;
+}
+
+.jlp-bars {
+	margin: 0.6rem 0 0.9rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+}
+
+.jlp-bar-label {
+	display: flex;
+	justify-content: space-between;
+	font-size: 0.75rem;
+	color: var(--jup-ink-soft);
+}
+
+.jlp-bar-label strong {
+	color: var(--jup-ink);
+	font-family: var(--jup-font-mono);
+}
+
+.jlp-bar-track {
+	height: 0.6rem;
+	background: var(--jup-neu-bg);
+}
+
+.jlp-bar-fill {
+	height: 100%;
+	background: var(--jup-brand);
+}
+
+/* The budget bar is a reference, not a result: the blue fill, never the brand green. */
+.jlp-bar-target {
+	background: var(--jup-blue);
+}
+
+.jlp-notes {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	font-size: 0.875rem;
+	max-width: 68ch;
+}
+
+.jlp-mini-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin-top: 0.6rem;
+}
+
+.jlp-mini {
+	font-size: 0.875rem;
+	padding: 0.55rem 0.65rem;
+	border: 1px solid var(--jup-line-soft);
+}
+
+.jlp-modules {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+	gap: 0.6rem;
+	margin-top: 0.5rem;
+}
+
+.jlp-module {
+	font-size: 0.875rem;
+	padding: 0.55rem 0.65rem;
+	background: var(--jup-neu-bg);
+}
+
+.jlp-module-label {
+	font-weight: 600;
+	margin-right: 0.4rem;
+}
+
+.jlp-caption {
+	margin-bottom: 0.5rem;
+}
+
+/* Tables scroll inside their own region, so a narrow screen never scrolls the whole page sideways. */
+.jlp-table-scroll {
+	overflow-x: auto;
+	max-width: 100%;
+}
+
+.jlp-table {
+	width: 100%;
+	min-width: 36rem;
+	border-collapse: collapse;
+	font-size: 0.875rem;
+}
+
+.jlp-table th {
+	text-align: left;
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--jup-ink-soft);
+	border-bottom: 1px solid var(--jup-line);
+	padding: 0.4rem 0.5rem;
+}
+
+.jlp-table td {
+	vertical-align: top;
+	border-bottom: 1px solid var(--jup-line-soft);
+	padding: 0.55rem 0.5rem;
+}
+
+.jlp-cell-title {
+	font-weight: 600;
+}
+
+.jlp-notice {
+	background: var(--jup-neu-bg);
+	color: var(--jup-neu-text);
+	border: 1px solid var(--jup-line);
+	border-radius: var(--jup-radius);
+	padding: 1rem 1.1rem;
+}
+
+.jlp-notice-refused {
+	background: var(--jup-down-bg);
+	color: var(--jup-down-text);
+}
+
+.jlp-dialog {
+	padding: 1.25rem;
+	background: var(--jup-surface);
+}
+
+.jlp-dialog-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.75rem;
+	margin-bottom: 0.75rem;
+}
+
+.jlp-dialog-title {
+	font-size: 1.25rem;
+	font-weight: 600;
+}
+
+.jlp-dl {
+	display: grid;
+	grid-template-columns: minmax(8rem, auto) 1fr;
+	gap: 0.4rem 1rem;
+	font-size: 0.875rem;
+}
+
+.jlp-dl dt {
+	color: var(--jup-ink-soft);
+}

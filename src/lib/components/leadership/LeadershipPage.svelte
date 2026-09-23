@@ -1,0 +1,384 @@
+<script lang="ts">
+	import { getContext, onDestroy } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
+
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
+	import { user } from '$lib/stores';
+	import Modal from '$lib/components/common/Modal.svelte';
+	import Spinner from '$lib/components/common/Spinner.svelte';
+	import {
+		getOverview,
+		LeadershipRequestError,
+		type LeadershipView,
+		type Overview
+	} from '$lib/apis/leadership';
+	import { SUPPORTED, validateContextQuery, type ContextProblem } from '$lib/leadership/context';
+	import { barShare, formatDateId, formatValue } from '$lib/leadership/format';
+
+	import MetricCard from './MetricCard.svelte';
+	import ActionRegister from './ActionRegister.svelte';
+	import SourceDetails from './SourceDetails.svelte';
+	import ContextPreview from './ContextPreview.svelte';
+
+	const i18n = getContext<Writable<i18nType>>('i18n');
+
+	export let view: LeadershipView;
+
+	type State =
+		| { kind: 'loading' }
+		| { kind: 'denied'; message: string }
+		| { kind: 'unavailable'; message: string }
+		| { kind: 'context'; problem: ContextProblem }
+		| { kind: 'failed'; message: string }
+		| { kind: 'ready'; overview: Overview };
+
+	let state: State = { kind: 'loading' };
+	let controller: AbortController | null = null;
+
+	$: scopeId = SUPPORTED[view].scope;
+	$: viewLabel = view === 'board' ? 'Direksi & Komisaris' : 'RKA & Realisasi';
+
+	// Reload whenever the view, the context identifiers or the signed-in account changes. A
+	// response for an earlier request is dropped, so one reader's report never renders for the next.
+	$: loadKey = `${view}|${$user?.id ?? ''}|${['scope', 'context', 'period']
+		.map((key) => $page.url.searchParams.get(key) ?? '')
+		.join('|')}`;
+	$: load(loadKey);
+
+	const load = async (_key: string) => {
+		controller?.abort();
+		const own = new AbortController();
+		controller = own;
+
+		const problem = validateContextQuery($page.url.searchParams, view);
+		if (problem) {
+			state = { kind: 'context', problem };
+			return;
+		}
+
+		state = { kind: 'loading' };
+		try {
+			const overview = await getOverview(localStorage.token, view, scopeId, own.signal);
+			if (!own.signal.aborted) state = { kind: 'ready', overview };
+		} catch (error) {
+			if (own.signal.aborted) return;
+			if (error instanceof LeadershipRequestError && error.isAccessDenied) {
+				state = { kind: 'denied', message: error.message };
+			} else if (error instanceof LeadershipRequestError && error.isUnavailable) {
+				state = { kind: 'unavailable', message: error.message };
+			} else {
+				state = { kind: 'failed', message: `${error}` };
+			}
+		}
+	};
+
+	onDestroy(() => controller?.abort());
+
+	// The selected record lives in the URL as an id only, so Back, refresh and a shared link keep
+	// it, and no record value ever reaches the address bar.
+	$: recordId = $page.url.searchParams.get('record');
+
+	const select = (id: string) => {
+		const url = new URL($page.url);
+		url.searchParams.set('record', id);
+		goto(url, { keepFocus: true, noScroll: true });
+	};
+
+	$: overview = state.kind === 'ready' ? state.overview : null;
+
+	$: recordLabels = overview
+		? new Map<string, string>([
+				...overview.metrics.map((item) => [item.id, item.label] as [string, string]),
+				...overview.actions.map((item) => [item.id, item.title] as [string, string]),
+				...overview.assumptions.map((item) => [item.id, item.label] as [string, string])
+			])
+		: new Map<string, string>();
+
+	$: recordLabel = recordId ? (recordLabels.get(recordId) ?? null) : null;
+	$: recordMissing = overview !== null && recordId !== null && recordLabel === null;
+
+	// The comparison bar: only for a like-for-like actual against budget, both positive.
+	$: comparison = overview?.metrics.find(
+		(metric) =>
+			metric.variance !== null &&
+			metric.baseline?.value &&
+			metric.primary.value &&
+			barShare(metric.primary.value, metric.baseline.value) !== null
+	);
+
+	let sourceOpen = false;
+	let sourceId: string | null = null;
+	const openSource = (id: string) => {
+		sourceId = id;
+		sourceOpen = true;
+	};
+
+	let registerOpen = false;
+	let previewOpen = false;
+
+	$: CONTEXT_PROBLEM = {
+		scope: $i18n.t('The requested scope is not available in this stage.'),
+		context: $i18n.t('The requested reporting context is not available in this stage.'),
+		period: $i18n.t('The requested period is not available in this stage.')
+	} as Record<string, string>;
+
+	// The server writes its refusals in English and stays their single source. They are translated
+	// here, keyed by the sentence itself; one the server rewords misses the map and shows in English,
+	// never as a stale translation.
+	$: serverText = {
+		'Ruang Pimpinan is restricted. This account is signed in but has no access to this view.':
+			$i18n.t(
+				'Ruang Pimpinan is restricted. This account is signed in but has no access to this view.'
+			),
+		'Ruang Pimpinan is not enabled on this server.': $i18n.t(
+			'Ruang Pimpinan is not enabled on this server.'
+		),
+		'No leadership dataset is configured on this server.': $i18n.t(
+			'No leadership dataset is configured on this server.'
+		),
+		'The leadership dataset could not be read.': $i18n.t(
+			'The leadership dataset could not be read.'
+		),
+		'The leadership dataset is not valid JSON.': $i18n.t(
+			'The leadership dataset is not valid JSON.'
+		),
+		'The leadership dataset is malformed.': $i18n.t('The leadership dataset is malformed.'),
+		'The leadership dataset failed validation.': $i18n.t(
+			'The leadership dataset failed validation.'
+		)
+	} as Record<string, string>;
+
+	$: MODULE_STATE = {
+		unavailable: $i18n.t('Not yet available'),
+		suggested: $i18n.t('Suggestion'),
+		source_example: $i18n.t('Example from the presentation'),
+		available: $i18n.t('Available')
+	} as Record<string, string>;
+</script>
+
+{#if state.kind === 'loading'}
+	<div class="flex justify-center py-16"><Spinner className="size-5" /></div>
+{:else if state.kind === 'denied'}
+	<div class="jlp-notice">
+		<p class="font-medium">{$i18n.t('You do not have access to this view')}</p>
+		<p class="mt-1 text-sm">{serverText[state.message] ?? state.message}</p>
+	</div>
+{:else if state.kind === 'unavailable'}
+	<div class="jlp-notice">
+		<p class="font-medium">{$i18n.t('Ruang Pimpinan is unavailable')}</p>
+		<p class="mt-1 text-sm">{serverText[state.message] ?? state.message}</p>
+	</div>
+{:else if state.kind === 'context'}
+	<!-- A link for another period is reported, never silently answered with this one. -->
+	<div class="jlp-notice">
+		<p class="font-medium">{$i18n.t('This selection is not available')}</p>
+		<p class="mt-1 text-sm">{CONTEXT_PROBLEM[state.problem]}</p>
+		<p class="mt-2 text-sm">
+			<a class="jlp-link" href="/ruang-pimpinan/{view}">{$i18n.t('Open the available example')}</a>
+		</p>
+	</div>
+{:else if state.kind === 'failed'}
+	<div class="jlp-notice jlp-notice-refused">
+		<p class="font-medium">{$i18n.t('The report could not be loaded')}</p>
+		<p class="mt-1 text-sm">{state.message}</p>
+	</div>
+{:else if overview}
+	<div class="jlp-context-bar">
+		<span class="jlp-context-label">{overview.context.label}</span>
+		<span class="jlp-meta">
+			{overview.context.scope_id} · {formatDateId(overview.context.period_start)} – {formatDateId(
+				overview.context.period_end
+			)}
+		</span>
+		<span class="jlp-badge">
+			{overview.data_mode === 'illustrative'
+				? $i18n.t('Illustrative · unverified · partial coverage')
+				: overview.data_mode}
+		</span>
+		<button type="button" class="jlp-button" on:click={() => (previewOpen = true)}>
+			{$i18n.t('Discuss with the Assistant')}
+			<span class="jlp-meta">· {$i18n.t('Context preview')}</span>
+		</button>
+	</div>
+
+	{#if recordMissing}
+		<p class="jlp-notice mt-3 text-sm">
+			{$i18n.t('The selected record is not part of this view.')}
+		</p>
+	{/if}
+
+	<section aria-label={$i18n.t('Key figures')} class="jlp-metric-row">
+		{#each overview.metrics as metric (metric.id)}
+			<MetricCard
+				{metric}
+				selected={recordId === metric.id}
+				on:source={(event) => openSource(event.detail)}
+				on:select={(event) => select(event.detail)}
+			/>
+		{/each}
+	</section>
+
+	<div class="jlp-grid">
+		<section class="jlp-surface" aria-labelledby="jlp-left-title">
+			{#if view === 'board'}
+				<h3 id="jlp-left-title" class="jlp-surface-title">{$i18n.t('Main attention')}</h3>
+				{#if comparison && comparison.baseline && comparison.primary.value && comparison.baseline.value}
+					{@const actualShare = barShare(comparison.primary.value, comparison.baseline.value)}
+					{@const budgetShare = barShare(comparison.baseline.value, comparison.primary.value)}
+					<p class="jlp-meta">{comparison.label} · {$i18n.t('same period')}</p>
+					<div
+						class="jlp-bars"
+						role="img"
+						aria-label="{comparison.label}: {$i18n.t('actual')} {formatValue(
+							comparison.primary.value,
+							comparison.primary.unit
+						)}, {$i18n.t('budget')} {formatValue(
+							comparison.baseline.value,
+							comparison.baseline.unit
+						)}"
+					>
+						<div class="jlp-bar-label">
+							<span>{$i18n.t('Actual')}</span>
+							<strong>{formatValue(comparison.primary.value, comparison.primary.unit)}</strong>
+						</div>
+						<div class="jlp-bar-track">
+							<div class="jlp-bar-fill" style="width: {actualShare}%"></div>
+						</div>
+						<div class="jlp-bar-label">
+							<span>{$i18n.t('Budget')}</span>
+							<strong>{formatValue(comparison.baseline.value, comparison.baseline.unit)}</strong>
+						</div>
+						<div class="jlp-bar-track">
+							<div class="jlp-bar-fill jlp-bar-target" style="width: {budgetShare}%"></div>
+						</div>
+					</div>
+				{/if}
+				<ul class="jlp-notes">
+					{#each overview.metrics.filter((metric) => metric.comparison_note) as metric (metric.id)}
+						<li><strong>{metric.label}.</strong> {metric.comparison_note}</li>
+					{/each}
+				</ul>
+			{:else}
+				<h3 id="jlp-left-title" class="jlp-surface-title">
+					{$i18n.t('Assumptions behind the targets')}
+				</h3>
+				<!-- A region that scrolls sideways must be reachable by keyboard (WCAG 2.1.1). -->
+				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+				<div
+					class="jlp-table-scroll"
+					role="region"
+					aria-label={$i18n.t('Assumptions')}
+					tabindex="0"
+				>
+					<table class="jlp-table">
+						<thead>
+							<tr>
+								<th scope="col">{$i18n.t('Driver')}</th>
+								<th scope="col">{$i18n.t('In the draft')}</th>
+								<th scope="col">{$i18n.t('Watch')}</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each overview.assumptions as assumption (assumption.id)}
+								<tr class:jlp-row-selected={recordId === assumption.id}>
+									<td>
+										<strong class="jlp-cell-title">{assumption.label}</strong>
+										<span class="jlp-row-buttons">
+											<button type="button" class="jlp-link" on:click={() => select(assumption.id)}
+												>{$i18n.t('Select')}</button
+											>
+											{#each assumption.source_ids as id (id)}
+												<button type="button" class="jlp-link" on:click={() => openSource(id)}
+													>{$i18n.t('Source')}</button
+												>
+											{/each}
+										</span>
+									</td>
+									<td>{assumption.target_note}</td>
+									<td>{assumption.watch_note}</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			{/if}
+		</section>
+
+		<section class="jlp-surface" aria-labelledby="jlp-right-title">
+			<div class="jlp-surface-head">
+				<h3 id="jlp-right-title" class="jlp-surface-title">
+					{view === 'board' ? $i18n.t('Follow-ups not yet closed') : $i18n.t('Related follow-ups')}
+				</h3>
+				<button type="button" class="jlp-link" on:click={() => (registerOpen = true)}
+					>{$i18n.t('Open the register')}</button
+				>
+			</div>
+			<p class="jlp-meta">
+				{$i18n.t('{{count}} examples from the presentation · not a total', {
+					count: overview.actions.length
+				})}
+			</p>
+			<ul class="jlp-mini-list">
+				{#each overview.actions as action (action.id)}
+					<li class="jlp-mini" class:jlp-row-selected={recordId === action.id}>
+						<strong>{action.title}</strong>
+						<span class="jlp-meta jlp-block">{action.owner_label}</span>
+						<span class="jlp-meta jlp-block">
+							{$i18n.t('Target')}: {action.due.label} · {$i18n.t('Ongoing according to the source')}
+						</span>
+					</li>
+				{/each}
+			</ul>
+			<p class="jlp-meta mt-2">
+				{$i18n.t(
+					'The PIC submits completion evidence; only the BOD closes an action or returns it. A finished ERP task or a missing slide does not close it.'
+				)}
+			</p>
+		</section>
+	</div>
+
+	<section class="jlp-surface mt-4" aria-labelledby="jlp-modules-title">
+		<h3 id="jlp-modules-title" class="jlp-surface-title">{$i18n.t('Discussion modules')}</h3>
+		<ul class="jlp-modules">
+			{#each overview.module_states as module (module.id)}
+				<li class="jlp-module">
+					<span class="jlp-module-label">{module.label}</span>
+					<span class="jlp-status">{MODULE_STATE[module.state] ?? module.state}</span>
+					<span class="jlp-meta jlp-block">{module.reason}</span>
+				</li>
+			{/each}
+		</ul>
+	</section>
+
+	<SourceDetails bind:show={sourceOpen} {view} {scopeId} {sourceId} />
+
+	<ContextPreview bind:show={previewOpen} {viewLabel} context={overview.context} {recordLabel} />
+
+	{#if registerOpen}
+		<!-- The full register is a detail view: same records, every column. -->
+		<Modal size="lg" bind:show={registerOpen}>
+			<div class="jlp-root jlp-dialog" role="document">
+				<div class="jlp-dialog-head">
+					<h2 class="jlp-dialog-title">{$i18n.t('Follow-up register across meetings')}</h2>
+					<button type="button" class="jlp-link" on:click={() => (registerOpen = false)}
+						>{$i18n.t('Close')}</button
+					>
+				</div>
+				<ActionRegister
+					actions={overview.actions}
+					selectedId={recordId}
+					partial={overview.coverage === 'partial'}
+					on:source={(event) => openSource(event.detail)}
+					on:select={(event) => select(event.detail)}
+				/>
+				<p class="jlp-meta mt-3">
+					{$i18n.t(
+						'Origin meetings, earlier updates and due-date history are not in this example. The full register arrives with the persistent action record.'
+					)}
+				</p>
+			</div>
+		</Modal>
+	{/if}
+{/if}
