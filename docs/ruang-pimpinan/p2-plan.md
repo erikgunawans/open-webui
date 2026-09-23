@@ -57,7 +57,8 @@ head with upstream.
 - **Cost:** one call site. It sits beside the router registration that is already a patched spot in
   `main.py`, with a `VENDOR-PATCHES.md` entry and a source-read test.
 - **Guard:** extend `jup/migrations.py`'s one-head check to cover both graphs.
-  _Alternative:_ fork revisions in the vendor chain, guarded by the existing test. That is cheaper now
+
+_Alternative:_ fork revisions in the vendor chain, guarded by the existing test. That is cheaper now
   and costs something at every rebase.
 
 **E-3. Where evidence files are stored → the host storage provider (production `jup-ops-data` bucket),
