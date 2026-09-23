@@ -344,3 +344,7 @@ docs/architecture/
 docs/design-system/
 deploy/
 tests/fixtures/
+
+# Skill sources are synced to the app verbatim (deploy/gcp/sync-skills.ts); the holaOS copies
+# must stay byte-identical to their origin (skills/holaos/NOTICE.md).
+skills/
