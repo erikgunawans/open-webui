@@ -9,8 +9,9 @@ Same two kinds of test as `test_jup_governance.py`:
 - **Behaviour** of `audit_tool_call`, including the rule that argument *content* never reaches the
   trail, only its size.
 - **Presence** of the inserts at the places `utils/middleware.py` runs a tool: the native tool
-  loop, the approval drain, the legacy prompt-based handler, and the code interpreter (which
-  runs outside the tool loop, so E1's tool-call lines never saw it). Losing one fails nothing
+  loop, the approval drain, the legacy prompt-based handler, and the legacy code-interpreter block.
+  In native mode the code interpreter is the builtin tool `execute_code` and the native line covers
+  it; the legacy block covers text-parsed code, so switching modes cannot open a gap. Losing one fails nothing
   visible — tools still run, the answer still arrives — so a lost patch must break this test
   instead. See `deploy/gcp/VENDOR-PATCHES.md`.
 """

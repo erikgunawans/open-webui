@@ -235,11 +235,14 @@ content. All the logic is in `jup/governance.py`, and the call never raises.
 tools, and the tool is where the agent touches data. Every later tool (subagents, code
 interpreter, MCP) is only as accountable as this line.
 
-A fourth call (added 2026-09-23 for A3) sits after `ci_item['status'] = 'completed'` in the code
-interpreter block (`mode='code_interpreter'`, `tool_id` `builtin:code_interpreter`). Code
-interpreter runs happen outside the tool loop, so the first three calls never saw them. The line
-records the size of the model's code, never the code itself. It counts an exception or any stderr
-as `error`.
+A fourth call (added 2026-09-23 for A3) sits after `ci_item['status'] = 'completed'` in the
+**legacy** code-interpreter block (`mode='code_interpreter'`, `tool_id` `builtin:code_interpreter`).
+With native function calling, which Asisten JUP uses, the code interpreter runs as the builtin tool
+`execute_code` and gets the native loop's line (live check 2026-09-23 on `00022-bs8`:
+`execute_code · builtin:execute_code · ok`). The legacy path handles code parsed out of the model's
+text in non-native mode. It is covered so that switching the mode cannot open a gap. The line
+records the size of the code, never the code itself, and counts an exception or any stderr as
+`error`.
 
 **If dropped:** silent. Tools still run and answers still arrive, but the trail loses the per-tool
 lines.
