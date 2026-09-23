@@ -63,10 +63,10 @@
 	} as Record<string, string>;
 </script>
 
-<Modal size="sm" bind:show>
+<Modal size="sm" bind:show ariaLabelledby="jlp-source-title">
 	<div class="jlp-root jlp-dialog" role="document">
 		<div class="jlp-dialog-head">
-			<h2 class="jlp-dialog-title">{$i18n.t('Source details')}</h2>
+			<h2 class="jlp-dialog-title" id="jlp-source-title">{$i18n.t('Source details')}</h2>
 			<button type="button" class="jlp-link" on:click={() => (show = false)}
 				>{$i18n.t('Close')}</button
 			>

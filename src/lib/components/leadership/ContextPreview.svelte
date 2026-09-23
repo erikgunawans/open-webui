@@ -18,10 +18,12 @@
 	export let recordLabel: string | null = null;
 </script>
 
-<Modal size="sm" bind:show>
+<Modal size="sm" bind:show ariaLabelledby="jlp-preview-title">
 	<div class="jlp-root jlp-dialog" role="document">
 		<div class="jlp-dialog-head">
-			<h2 class="jlp-dialog-title">{$i18n.t('Context preview for the Assistant')}</h2>
+			<h2 class="jlp-dialog-title" id="jlp-preview-title">
+				{$i18n.t('Context preview for the Assistant')}
+			</h2>
 			<button type="button" class="jlp-link" on:click={() => (show = false)}
 				>{$i18n.t('Close')}</button
 			>

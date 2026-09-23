@@ -68,7 +68,9 @@
 				? await getUserDefaultPermissions(localStorage.token)
 				: await getUserDefaultPermissionsDefaults(localStorage.token);
 			if (defaults) {
+				// JUP: keep keys this editor doesn't manage (the `jup` grants); see VENDOR-PATCHES.md
 				permissions = {
+					...permissions,
 					workspace: { ...DEFAULT_PERMISSIONS.workspace, ...defaults.workspace },
 					sharing: { ...DEFAULT_PERMISSIONS.sharing, ...defaults.sharing },
 					access_grants: { ...DEFAULT_PERMISSIONS.access_grants, ...defaults.access_grants },
@@ -89,7 +91,9 @@
 			description = group.description;
 			const loadedPermissions = group?.permissions ?? {};
 			// Create fresh object from defaults, then overlay loaded values
+			// JUP: keep keys this editor doesn't manage (the `jup` grants); see VENDOR-PATCHES.md
 			permissions = {
+				...loadedPermissions,
 				workspace: { ...DEFAULT_PERMISSIONS.workspace, ...loadedPermissions.workspace },
 				sharing: { ...DEFAULT_PERMISSIONS.sharing, ...loadedPermissions.sharing },
 				access_grants: { ...DEFAULT_PERMISSIONS.access_grants, ...loadedPermissions.access_grants },

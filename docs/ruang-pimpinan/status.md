@@ -11,7 +11,7 @@ anywhere, and holds no real grant.** The whole product is P1–P5; P1 is not com
 | Item     | State                                                                                                                                                                   |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Commits  | `34dbd9421` (records, policy, API), `ad63a9133` (views, sidebar, preview), plus this file and two id-ID fixes                                                           |
-| Pushed   | No. Push is a separate authorisation.                                                                                                                                   |
+| Pushed   | Yes, 2026-09-24 (`34dbd9421`, `ad63a9133`, `57a9b3bd3`). Not deployed.                                                                                                  |
 | Deployed | No. `JUP_LEADERSHIP_ENABLED` is unset in production, so the API answers 503 and the sidebar entry never shows.                                                          |
 | Data     | Illustrative only: `tests/fixtures/leadership/illustrative-seed.json`, figures from the 18 Sep 2026 BOD deck and the RKA 2027 Draft 1, labelled unverified and partial. |
 | Grants   | None in production. Local verification used synthetic users and groups in a scratch database.                                                                           |
@@ -70,30 +70,61 @@ Local rendered walkthrough (option (a): backend on 8080 and Vite on 5050, scratc
 - 390 px viewport (same-origin iframe, a real media-query viewport): no page overflow, one column.
 - Collapsed rail entry has its accessible name and `aria-current`; expanded entry sits before pins.
 
-Not verified: text-scale above 100% and keyboard-only traversal were not walked end to end; the
+Not verified that night: text scale above 100%, keyboard-only traversal and the mobile drawer. The
 Portfolio filter/deep-link behaviour was verified live on production earlier the same night rather
 than locally (no local records).
 
+### Gap walk, 2026-09-24 (second session)
+
+Same local setup, real Chrome through Interceptor, reader `reader` unless named.
+
+- **Group editor (defect, fixed).** Opening "Uji Direksi saja" in the admin group editor and pressing
+  Save with nothing changed deleted the `jup` grant: `boardonly`'s views went from `["board"]` to
+  `[]`. The editor rebuilt `permissions` from the six vendor keys only. Patched (`EditGroupModal.svelte`,
+  VENDOR-PATCHES entry, `tests/test_group_editor_keeps_jup_permissions.py`). After the patch, Save
+  unchanged and Reset to defaults + Save both keep the grant; the backend log shows each update
+  call.
+- **Keyboard.** Board has 10 tab stops and RKA 17, all native links and buttons in reading order,
+  no positive `tabindex`, and no pointer-only elements. Every stop takes the leadership ring
+  (`outline: 2px`, `--jup-brand-text`): 6.57:1 on light, 7.29:1 on dark, against 3:1 required.
+  The source dialog traps focus (only "Tutup" is reachable) and Escape closes it.
+- **Dialog name (defect, fixed).** The vendor Modal had no accessible name. It now takes
+  `ariaLabelledby` (VENDOR-PATCHES entry, `tests/test_modal_accessible_name.py`). Verified live:
+  "Rincian sumber" and "Pratinjau konteks untuk Asisten".
+- **Text scale.** At a 150% and a 200% root size, Board and RKA have no page overflow and no
+  clipped text; figures scale 24 → 48 px. At 200%, RKA's Asumsi table (1152 px) scrolls inside its
+  own labelled, focusable region.
+- **Mobile drawer (defect, fixed).** At 390 px there was no control to open the sidebar, so a phone
+  reader was stranded on the page. Portfolio, which is live, has the same gap. Both now render
+  `src/lib/components/jup/MobileSidebarToggle.svelte` (the vendor workspace control and labels).
+  Verified in a 390 px same-origin frame: the toggle flips `aria-expanded`, the drawer holds the
+  Ruang Pimpinan entry with `aria-current="page"`, and tapping it navigates and closes the drawer.
+
+Still not observed: real Tab key presses. Synthetic keys don't move focus, and OS-level keys would
+go to whichever app is in front. The painted ring and the drawer's slide-in weren't seen either,
+because the driven tab is hidden (no window focus, and `requestAnimationFrame` paused). The rules,
+their colours and the state changes were measured instead.
+
 ## Acceptance matrix
 
-| ID             | Stage     | Status                  | Evidence / gap                                                                                                                         |
-| -------------- | --------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| UX-01          | P1        | passed (fixture)        | Layout A in both views; sources and register reachable without chat.                                                                   |
-| UX-02          | P1, P2/P4 | partial                 | Scope, period, units, source status visible; id-ID, 390 px and table regions checked. Freshness is P2/P4; keyboard-only walk not done. |
-| HOST-01        | P1        | passed (local)          | One entry, expanded and collapsed; active on descendants; Portfolio and chat landing unaffected. Mobile drawer not separately walked.  |
-| HOST-02        | P1        | partial                 | Light and dark measured, no double sidebar subtraction, no overflow. Font override and text scale not walked.                          |
-| HOST-03        | P1, P2    | passed (P1 scope)       | Back/refresh keep context; board-only denied RKA by URL and API; admin without grant denied.                                           |
-| HOST-04        | P3        | context preview only    | Preview sends nothing. The real assistant surface is P3.                                                                               |
-| DATA-01        | P1, P2/P4 | P1 part passed          | Actual, budget and forecast kept apart; variance only like-for-like. Reconciliation to sources is P2/P4.                               |
-| DATA-02        | P1, P2/P4 | P1 part passed          | Missing is never zero (validator and card); malformed dataset is 503, never an empty report.                                           |
-| ACT-01         | P1, P2    | P1 part passed          | One shared action id resolves to one record in both views. Re-import identity is P2.                                                   |
-| ACT-02         | P2        | not started             | No write route exists; nothing can close an action.                                                                                    |
-| ACT-03         | P1, P2    | P1 part passed          | Month, year and range targets shown with their precision; no overdue computed.                                                         |
-| SNAP-01        | P2        | not started             |                                                                                                                                        |
-| ACCESS-01      | P1 → P5   | P1 read surfaces passed | Views, API and sources enforce and re-check per request. History, search, export and tools arrive later.                               |
-| MX-01          | P1, P3    | P1 part passed          | UI and API read one reader module. Tools are P3.                                                                                       |
-| WRITE-01       | P3/P4/P5  | not started             |                                                                                                                                        |
-| INTEGRATION-01 | P4/P5     | not started             | Dynamics variant and CRM choice are still open.                                                                                        |
+| ID             | Stage     | Status                  | Evidence / gap                                                                                                                           |
+| -------------- | --------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| UX-01          | P1        | passed (fixture)        | Layout A in both views; sources and register reachable without chat.                                                                     |
+| UX-02          | P1, P2/P4 | P1 part passed          | Scope, period, units, source status visible; id-ID, 390 px, table regions and keyboard order/rings checked. Freshness is P2/P4.          |
+| HOST-01        | P1        | passed (local)          | One entry, expanded and collapsed; active on descendants; Portfolio and chat landing unaffected. Mobile drawer reachable (toggle added). |
+| HOST-02        | P1        | passed (local)          | Light and dark measured, no double sidebar subtraction, no overflow; text scale 150% and 200% clean.                                     |
+| HOST-03        | P1, P2    | passed (P1 scope)       | Back/refresh keep context; board-only denied RKA by URL and API; admin without grant denied.                                             |
+| HOST-04        | P3        | context preview only    | Preview sends nothing. The real assistant surface is P3.                                                                                 |
+| DATA-01        | P1, P2/P4 | P1 part passed          | Actual, budget and forecast kept apart; variance only like-for-like. Reconciliation to sources is P2/P4.                                 |
+| DATA-02        | P1, P2/P4 | P1 part passed          | Missing is never zero (validator and card); malformed dataset is 503, never an empty report.                                             |
+| ACT-01         | P1, P2    | P1 part passed          | One shared action id resolves to one record in both views. Re-import identity is P2.                                                     |
+| ACT-02         | P2        | not started             | No write route exists; nothing can close an action.                                                                                      |
+| ACT-03         | P1, P2    | P1 part passed          | Month, year and range targets shown with their precision; no overdue computed.                                                           |
+| SNAP-01        | P2        | not started             |                                                                                                                                          |
+| ACCESS-01      | P1 → P5   | P1 read surfaces passed | Views, API and sources enforce and re-check per request. History, search, export and tools arrive later.                                 |
+| MX-01          | P1, P3    | P1 part passed          | UI and API read one reader module. Tools are P3.                                                                                         |
+| WRITE-01       | P3/P4/P5  | not started             |                                                                                                                                          |
+| INTEGRATION-01 | P4/P5     | not started             | Dynamics variant and CRM choice are still open.                                                                                          |
 
 ## Next stages (from the approved roadmap)
 
@@ -115,5 +146,5 @@ than locally (no local records).
    illustrative deck figures on ops.axiara.ai.
 3. Create a group carrying the grant above and add the reader. The admin role grants nothing.
 
-Unverified risk, not tested: the admin group editor may rewrite a group's permissions object without the
-`jup` key it does not know. Re-check a leadership grant after editing that group in the UI.
+The admin group editor used to drop the `jup` key on save; that is patched (see the gap walk
+above). Re-check the grant after the first real edit in production anyway.

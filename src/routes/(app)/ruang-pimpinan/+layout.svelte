@@ -7,6 +7,7 @@
 	import { WEBUI_NAME } from '$lib/stores';
 	import { leadershipAccess, refreshLeadershipAccess } from '$lib/stores/leadership';
 	import '$lib/components/leadership/leadership.css';
+	import MobileSidebarToggle from '$lib/components/jup/MobileSidebarToggle.svelte';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
 
@@ -34,6 +35,7 @@
 <div class="jlp-root jlp-section">
 	<div class="jlp-scroll">
 		<div class="jlp-container">
+			<MobileSidebarToggle />
 			<header class="jlp-header">
 				<div>
 					<h1 class="jlp-title">Ruang Pimpinan</h1>

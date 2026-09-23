@@ -16,6 +16,7 @@
 		type PortfolioProject
 	} from '$lib/apis/portfolio';
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import MobileSidebarToggle from '$lib/components/jup/MobileSidebarToggle.svelte';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
 
@@ -266,6 +267,7 @@
 >
 	<div class="flex-1 max-h-full overflow-y-auto">
 		<div class="mx-auto w-full max-w-4xl px-5 pt-8 pb-16">
+			<MobileSidebarToggle />
 			<header class="mb-7">
 				<h1 class="jup-title text-2xl font-semibold">{$i18n.t('Portfolio')}</h1>
 				<p class="jup-subtitle mt-1.5 text-sm">

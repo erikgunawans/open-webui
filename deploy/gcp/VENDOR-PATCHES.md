@@ -292,3 +292,37 @@ controls `form_data`, and a forged parent would mislabel the trail.
 
 **Conflict risk:** low in `subagents.py`, where `run_reserved`'s request setup is stable. The
 `middleware.py` sites move with the tool loop; see the E1 entry above.
+
+## The group editor keeps permission keys it doesn't manage — `src/lib/components/admin/Users/Groups/EditGroupModal.svelte` (2026-09-24)
+
+**What:** `init()` and `resetToDefaultsHandler()` spread the existing permissions object first
+(`...loadedPermissions,` and `...permissions,`) before rebuilding the six vendor keys.
+
+**Why:** the editor rebuilt `permissions` from workspace, sharing, access_grants, chat, features and
+settings only, and saved that object whole. A Ruang Pimpinan grant lives under `jup`, so opening a
+group and pressing Save with nothing changed deleted it. Reproduced in real Chrome on the local dev
+server: the board-only reader's capabilities went from `["board"]` to `[]`. Reset to defaults dropped
+it the same way. After the patch, both paths keep the grant.
+
+**If dropped:** silent, and it fails closed. Any admin who edits a leadership group revokes its
+readers' access without a warning.
+
+**The test that catches it:** `tests/test_group_editor_keeps_jup_permissions.py`.
+
+**Conflict risk:** low to moderate. Upstream adds permission categories to the rebuild now and then.
+Keep the spread as the first line of both objects.
+
+## The shared Modal can be named — `src/lib/components/common/Modal.svelte` (2026-09-24)
+
+**What:** one optional prop, `ariaLabelledby`, rendered as `aria-labelledby` on the `role="dialog"`
+element. Unset, the attribute is omitted, so every vendor modal renders exactly as before.
+
+**Why:** the dialog had no accessible name, so a screen reader announced Ruang Pimpinan's source
+details and context preview as just "dialog". Both now point at their `<h2>`, verified live as
+"Rincian sumber" and "Pratinjau konteks untuk Asisten".
+
+**If dropped:** silent. Svelte ignores the unknown prop, and the dialogs are unnamed again.
+
+**The test that catches it:** `tests/test_modal_accessible_name.py`.
+
+**Conflict risk:** low. Keep the prop and the attribute.
