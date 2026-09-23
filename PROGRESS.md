@@ -1,6 +1,74 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-22-gsm (latest) — #16 closed, 403 test passed, GSM 2023 brand live, D17/D18 recorded
+## Checkpoint 2026-09-23-brand (latest) — handoff items 1–3 shipped, BangJayaOS lockup, Portfolio pass, holaOS compared
+
+- **Session:** `/next` → onboard (Portfolio entry, admin landing, id-ID) → clarify (greeting, JUP
+  suggestions, Arena off) → polish (sidebar AA) → re-critique 23/40 → JUP white-label (ADR-0001) →
+  BangJayaOS lockup → Portfolio type/a11y/distill pass → read-only holaOS capability comparison.
+- **Live:** `ent-os-00017-nfp` (`854ce30f6`). Chain today: `00012-s7l` (41ce4fe3c) → `00013-dq4`
+  (a1d5ade1e) → `00014-lwz` (e64f16162) → `00015-xdl` (81c734e53) → `00016-v7v` (aead9b34f) → `00017-nfp`.
+  Every deploy was authorized per change. Rollback: `00016-v7v`.
+- **Records bucket** synced to `~/jup` `1e1d4b6` (SPBG figures now read "Rp 63,3 miliar").
+
+### What shipped (all live-verified via Interceptor, getComputedStyle probes)
+
+- **Portfolio onboarding:**
+  - Sidebar entry "Portofolio" for admins only, with a GateLadder icon, in both the list and the rail.
+  - Admins entering at a bare `/` land on `/portfolio`. The first attempt used `afterNavigate`, which was dead code; the fix reads the navigation-timing entry (see memory).
+  - `DEFAULT_LOCALE=id-ID`, `<html lang="id">`, and 48 id-ID portfolio strings. `tests/test_portfolio_i18n.py` guards the backend sentences.
+- **Chat home:**
+  - `<h1>` greeting "Hello/Halo, {first name}".
+  - A contract line that describes what the contract instructs.
+  - Placeholder "Attach a document or ask a question…".
+- **Live DB config, not code** (before-values recorded in the transcript):
+  - 4 JUP suggestions in Indonesian (was 6 stock).
+  - `ENABLE_EVALUATION_ARENA_MODELS=false`.
+  - MiMo overridden as **"Asisten JUP"** with EMPTY access_grants, so it stays admin-only as before.
+- **Contrast:** sidebar timestamps, section labels, hints and date headers are 5.07:1 in light (were 1.82 and 2.44) and 6.64:1 in dark; the hint was 3.2:1 in dark. Chat Menu targets are 24px.
+- **Brand:**
+  - `WEBUI_NAME=JUP`, so the UI reads "JUP (Open WebUI)".
+  - Favicon, icons and model avatar use the JUP compass mark, cropped from `~/jup/brand/tokens/logo.b64`. It is 256px native, so the 512px icon is upscaled.
+  - **Sidebar = BangJayaOS lockup** (`Sidebar/BangJayaLockup.svelte`). The rail and splash use the BangJayaOS mark: green `#00A550` outer; inner `#004999` in light and `#85AAD2` in dark (Erik's call, because `#004999` is 2.11:1 on Rich Black).
+- **Portfolio pass** (`854ce30f6`):
+  - Type scale is exactly 12/14/16/20/24px, nothing under 12.
+  - 68ch measure.
+  - Evidence is folded into "Evidence: n of m satisfied".
+  - "Waiting on" is shown only when there is no Blocked on box.
+  - Screen-reader state on the gate rungs, and `aria-current=step` on the held stage.
+  - Figures in Space Mono at 20px; pills at 4px radius; card shadow gone.
+  - The non-coverage statements are untouched (ADR-0009).
+- **Frontend Build** had been red on the 09-22 checkpoint because of `.impeccable/` snapshots; that folder is now in `.prettierignore`.
+
+### Re-critique 23/40 (`.impeccable/critique/2026-09-22T18-56-50Z__…md`)
+
+Ran as two isolated agents. They **collided on Erik's Chrome**: one's `?lang=` navigation moved the
+other's tab. Run browser agents sequentially next time. Since the critique, its top-severity issue
+(Open WebUI identity) and the date-header contrast failure it raised have both been fixed. Open items:
+- Blockers have no owner, next step or date (a records schema change in `~/jup`).
+- Record data is still English under id-ID.
+- The sidebar is half translated.
+- No sort, filter or deep links on the Portfolio.
+
+### holaOS (`~/holaboss-ai`, READ-ONLY per Erik) vs ent-os
+
+holaOS is a single-user Electron agent workspace. It has deep agent capability: 3 runtimes, 40+ tools,
+MCP, skills, memory, cron, 89 integrations and 8 chat channels. Governance is effectively absent:
+Claude Code runs with permission checks bypassed, Codex auto-approves with no sandbox, and there is
+no audit log. It is cloud-proxied by default despite its "local-first" claim. Its licence forbids
+SaaS use or distribution to third parties without Holaboss permission.
+
+Verdict: do not swap. **ent-os's gap is agent depth, and most of it ships in Open WebUI but is not
+configured.** That is next session's plan item.
+
+### Corrections to earlier claims
+
+- The critique's "gray-600 = 5.73:1" is measured on the **white chat surface**. On the sidebar
+  (`#F0F1F1`) it is **5.07:1**. `fc6a12b27`'s message repeats the 5.73 figure.
+- The critique's "dark already clears AA" was false for the shortcut hint (3.2:1).
+- `deploy/gcp/README.md`'s "What this does not do" still says the portfolio has no operating-layer
+  permission (#10). That is stale: the 403 is implemented and tested.
+
+## Checkpoint 2026-09-22-gsm — #16 closed, 403 test passed, GSM 2023 brand live, D17/D18 recorded
 
 - **Session:** `/next` → e95a9dfc7 deploy confirmed → OpenRouter key in, MiMo allowlisted, #16 closed on evidence → D17 → 403 test passed → dark seam fixed → GSM 2023 rebrand everywhere (D18) → panel radius 14px → impeccable critique 22/40.
 - **Tracker: zero open issues** — #16 closed 2026-09-22 with the audit line quoted.

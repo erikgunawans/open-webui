@@ -1,3 +1,91 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-23-brand)
+
+> Prepended by /wrap 2026-09-23 (checkpoint 2026-09-23-brand). Supersedes checkpoint 2026-09-22-gsm's anchor.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-23-brand).
+
+**Anchor:** `origin/main` at `854ce30f6` **as this was written**, or one commit ahead at this
+checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-23-brand`). Verify
+with `git log --oneline 854ce30f6..origin/main`. Any other commit in that range is a parallel push.
+
+**Current state:**
+- Live on `ent-os-00017-nfp` (`854ce30f6`); rollback is `00016-v7v`.
+- Admins land on the Portfolio (sidebar entry, admin-only). The default locale is id-ID.
+- The sidebar shows the BangJayaOS lockup; the favicon and icons are the JUP mark; the name reads "JUP (Open WebUI)".
+- Chat is MiMo, exposed as "Asisten JUP" and admin-only (empty grants). Suggestions are 4 JUP ones; Arena is off.
+- Critique score 23/40. Zero open issues.
+
+**Do next, in order:**
+1. **PLAN (present and STOP, no execution): turn on the agentic capability that ships in Open WebUI
+   but sits unconfigured.** Erik asked for this at wrap. For each capability, write down:
+   - what it does;
+   - whether its traffic passes `generate_chat_completion`, and so the contract, audit and fail-closed guard (ADR-0002). Check in code; don't assume;
+   - where its data goes (a D-decision is needed for any new egress, as with D17);
+   - who gets it (role or group grants);
+   - whether it's a DB config write (needs Erik's per-change OK) or an env var in deploy.sh;
+   - how to verify it live.
+
+   Candidates:
+   - Knowledge bases / RAG on pgvector: most value, since the chat can't see `~/jup` kb or records today. Local MiniLM embeddings.
+   - Tools and function calling: tool-loop turns are already governed.
+   - MCP servers.
+   - Skills.
+   - Web search: off; egress decision needed.
+   - Code interpreter: pyodide, in-browser; on by default.
+   - Memory: on by default; privacy call.
+   - Notes and automations/calendar: on by default. Check whether scheduled runs go through the funnel.
+   - Channels: off.
+   - Subagents and terminals: off. Terminals are high-risk.
+   - Image generation: off.
+   - Voice: ADR-0005/0006 are decided but no code exists.
+
+   Prerequisites to raise:
+   - Non-admin users currently see NO model. "Asisten JUP" needs a read grant before anyone else can use chat.
+   - The 50-seat ceiling (ADR-0001).
+   - holaOS (`~/holaboss-ai`) is a READ-ONLY reference for which capabilities matter and how its EOS dashboard monitors them. It is NOT a pattern for governance: its approvals are bypassed and it has no audit log.
+2. **After the plan is approved:** execute it in the approved order, one capability per commit and deploy, each verified live.
+3. **Critique leftovers:**
+   - Blocker owner / next step / date (records schema in `~/jup`).
+   - English record data under id-ID.
+   - Half-translated sidebar ("Notes", "Folders").
+   - Portfolio sort, filter and deep links.
+4. **Stale doc:** `deploy/gcp/README.md` "What this does not do" still claims the portfolio has no operating-layer permission (#10). The 403 is implemented and tested.
+
+**Constraints to honor:**
+- **Deploy and DB-config authorization is per change, never standing.** Read the before-values of any config write for rollback.
+- **`~/holaboss-ai` is READ-ONLY.** Never write, edit, commit, build or install there. It may be the session's primary working directory: use absolute paths to ent-os for everything.
+- **Verify on the LIVE app via Interceptor** with `eval --main` and getComputedStyle; screenshots don't work here.
+  - Guard every eval with `location.host==='ops.axiara.ai'`.
+  - After a deploy, refresh the cached shell with `fetch(url,{cache:'reload'})` and then `navigate`. The ⌘⇧R keystroke via Interceptor does not work.
+  - After toggling `.dark`, wait 600ms before reading colours.
+  - Run browser-driving agents **sequentially**; parallel ones collide on the tab.
+- **PersistentConfig settings live in the DB** (seeded at first boot). Env vars don't change them on prod; use the admin API as Erik.
+- **Brand:**
+  - Identity colours are fixed: green `#00A550`, blue `#004999`, Rich Black `#011627`. Measure contrast, never copy it. Brand words: `#006C34` light / `#4AC287` dark.
+  - Square-cut, except the 14px main panel. The BangJayaOS dark mark takes `#85AAD2` inside.
+  - Type scale 12/14/16/20/24px.
+- **(app) route pages mount after the layout load.** `afterNavigate` never sees `enter`.
+- **Carried:**
+  - ADR-0002 guards (no `bypass`; stamp on `request.state`; funnel after metadata merge).
+  - `NODE_OPTIONS=--max-old-space-size=8192` for local builds.
+  - Capture exit codes without a pipe.
+  - Replay the whole CI frontend sequence (format, then i18n:parse, then `git diff --exit-code`). i18n keys must be literal `$i18n.t('…')` in .js/.svelte, and comments get parsed too.
+  - Tests: `uv run --no-sync --only-group dev pytest`.
+  - `gh` needs `--repo erikgunawans/ent-os-new-jup`. Commits go to `main`.
+  - `ARG BUILDPLATFORM` is load-bearing. No backticks in deploy.sh's heredoc.
+
+**Open items waiting on Erik:**
+- **Model access for non-admins:** a read grant on "Asisten JUP" when the first user is admitted.
+- A **square JUP mark** source file (the favicon is upscaled from 256px). Should the favicon, name and model avatar move to BangJayaOS too?
+- **OpenRouter privacy toggles** (D17d), unconfirmed.
+- **`wrangler deploy`** in `~/jup-kb-assistant-worker`.
+- **Sector/chart hues** with no GSM equivalent (D18c).
+- **Where `@jup/design-system` lives.**
+- Old brand still inline in `~/jup` deliverables.
+- Still standing: SKK Migas / PGN contact record; Danantara and Pertamina Patra Niaga documents; `~/jup`'s three untracked tooling dirs; Codex CLI ≥0.155.1 before Forge is useful.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-22-gsm)
 
 > Prepended by /wrap 2026-09-22 (checkpoint 2026-09-22-gsm). Supersedes checkpoint 2026-09-22-live's anchor.
