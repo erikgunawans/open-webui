@@ -179,3 +179,25 @@ statement after the docstring in each of the six handlers, that it is raised, an
 
 **Conflict risk:** the handler bodies below the insert are upstream's and move often; the insert is
 at the head, so re-apply it there and run the test.
+
+## Default tools settle before a `?q=` auto-submit — `src/lib/components/chat/Chat.svelte` (2026-09-23)
+
+**What:** `setDefaults()` no longer returns early when a run is already in flight. A second caller
+waits for that run through `defaultsSettled()` and then runs again. The body moved, unchanged, into
+`applyDefaults()`. The `?q=` branch of `initNewChat` awaits `defaultsSettled()` before
+`submitHandler(q)`.
+
+**Why:** on a fresh load `setDefaults()` first awaits the tool, function and skill lists. The
+reactive model-change handler starts that run without awaiting it, and `initNewChat`'s own call hit
+the vendor's `if (settingDefaults) return;` and came straight back. The `?q=` auto-submit then sent
+the turn with no `tool_ids`, so Asisten JUP was never offered `portfolio_status` and answered from
+the KB instead. This was reproduced live: a fresh `/?q=` chat called only the KB tools, while a typed
+chat sent `tool_ids: ["portfolio_status"]` and called it.
+
+**If dropped:** silent. Chats still answer, but links and bookmarks that auto-submit lose the
+model's default tools.
+
+**The test that catches it:** `tests/test_chat_default_tools_patch.py`.
+
+**Conflict risk:** moderate. `setDefaults` changes upstream now and then. Keep the waiting wrapper
+and re-apply the upstream body inside `applyDefaults`.
