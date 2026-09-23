@@ -159,6 +159,7 @@ from open_webui.routers import (
     functions,
     groups,
     images,
+    jup_leadership,
     jup_portfolio,
     knowledge,
     memories,
@@ -876,6 +877,7 @@ app.include_router(terminals.router, prefix='/api/v1/terminals', tags=['terminal
 app.include_router(automations.router, prefix='/api/v1/automations', tags=['automations'])
 app.include_router(calendar.router, prefix='/api/v1/calendars', tags=['calendars'])
 app.include_router(jup_portfolio.router, prefix='/api/v1/portfolio', tags=['portfolio'])
+app.include_router(jup_leadership.router, prefix='/api/v1/leadership', tags=['leadership'])
 
 # SCIM 2.0 API for identity management
 if ENABLE_SCIM:
