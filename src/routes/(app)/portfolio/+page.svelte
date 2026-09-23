@@ -186,6 +186,17 @@
 
 	$: needle = query.trim().toLowerCase();
 
+	// Searching a counterparty should find the projects waiting on it, not only its engagement card.
+	const counterpartiesOf = (project: PortfolioProject) =>
+		[
+			...project.awaiting_engagements,
+			...project.blocking_requirements.map((item) => item.engagement ?? '')
+		].flatMap((id) => engagementOf(id)?.counterparty ?? []);
+
+	// Drives the highlight on a deep-linked card. CSS :target cannot: it is resolved when the page
+	// loads, and the cards only render after the data arrives.
+	$: targetId = decodeURIComponent($page.url.hash.slice(1));
+
 	$: visibleProjects = sortProjects(
 		(portfolio?.projects ?? []).filter(
 			(project) =>
@@ -194,7 +205,7 @@
 					(statusFilter === 'blocked'
 						? project.blocking_requirements.length > 0
 						: statusOf(project) === statusFilter)) &&
-				matchesText(needle, project.name, project.id, project.pillar)
+				matchesText(needle, project.name, project.id, project.pillar, ...counterpartiesOf(project))
 		),
 		sortBy
 	);
@@ -371,7 +382,11 @@
 
 				<ul class="flex flex-col gap-4">
 					{#each visibleProjects as project (project.id)}
-						<li class="jup-card" id={cardId('project', project.id)}>
+						<li
+							class="jup-card"
+							class:jup-card-target={targetId === cardId('project', project.id)}
+							id={cardId('project', project.id)}
+						>
 							<div class="flex flex-wrap items-start justify-between gap-3">
 								<div>
 									<h2 class="jup-project-name text-base font-semibold">
@@ -578,7 +593,11 @@
 
 						<ul class="mt-4 flex flex-col gap-3">
 							{#each visibleEngagements as engagement (engagement.id)}
-								<li class="jup-card" id={cardId('engagement', engagement.id)}>
+								<li
+									class="jup-card"
+									class:jup-card-target={targetId === cardId('engagement', engagement.id)}
+									id={cardId('engagement', engagement.id)}
+								>
 									<div class="flex flex-wrap items-start justify-between gap-3">
 										<div>
 											<h3 class="jup-project-name text-sm font-semibold">
@@ -675,7 +694,7 @@
 		scroll-margin-top: 1.5rem;
 	}
 
-	.jup-card:target {
+	.jup-card-target {
 		outline: 2px solid var(--jup-brand-text);
 		outline-offset: 2px;
 	}
