@@ -449,6 +449,7 @@ async def delegate(
         try:
             child_request = _build_request(request, user.id, internal=True)
             child_request.state.max_tool_call_iterations = max_iterations
+            child_request.state.jup_parent_chat_id = parent_chat_id  # JUP: links audit lines to the delegating chat
             parent_system_prompt = run.get('system_prompt') or ''
             subagent_system_prompt = (
                 str(config.get('subagents.system_prompt') or '').strip() or DEFAULT_SUBAGENT_SYSTEM_PROMPT

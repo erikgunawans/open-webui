@@ -252,3 +252,25 @@ lines.
 
 **Conflict risk:** moderate. The tool loop changes upstream often. Re-apply each call right after
 the site's result is known, and before any `continue` that skips a call.
+
+## Subagent tool calls name their parent chat — `backend/open_webui/utils/subagents.py` + `middleware.py` (2026-09-23)
+
+**What:** `run_reserved` sets `child_request.state.jup_parent_chat_id = parent_chat_id` on the
+subagent's synthetic request. It's one line, marked `# JUP:`. All four `audit_tool_call` sites in
+`middleware.py` pass `state=request.state`. Together they give a subagent's `tool_call` lines a
+`parent_chat` field naming the chat that delegated them.
+
+**Why:** A2 went live with a gap. A subagent runs in its own chat, and its audit lines carried
+only that child chat's id, so the trail could link it to the delegating chat only by timing.
+
+The stamp lives on `request.state`, like the ADR-0002 admission stamp, because a direct caller
+controls `form_data`, and a forged parent would mislabel the trail.
+
+**If dropped:** silent. Subagent lines lose `parent_chat` again.
+
+**The test that catches it:** `tests/test_jup_tool_call_audit.py`
+(`test_the_subagent_request_is_stamped_with_its_parent_chat`,
+`test_every_audit_call_site_passes_the_request_state`).
+
+**Conflict risk:** low in `subagents.py`, where `run_reserved`'s request setup is stable. The
+`middleware.py` sites move with the tool loop; see the E1 entry above.

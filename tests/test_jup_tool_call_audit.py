@@ -153,3 +153,43 @@ def test_a_code_interpreter_run_is_audited_after_it_completes():
     done = source.index("ci_item['status'] = 'completed'")
     audit_at = source.index('jup_governance.audit_tool_call(', done)
     assert "mode='code_interpreter'" in source[audit_at : audit_at + 600]
+
+
+# --- subagent parent link -----------------------------------------------------------------------
+
+
+class _State:
+    """Stands in for `request.state`: attributes only, nothing an HTTP client can set."""
+
+
+def test_a_subagent_tool_call_names_the_chat_that_delegated_it(tmp_path, monkeypatch):
+    trail = _trail(tmp_path, monkeypatch)
+    state = _State()
+    state.jup_parent_chat_id = 'parent-chat'
+    _call(chat_id='child-chat', state=state)
+    [entry] = _entries(trail)
+    assert entry['chat'] == 'child-chat'
+    assert entry['parent_chat'] == 'parent-chat'
+
+
+def test_an_ordinary_turn_names_no_parent(tmp_path, monkeypatch):
+    trail = _trail(tmp_path, monkeypatch)
+    _call(state=_State())
+    _call()
+    assert all('parent_chat' not in entry for entry in _entries(trail))
+
+
+SUBAGENTS_PY = MIDDLEWARE_PY.parent / 'subagents.py'
+
+
+def test_the_subagent_request_is_stamped_with_its_parent_chat():
+    source = SUBAGENTS_PY.read_text(encoding='utf-8')
+    build = source.index('child_request = _build_request(request, user.id, internal=True)')
+    stamp = source.index('child_request.state.jup_parent_chat_id = parent_chat_id', build)
+    assert stamp < source.index('CHAT_COMPLETION_HANDLER(child_request', build)
+
+
+def test_every_audit_call_site_passes_the_request_state():
+    calls = re.findall(r'jup_governance\.audit_tool_call\((.*?)\n\s*\)', _source(), re.S)
+    assert len(calls) == 4
+    assert all('state=request.state' in call for call in calls), 'a call site cannot see the parent stamp'

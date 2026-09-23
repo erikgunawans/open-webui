@@ -58,6 +58,11 @@ AUDIT_ENV = 'JUP_GOVERNANCE_AUDIT'
 #: Set on `request.state` once a turn has been through `admit()`. Unforgeable from HTTP.
 ADMITTED_STATE_ATTR = 'jup_governance_admitted'
 
+#: Set on a subagent's synthetic `request.state` by `utils/subagents.py`: the chat that delegated.
+#: `request.state` rather than `form_data` for the same reason as the admission stamp — a direct
+#: caller can put anything in `form_data`, and a forged parent would mislabel the trail.
+PARENT_CHAT_STATE_ATTR = 'jup_parent_chat_id'
+
 #: The marker the contract opens with, so a human reading a provider-side log can see the
 #: turn was governed. Presence of this alone is *not* sufficient — see `carries_contract`.
 CONTRACT_SENTINEL = '[JUP-GOVERNED]'
@@ -362,6 +367,7 @@ def audit_tool_call(
     user_id: str | None,
     chat_id: str | None,
     mode: str,
+    state: Any = None,
 ) -> None:
     """Append one `tool_call` entry for one tool invocation. Never raises.
 
@@ -390,6 +396,7 @@ def audit_tool_call(
             outcome = 'unparsed' if result is None else 'not_found'
         else:
             outcome = 'error' if error else 'ok'
+        parent = getattr(state, PARENT_CHAT_STATE_ATTR, None) if state is not None else None
         audit(
             'tool_call',
             mode=mode,
@@ -399,6 +406,7 @@ def audit_tool_call(
             tool_id=(tool or {}).get('tool_id') or None,
             outcome=outcome,
             arg_bytes=size,
+            **({'parent_chat': parent} if parent else {}),
         )
     except Exception:
         log.exception('jup.governance could not audit the tool call %r', name)
@@ -418,6 +426,7 @@ __all__ = [
     'CONTRACT_TEXT',
     'EXEMPT_TASKS',
     'GovernanceRefusal',
+    'PARENT_CHAT_STATE_ATTR',
     'admit',
     'assert_governed',
     'attach_contract',

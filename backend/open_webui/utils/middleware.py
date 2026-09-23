@@ -1420,6 +1420,7 @@ async def chat_completion_tools_handler(
                     user_id=getattr(user, 'id', None),
                     chat_id=metadata.get('chat_id'),
                     mode='default',
+                    state=request.state,
                 )
 
                 tool_result, tool_result_files, tool_result_embeds = await process_tool_result(
@@ -3326,6 +3327,7 @@ async def drain_approved_tool_calls(request, form_data, user, model, metadata) -
             user_id=getattr(user, 'id', None),
             chat_id=chat_id,
             mode='approved',
+            state=request.state,
         )
         display_files = []
         for file_item in result.get('files', []):
@@ -5758,6 +5760,7 @@ async def streaming_chat_response_handler(response, ctx):
                             user_id=getattr(user, 'id', None),
                             chat_id=metadata.get('chat_id'),
                             mode='native',
+                            state=request.state,
                         )
                         if tool_result is None:
                             results.append(
@@ -6203,6 +6206,7 @@ async def streaming_chat_response_handler(response, ctx):
                             user_id=getattr(user, 'id', None),
                             chat_id=metadata.get('chat_id'),
                             mode='code_interpreter',
+                            state=request.state,
                         )
 
                         output.append(
