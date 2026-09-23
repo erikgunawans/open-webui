@@ -1,0 +1,9 @@
+{
+  "recorded_at": "2026-09-23T19:48:17.362Z",
+  "change": "enable Ruang Pimpinan: JUP_LEADERSHIP_ENABLED + JUP_LEADERSHIP_SAMPLE_FILE, sample at gs://jup-ops-records/leadership/illustrative-seed.json",
+  "latest_ready": "ent-os-00026-mvj",
+  "image": "asia-southeast2-docker.pkg.dev/jup-ops/ent-os/ent-os:dd15a3100",
+  "leadership_env": [],
+  "bucket_leadership_prefix": "empty (no objects under gs://jup-ops-records/leadership/)",
+  "grants": "none; no production group carries jup.ruang_pimpinan"
+}

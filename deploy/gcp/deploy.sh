@@ -83,6 +83,12 @@ WEBUI_AUTH_TRUSTED_EMAIL_HEADER: "X-Goog-Authenticated-User-Email"
 # DEFAULT_USER_ROLE stays "pending" above: being admitted by IAP and holding the admin role the
 # operating layer requires stay separable, which is what keeps the 403 path meaningful.
 JUP_ADMIN_EMAILS: "$ADMIN_EMAILS"
+# Ruang Pimpinan, enabled 2026-09-24 with Erik's OK. The file is the ILLUSTRATIVE P1 sample
+# (tests/fixtures/leadership/illustrative-seed.json), outside the records/ tree that
+# sync-records.sh mirrors with delete, so a record sync never removes it. Access still needs a
+# group grant: the admin role grants nothing. Remove both lines to switch the section off.
+JUP_LEADERSHIP_ENABLED: "true"
+JUP_LEADERSHIP_SAMPLE_FILE: "/srv/jup/leadership/illustrative-seed.json"
 EOF
 
 echo "==> deploying to Cloud Run"
