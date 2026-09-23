@@ -8,8 +8,9 @@ Same two kinds of test as `test_jup_governance.py`:
 
 - **Behaviour** of `audit_tool_call`, including the rule that argument *content* never reaches the
   trail, only its size.
-- **Presence** of the inserts at the three places `utils/middleware.py` runs a tool: the native
-  tool loop, the approval drain, and the legacy prompt-based handler. Losing one fails nothing
+- **Presence** of the inserts at the places `utils/middleware.py` runs a tool: the native tool
+  loop, the approval drain, the legacy prompt-based handler, and the code interpreter (which
+  runs outside the tool loop, so E1's tool-call lines never saw it). Losing one fails nothing
   visible — tools still run, the answer still arrives — so a lost patch must break this test
   instead. See `deploy/gcp/VENDOR-PATCHES.md`.
 """
@@ -122,7 +123,7 @@ def test_middleware_imports_the_governance_module():
     assert 'from jup import governance as jup_governance' in _source()
 
 
-@pytest.mark.parametrize('mode', ['native', 'approved', 'default'])
+@pytest.mark.parametrize('mode', ['native', 'approved', 'default', 'code_interpreter'])
 def test_each_tool_execution_site_audits(mode: str):
     calls = re.findall(r'jup_governance\.audit_tool_call\((.*?)\n\s*\)', _source(), re.S)
     modes = [m for m in (re.search(r"mode='(\w+)'", c) for c in calls) if m]
@@ -144,3 +145,10 @@ def test_the_approval_drain_audits_after_the_status_is_decided():
     drain = drain[: drain.index('\nasync def ')]
     status = drain.index("item['status'] = 'failed' if _is_tool_result_error")
     assert status < drain.index('jup_governance.audit_tool_call(')
+
+
+def test_a_code_interpreter_run_is_audited_after_it_completes():
+    source = _source()
+    done = source.index("ci_item['status'] = 'completed'")
+    audit_at = source.index('jup_governance.audit_tool_call(', done)
+    assert "mode='code_interpreter'" in source[audit_at : audit_at + 600]

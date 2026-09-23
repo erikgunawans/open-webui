@@ -6193,6 +6193,17 @@ async def streaming_chat_response_handler(response, ctx):
 
                         ci_item['output'] = ci_output
                         ci_item['status'] = 'completed'
+                        jup_governance.audit_tool_call(
+                            name='code_interpreter',
+                            arguments=ci_item.get('code', ''),
+                            tool={'tool_id': 'builtin:code_interpreter'},
+                            result=ci_output,
+                            error=isinstance(ci_output, str)
+                            or (isinstance(ci_output, dict) and bool(ci_output.get('stderr'))),
+                            user_id=getattr(user, 'id', None),
+                            chat_id=metadata.get('chat_id'),
+                            mode='code_interpreter',
+                        )
 
                         output.append(
                             {
