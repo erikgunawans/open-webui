@@ -59,7 +59,7 @@ head with upstream.
 - **Guard:** extend `jup/migrations.py`'s one-head check to cover both graphs.
 
 _Alternative:_ fork revisions in the vendor chain, guarded by the existing test. That is cheaper now
-  and costs something at every rebase.
+and costs something at every rebase.
 
 **E-3. Where evidence files are stored → the host storage provider (production `jup-ops-data` bucket),
 under a `leadership/evidence/` key, and never through the vendor Files table.** The vendor Files table
