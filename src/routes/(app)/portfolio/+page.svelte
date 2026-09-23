@@ -150,7 +150,7 @@
 		: ''} max-w-full"
 >
 	<div class="flex-1 max-h-full overflow-y-auto">
-		<div class="mx-auto w-full max-w-4xl px-5 py-8">
+		<div class="mx-auto w-full max-w-4xl px-5 pt-8 pb-16">
 			<header class="mb-7">
 				<h1 class="jup-title text-2xl font-semibold">{$i18n.t('Portfolio')}</h1>
 				<p class="jup-subtitle mt-1.5 text-sm">
@@ -251,6 +251,15 @@
 											gateWasRefused(project, gate)}
 									>
 										{gate}
+										<!-- The state in words as well as colour, so a screen reader hears more
+										     than "G1 G2 G3 G4". -->
+										<span class="sr-only">
+											{gateIsHeld(project, gate)
+												? $i18n.t('passed')
+												: gateWasRefused(project, gate)
+													? $i18n.t('refused')
+													: $i18n.t('not assessed')}
+										</span>
 									</li>
 								{/each}
 							</ol>
@@ -272,36 +281,48 @@
 											</span>
 
 											{#if assessment.evidence.length > 0}
-												<ul class="jup-evidence" aria-label={$i18n.t('Evidence required')}>
-													{#each assessment.evidence as item (item.requirement)}
-														<li class="jup-evidence-item">
-															<span
-																class="jup-tick"
-																class:jup-tick-met={item.satisfied}
-																aria-hidden="true"
-															>
-																{item.satisfied ? '✓' : '✗'}
-															</span>
-															<span class="jup-requirement">{item.requirement}</span>
-															<span class="jup-evidence-state">
-																{item.satisfied ? $i18n.t('Satisfied') : $i18n.t('Not satisfied')}
-															</span>
-															<span class="jup-meta text-xs">
-																{citationKind(item)}:&nbsp;{citation(item)}
-															</span>
-														</li>
-													{/each}
-												</ul>
+												<!-- Collapsed: the unmet items already lead the card under Blocked on,
+												     so the full list is a check the Director opens, not a third
+												     statement of the same blocker. -->
+												<details class="jup-evidence-wrap">
+													<summary class="jup-evidence-summary">
+														{$i18n.t('Evidence: {{met}} of {{total}} satisfied', {
+															met: assessment.evidence.filter((item) => item.satisfied).length,
+															total: assessment.evidence.length
+														})}
+													</summary>
+													<ul class="jup-evidence" aria-label={$i18n.t('Evidence required')}>
+														{#each assessment.evidence as item (item.requirement)}
+															<li class="jup-evidence-item">
+																<span
+																	class="jup-tick"
+																	class:jup-tick-met={item.satisfied}
+																	aria-hidden="true"
+																>
+																	{item.satisfied ? '✓' : '✗'}
+																</span>
+																<span class="jup-requirement">{item.requirement}</span>
+																<span class="jup-evidence-state">
+																	{item.satisfied ? $i18n.t('Satisfied') : $i18n.t('Not satisfied')}
+																</span>
+																<span class="jup-meta text-xs">
+																	{citationKind(item)}:&nbsp;{citation(item)}
+																</span>
+															</li>
+														{/each}
+													</ul>
+												</details>
 											{:else}
 												<p class="jup-meta jup-evidence-none text-xs">
 													{$i18n.t('This assessment records no evidence requirements.')}
 												</p>
 											{/if}
 
-											{#if assessment.awaiting_engagements.length > 0}
+											{#if assessment.awaiting_engagements.length > 0 && (assessment.verdict !== 'fail' || project.blocking_requirements.length === 0)}
 												<!-- Under a refusal these are what the gate is waiting for. Under a *pass*
 												     the same citations are a waiver the board granted, and #4's rule holds
-												     here too: a waiver must never read as a blocker. -->
+												     here too: a waiver must never read as a blocker. A refusal's list is
+												     skipped when Blocked on above already names the same counterparties. -->
 												<p class="jup-meta jup-awaiting text-xs">
 													{assessment.verdict === 'fail'
 														? $i18n.t('Waiting on')
@@ -352,7 +373,7 @@
 
 				{#if (portfolio?.engagements ?? []).length > 0}
 					<section class="jup-engagements-section">
-						<h2 class="jup-title text-lg font-semibold">{$i18n.t('Engagements')}</h2>
+						<h2 class="jup-title text-xl font-semibold">{$i18n.t('Engagements')}</h2>
 						<!-- ADR-0009's consequence, now served with the payload rather than written
 						     here, so the projection is the single source of what this view does not
 						     prove and markup cannot drift from it. -->
@@ -389,6 +410,7 @@
 											<li
 												class="jup-rung"
 												class:jup-rung-held={stage === engagement.stage}
+												aria-current={stage === engagement.stage ? 'step' : undefined}
 												title={stageLabels[stage]}
 											>
 												{stageLabels[stage]}
@@ -426,7 +448,10 @@
 
 <style>
 	/* Colour comes from the ported JUP tokens. Accents are fills, so every word uses a `-text`
-	 * variant — see src/jup-tokens.css for the measured ratios. */
+	 * variant — see src/jup-tokens.css for the measured ratios.
+	 *
+	 * Type scale: 12 / 14 / 16 / 20 / 24px (0.75 / 0.875 / 1 / 1.25 / 1.5rem), nothing smaller.
+	 * Labels are 12px, sentences 14px. Running text is held to a 68ch measure. */
 	.jup-portfolio {
 		background: var(--jup-paper);
 	}
@@ -440,6 +465,10 @@
 		color: var(--jup-ink-soft);
 	}
 
+	.jup-subtitle {
+		max-width: 68ch;
+	}
+
 	.jup-project-name {
 		color: var(--jup-ink);
 	}
@@ -448,7 +477,6 @@
 		background: var(--jup-surface);
 		border: 1px solid var(--jup-line);
 		border-radius: var(--jup-radius);
-		box-shadow: var(--jup-shadow);
 		padding: 1.15rem 1.25rem;
 	}
 
@@ -468,7 +496,7 @@
 	.jup-pill {
 		display: inline-flex;
 		align-items: center;
-		border-radius: 999px;
+		border-radius: var(--jup-radius-sm);
 		padding: 0.22rem 0.62rem;
 		font-size: 0.75rem;
 		white-space: nowrap;
@@ -509,7 +537,7 @@
 		background: var(--jup-neu-bg);
 		color: var(--jup-neu-text);
 		padding: 0.3rem 0;
-		font-size: 0.72rem;
+		font-size: 0.75rem;
 		letter-spacing: 0.04em;
 	}
 
@@ -544,7 +572,7 @@
 
 	.jup-assessment-gate {
 		color: var(--jup-ink);
-		font-size: 0.78rem;
+		font-size: 0.875rem;
 		font-weight: 600;
 		min-width: 1.6rem;
 	}
@@ -560,7 +588,7 @@
 	}
 
 	.jup-blocking-label {
-		font-size: 0.7rem;
+		font-size: 0.75rem;
 		font-weight: 600;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
@@ -578,15 +606,32 @@
 		flex-wrap: wrap;
 		align-items: baseline;
 		gap: 0.5rem;
-		font-size: 0.8rem;
+		font-size: 0.875rem;
+		max-width: 68ch;
 	}
 
 	/* `.jup-assessment` wraps, so the evidence list claims a full row of its own beneath the
 	 * verdict rather than trailing off the end of it. */
-	.jup-evidence,
+	.jup-evidence-wrap,
 	.jup-evidence-none {
 		flex-basis: 100%;
 		margin-left: 2.15rem;
+	}
+
+	.jup-evidence-summary {
+		cursor: pointer;
+		width: fit-content;
+		color: var(--jup-ink-soft);
+		font-size: 0.75rem;
+		font-weight: 500;
+	}
+
+	.jup-evidence-summary:hover {
+		color: var(--jup-ink);
+	}
+
+	.jup-evidence-wrap[open] .jup-evidence-summary {
+		margin-bottom: 0.4rem;
 	}
 
 	.jup-evidence {
@@ -600,13 +645,14 @@
 		flex-wrap: wrap;
 		align-items: baseline;
 		gap: 0.45rem;
-		font-size: 0.78rem;
+		font-size: 0.875rem;
+		max-width: 68ch;
 	}
 
 	.jup-requirement {
 		color: var(--jup-ink);
 		font-family: var(--jup-font-mono);
-		font-size: 0.76rem;
+		font-size: 0.75rem;
 	}
 
 	/* Inside the blocking block the neutral ink token is the wrong hue family against the refusal
@@ -621,7 +667,7 @@
 
 	.jup-evidence-state {
 		color: var(--jup-ink-soft);
-		font-size: 0.72rem;
+		font-size: 0.75rem;
 	}
 
 	/* A shape as well as a colour, so met and unmet do not rely on hue alone. */
@@ -643,6 +689,7 @@
 
 	.jup-purpose {
 		color: var(--jup-ink-soft);
+		max-width: 68ch;
 	}
 
 	.jup-pill-stage {
@@ -671,14 +718,15 @@
 
 	.jup-tier-label {
 		color: var(--jup-ink);
-		font-size: 0.72rem;
+		font-size: 0.75rem;
 		font-weight: 600;
 		letter-spacing: 0.04em;
 	}
 
 	.jup-tier-meaning {
 		color: var(--jup-ink-soft);
-		font-size: 0.72rem;
+		font-size: 0.875rem;
+		max-width: 68ch;
 		margin-top: 0.1rem;
 	}
 
@@ -696,15 +744,19 @@
 		gap: 0.5rem;
 	}
 
+	/* The one number the Director acts on: larger than the project name, set in the mono face
+	 * with tabular figures so amounts align across tiers. */
 	.jup-figure-value {
 		color: var(--jup-ink);
-		font-size: 0.95rem;
-		font-weight: 600;
+		font-family: var(--jup-font-mono);
+		font-size: 1.25rem;
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
 	}
 
 	.jup-figure-label {
 		color: var(--jup-ink-soft);
-		font-size: 0.8rem;
+		font-size: 0.875rem;
 	}
 
 	.jup-non-coverage {
@@ -717,7 +769,7 @@
 	}
 
 	.jup-non-coverage-label {
-		font-size: 0.7rem;
+		font-size: 0.75rem;
 		font-weight: 600;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
@@ -728,7 +780,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.3rem;
-		font-size: 0.8rem;
+		font-size: 0.875rem;
+		max-width: 68ch;
 		list-style: disc;
 		padding-left: 1.1rem;
 	}
