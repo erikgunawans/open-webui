@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 
-from jup.portfolio import EvidenceItem, Portfolio, RecordError, project_portfolio
+from jup.portfolio import OPERATING_LAYER_ROLE, EvidenceItem, Portfolio, RecordError, project_portfolio
 from open_webui.utils.auth import get_verified_user
 
 log = logging.getLogger(__name__)
@@ -31,9 +31,8 @@ router = APIRouter()
 # "restricted to signed-in members of the operating layer", and the Director's answer to
 # what that means in terms this codebase can check is the `admin` role (2026-09-19).
 #
-# A constant rather than a literal because the answer is a governance call that may change
-# to a group or a per-user flag; when it does, this is the one line that moves.
-OPERATING_LAYER_ROLE = 'admin'
+# The constant lives in `jup.portfolio` so the `portfolio_status` chat tool enforces the same
+# line. When the answer moves to a group or a per-user flag, that is the one line that moves.
 
 
 def get_operating_layer_user(user=Depends(get_verified_user)):

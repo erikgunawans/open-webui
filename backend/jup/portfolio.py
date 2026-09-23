@@ -16,6 +16,11 @@ from pathlib import Path
 
 import yaml
 
+# Who may read gate state, in role terms. The Director's answer (2026-09-19) is `admin`; see
+# `routers/jup_portfolio.py` for why. Held here, not in the router, because the
+# `portfolio_status` tool (`jup.portfolio_tool`) enforces the same line and must not drift from it.
+OPERATING_LAYER_ROLE = 'admin'
+
 GATES: tuple[str, ...] = ('G1', 'G2', 'G3', 'G4')
 VERDICTS: tuple[str, ...] = ('pass', 'fail')
 
