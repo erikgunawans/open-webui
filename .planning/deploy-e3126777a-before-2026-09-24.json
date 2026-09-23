@@ -1,0 +1,34 @@
+{
+  "recorded_at": "2026-09-23T19:24:53.363Z",
+  "change": "deploy e3126777a (P1 gap fixes; Ruang Pimpinan dormant)",
+  "service": "ent-os",
+  "latest_ready": "ent-os-00025-s4l",
+  "traffic": [
+    {
+      "latestRevision": true,
+      "percent": 100,
+      "revisionName": "ent-os-00025-s4l"
+    }
+  ],
+  "image": "asia-southeast2-docker.pkg.dev/jup-ops/ent-os/ent-os:ba81ffa5b",
+  "env_names": [
+    "DATABASE_URL",
+    "DEFAULT_LOCALE",
+    "DEFAULT_USER_ROLE",
+    "ENABLE_OLLAMA_API",
+    "ENABLE_PIP_INSTALL_FRONTMATTER_REQUIREMENTS",
+    "ENABLE_SIGNUP",
+    "ENV",
+    "GCS_BUCKET_NAME",
+    "JUP_ADMIN_EMAILS",
+    "JUP_ARTEFACT_ROOT",
+    "JUP_RECORDS_DIR",
+    "RAG_EMBEDDING_MODEL_AUTO_UPDATE",
+    "STORAGE_PROVIDER",
+    "VECTOR_DB",
+    "WEBUI_AUTH_TRUSTED_EMAIL_HEADER",
+    "WEBUI_NAME",
+    "WEBUI_SECRET_KEY"
+  ],
+  "leadership_env": []
+}
