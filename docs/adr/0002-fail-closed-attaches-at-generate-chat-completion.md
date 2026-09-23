@@ -47,3 +47,32 @@ answer. A post-hoc outlet pass can repair the stored record via `chat:outlet`; i
 `utils/chat.py` is stable — nine touches in twelve months — so that patch is cheap to carry.
 `routers/openai.py` is not (59 commits in six months), so the guard there stays a three-line insert
 at the function head and is re-checked on every upstream merge.
+
+## Amendment 2026-09-23 — the passthrough routes, and MoA
+
+A code trace for the agentic-capabilities plan found that "all 17 call sites" were not the whole
+surface. Six more mounted routes reach a provider without passing the funnel:
+`routers/openai.py` `/responses`, and `routers/ollama.py` `/api/generate`, `/v1/completions`,
+`/v1/chat/completions`, `/v1/messages` and `/v1/responses`. Nothing inside the app calls any of
+them: the pipeline's own use of the Responses API happens inside the governed
+`generate_chat_completion`. Their payloads carry instructions outside `messages` (`instructions`,
+`system`, `prompt`), so `refuse_if_ungoverned`'s contract check cannot be applied soundly, and a
+caller could satisfy it with a field the provider ignores. They are therefore **refused outright**
+by `jup.governance.refuse_passthrough`, as the first statement of each handler, and the refusal is
+audited. `tests/test_jup_governance.py` checks each insert is present and comes first.
+
+The task exemption had a second hole. `routers/tasks.py`'s MoA route takes the caller's `prompt`
+and `responses` verbatim and sets `task=moa_response_generation` itself, so the "stamped turns
+only" rule could not tell it from a real internal generation: any verified user had an exempt,
+contract-free completion on their own text. JUP never uses MoA, so it was **removed from
+`EXEMPT_TASKS`** and now carries the contract like any other turn. The query, image-prompt and
+autocomplete task routes also accept user text, but wrap it in a server-side template; that
+residual exposure is accepted and recorded here.
+
+Not a model call, but found in the same trace and closed in the same change:
+`routers/retrieval.py` `/process/url` and `/process/web` fetched any URL for any verified user.
+They now require the vendor's own `chat.web_upload` permission, which it defined but enforced
+only in the UI.
+
+These were all masked while non-admins had no model grant. They are closed before the first
+grant, not after.

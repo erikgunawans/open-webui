@@ -149,3 +149,33 @@ records admitted, exempt and refused alike.
 **Conflict risk:** `utils/chat.py` is stable (nine touches in twelve months) and cheap to carry.
 `routers/openai.py` is not — 59 commits in six months — which is why its guard is a head insert that
 can be re-checked at a glance. Re-check all three by running the test, not by reading the diff.
+
+## Passthrough refusals and the URL-fetch gate — `routers/openai.py`, `routers/ollama.py`, `routers/retrieval.py` (2026-09-23)
+
+**What:** six handlers open with a refusal that always fires, and two retrieval handlers open with a
+permission check.
+
+```python
+# routers/openai.py responses; routers/ollama.py generate_completion, generate_openai_completion,
+# generate_openai_chat_completion, generate_anthropic_messages, generate_responses
+refusal = jup_governance.refuse_passthrough(user_id=user.id, route='openai', model=form_data.model)
+raise HTTPException(status_code=refusal.status_code, detail=refusal.detail)
+
+# routers/retrieval.py process_url, process_web — helper defined above process_url
+await _jup_require_web_upload(user)
+```
+
+**Why:** ADR-0002's 2026-09-23 amendment. These passthroughs reach a provider without the funnel,
+nothing in the app calls them, and their payloads keep instructions outside `messages`, so the
+contract check cannot be applied to them soundly. The two retrieval routes fetched any URL for any
+verified user; they now enforce `chat.web_upload`, which the vendor defined and checked only in the UI.
+
+**If dropped:** silent. The routes work again, and nothing but the audit trail's missing `refused`
+lines would show it.
+
+**The test that catches it:** `tests/test_jup_governance.py` asserts the refusal is the first
+statement after the docstring in each of the six handlers, that it is raised, and that
+`_jup_require_web_upload(user)` opens both retrieval handlers.
+
+**Conflict risk:** the handler bodies below the insert are upstream's and move often; the insert is
+at the head, so re-apply it there and run the test.

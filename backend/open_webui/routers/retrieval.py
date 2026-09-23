@@ -2284,6 +2284,19 @@ async def _fetch_url(url: str, max_size_mb: int | str | None) -> dict:
             }
 
 
+async def _jup_require_web_upload(user) -> None:
+    """JUP: fetching an arbitrary URL from the backend is egress, so it needs a permission.
+
+    The vendor defines `chat.web_upload` and enforces it only in the UI, which left both routes
+    below open to any verified user. Admins pass, as `process_web_search` lets them.
+    """
+    if user.role == 'admin':
+        return
+    config = await get_retrieval_config()
+    if not await has_permission(user.id, 'chat.web_upload', config.USER_PERMISSIONS):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=ERROR_MESSAGES.ACCESS_PROHIBITED)
+
+
 @router.post('/process/url', response_model=ProcessUrlResponse)
 async def process_url(
     request: Request,
@@ -2291,6 +2304,7 @@ async def process_url(
     process: bool = Query(True, description='Whether to process and save the content'),
     user=Depends(get_verified_user),
 ):
+    await _jup_require_web_upload(user)
     try:
         if is_youtube_url(form_data.url):
             result = await process_web(request, form_data, process=process, user=user)
@@ -2366,6 +2380,7 @@ async def process_web(
     overwrite: bool = Query(True, description='Whether to overwrite existing collection'),
     user=Depends(get_verified_user),
 ):
+    await _jup_require_web_upload(user)
     config = await get_retrieval_config()
 
     try:

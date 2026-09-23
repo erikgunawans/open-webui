@@ -31,6 +31,7 @@ from jup.governance import (
     audit_path,
     carries_contract,
     refuse_if_ungoverned,
+    refuse_passthrough,
     task_of,
 )
 
@@ -38,6 +39,18 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent / 'backend'
 CHAT_PY = BACKEND_DIR / 'open_webui' / 'utils' / 'chat.py'
 OPENAI_PY = BACKEND_DIR / 'open_webui' / 'routers' / 'openai.py'
 OLLAMA_PY = BACKEND_DIR / 'open_webui' / 'routers' / 'ollama.py'
+RETRIEVAL_PY = BACKEND_DIR / 'open_webui' / 'routers' / 'retrieval.py'
+
+#: Raw provider passthroughs that nothing in the app calls. Each must refuse before it can
+#: dispatch, because their payloads carry instructions outside `messages` (2026-09-23).
+PASSTHROUGH_ROUTES = [
+    (OPENAI_PY, 'responses'),
+    (OLLAMA_PY, 'generate_completion'),
+    (OLLAMA_PY, 'generate_openai_completion'),
+    (OLLAMA_PY, 'generate_openai_chat_completion'),
+    (OLLAMA_PY, 'generate_anthropic_messages'),
+    (OLLAMA_PY, 'generate_responses'),
+]
 
 _LOST_PATCH = (
     'ADR-0002 attaches fail-closed enforcement at exactly three points. Losing one on an '
@@ -344,3 +357,54 @@ def test_the_guard_does_not_honour_bypass_filter_in_vendor_code():
         for line in source.read_text().splitlines():
             if 'jup_governance.' in line:
                 assert 'bypass' not in line, f'{source.name}: the guard was handed a bypass flag — {line.strip()}'
+
+
+# ── Passthroughs and the MoA exemption (2026-09-23) ─────────────────────────────────────
+
+
+def test_moa_is_governed_not_exempt():
+    """The MoA task route takes the caller's own text, so an exemption there was a bypass."""
+    assert 'moa_response_generation' not in EXEMPT_TASKS
+    state = _State()
+    form_data = _turn(task='moa_response_generation')
+    assert admit(form_data, state=state, user_id='u1') is None
+    assert carries_contract(form_data), 'a MoA turn went out without the contract'
+
+
+def test_a_passthrough_is_refused_and_audited(tmp_path, monkeypatch):
+    monkeypatch.setenv('JUP_GOVERNANCE_AUDIT', str(tmp_path / 'audit.jsonl'))
+    refusal = refuse_passthrough(user_id='u3', route='openai', model='m')
+    assert isinstance(refusal, GovernanceRefusal) and refusal.status_code == 403
+    event = json.loads((tmp_path / 'audit.jsonl').read_text().splitlines()[-1])
+    assert event['event'] == 'refused' and event['user'] == 'u3' and event['route'] == 'openai'
+
+
+def _function(source: Path, name: str) -> ast.AsyncFunctionDef:
+    found = [
+        n for n in ast.walk(ast.parse(source.read_text())) if isinstance(n, ast.AsyncFunctionDef) and n.name == name
+    ]
+    assert len(found) == 1, f'{source.name}: expected one `{name}`, found {len(found)}. {_LOST_PATCH}'
+    return found[0]
+
+
+def _body_without_docstring(function: ast.AsyncFunctionDef) -> list[ast.stmt]:
+    body = function.body
+    if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant):
+        body = body[1:]
+    return body
+
+
+@pytest.mark.parametrize(('source', 'name'), PASSTHROUGH_ROUTES, ids=[f'{s.name}:{n}' for s, n in PASSTHROUGH_ROUTES])
+def test_a_passthrough_route_refuses_before_anything_else(source: Path, name: str):
+    body = _body_without_docstring(_function(source, name))
+    assert 'jup_governance.refuse_passthrough(' in ast.unparse(body[0]), (
+        f'{source.name}:{name}: the passthrough refusal is not the first statement. {_LOST_PATCH}'
+    )
+    assert isinstance(body[1], ast.Raise), f'{source.name}:{name}: the refusal is computed but not raised.'
+
+
+@pytest.mark.parametrize('name', ['process_url', 'process_web'])
+def test_url_fetching_routes_check_web_upload_first(name: str):
+    """Fetching an arbitrary URL from the backend is egress; the permission check comes first."""
+    body = _body_without_docstring(_function(RETRIEVAL_PY, name))
+    assert '_jup_require_web_upload(user)' in ast.unparse(body[0]), f'retrieval.py:{name}: web_upload gate lost.'

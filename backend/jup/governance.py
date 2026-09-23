@@ -109,9 +109,13 @@ EXEMPT_TASKS = frozenset(
         'image_prompt_generation',
         'autocomplete_generation',
         'function_calling',
-        'moa_response_generation',
     }
 )
+# `moa_response_generation` was on this list until 2026-09-23 and was removed on purpose.
+# `routers/tasks.py`'s MoA route takes the caller's `prompt` and `responses` verbatim and sets
+# the task name itself, so the funnel stamp could not tell it apart from a genuine internal
+# generation: any verified user had an exempt, contract-free completion on their own text. JUP
+# never uses MoA, so it is now governed like any other turn and carries the contract.
 
 
 class GovernanceRefusal(Exception):
@@ -333,6 +337,21 @@ def refuse_if_ungoverned(
     return GovernanceRefusal(reason)
 
 
+def refuse_passthrough(*, user_id: str | None = None, route: str = '', model: Any = None) -> GovernanceRefusal:
+    """The refusal for a raw provider passthrough, which is never governable. Audits it.
+
+    `refuse_if_ungoverned` reads the contract out of `messages`, and that is only sound for a
+    chat-completions payload. The Responses, Ollama generate/completions and Anthropic Messages
+    shapes carry their instructions elsewhere (`instructions`, `system`, `prompt`), so a caller
+    could satisfy a `messages` check with a field the provider then ignores. Nothing inside the
+    app calls these routes — the pipeline reaches `/responses` from inside
+    `generate_chat_completion`, which is already governed — so they are refused outright.
+    """
+    reason = 'ungoverned: raw provider passthrough route'
+    audit('refused', route=route, user=user_id, model=model, reason=reason)
+    return GovernanceRefusal(reason)
+
+
 def assert_governed(form_data: dict, *, state: Any = None, user_id: str | None = None, route: str = '') -> None:
     """The raising form of `refuse_if_ungoverned`, for callers with no framework of their own."""
     refusal = refuse_if_ungoverned(form_data, state=state, user_id=user_id, route=route)
@@ -353,5 +372,6 @@ __all__ = [
     'audit',
     'audit_path',
     'carries_contract',
+    'refuse_passthrough',
     'task_of',
 ]

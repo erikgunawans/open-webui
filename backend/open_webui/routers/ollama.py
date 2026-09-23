@@ -996,6 +996,10 @@ async def generate_completion(
     user=Depends(get_verified_user),
 ):
     """Run text completion via Ollama /api/generate."""
+    # JUP (ADR-0002): a raw provider passthrough that nothing in the app calls, and whose payload
+    # carries its instructions outside `messages`, so the contract check cannot read it. Refused.
+    refusal = jup_governance.refuse_passthrough(user_id=user.id, route='ollama', model=form_data.model)
+    raise HTTPException(status_code=refusal.status_code, detail=refusal.detail)
     if not await Config.get('ollama.enable'):
         raise HTTPException(status_code=503, detail=ERROR_MESSAGES.OLLAMA_API_DISABLED)
 
@@ -1220,6 +1224,10 @@ async def generate_openai_completion(
     user=Depends(get_verified_user),  # noqa: B008
 ):
     """Forward a text completion request via the OpenAI-compatible proxy."""
+    # JUP (ADR-0002): a raw provider passthrough that nothing in the app calls, and whose payload
+    # carries its instructions outside `messages`, so the contract check cannot read it. Refused.
+    refusal = jup_governance.refuse_passthrough(user_id=user.id, route='ollama', model=form_data.get('model'))
+    raise HTTPException(status_code=refusal.status_code, detail=refusal.detail)
     # NOTE: We intentionally do NOT use Depends(get_async_session) here.
     # Database operations (get_model_by_id, AccessGrants.has_access) manage their own short-lived sessions.
     # This prevents holding a connection during the entire LLM call (30-60+ seconds),
@@ -1324,6 +1332,10 @@ async def generate_openai_chat_completion(
     user=Depends(get_verified_user),  # noqa: B008
 ):
     """Forward a chat completion request via the OpenAI-compatible proxy."""
+    # JUP (ADR-0002): a raw provider passthrough that nothing in the app calls, and whose payload
+    # carries its instructions outside `messages`, so the contract check cannot read it. Refused.
+    refusal = jup_governance.refuse_passthrough(user_id=user.id, route='ollama', model=form_data.get('model'))
+    raise HTTPException(status_code=refusal.status_code, detail=refusal.detail)
     # NOTE: We intentionally do NOT use Depends(get_async_session) here.
     # Database operations (get_model_by_id, AccessGrants.has_access) manage their own short-lived sessions.
     # This prevents holding a connection during the entire LLM call (30-60+ seconds),
@@ -1391,6 +1403,10 @@ async def generate_anthropic_messages(
 
     See https://docs.ollama.com/api/anthropic-compatibility
     """
+    # JUP (ADR-0002): a raw provider passthrough that nothing in the app calls, and whose payload
+    # carries its instructions outside `messages`, so the contract check cannot read it. Refused.
+    refusal = jup_governance.refuse_passthrough(user_id=user.id, route='ollama', model=form_data.get('model'))
+    raise HTTPException(status_code=refusal.status_code, detail=refusal.detail)
     if not await Config.get('ollama.enable'):
         raise HTTPException(status_code=503, detail=ERROR_MESSAGES.OLLAMA_API_DISABLED)
 
@@ -1449,6 +1465,10 @@ async def generate_responses(
 
     See https://ollama.com/blog/responses-api
     """
+    # JUP (ADR-0002): a raw provider passthrough that nothing in the app calls, and whose payload
+    # carries its instructions outside `messages`, so the contract check cannot read it. Refused.
+    refusal = jup_governance.refuse_passthrough(user_id=user.id, route='ollama', model=form_data.model)
+    raise HTTPException(status_code=refusal.status_code, detail=refusal.detail)
     if not await Config.get('ollama.enable'):
         raise HTTPException(status_code=503, detail=ERROR_MESSAGES.OLLAMA_API_DISABLED)
 

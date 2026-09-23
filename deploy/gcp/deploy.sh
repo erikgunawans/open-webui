@@ -58,6 +58,16 @@ DEFAULT_LOCALE: "id-ID"
 # The product name. The vendor appends " (Open WebUI)", so the UI reads "JUP (Open WebUI)";
 # replacing the branding at all rests on LICENSE clause 4 and the fifty-user ceiling (ADR-0001).
 WEBUI_NAME: "JUP"
+# Agentic-capabilities plan, Phase 0 (2026-09-23).
+# There is no Ollama backend. This value only SEEDS the DB key ollama.enable on a fresh database;
+# on the live DB the key already exists and was switched off through the admin API. The
+# passthrough routes refuse regardless (jup.governance.refuse_passthrough).
+ENABLE_OLLAMA_API: "False"
+# The two below are read from the environment on every boot and are not DB-seeded.
+# Tools run as Python in the backend. Saving one must not also pip-install into the image.
+ENABLE_PIP_INSTALL_FRONTMATTER_REQUIREMENTS: "False"
+# MiniLM is baked into the image; the auto-update reached HuggingFace on every boot.
+RAG_EMBEDDING_MODEL_AUTO_UPDATE: "False"
 # ADR-0012, the IAP login. This header is set by IAP itself and cannot be spoofed from outside,
 # because --ingress=internal-and-cloud-load-balancing above means there is no path to the service
 # that does not pass through the load balancer. LOOSENING THAT INGRESS MAKES THIS HEADER A LOGIN

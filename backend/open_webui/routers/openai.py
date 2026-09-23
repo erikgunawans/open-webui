@@ -1860,6 +1860,10 @@ async def responses(
     Forward requests to the OpenAI Responses API endpoint.
     Routes to the correct upstream backend based on the model field.
     """
+    # JUP (ADR-0002): a raw provider passthrough that nothing in the app calls, and whose payload
+    # carries its instructions outside `messages`, so the contract check cannot read it. Refused.
+    refusal = jup_governance.refuse_passthrough(user_id=user.id, route='openai', model=form_data.model)
+    raise HTTPException(status_code=refusal.status_code, detail=refusal.detail)
     payload = form_data.model_dump(exclude_none=True)
     is_streaming_request = bool(payload.get('stream', False))
 
