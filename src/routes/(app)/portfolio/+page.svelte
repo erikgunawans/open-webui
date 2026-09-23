@@ -1,10 +1,12 @@
 <script lang="ts">
-	import { onMount, getContext } from 'svelte';
+	import { onMount, getContext, tick } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { toast } from 'svelte-sonner';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
 
-	import { showSidebar } from '$lib/stores';
+	import { showSidebar, WEBUI_NAME } from '$lib/stores';
 	import {
 		getPortfolio,
 		PortfolioRequestError,
@@ -119,6 +121,99 @@
 	const citationKind = (item: EvidenceItem) =>
 		item.artefact ? $i18n.t('Artefact') : $i18n.t('Engagement');
 
+	// The view lives in the query string, so a filtered view is a link the Director can send.
+	// Each card also carries an id (#project-…, #engagement-…) to land on one record.
+	const STATUSES = ['all', 'blocked', 'passed', 'refused', 'unassessed'] as const;
+	// There is deliberately no sort by a figure. Ranking projects by an amount compares values
+	// across tiers, which is the one comparison D11 prohibits.
+	const SORTS = ['record', 'name', 'gate', 'blocked'] as const;
+	type Status = (typeof STATUSES)[number];
+	type Sort = (typeof SORTS)[number];
+
+	const pick = <T extends string>(value: string | null, allowed: readonly T[], fallback: T): T =>
+		allowed.includes(value as T) ? (value as T) : fallback;
+
+	$: query = $page.url.searchParams.get('q') ?? '';
+	$: pillar = $page.url.searchParams.get('pillar') ?? '';
+	$: statusFilter = pick<Status>($page.url.searchParams.get('status'), STATUSES, 'all');
+	$: sortBy = pick<Sort>($page.url.searchParams.get('sort'), SORTS, 'record');
+
+	const setParam = (key: string, value: string, fallback = '') => {
+		const url = new URL($page.url);
+		if (value && value !== fallback) url.searchParams.set(key, value);
+		else url.searchParams.delete(key);
+		goto(url, { replaceState: true, keepFocus: true, noScroll: true });
+	};
+
+	const clearFilters = () => {
+		const url = new URL($page.url);
+		['q', 'pillar', 'status'].forEach((key) => url.searchParams.delete(key));
+		goto(url, { replaceState: true, keepFocus: true, noScroll: true });
+	};
+
+	$: filtersActive = query !== '' || pillar !== '' || statusFilter !== 'all';
+
+	$: pillars = [
+		...new Set(
+			[...(portfolio?.projects ?? []), ...(portfolio?.engagements ?? [])]
+				.map((item) => item.pillar)
+				.filter((value): value is string => !!value)
+		)
+	].sort((a, b) => a.localeCompare(b));
+
+	const matchesText = (needle: string, ...fields: (string | null | undefined)[]) =>
+		!needle || fields.some((field) => field?.toLowerCase().includes(needle));
+
+	const statusOf = (project: PortfolioProject): Exclude<Status, 'all' | 'blocked'> =>
+		project.current_gate ? 'passed' : project.has_assessments ? 'refused' : 'unassessed';
+
+	// Highest gate held first; a refusal outranks never-assessed, because a stop is a decision.
+	const gateRank = (project: PortfolioProject) =>
+		project.current_gate
+			? 10 + GATES.indexOf(project.current_gate)
+			: project.has_assessments
+				? 1
+				: 0;
+
+	const sortProjects = (projects: PortfolioProject[], by: Sort) => {
+		const sorted = [...projects];
+		if (by === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name));
+		if (by === 'gate') sorted.sort((a, b) => gateRank(b) - gateRank(a));
+		if (by === 'blocked')
+			sorted.sort((a, b) => b.blocking_requirements.length - a.blocking_requirements.length);
+		return sorted;
+	};
+
+	$: needle = query.trim().toLowerCase();
+
+	$: visibleProjects = sortProjects(
+		(portfolio?.projects ?? []).filter(
+			(project) =>
+				(!pillar || project.pillar === pillar) &&
+				(statusFilter === 'all' ||
+					(statusFilter === 'blocked'
+						? project.blocking_requirements.length > 0
+						: statusOf(project) === statusFilter)) &&
+				matchesText(needle, project.name, project.id, project.pillar)
+		),
+		sortBy
+	);
+
+	// The status filter is about gates, which engagements do not have, so it leaves them alone.
+	$: visibleEngagements = (portfolio?.engagements ?? []).filter(
+		(engagement) =>
+			(!pillar || engagement.pillar === pillar) &&
+			matchesText(
+				needle,
+				engagement.id,
+				engagement.pillar,
+				engagement.purpose,
+				...engagement.counterparty
+			)
+	);
+
+	const cardId = (kind: 'project' | 'engagement', id: string) => `${kind}-${id}`;
+
 	onMount(async () => {
 		try {
 			portfolio = await getPortfolio(localStorage.token);
@@ -137,11 +232,20 @@
 		}
 
 		loaded = true;
+
+		// The cards render only after the data arrives, which is after the browser has already
+		// tried and failed to find the fragment, so land on it here.
+		if (location.hash) {
+			await tick();
+			document
+				.getElementById(decodeURIComponent(location.hash.slice(1)))
+				?.scrollIntoView({ block: 'start' });
+		}
 	});
 </script>
 
 <svelte:head>
-	<title>{$i18n.t('Portfolio')}</title>
+	<title>{$i18n.t('Portfolio')} / {$WEBUI_NAME}</title>
 </svelte:head>
 
 <div
@@ -189,12 +293,95 @@
 					</p>
 				</div>
 			{:else}
+				<form class="jup-controls" role="search" on:submit|preventDefault>
+					<label class="jup-control jup-control-search">
+						<span class="jup-control-label">{$i18n.t('Search')}</span>
+						<input
+							type="search"
+							class="jup-input"
+							value={query}
+							placeholder={$i18n.t('Project, id or counterparty')}
+							on:input={(event) => setParam('q', event.currentTarget.value)}
+						/>
+					</label>
+					{#if pillars.length > 0}
+						<label class="jup-control">
+							<span class="jup-control-label">{$i18n.t('Pillar')}</span>
+							<select
+								class="jup-input"
+								value={pillar}
+								on:change={(event) => setParam('pillar', event.currentTarget.value)}
+							>
+								<option value="">{$i18n.t('All pillars')}</option>
+								{#each pillars as option (option)}
+									<option value={option}>{option}</option>
+								{/each}
+							</select>
+						</label>
+					{/if}
+					<label class="jup-control">
+						<span class="jup-control-label">{$i18n.t('Gate status')}</span>
+						<select
+							class="jup-input"
+							value={statusFilter}
+							on:change={(event) => setParam('status', event.currentTarget.value, 'all')}
+						>
+							<option value="all">{$i18n.t('All projects')}</option>
+							<option value="blocked">{$i18n.t('Has blockers')}</option>
+							<option value="passed">{$i18n.t('Gate passed')}</option>
+							<option value="refused">{$i18n.t('No gate passed')}</option>
+							<option value="unassessed">{$i18n.t('No assessment')}</option>
+						</select>
+					</label>
+					<label class="jup-control">
+						<span class="jup-control-label">{$i18n.t('Sort by')}</span>
+						<select
+							class="jup-input"
+							value={sortBy}
+							on:change={(event) => setParam('sort', event.currentTarget.value, 'record')}
+						>
+							<option value="record">{$i18n.t('Record order')}</option>
+							<option value="name">{$i18n.t('Name')}</option>
+							<option value="gate">{$i18n.t('Highest gate first')}</option>
+							<option value="blocked">{$i18n.t('Most blockers first')}</option>
+						</select>
+					</label>
+				</form>
+
+				<p class="jup-meta jup-count text-xs" aria-live="polite">
+					{$i18n.t('Showing {{shown}} of {{total}} projects', {
+						shown: visibleProjects.length,
+						total: portfolio?.projects.length ?? 0
+					})}
+					{#if filtersActive}
+						&nbsp;·&nbsp;<button type="button" class="jup-link" on:click={clearFilters}
+							>{$i18n.t('Clear filters')}</button
+						>
+					{/if}
+				</p>
+
+				{#if visibleProjects.length === 0}
+					<div class="jup-notice">
+						<p class="font-medium">{$i18n.t('No project matches these filters')}</p>
+						<p class="mt-1 text-sm">
+							{$i18n.t('The projects are still recorded; the filters above hide them.')}
+						</p>
+					</div>
+				{/if}
+
 				<ul class="flex flex-col gap-4">
-					{#each portfolio?.projects ?? [] as project (project.id)}
-						<li class="jup-card">
+					{#each visibleProjects as project (project.id)}
+						<li class="jup-card" id={cardId('project', project.id)}>
 							<div class="flex flex-wrap items-start justify-between gap-3">
 								<div>
-									<h2 class="jup-project-name text-base font-semibold">{project.name}</h2>
+									<h2 class="jup-project-name text-base font-semibold">
+										{project.name}
+										<a
+											class="jup-anchor"
+											href="#{cardId('project', project.id)}"
+											aria-label={$i18n.t('Link to this project')}>#</a
+										>
+									</h2>
 									<p class="jup-meta mt-0.5 text-xs">
 										{project.id}{#if project.pillar}&nbsp;·&nbsp;{project.pillar}{/if}
 									</p>
@@ -228,9 +415,12 @@
 													{@const held = engagementOf(item.engagement)}
 													<!-- The resolved citation: whose reply this is waiting for, and the rung
 													     they are actually on — never a guess at whether they will say yes. -->
-													<span class="jup-meta text-xs">
+													<a
+														class="jup-meta jup-cite-link text-xs"
+														href="#{cardId('engagement', item.engagement)}"
+													>
 														{held?.counterparty.join(', ')}&nbsp;·&nbsp;{stageOf(held, stageLabels)}
-													</span>
+													</a>
 												{:else}
 													<span class="jup-meta text-xs">
 														{citationKind(item)}:&nbsp;{citation(item)}
@@ -371,7 +561,7 @@
 					{/each}
 				</ul>
 
-				{#if (portfolio?.engagements ?? []).length > 0}
+				{#if visibleEngagements.length > 0}
 					<section class="jup-engagements-section">
 						<h2 class="jup-title text-xl font-semibold">{$i18n.t('Engagements')}</h2>
 						<!-- ADR-0009's consequence, now served with the payload rather than written
@@ -387,8 +577,8 @@
 						</aside>
 
 						<ul class="mt-4 flex flex-col gap-3">
-							{#each portfolio?.engagements ?? [] as engagement (engagement.id)}
-								<li class="jup-card">
+							{#each visibleEngagements as engagement (engagement.id)}
+								<li class="jup-card" id={cardId('engagement', engagement.id)}>
 									<div class="flex flex-wrap items-start justify-between gap-3">
 										<div>
 											<h3 class="jup-project-name text-sm font-semibold">
@@ -478,6 +668,77 @@
 		border: 1px solid var(--jup-line);
 		border-radius: var(--jup-radius);
 		padding: 1.15rem 1.25rem;
+	}
+
+	/* A card reached by a deep link says so, without moving anything. */
+	.jup-card {
+		scroll-margin-top: 1.5rem;
+	}
+
+	.jup-card:target {
+		outline: 2px solid var(--jup-brand-text);
+		outline-offset: 2px;
+	}
+
+	.jup-controls {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		margin-bottom: 0.75rem;
+	}
+
+	.jup-control {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.jup-control-search {
+		flex: 1 1 14rem;
+	}
+
+	.jup-control-label {
+		color: var(--jup-ink-soft);
+		font-size: 0.75rem;
+		font-weight: 500;
+	}
+
+	.jup-input {
+		background: var(--jup-surface);
+		color: var(--jup-ink);
+		border: 1px solid var(--jup-line);
+		border-radius: var(--jup-radius-sm);
+		padding: 0.4rem 0.6rem;
+		font-size: 0.875rem;
+	}
+
+	.jup-input:focus-visible {
+		outline: 2px solid var(--jup-brand-text);
+		outline-offset: 1px;
+	}
+
+	.jup-count {
+		margin-bottom: 1rem;
+	}
+
+	.jup-link,
+	.jup-anchor,
+	.jup-cite-link {
+		color: var(--jup-brand-text);
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+
+	.jup-anchor {
+		margin-left: 0.35rem;
+		font-weight: 400;
+		text-decoration: none;
+		opacity: 0;
+	}
+
+	.jup-project-name:hover .jup-anchor,
+	.jup-anchor:focus-visible {
+		opacity: 1;
 	}
 
 	.jup-notice {
