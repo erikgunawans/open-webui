@@ -31,7 +31,7 @@ design. The sandbox work for terminal and browser is needed on either path.
 | P3  | `portfolio_status` tool                                 | live    | domain tools                       | —                                            |
 | P4  | Memory on for staff, review off                         | live    | memory                             | —                                            |
 | A1  | Automations: weekly portfolio digest                    | ready   | cron                               | Erik: day/time and per-change OK             |
-| A2  | Subagents + timers (Open WebUI native)                  | ready   | delegation                         | Erik: per-change OK (DB config)              |
+| A2  | Subagents + timers (Open WebUI native)                  | live    | delegation                         | —                                            |
 | A3  | Code interpreter for staff (Pyodide, in-browser)        | ready   | code execution                     | Erik: per-change OK (DB permission)          |
 | E1  | Tool-call audit: one audit line per tool invocation     | live    | the audit trail for every tool     | —                                            |
 | A4  | Web search + URL fetch                                  | blocked | web search                         | D-decision: search engine and egress         |
