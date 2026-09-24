@@ -5,6 +5,7 @@ import {
 	formatDateId,
 	formatEventTimeId,
 	formatValue,
+	rkaEntry,
 	formatVariance,
 	recordedDueId,
 	shortHash
@@ -93,5 +94,41 @@ describe('shortHash', () => {
 	test('the first eight characters of a sha256', () => {
 		expect(shortHash('3f2a9c1e' + '0'.repeat(56))).toBe('3f2a9c1e…');
 		expect(shortHash('abc')).toBe('abc');
+	});
+});
+
+describe('rkaEntry', () => {
+	test('a key ending in a known unit becomes a label and a formatted figure', () => {
+		expect(rkaEntry('pendapatan_idr_miliar', '158.47')).toEqual({
+			label: 'Pendapatan',
+			value: 'Rp158,47 miliar'
+		});
+		expect(rkaEntry('laba_bersih_idr_billion', '-2.65')).toEqual({
+			label: 'Laba bersih',
+			value: '−Rp2,65 miliar'
+		});
+		expect(rkaEntry('margin_ebitda_pct', '10.5')).toEqual({
+			label: 'Margin ebitda',
+			value: '10,5%'
+		});
+	});
+
+	test('other keys are only de-underscored; plain decimals still read in Indonesian', () => {
+		expect(rkaEntry('volume_gas_mmscfd', '1234.5')).toEqual({
+			label: 'Volume gas mmscfd',
+			value: '1.234,5'
+		});
+	});
+
+	test('a value that is not a plain decimal is shown as recorded', () => {
+		expect(rkaEntry('catatan', 'disetujui RUPS')).toEqual({
+			label: 'Catatan',
+			value: 'disetujui RUPS'
+		});
+		expect(rkaEntry('sumber_idr_miliar', 'n/a')).toEqual({ label: 'Sumber', value: 'n/a' });
+	});
+
+	test('a key that is only a unit keeps its raw name', () => {
+		expect(rkaEntry('_pct', '3').label).toBe('_pct');
 	});
 });

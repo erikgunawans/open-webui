@@ -6,7 +6,7 @@
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import { getBaselines, LeadershipRequestError, type RkaRecord } from '$lib/apis/leadership';
-	import { formatDateId, formatEventTimeId, shortHash } from '$lib/leadership/format';
+	import { formatDateId, formatEventTimeId, rkaEntry, shortHash } from '$lib/leadership/format';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
 
@@ -94,8 +94,9 @@
 					{#if scalars(record.content).length}
 						<dl class="jlp-dl mt-2">
 							{#each scalars(record.content) as [key, value] (key)}
-								<dt>{key}</dt>
-								<dd>{value}</dd>
+								{@const entry = rkaEntry(key, value)}
+								<dt title={key}>{entry.label}</dt>
+								<dd>{entry.value}</dd>
 							{/each}
 						</dl>
 					{/if}

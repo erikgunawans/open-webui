@@ -98,3 +98,29 @@ export const formatEventTimeId = (ms: number): string => {
 // A content hash, short enough to read aloud in a meeting and long enough to compare: "3f2a9c1e…".
 export const shortHash = (hash: string): string =>
 	hash.length > 12 ? `${hash.slice(0, 8)}…` : hash;
+
+// An RKA record's content is free-form: its keys are whoever recorded it, not a schema. A key
+// that ends in a known unit is shown as a label and a formatted figure ("pendapatan_idr_miliar"
+// with "158.47" -> "Pendapatan", "Rp158,47 miliar"); any other key is only de-underscored, and a
+// value that is not a plain decimal is shown as recorded.
+const RKA_UNITS: [RegExp, Unit][] = [
+	[/_idr_(miliar|billion)$/, 'IDR_billion'],
+	[/_(pct|percent)$/, 'percent']
+];
+const DECIMAL = /^-?\d+(\.\d+)?$/;
+
+export const rkaEntry = (key: string, value: string): { label: string; value: string } => {
+	let unit: Unit | null = null;
+	let name = key;
+	for (const [suffix, found] of RKA_UNITS) {
+		if (suffix.test(name)) {
+			unit = found;
+			name = name.replace(suffix, '');
+			break;
+		}
+	}
+	const words = name.replace(/_+/g, ' ').trim();
+	const label = words ? words[0].toUpperCase() + words.slice(1) : key;
+	if (!DECIMAL.test(value)) return { label, value };
+	return { label, value: unit ? formatValue(value, unit) : decimalId(value) };
+};
