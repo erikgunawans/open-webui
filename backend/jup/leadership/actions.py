@@ -247,6 +247,53 @@ def record_progress(
     )
 
 
+def assign_pic(
+    uow: UnitOfWork,
+    *,
+    action_id: str,
+    expected_version: int,
+    pic_user_id: str,
+    author: str,
+    pic_label: str | None = None,
+    reason: str | None = None,
+    idempotency_key: str | None = None,
+) -> AppendResult:
+    """Name the user who is the action's PIC, and optionally relabel them.
+
+    A first assignment needs no reason; replacing a PIC does. Nothing changes hands on a closed
+    action, or while a closure request is with the BOD: the request belongs to the PIC who made it.
+    """
+    _require_text(pic_user_id, 'pic_user_id', refusal=True)
+    if pic_label is not None:
+        _require_text(pic_label, 'pic_label', refusal=True)
+    current = _current_if_fresh(uow, action_id, expected_version)
+    previous = None
+    label = pic_label
+    if current is not None:
+        _refuse_if_closed(current)
+        if current['state'] == AWAITING_BOD_CLOSURE:
+            raise CommandRefused('the PIC cannot change while a closure request is with the BOD')
+        previous = current['pic_user_id']
+        label = pic_label or current['pic_label']
+        if (previous, current['pic_label']) == (pic_user_id, label):
+            raise CommandRefused('the PIC is unchanged; an assignment must change who or how they are named')
+        if previous is not None and previous != pic_user_id:
+            _require_text(reason, 'reason', refusal=True)
+    changes: dict[str, Any] = {'pic_user_id': pic_user_id}
+    if label is not None:
+        changes['pic_label'] = label
+    return uow.append_event(
+        action_id=action_id,
+        expected_version=expected_version,
+        kind='pic_assigned',
+        payload={'pic_user_id': pic_user_id, 'pic_label': label, 'previous_pic_user_id': previous},
+        changes=changes,
+        author=author,
+        reason=reason,
+        idempotency_key=idempotency_key,
+    )
+
+
 # --- reading --------------------------------------------------------------------------------
 
 

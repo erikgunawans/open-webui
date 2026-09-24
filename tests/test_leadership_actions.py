@@ -369,3 +369,91 @@ def test_a_stale_state_change_is_a_conflict_not_a_refusal(engine) -> None:
     _run(engine, actions.change_state, expected_version=1, to_state='blocked', reason='waiting')
     with pytest.raises(VersionConflict):
         _run(engine, actions.change_state, expected_version=1, to_state='blocked', reason='also waiting')
+
+
+# --- PIC assignment (T8 follow-up) ------------------------------------------------------------
+
+
+def _create_without_pic(engine) -> None:
+    from jup.leadership import actions
+    from jup.leadership.repository import unit_of_work
+
+    with unit_of_work(engine) as uow:
+        actions.create_action(
+            uow, action_id='act-1', title='Imported action', pic_label='PIC Pengadaan', author='rev-1'
+        )
+
+
+@needs_runtime
+def test_a_first_pic_assignment_needs_no_reason_and_is_an_event(engine) -> None:
+    from jup.leadership import actions
+    from jup.leadership.repository import read_action, read_events
+
+    _create_without_pic(engine)
+    with_uow = _run_as(engine, 'lead-1')
+    with_uow(actions.assign_pic, expected_version=1, pic_user_id='user-new-pic')
+    row = read_action(engine, 'act-1')
+    assert (row['pic_user_id'], row['pic_label'], row['version']) == ('user-new-pic', 'PIC Pengadaan', 2)
+    event = read_events(engine, 'act-1')[-1]
+    assert event.kind == 'pic_assigned'
+    assert event.payload == {'pic_user_id': 'user-new-pic', 'pic_label': 'PIC Pengadaan', 'previous_pic_user_id': None}
+
+
+@needs_runtime
+def test_replacing_a_pic_needs_a_reason_and_may_relabel(engine) -> None:
+    from jup.leadership import actions
+    from jup.leadership.repository import read_action
+
+    _create(engine)
+    assign = _run_as(engine, 'lead-1')
+    with pytest.raises(actions.CommandRefused, match='reason'):
+        assign(actions.assign_pic, expected_version=1, pic_user_id='user-other')
+    assign(actions.assign_pic, expected_version=1, pic_user_id='user-other', pic_label='PIC Hukum', reason='handover')
+    row = read_action(engine, 'act-1')
+    assert (row['pic_user_id'], row['pic_label']) == ('user-other', 'PIC Hukum')
+
+
+@needs_runtime
+def test_an_assignment_that_changes_nothing_is_refused(engine) -> None:
+    from jup.leadership import actions
+
+    _create(engine)
+    with pytest.raises(actions.CommandRefused, match='unchanged'):
+        _run_as(engine, 'lead-1')(actions.assign_pic, expected_version=1, pic_user_id=PIC, reason='same')
+
+
+@needs_runtime
+@pytest.mark.parametrize('state', ['closed', 'awaiting_bod_closure'])
+def test_no_pic_change_on_a_closed_action_or_under_review(engine, state: str) -> None:
+    from sqlalchemy import update
+
+    from jup.leadership import actions
+    from jup.leadership.models import action
+
+    _create(engine)
+    with engine.begin() as connection:
+        connection.execute(update(action).values(state=state))
+    with pytest.raises(actions.CommandRefused):
+        _run_as(engine, 'lead-1')(actions.assign_pic, expected_version=1, pic_user_id='user-other', reason='x')
+
+
+@needs_runtime
+def test_a_stale_assignment_is_a_conflict(engine) -> None:
+    from jup.leadership import actions
+    from jup.leadership.repository import VersionConflict
+
+    _create_without_pic(engine)
+    assign = _run_as(engine, 'lead-1')
+    assign(actions.assign_pic, expected_version=1, pic_user_id='user-a')
+    with pytest.raises(VersionConflict):
+        assign(actions.assign_pic, expected_version=1, pic_user_id='user-b', reason='x')
+
+
+def _run_as(engine, author: str):
+    from jup.leadership.repository import unit_of_work
+
+    def run(command, **kwargs):
+        with unit_of_work(engine) as uow:
+            return command(uow, action_id='act-1', author=author, **kwargs)
+
+    return run

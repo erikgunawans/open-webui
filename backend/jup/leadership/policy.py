@@ -43,7 +43,7 @@ DEFAULT_PERMISSIONS: dict[str, Any] = {
             'board': {'view': False},
             'rka': {'view': False},
             'scopes': {'jup_consolidated': False},
-            'actions': {'submit': False},
+            'actions': {'submit': False, 'assign': False},
             'bod': {'review': False},
             'snapshots': {'publish': False},
             'imports': {'review': False},
@@ -71,6 +71,8 @@ def allowed_views(permissions: dict[str, Any], scope_id: str = 'jup-consolidated
 # Capability keys, as `capabilities.operations` names them, mapped to their place in the grants.
 CAPABILITIES: dict[str, tuple[str, str]] = {
     'actions.submit': ('actions', 'submit'),
+    # Naming who an action's PIC is. Its own grant: whoever holds it decides who may submit evidence.
+    'actions.assign': ('actions', 'assign'),
     'bod.review': ('bod', 'review'),
     'snapshots.publish': ('snapshots', 'publish'),
     'imports.review': ('imports', 'review'),

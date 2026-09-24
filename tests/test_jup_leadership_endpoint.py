@@ -48,6 +48,7 @@ def _grant(
     review: bool | None = None,
     publish: bool | None = None,
     imports: bool | None = None,
+    assign: bool | None = None,
 ) -> SimpleNamespace:
     """A group row carrying leadership permissions, shaped as the host stores them."""
     grants = {
@@ -55,8 +56,8 @@ def _grant(
         'rka': {'view': rka},
         'scopes': {'jup_consolidated': scope},
     }
-    if submit is not None:
-        grants['actions'] = {'submit': submit}
+    if submit is not None or assign is not None:
+        grants['actions'] = {'submit': bool(submit), 'assign': bool(assign)}
     if review is not None:
         grants['bod'] = {'review': review}
     if publish is not None:
@@ -1213,3 +1214,89 @@ def test_the_pic_requests_a_cancellation_and_the_bod_closes_it(client, directory
     _as_bod(client, directory)
     assert _close(client, evidence_id).json()['outcome'] == 'closed'
     assert _action_state(client, directory) == ('closed', 5)
+
+
+# --- PIC assignment (T8 follow-up) -----------------------------------------------------------
+
+PIC_ROUTE = f'{BASE}/actions/act-1/pic{Q}'
+
+
+@pytest.fixture
+def people(client):
+    """The host's user directory, by email: two known people."""
+    from types import SimpleNamespace
+
+    from open_webui.routers import jup_leadership
+
+    known = {'pic@jup.test': 'pic-1', 'new@jup.test': 'pic-2'}
+
+    async def lookup(email: str):
+        user_id = known.get(email.strip().lower())
+        return SimpleNamespace(id=user_id) if user_id else None
+
+    client.app.dependency_overrides[jup_leadership.leadership_user_lookup] = lambda: lookup
+    return known
+
+
+def _as_assigner(client, directory, user_id: str = 'lead-1') -> None:
+    directory.groups = [_grant(board=True, assign=True)]
+    _sign_in_as(client, 'user', user_id=user_id)
+
+
+def test_the_capability_is_listed_for_an_assigner(client, directory) -> None:
+    _as_assigner(client, directory)
+    assert 'actions.assign' in client.get(f'{BASE}/capabilities').json()['operations']
+
+
+def test_an_assigner_replaces_the_pic_and_the_new_pic_can_submit(client, directory, records, people, bucket, caplog):
+    _as_assigner(client, directory)
+    with caplog.at_level('INFO'):
+        response = client.post(
+            PIC_ROUTE, json={'expected_version': 2, 'pic_email': 'NEW@jup.test', 'reason': 'handover to legal'}
+        )
+    assert response.status_code == 200, response.text
+    _no_store(response)
+    assert response.json()['version'] == 3
+    lines = _audit_lines(caplog)
+    assert any("'operation': 'pic_assign'" in line and "'result': 'recorded'" in line for line in lines)
+    assert not any('new@jup.test' in line.lower() for line in lines), 'audit lines carry ids, never emails'
+
+    record = client.get(ACTION).json()
+    assert record['action']['pic_user_id'] == 'pic-2'
+    assert record['history'][-1]['kind'] == 'pic_assigned'
+
+    directory.groups = [_grant(board=True, submit=True)]
+    _sign_in_as(client, 'user', user_id='pic-2')
+    submitted = client.post(EVIDENCE, data={'expected_version': '3', 'url': 'https://example.test/ba'})
+    assert submitted.status_code == 200, submitted.text
+    _sign_in_as(client, 'user', user_id='pic-1')
+    assert client.post(EVIDENCE, data={'expected_version': '4', 'url': 'https://example.test/x'}).status_code == 403
+
+
+@pytest.mark.parametrize('grant', [{'board': True}, {'board': True, 'submit': True}, {'board': True, 'review': True}])
+def test_only_the_assign_capability_assigns(client, directory, records, people, grant) -> None:
+    directory.groups = [_grant(**grant)]
+    _sign_in_as(client, 'admin', user_id='pic-1')
+    response = client.post(PIC_ROUTE, json={'expected_version': 2, 'pic_email': 'new@jup.test', 'reason': 'x'})
+    assert response.status_code == 403
+
+
+def test_an_unknown_person_is_422_and_nothing_changes(client, directory, records, people) -> None:
+    _as_assigner(client, directory)
+    response = client.post(PIC_ROUTE, json={'expected_version': 2, 'pic_email': 'nobody@jup.test', 'reason': 'x'})
+    assert response.status_code == 422
+    assert client.get(ACTION).json()['action']['version'] == 2
+
+
+def test_replacing_without_a_reason_is_422(client, directory, records, people) -> None:
+    _as_assigner(client, directory)
+    response = client.post(PIC_ROUTE, json={'expected_version': 2, 'pic_email': 'new@jup.test'})
+    assert response.status_code == 422
+    assert 'reason' in response.json()['detail']
+
+
+def test_a_stale_assignment_is_409(client, directory, records, people) -> None:
+    _as_assigner(client, directory)
+    response = client.post(PIC_ROUTE, json={'expected_version': 1, 'pic_email': 'new@jup.test', 'reason': 'x'})
+    assert response.status_code == 409
+    assert response.json()['detail']['version'] == 2

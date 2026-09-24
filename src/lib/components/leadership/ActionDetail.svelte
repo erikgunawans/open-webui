@@ -20,6 +20,7 @@
 
 	import ActionSubmit from './ActionSubmit.svelte';
 	import ClosureReview from './ClosureReview.svelte';
+	import PicAssign from './PicAssign.svelte';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
 	// A write changed the record: the page reloads its register too.
@@ -84,6 +85,8 @@
 		record.action.pic_user_id !== $user?.id &&
 		$leadershipAccess.operations.includes('bod.review');
 
+	$: isAssigner = record !== null && $leadershipAccess.operations.includes('actions.assign');
+
 	const saved = () => {
 		dispatch('changed');
 		if (actionId) load(actionId, true);
@@ -134,7 +137,8 @@
 		due_revised: $i18n.t('Target revised'),
 		progress_submitted: $i18n.t('Progress update from the PIC'),
 		evidence_submitted: $i18n.t('Evidence submitted'),
-		bod_decision: $i18n.t('BOD decision')
+		bod_decision: $i18n.t('BOD decision'),
+		pic_assigned: $i18n.t('PIC assigned')
 	} as Record<string, string>;
 
 	$: CLOSURE_KIND = {
@@ -189,7 +193,14 @@
 		{:else if record}
 			<dl class="jlp-dl">
 				<dt>{$i18n.t('PIC')}</dt>
-				<dd>{record.action.pic_label}</dd>
+				<dd>
+					{record.action.pic_label}
+					{#if record.action.pic_user_id === null}
+						<span class="jlp-meta jlp-block"
+							>{$i18n.t('No PIC account assigned yet; nobody can submit on this action.')}</span
+						>
+					{/if}
+				</dd>
 				<dt>{$i18n.t('Status')}</dt>
 				<dd>
 					<span class="jlp-status">{STATE[record.action.state] ?? record.action.state}</span>
@@ -231,6 +242,9 @@
 
 			{#if isPic}
 				<ActionSubmit {record} {view} {scopeId} on:saved={saved} />
+			{/if}
+			{#if isAssigner}
+				<PicAssign {record} {view} {scopeId} on:saved={saved} />
 			{/if}
 			{#if isReviewer}
 				<ClosureReview {record} {view} {scopeId} on:saved={saved} />
@@ -302,6 +316,8 @@
 								{#if text(entry.payload.note)}
 									<span class="jlp-block">{entry.payload.note}</span>
 								{/if}
+							{:else if entry.kind === 'pic_assigned'}
+								<span class="jlp-block">{entry.payload.pic_label}</span>
 							{:else if entry.kind === 'bod_decision'}
 								<span class="jlp-block"
 									>{OUTCOME[String(entry.payload.outcome)] ?? entry.payload.outcome}</span

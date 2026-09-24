@@ -33,7 +33,7 @@ import datetime as dt
 import json
 import logging
 import os
-from collections.abc import Callable, Coroutine
+from collections.abc import Awaitable, Callable, Coroutine
 from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import quote
@@ -49,7 +49,14 @@ from pydantic import BaseModel, Field
 from jup.governance import audit
 from jup.leadership import closure, imports, migrate, snapshots
 from jup.leadership import evidence as evidence_commands
-from jup.leadership.actions import REPORTING_TZ, CommandRefused, derive_flags, fold_history, latest_progress
+from jup.leadership.actions import (
+    REPORTING_TZ,
+    CommandRefused,
+    assign_pic,
+    derive_flags,
+    fold_history,
+    latest_progress,
+)
 from jup.leadership.evidence_store import (
     EvidenceRejected,
     EvidenceStore,
@@ -623,6 +630,73 @@ async def get_evidence(
             'X-Content-Type-Options': 'nosniff',
         },
     )
+
+
+# --- Who the PIC is (T8 follow-up) ---------------------------------------------------------
+
+
+def leadership_user_lookup() -> Callable[[str], Awaitable[Any]]:
+    """The host's user directory by email. A dependency so tests can swap it."""
+    from open_webui.models.users import Users
+
+    return Users.get_user_by_email
+
+
+class PicAssignIn(BaseModel):
+    expected_version: int
+    # The person, by the email they sign in with; stored as their user id.
+    pic_email: str = Field(min_length=3, max_length=320)
+    pic_label: str | None = Field(default=None, max_length=500)
+    # Required when replacing a PIC; optional on a first assignment.
+    reason: str | None = Field(default=None, max_length=10_000)
+    idempotency_key: str | None = Field(default=None, max_length=128)
+
+
+@router.post('/actions/{action_id}/pic')
+async def post_pic_assignment(
+    action_id: str,
+    view: View,
+    scope_id: Scope,
+    form: PicAssignIn,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+    lookup: Callable[[str], Awaitable[Any]] = Depends(leadership_user_lookup),
+) -> dict[str, Any]:
+    """Name the user who is this action's PIC. Needs `actions.assign`; the PIC's evidence rights follow."""
+
+    def _audit(result: str, **fields: Any) -> None:
+        audit('leadership_write', user=user.id, operation='pic_assign', action_id=action_id, result=result, **fields)
+
+    if not may(permissions, 'actions.assign', view, scope_id):
+        _audit('refused')
+        raise _refuse()
+    _records_ready(_audit)
+    person = await lookup(form.pic_email.strip())
+    if person is None:
+        _audit('unknown_person')
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, 'No account has that email.')
+
+    def _run() -> Any:
+        with unit_of_work(engine) as uow:
+            return assign_pic(
+                uow,
+                action_id=action_id,
+                expected_version=form.expected_version,
+                pic_user_id=person.id,
+                pic_label=(form.pic_label or '').strip() or None,
+                author=user.id,
+                reason=(form.reason or '').strip() or None,
+                idempotency_key=form.idempotency_key,
+            )
+
+    try:
+        result = await run_in_threadpool(_run)
+    except _REFUSALS as error:
+        _audit(type(error).__name__)
+        raise _write_error(error) from error
+    _audit('replayed' if result.replayed else 'recorded', pic_user_id=person.id)
+    return {'action_id': action_id, 'version': result.event.version, 'replayed': result.replayed}
 
 
 # --- The BOD's decisions (P2 T4) ----------------------------------------------------------

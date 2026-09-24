@@ -39,7 +39,7 @@ def test_the_defaults_are_all_false_and_complete() -> None:
         'board': {'view': False},
         'rka': {'view': False},
         'scopes': {'jup_consolidated': False},
-        'actions': {'submit': False},
+        'actions': {'submit': False, 'assign': False},
         'bod': {'review': False},
         'snapshots': {'publish': False},
         'imports': {'review': False},

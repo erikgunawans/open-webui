@@ -7,7 +7,12 @@ export type LeadershipView = 'board' | 'rka';
 
 export const LEADERSHIP_SCOPE = 'jup-consolidated';
 
-export type Operation = 'actions.submit' | 'bod.review' | 'snapshots.publish' | 'imports.review';
+export type Operation =
+	| 'actions.submit'
+	| 'actions.assign'
+	| 'bod.review'
+	| 'snapshots.publish'
+	| 'imports.review';
 
 export type Capabilities = {
 	enabled: boolean;
@@ -286,6 +291,7 @@ export type ActionEventKind =
 	| 'progress_submitted'
 	| 'evidence_submitted'
 	| 'bod_decision'
+	| 'pic_assigned'
 	| (string & {});
 
 export type HistoryEvent = {
@@ -482,6 +488,31 @@ export const getEvidence = async (
 	}
 	return { kind: 'link', evidence: await res.json() };
 };
+
+// --- Who the PIC is -------------------------------------------------------------------------
+
+// The person by the email they sign in with; the server stores their user id. Replacing a PIC
+// needs a reason; a first assignment does not.
+export type PicAssignForm = {
+	expected_version: number;
+	pic_email: string;
+	pic_label?: string | null;
+	reason?: string | null;
+	idempotency_key?: string | null;
+};
+
+export const postPicAssignment = (
+	token: string,
+	view: LeadershipView,
+	scopeId: string,
+	actionId: string,
+	form: PicAssignForm
+) =>
+	post<{ action_id: string; version: number; replayed: boolean }>(
+		`/actions/${encodeURIComponent(actionId)}/pic?${viewQuery(view, scopeId)}`,
+		token,
+		form
+	);
 
 // --- The BOD's decisions (P2 T4) ------------------------------------------------------------
 
