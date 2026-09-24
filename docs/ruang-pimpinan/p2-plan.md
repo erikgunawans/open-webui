@@ -192,6 +192,13 @@ pass.
   - A later deck that omits an action leaves it open.
   - A conflicting value creates a conflict record, not an overwrite.
   - A missing value stays null with its reason.
+- _Decided by Erik 2026-09-24, as built in `3f37f47e7`:_
+  - The deck's reported state is kept in the candidate but never compared; only the action's own
+    commands move its lifecycle.
+  - Accepting a conflict records it as `acknowledged` and keeps the recorded values; a change goes
+    through the action's commands. An acknowledged candidate is not `verified`.
+  - A new action needs an owner label; a candidate without one can only be linked or rejected.
+  - The review queue is readable only with `imports.review`.
 
 **T7 — Reader and API integration.**
 
