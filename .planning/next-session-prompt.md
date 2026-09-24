@@ -1,3 +1,38 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-24-p2t3)
+
+> Prepended by /wrap 2026-09-24 (checkpoint 2026-09-24-p2t3). Supersedes checkpoint 2026-09-24-a1's anchor.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-24-p2t3).
+Anchor: `origin/main` at `140979974` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-24-p2t3`). Verify with `git log --oneline 140979974..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live on `ent-os-00027-lrc`, unchanged (Ruang Pimpinan enabled, Erik-only grant). P2 T0–T3 are pushed and **not deployed**: T0 verified on Postgres 16.15 and approved by Erik; T1 `jl0002` + `unit_of_work`; T2 action lifecycle + `GET /actions/{id}`; T3 `actions.submit`, versioned evidence, completion opens a closure request (`140979974`). Full suite 616 passed, 22 skipped (Postgres-only). A1's digest `c516815a-1dfb-4d5a-ad7d-3b8e23618eaf` first fires Mon 2026-09-28 09:00:43 WIB.
+
+**Do next, in order:**
+1. **`df -h /System/Volumes/Data` first.** The disk filled three times on 2026-09-24; 1.7 GB free at wrap. Below about 5 GB, ask Erik to free space before any install, pull or Postgres container.
+2. **Codex, then T4's auditor.** Codex is still bun's 0.139.0 (the `bun add -g` was stopped at "Resolving dependencies" when it ate disk). Upgrading alone won't fix Forge/Cato: Codex refuses their pinned `gpt-5.4` on Erik's ChatGPT login. With Erik's word, change the pin (`~/.claude/agents/Forge.md` ~115 and ~137, Cato's if it has one) to a model his plan serves, e.g. `gpt-6-astra`, then probe with a one-word `codex exec`. If Erik says "Claude-only audit", skip this.
+3. **P2 T4 — BOD closure review** (`closure.py`), per `docs/ruang-pimpinan/p2-plan.md`. Build on T3's `leadership_closure_request` (`closure_kind`, `replacement_action_id`, `status='open'`) and `actions.TRANSITIONS`. `JUP_LEADERSHIP_BOD_POLICY` unset → review endpoints 503. Test the design's list verbatim. Cato (or the agreed auditor) audits ADR-0014 and the closure policy before T4 merges. **Stop for Erik's review after T4.**
+4. **After Mon 2026-09-28 09:00 WIB: verify A1's first run** through a fresh ops tab (guard `location.host`): GET `/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs` → `success` + chat id; `gcloud logging read` the `jup.governance` lines around 02:00Z. Close the tab.
+5. **Carried:** T2/T3's frontend screens are not built (the plan lands screens with each task; Erik chose backend-first); per-turn `admitted` audit lines carry no chat id; critique leftovers (blocker owner/next step/date, English chrome under id-ID, "Open Sidebar"); the CI Docker CUDA and Ollama variants that failed on `259429034`.
+
+**Constraints to honor:**
+- Deploy, DB-config and production-grant authorization is per change, never standing. Record before-values in `.planning/*before*.json`. Pushing needs its own OK, except inside `/wrap`. A new Ruang Pimpinan reader or capability holder is a new grant: its own OK.
+- **Before any P2 deploy, settle the evidence-wipe hazard:** the vendor's admin `DELETE /api/v1/files/all` deletes every object in `jup-ops-data`, evidence included (recorded in `p2-plan.md`; recommendation: a temporary hold per evidence object at upload).
+- Ruang Pimpinan's approved decisions and ADR-0014 are settled. The owner never closes; admin is not BOD; evidence is never in vendor Files (T3 has its own store, `jup/leadership/evidence_store.py`, because the vendor provider mangles nested keys and copies into `UPLOAD_DIR`).
+- `jl0002` is now pushed: from here, schema changes are new revisions, never edits to `jl0002`.
+- Due-date precision vocabulary is P1's: `date`, `month`, `year`, `year_range` (not the plan's `day`).
+- `deploy.sh --env-vars-file` replaces the whole environment: any env value lives in its heredoc.
+- `holaboss-ai` and `KPI-Dashboard-JUP` are read-only.
+- Postgres checks: `docker run -d --rm --name jl-pg16 -e POSTGRES_PASSWORD=local -e POSTGRES_DB=jl -p 55432:5432 postgres:16`, then `JUP_TEST_POSTGRES_URL=postgresql://postgres:local@127.0.0.1:55432/jl uv run --no-sync --with psycopg2-binary pytest tests/test_leadership_repository.py tests/test_leadership_migrate.py`; stop the container after.
+
+**Open items waiting on Erik:**
+- Codex: finish the upgrade (e.g. `brew upgrade codex` if bun keeps re-resolving globals) and decide Forge's model pin, or "Claude-only audit" for T4.
+- The evidence-wipe fix (hold / soft delete / vendor patch), before any deploy.
+- Disk: optional deletion of the Claude desktop VM image (9.1 GB), truncating `~/.hermes/logs/gateway-exit-diag.log`, `uv cache prune` with MCP servers stopped.
+- Ruang Pimpinan company decisions: BOD and PIC identities; individual vs collective BOD closure; publication authority; KPI owners and definitions; retention, backup and data location; Dynamics details from IT; the CRM choice; a staleness threshold (until then `stale` stays unknown).
+- Optionally revise the digest prompt, or add `BYSECOND=0`. Plan decisions V1, E2, E7 and a D-decision per new egress; "JUP Staff" group membership; D19 wording and the Rp 10 miliar SPBG tier labelled POTENSI.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-24-a1)
 
 > Prepended by /wrap 2026-09-24 (checkpoint 2026-09-24-a1). Supersedes checkpoint 2026-09-24-p2t0's anchor.

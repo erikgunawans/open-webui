@@ -1,6 +1,37 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-24-a1 (latest) — A1 timing retest passed, weekly digest live
+## Checkpoint 2026-09-24-p2t3 (latest) — T0 verified on Postgres 16, P2 T1–T3 built and pushed
+
+- **Session:** `/next` → Docker unresponsive, so the carried #10 README fix → Erik restarted Docker → T0 on Postgres 16 → Erik: "OK on T0" → T1 → T2 → T3 → push (Erik's OK) → Codex upgrade attempt, blocked by a full disk → `/wrap`.
+- **Live:** unchanged, `ent-os-00027-lrc`. No deploy this session. `origin/main` is ahead of live by T0–T3 (all inert until deployed).
+- **Commits (pushed):** `35699ee31` (#10 README), `0df207f5e` (T1), `faf114a8b` (T2), `140979974` (T3).
+- **Tests:** full suite 616 passed, 22 skipped (the Postgres-only cases). Leadership schema and repository 48/48 on a disposable Postgres 16.15.
+
+### What shipped
+
+- **T0 verified on Postgres 16.15:** `test_leadership_migrate.py` 4/4, and the database held only `jup_alembic_version` at `jl0001`. Erik approved T0 ("OK on T0").
+- **`deploy/gcp/README.md`**: the stale "portfolio has no operating-layer permission" warning replaced. The gate is `OPERATING_LAYER_ROLE = 'admin'` in both the endpoint and `portfolio_status`; a signed-in `user` gets 403.
+- **T1** (`0df207f5e`): `jl0002` creates the 11 `leadership_*` tables (written out explicitly; `models.py` mirrors them and a test holds the two equal on both databases). `repository.unit_of_work()`: event append + conditional version bump + aggregate changes + idempotency key in one transaction; stale version → `VersionConflict`; replayed key → first event; reused key with other content → refused; unique constraints back both. No float column; payload floats refused. A source-reading test forbids UPDATE/DELETE on the five append-only tables, with a planted-violation test.
+- **T2** (`faf114a8b`): `actions.py`, the design's lifecycle in one `TRANSITIONS` table; the owner walks only not_started/in_progress/blocked. Due dates keep P1's precision names (`date`, `month`, `year`, `year_range`), not the plan's `day`. Overdue only at `date` precision; `stale` is None until the company records a threshold. `GET /api/v1/leadership/actions/{id}` with per-request grant, 503/404, no-store and an audit line of ids only.
+- **T3** (`140979974`): `actions.submit` capability (own exact-boolean grant on top of the view grant; `capabilities.operations` lists it). Only the recorded PIC submits. Evidence is versioned; completion moves in_progress → awaiting_bod_closure and opens a closure request bound to that revision, never closing. Own evidence store (`evidence_store.py`) for the host provider under `leadership/evidence/<sha256>`, 20 MiB cap, type judged from the bytes. Routes: `POST /actions/{id}/progress`, `POST /actions/{id}/evidence`, `GET /evidence/{id}`. `jl0002` (never run on a real DB) gained `closure_kind` and `replacement_action_id`.
+- Every task was checked by deliberate mutation. T2's first test set let a missing transition check pass; the missing case (the owner cannot pull an action out of BOD review) was added.
+
+### Findings
+
+- **The vendor's admin "delete all files" (`DELETE /api/v1/files/all`) deletes every object in the bucket**, which would wipe evidence in `jup-ops-data`. Recorded in `p2-plan.md`; settle before any deploy (my recommendation: a temporary hold on each evidence object at upload).
+- **The vendor storage provider can't hold evidence:** its GCS get/delete keep one key segment and every upload copies into `UPLOAD_DIR`.
+- **Forge (and so Cato) can't run.** Codex refuses `gpt-5.4` on a ChatGPT account, whatever the CLI version. The active CLI is bun's 0.139.0 (Homebrew 0.144.4 and nvm 0.131.0 are shadowed; latest 0.156.1), which is also too old for Erik's own default `gpt-6-astra`.
+- **The disk filled a third time today.** Today's big writes: the Claude desktop app's VM image (`~/Library/Application Support/Claude/vm_bundles/claudevm.bundle/rootfs.img`, 9.1 GB), claude-mem databases (4.8 GB), a Docker Desktop update download, the Hermes diagnostic log (353 MB). `bun add -g` re-resolves every global package and spent about 4 GB before it was stopped at "Resolving dependencies". Erik cleared the npm cache (+3.7 GB) and bun's cache (+0.3 GB); 1.7 GB free at wrap.
+- `uv cache prune` can't take its lock while uv-launched MCP servers run (Claude desktop's macos-mcp, serena, chroma-mcp).
+
+### Open at checkpoint
+
+- **Codex upgrade** (not installed) and Forge's model pin; then how T4 is audited.
+- **P2 T4** (BOD closure), then Erik's review point.
+- **The evidence-wipe hazard**, before any deploy.
+- **A1's first real run** after Mon 2026-09-28 09:00 WIB.
+
+## Checkpoint 2026-09-24-a1 — A1 timing retest passed, weekly digest live
 
 - **Session:** a background watcher collected the 05:00 WIB fire → read and validated it → Erik: "do all three" (clean up, create the digest, mark the plan) → push → `/wrap` (first attempt blocked by a full disk, `ENOSPC`; rerun after Erik freed space, 2.8 GB free).
 - **Live:** unchanged, `ent-os-00027-lrc`. No deploy this session.
