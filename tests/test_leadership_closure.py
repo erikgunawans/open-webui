@@ -399,3 +399,48 @@ def test_a_stale_version_conflicts_before_any_state_is_judged(engine) -> None:
     # BOD_A still holds version 3: the answer is "reload", not a refusal about a state never seen.
     with pytest.raises(VersionConflict):
         _decide(engine, expected_version=3, evidence_id=seen)
+
+
+# --- Due-date revision: a BOD decision (Erik, 2026-09-24) -------------------------------
+
+
+def _revise(engine, reviser: str = BOD_A, action_id: str = 'act-2', expected_version: int = 2, **kwargs):
+    from jup.leadership.actions import Due
+    from jup.leadership.closure import revise_due
+    from jup.leadership.repository import unit_of_work
+
+    kwargs.setdefault('due', Due('year', '2027'))
+    kwargs.setdefault('reason', 'RUPS moved the target')
+    with unit_of_work(engine) as uow:
+        return revise_due(uow, action_id=action_id, expected_version=expected_version, reviser=reviser, **kwargs)
+
+
+@needs_runtime
+def test_a_bod_member_revises_the_due_date_and_the_original_stays(engine) -> None:
+    from jup.leadership.repository import read_action
+
+    result = _revise(engine)
+    event = result.event
+    assert (event.kind, event.author, event.reason) == ('due_revised', BOD_A, 'RUPS moved the target')
+    row = read_action(engine, 'act-2')
+    assert (row['current_due'], row['current_due_precision']) == ('2027', 'year')
+    assert row['original_due'] is None and row['state'] == 'in_progress'
+
+
+@needs_runtime
+def test_the_pic_cannot_move_their_own_due_date(engine) -> None:
+    from jup.leadership.closure import OwnerCannotReviseDue
+    from jup.leadership.repository import read_events
+
+    before = len(read_events(engine, 'act-2'))
+    with pytest.raises(OwnerCannotReviseDue):
+        _revise(engine, reviser=PIC)
+    assert len(read_events(engine, 'act-2')) == before
+
+
+@needs_runtime
+def test_revising_an_unknown_action_is_not_found(engine) -> None:
+    from jup.leadership.repository import ActionNotFound
+
+    with pytest.raises(ActionNotFound):
+        _revise(engine, action_id='act-none', expected_version=1)

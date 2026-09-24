@@ -52,6 +52,7 @@ from jup.leadership import evidence as evidence_commands
 from jup.leadership.actions import (
     REPORTING_TZ,
     CommandRefused,
+    Due,
     assign_pic,
     derive_flags,
     fold_history,
@@ -392,6 +393,8 @@ def _write_error(error: Exception) -> HTTPException:
         return HTTPException(status.HTTP_403_FORBIDDEN, "Only this action's recorded PIC can submit on it.")
     if isinstance(error, closure.OwnerCannotReview):
         return HTTPException(status.HTTP_403_FORBIDDEN, "An action's PIC cannot review its closure.")
+    if isinstance(error, closure.OwnerCannotReviseDue):
+        return HTTPException(status.HTTP_403_FORBIDDEN, "An action's PIC cannot move its due date.")
     if isinstance(error, closure.StaleEvidence):
         return HTTPException(
             status.HTTP_409_CONFLICT,
@@ -419,6 +422,7 @@ def _write_error(error: Exception) -> HTTPException:
 _REFUSALS = (
     evidence_commands.NotThePic,
     closure.OwnerCannotReview,
+    closure.OwnerCannotReviseDue,
     ActionNotFound,
     VersionConflict,
     IdempotencyKeyReused,
@@ -754,6 +758,71 @@ class ClosureDecisionIn(BaseModel):
     reason: str | None = Field(default=None, max_length=10_000)
     return_to: Literal['in_progress', 'blocked'] | None = None
     idempotency_key: str | None = Field(default=None, max_length=128)
+
+
+class DueIn(BaseModel):
+    # The precision vocabulary and value shape are `actions.Due`'s to judge; a bad one is a 422.
+    precision: str = Field(min_length=1, max_length=16)
+    value: str = Field(min_length=1, max_length=16)
+
+
+class DueRevisionIn(BaseModel):
+    expected_version: int
+    due: DueIn
+    reason: str = Field(max_length=10_000)
+    idempotency_key: str | None = Field(default=None, max_length=128)
+
+
+@router.post('/actions/{action_id}/due')
+async def post_due(
+    action_id: str,
+    view: View,
+    scope_id: Scope,
+    form: DueRevisionIn,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """A BOD member moves the due date, with a reason. Needs no closure policy: one member decides."""
+
+    def _audit(result: str) -> None:
+        audit('leadership_write', user=user.id, operation='due_revision', action_id=action_id, result=result)
+
+    if not may(permissions, 'bod.review', view, scope_id):
+        _audit('refused')
+        raise _refuse()
+    if not _enabled():
+        _audit('unavailable')
+        raise _unavailable('Ruang Pimpinan is not enabled on this server.')
+    if not migrate.schema_ready():
+        _audit('unavailable')
+        raise _unavailable('The Ruang Pimpinan records store is not ready on this server.')
+
+    def _run() -> Any:
+        due = Due(form.due.precision, form.due.value)
+        with unit_of_work(engine) as uow:
+            return closure.revise_due(
+                uow,
+                action_id=action_id,
+                expected_version=form.expected_version,
+                reviser=user.id,
+                due=due,
+                reason=form.reason,
+                idempotency_key=form.idempotency_key,
+            )
+
+    try:
+        result = await run_in_threadpool(_run)
+    except _REFUSALS as error:
+        _audit(type(error).__name__)
+        raise _write_error(error) from error
+    _audit('replayed' if result.replayed else 'recorded')
+    return {
+        'action_id': action_id,
+        'version': result.event.version,
+        'event_id': result.event.id,
+        'replayed': result.replayed,
+    }
 
 
 @router.post('/actions/{action_id}/closure')

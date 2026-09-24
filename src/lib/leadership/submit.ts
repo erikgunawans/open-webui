@@ -43,6 +43,25 @@ export const ownerMoves = (state: RecordActionState): OwnerMove[] => {
 	return [];
 };
 
+export type DuePrecision = 'date' | 'month' | 'year' | 'year_range';
+
+// The shapes the server's `Due` accepts, matched whole. Its range checks (a real day, a month
+// 1–12, a range that runs forward) stay the server's; a source's "2026–2027" is typed 2026/2027.
+const DUE_SHAPES: Record<DuePrecision, RegExp> = {
+	date: /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/,
+	month: /^[0-9]{4}-[0-9]{2}$/,
+	year: /^[0-9]{4}$/,
+	year_range: /^[0-9]{4}\/[0-9]{4}$/
+};
+
+export const dueProblem = (
+	precision: DuePrecision,
+	value: string
+): 'value_missing' | 'value_shape' | null => {
+	if (!value.trim()) return 'value_missing';
+	return DUE_SHAPES[precision].test(value.trim()) ? null : 'value_shape';
+};
+
 export const evidenceProblem = (
 	input: EvidenceInput,
 	state: RecordActionState

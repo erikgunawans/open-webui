@@ -1345,3 +1345,57 @@ def test_a_stale_assignment_is_409(client, directory, records, people) -> None:
     response = client.post(PIC_ROUTE, json={'expected_version': 1, 'pic_email': 'new@jup.test', 'reason': 'x'})
     assert response.status_code == 409
     assert response.json()['detail']['version'] == 2
+
+
+# --- Due-date revision: a BOD decision (Erik, 2026-09-24) -------------------------------
+
+DUE = f'{BASE}/actions/act-1/due{Q}'
+NEW_DUE = {'expected_version': 2, 'due': {'precision': 'year', 'value': '2027'}, 'reason': 'RUPS moved the target'}
+
+
+def test_a_bod_member_revises_the_due_date_over_http(client, directory, records, caplog) -> None:
+    _as_bod(client, directory)
+    with caplog.at_level('INFO'):
+        response = client.post(DUE, json=NEW_DUE)
+    assert response.status_code == 200, response.text
+    _no_store(response)
+    assert response.json()['version'] == 3
+    lines = _audit_lines(caplog)
+    assert any("'operation': 'due_revision'" in line and "'result': 'recorded'" in line for line in lines)
+    body = client.get(ACTION).json()
+    assert body['action']['current_due'] == {'precision': 'year', 'value': '2027'}
+    assert body['action']['original_due'] == {'precision': 'date', 'value': '2026-09-01'}
+    assert body['history'][-1]['reason'] == 'RUPS moved the target'
+
+
+def test_due_revision_needs_no_closure_policy(client, directory, records, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv('JUP_LEADERSHIP_BOD_POLICY', raising=False)
+    _as_bod(client, directory)
+    assert client.post(DUE, json=NEW_DUE).status_code == 200
+
+
+def test_only_the_bod_revises_a_due_date(client, directory, records) -> None:
+    _as_pic(client, directory)  # the recorded PIC, holding actions.submit only
+    assert client.post(DUE, json=NEW_DUE).status_code == 403
+    directory.groups = [_grant(board=True, assign=True)]
+    _sign_in_as(client, 'user', user_id='assigner-1')
+    assert client.post(DUE, json=NEW_DUE).status_code == 403
+    directory.groups = [_grant(board=True, review=True)]
+    _sign_in_as(client, 'user', user_id='pic-1')  # a BOD member who is this action's PIC
+    assert client.post(DUE, json=NEW_DUE).status_code == 403
+    assert _action_state(client, directory) == ('not_started', 2)
+
+
+@pytest.mark.parametrize(
+    'change',
+    [
+        {'reason': ''},
+        {'due': {'precision': 'month', 'value': '2026-12'}},  # unchanged
+        {'due': {'precision': 'day', 'value': '2027-01-31'}},  # not the vocabulary
+        {'due': {'precision': 'year', 'value': '27'}},
+    ],
+)
+def test_a_due_revision_that_breaks_a_rule_is_422(client, directory, records, change: dict) -> None:
+    _as_bod(client, directory)
+    assert client.post(DUE, json={**NEW_DUE, **change}).status_code == 422
+    assert _action_state(client, directory) == ('not_started', 2)

@@ -442,6 +442,7 @@
 }
 
 .jlp-field textarea,
+.jlp-field select,
 .jlp-field input[type='text'],
 .jlp-field input[type='url'] {
 	width: 100%;

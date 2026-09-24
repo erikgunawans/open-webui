@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import {
 	allowedPurposes,
+	dueProblem,
 	evidenceProblem,
 	ownerMoves,
 	newIdempotencyKey,
@@ -112,5 +113,21 @@ describe('ownerMoves', () => {
 	test('no owner move while the BOD holds the action or once it is closed', () => {
 		expect(ownerMoves('awaiting_bod_closure')).toEqual([]);
 		expect(ownerMoves('closed')).toEqual([]);
+	});
+});
+
+describe('dueProblem', () => {
+	test('each precision takes its own shape', () => {
+		expect(dueProblem('date', '2026-11-30')).toBeNull();
+		expect(dueProblem('month', '2026-11')).toBeNull();
+		expect(dueProblem('year', '2027')).toBeNull();
+		expect(dueProblem('year_range', '2026/2027')).toBeNull();
+	});
+
+	test('a missing or misshapen value is named, never guessed', () => {
+		expect(dueProblem('year', '  ')).toBe('value_missing');
+		expect(dueProblem('year', '27')).toBe('value_shape');
+		expect(dueProblem('month', '2026-11-30')).toBe('value_shape');
+		expect(dueProblem('year_range', '2026–2027')).toBe('value_shape');
 	});
 });

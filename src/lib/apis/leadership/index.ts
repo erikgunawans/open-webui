@@ -535,6 +535,27 @@ export const postPicAssignment = (
 		form
 	);
 
+// A BOD member moves the due date with a reason; the original is kept (Erik, 2026-09-24).
+export type DueRevisionForm = {
+	expected_version: number;
+	due: { precision: 'date' | 'month' | 'year' | 'year_range'; value: string };
+	reason: string;
+	idempotency_key?: string | null;
+};
+
+export const postDueRevision = (
+	token: string,
+	view: LeadershipView,
+	scopeId: string,
+	actionId: string,
+	form: DueRevisionForm
+) =>
+	post<ProgressResult>(
+		`/actions/${encodeURIComponent(actionId)}/due?${viewQuery(view, scopeId)}`,
+		token,
+		form
+	);
+
 // --- The BOD's decisions (P2 T4) ------------------------------------------------------------
 
 export type ClosureDecisionForm = {

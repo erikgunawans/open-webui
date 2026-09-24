@@ -58,6 +58,10 @@ class OwnerCannotReview(PermissionError):
     """The reviewer is this action's recorded PIC; nothing was written."""
 
 
+class OwnerCannotReviseDue(PermissionError):
+    """The reviser is this action's recorded PIC: an owner never moves their own deadline."""
+
+
 class StaleEvidence(CommandRefused):
     """The PIC submitted a newer evidence revision than the one reviewed; nothing was written."""
 
@@ -307,3 +311,41 @@ def _replayed(connection: Any, event: Any) -> Decision:
 def _require_reason(reason: str | None, what: str) -> None:
     if not isinstance(reason, str) or not reason.strip():
         raise CommandRefused(f'{what} needs a reason')
+
+
+def revise_due(
+    uow: UnitOfWork,
+    *,
+    action_id: str,
+    expected_version: int,
+    reviser: str,
+    due: actions.Due,
+    reason: str,
+    idempotency_key: str | None = None,
+) -> AppendResult:
+    """A BOD member moves an action's due date, with a reason (Erik, 2026-09-24).
+
+    The capability (`bod.review`) is the router's check. One member suffices in both modes, as for
+    return and reopen; only closing counts a quorum. The action's own PIC is refused, as in review:
+    the person accountable for a date never moves it. `actions.revise_due` keeps the original date
+    and refuses an unchanged date, a missing reason and a closed action.
+    """
+    from sqlalchemy import select
+
+    from jup.leadership.models import action
+    from jup.leadership.repository import ActionNotFound
+
+    pic = uow.connection.execute(select(action.c.pic_user_id).where(action.c.id == action_id)).first()
+    if pic is None:
+        raise ActionNotFound(f'no action {action_id!r}')
+    if pic.pic_user_id is not None and pic.pic_user_id == reviser:
+        raise OwnerCannotReviseDue(f'the PIC of action {action_id!r} cannot move its due date')
+    return actions.revise_due(
+        uow,
+        action_id=action_id,
+        expected_version=expected_version,
+        due=due,
+        reason=reason,
+        author=reviser,
+        idempotency_key=idempotency_key,
+    )

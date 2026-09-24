@@ -20,6 +20,7 @@
 
 	import ActionSubmit from './ActionSubmit.svelte';
 	import ClosureReview from './ClosureReview.svelte';
+	import DueRevise from './DueRevise.svelte';
 	import PicAssign from './PicAssign.svelte';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
@@ -248,6 +249,7 @@
 			{/if}
 			{#if isReviewer}
 				<ClosureReview {record} {view} {scopeId} on:saved={saved} />
+				<DueRevise {record} {view} {scopeId} on:saved={saved} />
 			{/if}
 
 			<section class="mt-4" aria-labelledby="jlp-evidence-title">
