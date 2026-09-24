@@ -1,0 +1,20 @@
+{
+  "recorded_at": "2026-09-24T19:45:00Z",
+  "change": "P2 deploy of c5f47be29 (Erik OK 2026-09-25); before-values in deploy-p2-before-2026-09-25.json",
+  "service": "ent-os",
+  "latest_ready": "ent-os-00028-44m",
+  "traffic": [{"latestRevision": true, "percent": 100, "revisionName": "ent-os-00028-44m"}],
+  "image": "asia-southeast2-docker.pkg.dev/jup-ops/ent-os/ent-os:c5f47be29",
+  "env_change": "+JUP_LEADERSHIP_ACTIONS_SOURCE=records (only difference; secret refs unchanged)",
+  "migrations": "jl0001 and jl0002 ran at startup on Cloud SQL (alembic log 19:41:01Z); no ERROR or Traceback in the revision's logs",
+  "live_checks_as_erik": {
+    "overview": "200, actions_source records, 0 actions, note 'No action is recorded for this view yet.'",
+    "meeting_changes": "200, available false, published_meetings 0",
+    "snapshots": "200, empty",
+    "capabilities": "no operations (the actions.assign grant is its own OK, not applied)",
+    "page": "register '0 open of 0 recorded actions'; changes section explains 0 published; prior-meeting-change module still 'Not yet available'"
+  },
+  "unset_by_design": ["JUP_LEADERSHIP_BOD_POLICY", "JUP_LEADERSHIP_PUBLICATION_POLICY"],
+  "orphan_build": "299c3299-972b-4de0-b233-d34020cc48cd (image 6f3f0da51) finished SUCCESS after the first deploy.sh died on re-auth; never deployed",
+  "rollback": "gcloud run services update-traffic ent-os --project=jup-ops --region=asia-southeast2 --to-revisions=ent-os-00027-lrc=100"
+}

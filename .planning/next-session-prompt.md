@@ -1,3 +1,19 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-25-p2d2)
+
+> Prepended 2026-09-25 after the p2d wrap. Supersedes p2d's items 1 and 2 (done); everything else in the p2d block below still holds.
+
+Anchor: `origin/main` at `c5f47be29` plus this checkpoint's own commit (subject begins `chore(deploy): P2 live on ent-os-00028-44m`). Any other commit is a parallel push.
+
+**Current state:** **P2 is live on `ent-os-00028-44m`** (image `c5f47be29`), records mode, BOD and publication policies unset. Verified live as Erik; after-values in `.planning/deploy-p2-after-2026-09-25.json`. Rollback: `gcloud run services update-traffic ent-os --project=jup-ops --region=asia-southeast2 --to-revisions=ent-os-00027-lrc=100`.
+
+**Do next, in order:**
+1. **The `actions.assign` grant for Erik** on group `Ruang Pimpinan — uji`: its own OK. Record before-values, apply it through the group editor/API in a host-guarded ops tab, confirm `/capabilities` lists `actions.assign`.
+2. The p2d block's items 4–6: A1 after Mon 2026-09-28 09:00 WIB; Erik's keyboard/focus-ring pass; carried items.
+
+**Constraints and open items:** unchanged from the p2d block below.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-25-p2d)
 
 > Prepended by /wrap 2026-09-25 (checkpoint 2026-09-25-p2d). Supersedes checkpoint 2026-09-25-t9b's anchor and its list.

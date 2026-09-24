@@ -1,6 +1,14 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-25-p2d (latest) — P2 polish, meeting changes, hold proven; P2 deploy started, stopped at gcloud re-auth
+## Checkpoint 2026-09-25-p2d2 (latest) — P2 deployed: live on ent-os-00028-44m
+
+- **Session:** after the p2d wrap Erik ran `gcloud auth login`; `deploy.sh` rerun from a clean tree at `c5f47be29`.
+- **Live:** **`ent-os-00028-44m`** (image `c5f47be29`), 100% traffic. Rollback `ent-os-00027-lrc`. Only env change `+JUP_LEADERSHIP_ACTIONS_SOURCE=records`; BOD and publication policies unset by design. `jl0001`→`jl0002` ran on Cloud SQL at startup, no errors.
+- **Verified live as Erik** (Interceptor, IAP): overview 200 in records mode, 0 actions with its note; `/meeting-changes` `available: false`; snapshots empty; the page shows "0 open of 0 recorded actions" and the unavailable meeting comparison. Erik has no leadership operations yet. After-values: `.planning/deploy-p2-after-2026-09-25.json`.
+- **Orphan:** build `299c3299` (image `6f3f0da51`) finished SUCCESS after the first run died on re-auth; never deployed.
+- **Next:** the `actions.assign` grant (its own OK); then A1 after Mon 09-28 09:00 WIB; Erik's keyboard pass; the open decisions.
+
+## Checkpoint 2026-09-25-p2d — P2 polish, meeting changes, hold proven; P2 deploy started, stopped at gcloud re-auth
 
 - **Session:** `/next` (item 1 waits for Mon 09-28) → polish → Erik: "push 0d987b3f8 and c086b9088" → Claude desktop closed, Chrome walk → "OK" → "push" → "yes please" (RKA comparison) → blocked, Erik chose "changes since last meeting" → "push dc6b12721" → "the keyboard and focus-ring check then the P2 deploy prep" → hold proof OK, records / BOD unset / publication unset → "push 78c3fd0b4 and 3a1248a3e. then P2 Deploy" → `/wrap`.
 - **Live:** **unchanged, `ent-os-00027-lrc`** (`dd15a3100`). The P2 deploy of `6f3f0da51` was started: Cloud Build `299c3299-972b-4de0-b233-d34020cc48cd` (global) was submitted, then `gcloud builds submit` died streaming its log: *"Reauthentication failed. cannot prompt during non-interactive execution"* (alesha-bot's session needs `gcloud auth login`). The build keeps running server-side; **`gcloud run deploy` never ran.** Before-values: `.planning/deploy-p2-before-2026-09-25.json` (env diff vs live: only `+JUP_LEADERSHIP_ACTIONS_SOURCE=records`; both secret refs unchanged).
