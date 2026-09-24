@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'vitest';
 import type { Action } from '$lib/apis/leadership';
-import { closureNote, closureRequest, isOpenAction, isSampleRegister } from './actions';
+import {
+	awaitingReview,
+	closureNote,
+	closureRequest,
+	isOpenAction,
+	isSampleRegister
+} from './actions';
 
 const action = (overrides: Partial<Action> = {}): Action => ({
 	id: 'act-1',
@@ -66,5 +72,16 @@ describe('isSampleRegister', () => {
 	test('only the records source is a register', () => {
 		expect(isSampleRegister({ actions_source: 'sample' })).toBe(true);
 		expect(isSampleRegister({ actions_source: 'records' })).toBe(false);
+	});
+});
+
+describe('awaitingReview', () => {
+	test('only actions waiting on a BOD decision', () => {
+		const queue = awaitingReview([
+			action({ id: 'a', state: 'awaiting_bod_closure' }),
+			action({ id: 'b', state: 'in_progress' }),
+			action({ id: 'c', state: 'closed' })
+		]);
+		expect(queue.map((item) => item.id)).toEqual(['a']);
 	});
 });

@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'vitest';
-import { allowedPurposes, evidenceProblem, newIdempotencyKey, type EvidenceInput } from './submit';
+import {
+	allowedPurposes,
+	evidenceProblem,
+	newIdempotencyKey,
+	reviewProblem,
+	type EvidenceInput
+} from './submit';
 
 const input = (overrides: Partial<EvidenceInput> = {}): EvidenceInput => ({
 	purpose: 'evidence',
@@ -67,4 +73,30 @@ describe('evidenceProblem', () => {
 
 test('each form gets its own idempotency key', () => {
 	expect(newIdempotencyKey()).not.toBe(newIdempotencyKey());
+});
+
+describe('reviewProblem', () => {
+	const base = { reason: '', returnTo: null, evidenceId: 'ev-2' } as const;
+
+	test('a close needs only the evidence revision it judges', () => {
+		expect(reviewProblem({ ...base, decision: 'close' })).toBeNull();
+		expect(reviewProblem({ ...base, decision: 'close', evidenceId: null })).toBe('no_evidence');
+	});
+
+	test('a return needs a reason and where it goes back to', () => {
+		expect(reviewProblem({ ...base, decision: 'return' })).toBe('reason_missing');
+		expect(reviewProblem({ ...base, decision: 'return', reason: 'BA unsigned' })).toBe(
+			'return_to_missing'
+		);
+		expect(
+			reviewProblem({ ...base, decision: 'return', reason: 'BA unsigned', returnTo: 'blocked' })
+		).toBeNull();
+	});
+
+	test('a reopening needs a reason and no evidence revision', () => {
+		expect(reviewProblem({ ...base, decision: 'reopen', evidenceId: null })).toBe('reason_missing');
+		expect(
+			reviewProblem({ ...base, decision: 'reopen', evidenceId: null, reason: 'PGN reopened it' })
+		).toBeNull();
+	});
 });

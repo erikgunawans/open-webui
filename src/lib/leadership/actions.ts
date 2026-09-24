@@ -30,3 +30,7 @@ export const closureNote = (action: Action): ClosureNote => {
 // The sample is a handful of examples from a deck; the records store is the register.
 export const isSampleRegister = (overview: Pick<Overview, 'actions_source'>): boolean =>
 	overview.actions_source !== 'records';
+
+// The BOD's queue: recorded actions whose closure request is waiting for a decision.
+export const awaitingReview = (actions: Action[]): Action[] =>
+	actions.filter((action) => action.state === 'awaiting_bod_closure');

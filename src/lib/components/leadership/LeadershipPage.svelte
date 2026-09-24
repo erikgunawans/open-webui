@@ -14,7 +14,8 @@
 		type LeadershipView,
 		type Overview
 	} from '$lib/apis/leadership';
-	import { isOpenAction, isSampleRegister } from '$lib/leadership/actions';
+	import { awaitingReview, isOpenAction, isSampleRegister } from '$lib/leadership/actions';
+	import { leadershipAccess } from '$lib/stores/leadership';
 	import { SUPPORTED, validateContextQuery, type ContextProblem } from '$lib/leadership/context';
 	import { barShare, formatDateId, formatValue } from '$lib/leadership/format';
 
@@ -383,6 +384,30 @@
 			</p>
 		</section>
 	</div>
+
+	{#if !isSampleRegister(overview) && $leadershipAccess.operations.includes('bod.review')}
+		<!-- The BOD's queue. Whether a reviewer may decide is still the server's call per action. -->
+		<section class="jlp-surface mt-4" aria-labelledby="jlp-queue-title">
+			<h3 id="jlp-queue-title" class="jlp-surface-title">
+				{$i18n.t('Waiting for a BOD decision')}
+			</h3>
+			{#if awaitingReview(overview.actions).length === 0}
+				<p class="jlp-meta">{$i18n.t('Nothing is waiting for a BOD decision.')}</p>
+			{:else}
+				<ul class="jlp-mini-list">
+					{#each awaitingReview(overview.actions) as action (action.id)}
+						<li class="jlp-mini">
+							<strong>{action.title}</strong>
+							<span class="jlp-meta jlp-block">{action.owner_label}</span>
+							<button type="button" class="jlp-link" on:click={() => openDetail(action.id)}
+								>{$i18n.t('Review')}</button
+							>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</section>
+	{/if}
 
 	<section class="jlp-surface mt-4" aria-labelledby="jlp-modules-title">
 		<h3 id="jlp-modules-title" class="jlp-surface-title">{$i18n.t('Discussion modules')}</h3>

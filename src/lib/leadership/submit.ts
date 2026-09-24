@@ -62,3 +62,18 @@ export const newIdempotencyKey = (): string =>
 	typeof crypto !== 'undefined' && 'randomUUID' in crypto
 		? crypto.randomUUID()
 		: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+
+// A BOD decision, checked before it is sent (the server applies the same rules).
+export type ReviewProblem = 'reason_missing' | 'return_to_missing' | 'no_evidence';
+
+export const reviewProblem = (input: {
+	decision: 'close' | 'return' | 'reopen';
+	reason: string;
+	returnTo: 'in_progress' | 'blocked' | null;
+	evidenceId: string | null;
+}): ReviewProblem | null => {
+	if (input.decision !== 'reopen' && !input.evidenceId) return 'no_evidence';
+	if (input.decision !== 'close' && !input.reason.trim()) return 'reason_missing';
+	if (input.decision === 'return' && !input.returnTo) return 'return_to_missing';
+	return null;
+};

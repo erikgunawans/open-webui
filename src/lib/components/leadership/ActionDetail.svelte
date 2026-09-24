@@ -19,6 +19,7 @@
 	import { formatEventTimeId, recordedDueId } from '$lib/leadership/format';
 
 	import ActionSubmit from './ActionSubmit.svelte';
+	import ClosureReview from './ClosureReview.svelte';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
 	// A write changed the record: the page reloads its register too.
@@ -37,14 +38,18 @@
 
 	// Fetched through the reader's view: the server rechecks the grant on every open, so a revoked
 	// reader loses the history too.
-	const load = async (id: string) => {
+	// `quiet` refreshes after a write without clearing the record, so the form that wrote keeps
+	// its confirmation or refusal on screen.
+	const load = async (id: string, quiet = false) => {
 		controller?.abort();
 		const own = new AbortController();
 		controller = own;
-		record = null;
+		if (!quiet || record?.action.id !== id) {
+			record = null;
+			loading = true;
+		}
 		error = null;
 		downloadError = null;
-		loading = true;
 		try {
 			const result = await getAction(localStorage.token, view, scopeId, id, own.signal);
 			if (!own.signal.aborted) record = result;
@@ -73,9 +78,15 @@
 		record.action.pic_user_id === $user?.id &&
 		$leadershipAccess.operations.includes('actions.submit');
 
+	// A BOD reviewer who is not this action's PIC; the owner never closes their own action.
+	$: isReviewer =
+		record !== null &&
+		record.action.pic_user_id !== $user?.id &&
+		$leadershipAccess.operations.includes('bod.review');
+
 	const saved = () => {
 		dispatch('changed');
-		if (actionId) load(actionId);
+		if (actionId) load(actionId, true);
 	};
 	$: if (!show) controller?.abort();
 
@@ -220,6 +231,9 @@
 
 			{#if isPic}
 				<ActionSubmit {record} {view} {scopeId} on:saved={saved} />
+			{/if}
+			{#if isReviewer}
+				<ClosureReview {record} {view} {scopeId} on:saved={saved} />
 			{/if}
 
 			<section class="mt-4" aria-labelledby="jlp-evidence-title">
