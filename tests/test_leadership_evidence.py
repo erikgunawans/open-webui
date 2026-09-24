@@ -283,3 +283,130 @@ def test_the_pic_records_progress(engine) -> None:
     with unit_of_work(engine) as uow:
         submit_progress(uow, action_id='act-1', actor=PIC, expected_version=2, narrative='draft sent')
     assert read_events(engine, 'act-1')[-1].payload['narrative'] == 'draft sent'
+
+
+# --- the deletion hold (the vendor's "delete all files") -------------------------------------
+
+
+class _FakeBlob:
+    def __init__(self, bucket: '_FakeBucket', name: str) -> None:
+        self.bucket, self.name = bucket, name
+        self.temporary_hold = None
+
+    def _stored(self) -> dict | None:
+        return self.bucket.objects.get(self.name)
+
+    def exists(self) -> bool:
+        return self._stored() is not None
+
+    def upload_from_string(self, content: bytes, content_type: str, if_generation_match=None) -> None:
+        if if_generation_match == 0 and self.exists():
+            from google.api_core.exceptions import PreconditionFailed
+
+            raise PreconditionFailed('exists')
+        self.bucket.objects[self.name] = {'content': content, 'hold': False}
+
+    def reload(self) -> None:
+        self.temporary_hold = self._stored()['hold']
+
+    def patch(self) -> None:
+        if self.bucket.refuse_patch:
+            return  # a patch that silently did not take
+        self._stored()['hold'] = bool(self.temporary_hold)
+
+    def delete(self) -> None:
+        if self._stored()['hold']:
+            from google.api_core.exceptions import Forbidden
+
+            # What GCS answers for a held object.
+            raise Forbidden(f'{self.name} is under a temporary hold')
+        del self.bucket.objects[self.name]
+
+
+class _FakeBucket:
+    """GCS as far as the evidence store and the vendor's delete_all_files touch it."""
+
+    def __init__(self) -> None:
+        self.objects: dict[str, dict] = {}
+        self.refuse_patch = False
+
+    def blob(self, name: str) -> _FakeBlob:
+        return _FakeBlob(self, name)
+
+    def list_blobs(self) -> list[_FakeBlob]:
+        return [self.blob(name) for name in sorted(self.objects)]
+
+
+def _gcs(bucket: _FakeBucket):
+    gcs = object.__new__(store.GCSEvidenceStore)
+    gcs.bucket = bucket
+    return gcs
+
+
+needs_gcs = pytest.mark.skipif(
+    importlib.util.find_spec('google.api_core') is None, reason='the GCS client is not installed'
+)
+
+
+@needs_gcs
+def test_gcs_evidence_is_held_against_deletion() -> None:
+    bucket = _FakeBucket()
+    checked = check_file(PDF_BYTES, 'ba.pdf', 'application/pdf')
+    _gcs(bucket).put(checked.key, checked.content, checked.content_type)
+    assert bucket.objects[checked.key]['hold'] is True
+
+
+@needs_gcs
+def test_an_unheld_object_already_there_gets_its_hold() -> None:
+    bucket = _FakeBucket()
+    checked = check_file(PDF_BYTES, 'ba.pdf', 'application/pdf')
+    bucket.objects[checked.key] = {'content': checked.content, 'hold': False}  # an earlier try died mid-way
+    _gcs(bucket).put(checked.key, checked.content, checked.content_type)
+    assert bucket.objects[checked.key] == {'content': checked.content, 'hold': True}
+
+
+@needs_gcs
+def test_a_hold_that_does_not_take_fails_the_put() -> None:
+    bucket = _FakeBucket()
+    bucket.refuse_patch = True
+    checked = check_file(PDF_BYTES, 'ba.pdf', 'application/pdf')
+    with pytest.raises(store.EvidenceNotHeld):
+        _gcs(bucket).put(checked.key, checked.content, checked.content_type)
+
+
+@needs_gcs
+def test_the_vendors_delete_all_files_cannot_remove_gcs_evidence(monkeypatch: pytest.MonkeyPatch) -> None:
+    from open_webui.storage import provider
+
+    bucket = _FakeBucket()
+    checked = check_file(PDF_BYTES, 'ba.pdf', 'application/pdf')
+    _gcs(bucket).put(checked.key, checked.content, checked.content_type)
+    bucket.objects['zz-chat-upload.txt'] = {'content': b'x', 'hold': False}
+
+    vendor = object.__new__(provider.GCSStorageProvider)
+    vendor.bucket = bucket
+    monkeypatch.setattr(provider.LocalStorageProvider, 'delete_all_files', staticmethod(lambda: None))
+    from google.api_core.exceptions import Forbidden
+
+    # The vendor wraps only NotFound, so the admin's call fails loudly at the first held object.
+    with pytest.raises(Forbidden):
+        vendor.delete_all_files()
+    assert bucket.objects[checked.key]['content'] == checked.content
+
+
+@needs_runtime
+def test_the_vendors_local_delete_all_files_leaves_evidence(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    from open_webui.storage import provider
+
+    monkeypatch.setenv('STORAGE_PROVIDER', 'local')
+    monkeypatch.setenv('DATA_DIR', str(tmp_path))
+    uploads = tmp_path / 'uploads'
+    uploads.mkdir()
+    (uploads / 'chat-file.txt').write_text('x')
+    monkeypatch.setattr(provider, 'UPLOAD_DIR', str(uploads))
+
+    checked = check_file(PDF_BYTES, 'ba.pdf', 'application/pdf')
+    store.configured_store().put(checked.key, checked.content, checked.content_type)
+    provider.LocalStorageProvider.delete_all_files()
+    assert list(uploads.iterdir()) == []
+    assert (tmp_path / checked.key).read_bytes() == checked.content

@@ -277,9 +277,15 @@ it.
 - **The vendor's "delete all files" would wipe evidence.** `DELETE /api/v1/files/all` (admin only)
   calls `GCSStorageProvider.delete_all_files`, which lists and deletes every object in the bucket.
   Evidence lives in the same bucket, `jup-ops-data`, under `leadership/evidence/` (E-3), so one admin
-  click would destroy board records. Options: a temporary hold on each evidence object at upload
-  (stays inside E-3), bucket soft delete, or a vendor patch that skips the prefix. Found in T3,
-  2026-09-24; nothing is deployed, so nothing is exposed yet.
+  click would destroy board records. Found in T3, 2026-09-24, before anything was deployed.
+  **Settled 2026-09-24 (Erik): a temporary hold on each evidence object.** `GCSEvidenceStore.put`
+  uploads, sets the hold and rereads it; no evidence row is recorded until the hold is confirmed.
+  GCS then refuses to delete a held object for anyone, so the vendor call fails with `Forbidden`
+  at the first evidence object (it wraps only `NotFound`). Objects listed before it can still go,
+  but those are vendor uploads, not board records. The runtime account's `roles/storage.objectUser`
+  on `jup-ops-data` covers setting the hold. Nothing in the app releases one; retiring evidence is an
+  operator act under a retention policy that is still a company decision. Locally, evidence lives
+  under `DATA_DIR/leadership/`, outside the `DATA_DIR/uploads` the vendor's local variant empties.
 - **The vendor storage provider is not used for evidence.** Its GCS `get_file`/`delete_file` keep only
   the first key segment and every upload leaves a copy in the vendor's `UPLOAD_DIR`, so T3 has its own
   small store (`jup/leadership/evidence_store.py`) that follows the same `STORAGE_PROVIDER` and

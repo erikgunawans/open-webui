@@ -132,7 +132,11 @@ class EvidenceStore(Protocol):
 
 
 class LocalEvidenceStore:
-    """Files under a root directory; for development and tests."""
+    """Files under a root directory; for development and tests.
+
+    `configured_store` roots it at `DATA_DIR`, beside the vendor's `DATA_DIR/uploads`, which is all
+    the vendor's local "delete all files" removes.
+    """
 
     def __init__(self, root: Path) -> None:
         self.root = Path(root)
@@ -154,8 +158,24 @@ class LocalEvidenceStore:
         return self._path(key).read_bytes()
 
 
+class EvidenceNotHeld(RuntimeError):
+    """The object was stored but its deletion hold could not be confirmed; no row may point at it."""
+
+
 class GCSEvidenceStore:
-    """Objects in the host's GCS bucket, under the evidence prefix only."""
+    """Objects in the host's GCS bucket, under the evidence prefix only, each under a temporary hold.
+
+    The bucket is shared with the vendor, whose admin-only `DELETE /api/v1/files/all` lists and
+    deletes every object in it (`GCSStorageProvider.delete_all_files`). A temporary hold makes GCS
+    refuse to delete the object for anyone until the hold is released, so that call fails on the
+    first evidence object instead of destroying board records. Nothing in the app releases a hold;
+    retiring evidence is a deliberate operator act (`gcloud storage objects update
+    --no-temporary-hold`) once a retention policy says so.
+
+    The GCS upload cannot carry the hold, so it is set right after, and `put` returns only once a
+    fresh read shows it. Until then the router records no evidence row, and a retry of the same
+    bytes (same key) sets the hold on the object already there.
+    """
 
     def __init__(self, bucket_name: str) -> None:
         from google.cloud import storage
@@ -163,15 +183,31 @@ class GCSEvidenceStore:
         self.bucket = storage.Client().bucket(bucket_name)
 
     def put(self, key: str, content: bytes, content_type: str) -> None:
+        from google.api_core.exceptions import PreconditionFailed
+
         _check_key(key)
         blob = self.bucket.blob(key)
-        if blob.exists():
-            return
-        blob.upload_from_string(content, content_type=content_type)
+        if not blob.exists():
+            try:
+                # Never overwrite: generation 0 means "only if no object has this name".
+                blob.upload_from_string(content, content_type=content_type, if_generation_match=0)
+            except PreconditionFailed:
+                pass  # the same bytes landed concurrently under the same content-addressed key
+        _hold(blob)
 
     def get(self, key: str) -> bytes:
         _check_key(key)
         return self.bucket.blob(key).download_as_bytes()
+
+
+def _hold(blob) -> None:
+    blob.reload()
+    if blob.temporary_hold is not True:
+        blob.temporary_hold = True
+        blob.patch()
+        blob.reload()
+    if blob.temporary_hold is not True:
+        raise EvidenceNotHeld(f'{blob.name} is stored but not held against deletion')
 
 
 def configured_store() -> EvidenceStore | None:
