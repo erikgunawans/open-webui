@@ -298,6 +298,8 @@ export type HistoryEvent = {
 	version: number;
 	kind: ActionEventKind;
 	author: string;
+	// The author's display name from the host's user directory; null when they are no longer in it.
+	author_name: string | null;
 	// Epoch milliseconds.
 	at: number;
 	reason: string | null;

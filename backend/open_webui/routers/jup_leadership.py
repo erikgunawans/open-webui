@@ -333,6 +333,16 @@ def _without_storage_keys(
     return history
 
 
+def leadership_user_names() -> Callable[[list[str]], Awaitable[dict[str, str]]]:
+    """The host's user directory, id to display name. A dependency so tests can swap it."""
+    from open_webui.models.users import Users
+
+    async def names(user_ids: list[str]) -> dict[str, str]:
+        return {person.id: person.name for person in await Users.get_users_by_user_ids(user_ids) if person.name}
+
+    return names
+
+
 @router.get('/actions/{action_id}')
 async def get_action(
     action_id: str,
@@ -341,6 +351,7 @@ async def get_action(
     user=Depends(get_verified_user),
     permissions: dict[str, Any] = Depends(leadership_permissions),
     engine: Any = Depends(leadership_engine),
+    user_names: Callable[[list[str]], Awaitable[dict[str, str]]] = Depends(leadership_user_names),
 ) -> dict[str, Any]:
     """One action, its derived flags and its full event history, for a reader of either view.
 
@@ -364,6 +375,11 @@ async def get_action(
     if record is None:
         _audit('not_found')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='No such action.')
+    # Events store the author's user id; the reader sees who that is. The id stays alongside, and a
+    # person no longer in the directory keeps no name rather than a guessed one.
+    names = await user_names(sorted({entry['author'] for entry in record['history']}))
+    for entry in record['history']:
+        entry['author_name'] = names.get(entry['author'])
     _audit('served')
     return record
 

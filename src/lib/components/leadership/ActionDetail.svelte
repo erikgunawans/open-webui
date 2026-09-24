@@ -293,7 +293,9 @@
 							<span class="jlp-meta jlp-block">
 								{$i18n.t('Version {{version}}', { version: entry.version })} · {formatEventTimeId(
 									entry.at
-								)} · {$i18n.t('by {{author}}', { author: entry.author })}
+								)} · {$i18n.t('by {{author}}', {
+									author: entry.author_name ?? entry.author
+								})}
 							</span>
 							{#if stateChange(entry)}
 								<span class="jlp-block">{stateChange(entry)}</span>

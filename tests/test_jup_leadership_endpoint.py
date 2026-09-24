@@ -104,6 +104,12 @@ def client(seed: Path, directory: _Directory, monkeypatch: pytest.MonkeyPatch) -
 
     app = FastAPI()
     app.include_router(jup_leadership.router, prefix=BASE)
+
+    async def _no_names(user_ids: list[str]) -> dict[str, str]:
+        return {}
+
+    # The host's user directory is not in this bare app; a test that needs names swaps its own in.
+    app.dependency_overrides[jup_leadership.leadership_user_names] = lambda: _no_names
     with TestClient(app, raise_server_exceptions=False) as test_client:
         test_client.app = app  # type: ignore[attr-defined]
         yield test_client
@@ -410,6 +416,34 @@ def test_a_granted_reader_gets_the_action_its_history_and_its_flags(client, dire
     lines = _audit_lines(caplog)
     assert any("'operation': 'action'" in line and "'result': 'served'" in line for line in lines)
     assert not any('Finalise SPBG' in line for line in lines), 'audit lines carry ids, never record content'
+
+
+def test_the_history_names_its_authors_and_keeps_the_id(client, directory, records) -> None:
+    from open_webui.routers import jup_leadership
+
+    asked: list[list[str]] = []
+
+    async def names(user_ids: list[str]) -> dict[str, str]:
+        asked.append(sorted(user_ids))
+        return {'pic-1': 'Rina Wijaya'}
+
+    client.app.dependency_overrides[jup_leadership.leadership_user_names] = lambda: names
+    directory.groups = [_grant(board=True)]
+    _sign_in_as(client, 'user')
+    history = client.get(ACTION).json()['history']
+    assert history[0]['author'] == 'pic-1'
+    assert history[0]['author_name'] == 'Rina Wijaya'
+    # One directory call for the whole history, each author once.
+    assert len(asked) == 1 and len(asked[0]) == len(set(asked[0]))
+    unknown = [entry for entry in history if entry['author'] != 'pic-1']
+    assert all(entry['author_name'] is None for entry in unknown)
+
+
+def test_an_author_no_longer_in_the_directory_has_no_name(client, directory, records) -> None:
+    directory.groups = [_grant(board=True)]
+    _sign_in_as(client, 'user')
+    history = client.get(ACTION).json()['history']
+    assert history and all(entry['author_name'] is None for entry in history)
 
 
 @pytest.mark.parametrize('role', ['user', 'admin'])
