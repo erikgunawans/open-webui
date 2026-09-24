@@ -86,6 +86,14 @@
 	outline-offset: 2px;
 }
 
+/* app.css leaves inputs and textareas out of its global ring (the chat box draws its own), so the
+   leadership forms would show no focus at all. Every field here, and any control without one of
+   the classes above, gets the same ring. */
+.jlp-root :is(input, select, textarea, summary, [tabindex]:not([tabindex='-1'])):focus-visible {
+	outline: 2px solid var(--jup-brand-text);
+	outline-offset: 1px;
+}
+
 .jlp-context-bar {
 	display: flex;
 	flex-wrap: wrap;
