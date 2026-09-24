@@ -20,6 +20,7 @@
 
 	import MetricCard from './MetricCard.svelte';
 	import ActionRegister from './ActionRegister.svelte';
+	import ActionDetail from './ActionDetail.svelte';
 	import SourceDetails from './SourceDetails.svelte';
 	import ContextPreview from './ContextPreview.svelte';
 
@@ -129,6 +130,14 @@
 	const openSource = (id: string) => {
 		sourceId = id;
 		sourceOpen = true;
+	};
+
+	// A recorded action's detail and history. Sample actions have no record, so none is offered.
+	let detailOpen = false;
+	let detailId: string | null = null;
+	const openDetail = (id: string) => {
+		detailId = id;
+		detailOpen = true;
 	};
 
 	let registerOpen = false;
@@ -357,6 +366,11 @@
 								? $i18n.t('Ongoing according to the source')
 								: (MINI_STATE[action.state] ?? action.state)}
 						</span>
+						{#if !isSampleRegister(overview)}
+							<button type="button" class="jlp-link" on:click={() => openDetail(action.id)}
+								>{$i18n.t('Details')}</button
+							>
+						{/if}
 					</li>
 				{/each}
 			</ul>
@@ -383,6 +397,8 @@
 
 	<SourceDetails bind:show={sourceOpen} {view} {scopeId} {sourceId} />
 
+	<ActionDetail bind:show={detailOpen} {view} {scopeId} actionId={detailId} />
+
 	<ContextPreview bind:show={previewOpen} {viewLabel} context={overview.context} {recordLabel} />
 
 	{#if registerOpen}
@@ -402,6 +418,7 @@
 					partial={isSampleRegister(overview) && overview.coverage === 'partial'}
 					on:source={(event) => openSource(event.detail)}
 					on:select={(event) => select(event.detail)}
+					on:detail={(event) => openDetail(event.detail)}
 				/>
 				{#if isSampleRegister(overview)}
 					<p class="jlp-meta mt-3">

@@ -532,6 +532,30 @@ def test_the_pic_uploads_evidence_and_downloads_it_back(client, directory, start
     _no_store(download)
 
 
+def test_the_action_record_lists_its_evidence_and_hides_the_storage_key(client, directory, started, bucket) -> None:
+    _as_pic(client, directory)
+    first = _upload(client).json()['evidence']
+    second = client.post(EVIDENCE, data={'expected_version': '4', 'url': 'https://example.test/ba'}).json()['evidence']
+
+    body = client.get(ACTION).json()
+    # Every revision, oldest first, in the evidence route's own shape: a reviewer can open each one.
+    assert [item['id'] for item in body['evidence']] == [first['id'], second['id']]
+    assert body['evidence'][0] == first and body['evidence'][1] == second
+    # The bucket key is the server's; neither the list nor the history's event payload carries it.
+    assert 'storage_key' not in _json_text(body)
+    submitted = [entry for entry in body['history'] if entry['kind'] == 'evidence_submitted']
+    assert submitted[0]['payload']['evidence']['filename'] == 'berita acara.pdf'
+    assert submitted[0]['payload']['evidence']['evidence_id'] == first['id']
+    link = {'kind': 'link', 'url': 'https://example.test/ba', 'evidence_id': second['id']}
+    assert submitted[1]['payload']['evidence'] == link
+
+
+def _json_text(body: dict) -> str:
+    import json
+
+    return json.dumps(body)
+
+
 def test_completion_evidence_awaits_the_bod_and_does_not_close(client, directory, started, bucket) -> None:
     _as_pic(client, directory)
     response = _upload(client, completion='true')

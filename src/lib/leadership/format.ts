@@ -65,3 +65,32 @@ export const formatDateId = (iso: string): string => {
 	const [, year, month, day] = match;
 	return `${Number(day)} ${MONTHS[Number(month) - 1]} ${year}`;
 };
+
+// A recorded due date in Indonesian, as precise as it was recorded and no more:
+// "2026-09-01" -> "1 September 2026", "2026-12" -> "Desember 2026", "2027/2028" -> "2027–2028".
+export const recordedDueId = (due: { precision: string; value: string } | null): string | null => {
+	if (!due) return null;
+	if (due.precision === 'date') return formatDateId(due.value);
+	if (due.precision === 'month') {
+		const match = /^(\d{4})-(\d{2})$/.exec(due.value);
+		return match ? `${MONTHS[Number(match[2]) - 1]} ${match[1]}` : due.value;
+	}
+	if (due.precision === 'year_range') return due.value.replace('/', '–');
+	return due.value;
+};
+
+// An event time (epoch milliseconds) on the reporting calendar, WIB: "24 September 2026, 19.40 WIB".
+export const formatEventTimeId = (ms: number): string => {
+	const parts = new Intl.DateTimeFormat('en-GB', {
+		timeZone: 'Asia/Jakarta',
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit',
+		hour: '2-digit',
+		minute: '2-digit',
+		hourCycle: 'h23'
+	}).formatToParts(new Date(ms));
+	const part = (type: string) => parts.find((item) => item.type === type)?.value ?? '';
+	const date = formatDateId(`${part('year')}-${part('month')}-${part('day')}`);
+	return `${date}, ${part('hour')}.${part('minute')} WIB`;
+};

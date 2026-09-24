@@ -213,3 +213,11 @@ def _check_request_state(state: str, kind: str | None) -> None:
 def read_evidence(connection: Any, evidence_id: str) -> dict[str, Any] | None:
     row = connection.execute(select(evidence).where(evidence.c.id == evidence_id)).mappings().first()
     return dict(row) if row is not None else None
+
+
+def list_evidence(connection: Any, action_id: str) -> list[dict[str, Any]]:
+    """Every evidence revision of one action, oldest first."""
+    rows = connection.execute(
+        select(evidence).where(evidence.c.action_id == action_id).order_by(evidence.c.revision)
+    ).mappings()
+    return [dict(row) for row in rows]

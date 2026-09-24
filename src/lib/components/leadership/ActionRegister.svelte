@@ -8,7 +8,7 @@
 	import { formatDateId } from '$lib/leadership/format';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
-	const dispatch = createEventDispatcher<{ source: string; select: string }>();
+	const dispatch = createEventDispatcher<{ source: string; select: string; detail: string }>();
 
 	export let actions: Action[];
 	export let selectedId: string | null = null;
@@ -112,6 +112,13 @@
 							<button type="button" class="jlp-link" on:click={() => dispatch('select', action.id)}
 								>{$i18n.t('Select')}</button
 							>
+							{#if source === 'records'}
+								<button
+									type="button"
+									class="jlp-link"
+									on:click={() => dispatch('detail', action.id)}>{$i18n.t('Details')}</button
+								>
+							{/if}
 							{#each action.source_ids as sourceId (sourceId)}
 								<button type="button" class="jlp-link" on:click={() => dispatch('source', sourceId)}
 									>{$i18n.t('Source')}</button

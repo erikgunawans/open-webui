@@ -1,5 +1,13 @@
 import { describe, expect, test } from 'vitest';
-import { barShare, decimalId, formatDateId, formatValue, formatVariance } from './format';
+import {
+	barShare,
+	decimalId,
+	formatDateId,
+	formatEventTimeId,
+	formatValue,
+	formatVariance,
+	recordedDueId
+} from './format';
 
 describe('decimalId', () => {
 	test('keeps the stated digits with Indonesian separators', () => {
@@ -56,5 +64,26 @@ describe('formatDateId', () => {
 
 	test('anything else is shown as given', () => {
 		expect(formatDateId('2026-08')).toBe('2026-08');
+	});
+});
+
+describe('recordedDueId', () => {
+	test('each precision, and never more precise than recorded', () => {
+		expect(recordedDueId({ precision: 'date', value: '2026-09-01' })).toBe('1 September 2026');
+		expect(recordedDueId({ precision: 'month', value: '2026-12' })).toBe('Desember 2026');
+		expect(recordedDueId({ precision: 'year', value: '2027' })).toBe('2027');
+		expect(recordedDueId({ precision: 'year_range', value: '2027/2028' })).toBe('2027–2028');
+	});
+
+	test('no due date is null', () => {
+		expect(recordedDueId(null)).toBeNull();
+	});
+});
+
+describe('formatEventTimeId', () => {
+	test('an event time on the WIB calendar, whatever the browser zone', () => {
+		// 2026-09-24T17:30:00Z is 00.30 on 25 September in Jakarta.
+		expect(formatEventTimeId(Date.UTC(2026, 8, 24, 17, 30))).toBe('25 September 2026, 00.30 WIB');
+		expect(formatEventTimeId(Date.UTC(2026, 0, 1, 2, 5))).toBe('1 Januari 2026, 09.05 WIB');
 	});
 });

@@ -325,7 +325,10 @@ export type ActionRecord = {
 		updated_at: number;
 	};
 	flags: ActionFlags;
+	// An `evidence_submitted` event's `payload.evidence` names its revision as `evidence_id`.
 	history: HistoryEvent[];
+	// Every evidence revision, oldest first, in the evidence route's own shape.
+	evidence: Evidence[];
 };
 
 export const getAction = (

@@ -273,6 +273,8 @@ def _read_action_record(engine: Any, action_id: str) -> dict[str, Any] | None:
     if row is None:
         return None
     events = read_events(engine, action_id)
+    with engine.connect() as connection:
+        revisions = evidence_commands.list_evidence(connection, action_id)
     progress = latest_progress(events)
     # No staleness threshold is recorded yet, so `stale` stays None with its reason; an assumed
     # one would quietly mark actions fresh.
@@ -301,8 +303,26 @@ def _read_action_record(engine: Any, action_id: str) -> dict[str, Any] | None:
             'stale': flags.stale,
             'reasons': flags.reasons,
         },
-        'history': fold_history(events),
+        'history': _without_storage_keys(fold_history(events), events, revisions),
+        # Every revision in the evidence route's shape, so a reviewer can open the one they judge.
+        'evidence': [_evidence_view(row) for row in revisions],
     }
+
+
+def _without_storage_keys(
+    history: list[dict[str, Any]], events: list[Any], revisions: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """The history with each evidence event naming its revision's id; the bucket key stays the server's."""
+    evidence_by_event = {row['event_id']: row['id'] for row in revisions}
+    evidence_by_version = {event.version: evidence_by_event.get(event.id) for event in events}
+    for entry in history:
+        item = entry['payload'].get('evidence') if entry['kind'] == 'evidence_submitted' else None
+        if isinstance(item, dict):
+            entry['payload'] = entry['payload'] | {
+                'evidence': {key: value for key, value in item.items() if key != 'storage_key'}
+                | {'evidence_id': evidence_by_version.get(entry['version'])}
+            }
+    return history
 
 
 @router.get('/actions/{action_id}')
