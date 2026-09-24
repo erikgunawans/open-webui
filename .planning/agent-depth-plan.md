@@ -30,7 +30,7 @@ design. The sandbox work for terminal and browser is needed on either path.
 | P2  | Skills: 3 JUP + 16 ported holaOS                        | live    | skills                             | —                                            |
 | P3  | `portfolio_status` tool                                 | live    | domain tools                       | —                                            |
 | P4  | Memory on for staff, review off                         | live    | memory                             | —                                            |
-| A1  | Automations: weekly portfolio digest                    | in-progress | cron                           | Mon 09:00 WIB; quiet-window timing retest    |
+| A1  | Automations: weekly portfolio digest                    | live    | cron                               | first run Mon 2026-09-28 09:00 WIB to verify |
 | A2  | Subagents + timers (Open WebUI native)                  | live    | delegation                         | —                                            |
 | A3  | Code interpreter for staff (Pyodide, in-browser)        | live    | code execution                     | —                                            |
 | E1  | Tool-call audit: one audit line per tool invocation     | live    | the audit trail for every tool     | —                                            |
@@ -70,6 +70,10 @@ tool call writes one too. A capability that can't meet that isn't turned on.
 
 - **A1 Automations.** A weekly portfolio digest to Erik, admin-only. Runs go through the funnel
   with no task name, and each run creates a chat. Verify with the first run's chat and audit line.
+  Timing retest passed 2026-09-24: the one-off `fc3e9381` fired at 22:00:22Z (05:00 WIB) on a
+  throttled instance (request-based CPU, `minScale=1`) with zero requests from 20:01:42Z to 22:10Z;
+  run `success`, `portfolio_status` ok. No `--no-cpu-throttling` needed. Test deleted; digest
+  `c516815a-1dfb-4d5a-ad7d-3b8e23618eaf` created, owned by Erik, next runs 09:00:43 WIB on Mondays.
 - **A2 Subagents + timers.** Turn on `subagents.enable` with background off first, `max_concurrent`
   2 and `max_iterations` at its default. Traced 2026-09-23: subagents and timers call back into the
   governed `CHAT_COMPLETION_HANDLER`. Verify with one delegated task producing an audit line per
