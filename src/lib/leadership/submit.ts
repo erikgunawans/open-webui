@@ -32,6 +32,17 @@ export const allowedPurposes = (state: RecordActionState): EvidencePurpose[] => 
 	return purposes;
 };
 
+export type OwnerMove = 'in_progress' | 'blocked';
+
+// The PIC's own state moves, as the server's `OWNER_TRANSITIONS` allows them: start, block and
+// unblock. Awaiting closure and closed belong to the BOD's decisions, so they offer none.
+export const ownerMoves = (state: RecordActionState): OwnerMove[] => {
+	if (state === 'not_started') return ['in_progress', 'blocked'];
+	if (state === 'in_progress') return ['blocked'];
+	if (state === 'blocked') return ['in_progress'];
+	return [];
+};
+
 export const evidenceProblem = (
 	input: EvidenceInput,
 	state: RecordActionState

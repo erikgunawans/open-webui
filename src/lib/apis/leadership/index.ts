@@ -383,6 +383,27 @@ export const postProgress = (
 		form
 	);
 
+// The owner's own moves: start, block (reason required) and unblock. Closing is the BOD's.
+export type StateForm = {
+	expected_version: number;
+	to_state: 'in_progress' | 'blocked';
+	reason?: string | null;
+	idempotency_key?: string | null;
+};
+
+export const postState = (
+	token: string,
+	view: LeadershipView,
+	scopeId: string,
+	actionId: string,
+	form: StateForm
+) =>
+	post<ProgressResult>(
+		`/actions/${encodeURIComponent(actionId)}/state?${viewQuery(view, scopeId)}`,
+		token,
+		form
+	);
+
 export type Evidence = {
 	id: string;
 	action_id: string;

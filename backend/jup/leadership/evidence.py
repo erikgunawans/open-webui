@@ -68,6 +68,12 @@ def submit_progress(uow: UnitOfWork, *, action_id: str, actor: str, **command: A
     return actions.record_progress(uow, action_id=action_id, author=actor, **command)
 
 
+def submit_state(uow: UnitOfWork, *, action_id: str, actor: str, **command: Any) -> AppendResult:
+    """The owner's start, block and unblock, from the PIC only. See `actions.change_state`."""
+    ensure_pic(uow.connection, action_id, actor)
+    return actions.change_state(uow, action_id=action_id, author=actor, **command)
+
+
 def link_evidence(url: str) -> dict[str, Any]:
     """Evidence that is a link: https only, with a host."""
     parts = urlsplit((url or '').strip())

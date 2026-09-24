@@ -477,6 +477,50 @@ async def post_progress(
     }
 
 
+class StateIn(BaseModel):
+    expected_version: int
+    # Any string: the domain names what an owner may not do, which a Literal would only reject.
+    to_state: str = Field(min_length=1, max_length=32)
+    reason: str | None = Field(default=None, max_length=10_000)
+    idempotency_key: str | None = Field(default=None, max_length=128)
+
+
+@router.post('/actions/{action_id}/state')
+async def post_state(
+    action_id: str,
+    view: View,
+    scope_id: Scope,
+    form: StateIn,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """The PIC starts, blocks (with a reason) or unblocks the action. Closing stays the BOD's."""
+
+    def _audit(result: str) -> None:
+        audit('leadership_write', user=user.id, operation='state', action_id=action_id, result=result)
+
+    _writable(permissions, view, scope_id, _audit)
+    command = form.model_dump()
+
+    def _run() -> Any:
+        with unit_of_work(engine) as uow:
+            return evidence_commands.submit_state(uow, action_id=action_id, actor=user.id, **command)
+
+    try:
+        result = await run_in_threadpool(_run)
+    except _REFUSALS as error:
+        _audit(type(error).__name__)
+        raise _write_error(error) from error
+    _audit('replayed' if result.replayed else 'recorded')
+    return {
+        'action_id': action_id,
+        'version': result.event.version,
+        'event_id': result.event.id,
+        'replayed': result.replayed,
+    }
+
+
 @router.post('/actions/{action_id}/evidence')
 async def post_evidence(
     action_id: str,

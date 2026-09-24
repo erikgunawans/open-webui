@@ -160,7 +160,7 @@ def _submit(engine, actor: str = PIC, action_id: str = 'act-1', expected_version
     ],
 )
 def test_only_the_recorded_pic_submits(engine, actor: str, action_id: str) -> None:
-    from jup.leadership.evidence import NotThePic, submit_progress
+    from jup.leadership.evidence import NotThePic, submit_progress, submit_state
     from jup.leadership.repository import read_events, unit_of_work
 
     before = len(read_events(engine, action_id))
@@ -169,6 +169,9 @@ def test_only_the_recorded_pic_submits(engine, actor: str, action_id: str) -> No
     with pytest.raises(NotThePic):
         with unit_of_work(engine) as uow:
             submit_progress(uow, action_id=action_id, actor=actor, expected_version=1, narrative='x')
+    with pytest.raises(NotThePic):
+        with unit_of_work(engine) as uow:
+            submit_state(uow, action_id=action_id, actor=actor, expected_version=1, to_state='in_progress')
     assert len(read_events(engine, action_id)) == before
 
 

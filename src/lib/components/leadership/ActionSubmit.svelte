@@ -6,6 +6,7 @@
 	import {
 		postEvidence,
 		postProgress,
+		postState,
 		LeadershipRequestError,
 		type ActionRecord,
 		type LeadershipView
@@ -14,7 +15,9 @@
 		allowedPurposes,
 		evidenceProblem,
 		newIdempotencyKey,
-		type EvidencePurpose
+		ownerMoves,
+		type EvidencePurpose,
+		type OwnerMove
 	} from '$lib/leadership/submit';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
@@ -37,6 +40,11 @@
 	let nextStep = '';
 	let remainingWork = '';
 	let progressKey = newIdempotencyKey();
+
+	// State: the PIC's start, block and unblock
+	let blockReason = '';
+	let stateKey = newIdempotencyKey();
+	$: moves = ownerMoves(record.action.state);
 
 	// Evidence
 	let purpose: EvidencePurpose = 'evidence';
@@ -103,6 +111,32 @@
 			narrative = blocker = nextStep = remainingWork = '';
 			progressKey = newIdempotencyKey();
 			done = $i18n.t('Progress recorded.');
+			dispatch('saved');
+		} catch (caught) {
+			problem = refused(caught);
+		} finally {
+			busy = false;
+		}
+	};
+
+	const moveTo = async (to: OwnerMove) => {
+		problem = null;
+		done = null;
+		if (to === 'blocked' && !blockReason.trim()) {
+			problem = $i18n.t('Say what blocks the action.');
+			return;
+		}
+		busy = true;
+		try {
+			await postState(localStorage.token, view, scopeId, record.action.id, {
+				expected_version: record.action.version,
+				to_state: to,
+				reason: to === 'blocked' ? blockReason.trim() : null,
+				idempotency_key: stateKey
+			});
+			blockReason = '';
+			stateKey = newIdempotencyKey();
+			done = $i18n.t('State changed.');
 			dispatch('saved');
 		} catch (caught) {
 			problem = refused(caught);
@@ -178,6 +212,40 @@
 			{$i18n.t('This action is closed. Only a BOD reopening makes it editable again.')}
 		</p>
 	{:else if tab === 'progress'}
+		{#if moves.length > 0}
+			<div class="jlp-form" role="group" aria-label={$i18n.t('Action state')}>
+				{#if moves.includes('blocked')}
+					<label class="jlp-field">
+						<span>{$i18n.t('What blocks the action')}</span>
+						<textarea bind:value={blockReason} rows="2" maxlength="10000"></textarea>
+					</label>
+				{/if}
+				<div class="jlp-row-buttons">
+					{#if moves.includes('in_progress')}
+						<button
+							type="button"
+							class="jlp-button"
+							disabled={busy}
+							on:click={() => moveTo('in_progress')}
+							>{record.action.state === 'blocked'
+								? $i18n.t('Resume work')
+								: $i18n.t('Start work')}</button
+						>
+					{/if}
+					{#if moves.includes('blocked')}
+						<button
+							type="button"
+							class="jlp-button"
+							disabled={busy}
+							on:click={() => moveTo('blocked')}>{$i18n.t('Mark blocked')}</button
+						>
+					{/if}
+				</div>
+				<p class="jlp-meta">
+					{$i18n.t('Completion can be submitted as evidence once the action is in progress.')}
+				</p>
+			</div>
+		{/if}
 		<form class="jlp-form" on:submit|preventDefault={submitProgress}>
 			<label class="jlp-field">
 				<span>{$i18n.t('What happened since the last update')}</span>

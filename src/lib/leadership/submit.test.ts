@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import {
 	allowedPurposes,
 	evidenceProblem,
+	ownerMoves,
 	newIdempotencyKey,
 	reviewProblem,
 	type EvidenceInput
@@ -98,5 +99,18 @@ describe('reviewProblem', () => {
 		expect(
 			reviewProblem({ ...base, decision: 'reopen', evidenceId: null, reason: 'PGN reopened it' })
 		).toBeNull();
+	});
+});
+
+describe('ownerMoves', () => {
+	test('the PIC starts, blocks and unblocks; nothing else', () => {
+		expect(ownerMoves('not_started')).toEqual(['in_progress', 'blocked']);
+		expect(ownerMoves('in_progress')).toEqual(['blocked']);
+		expect(ownerMoves('blocked')).toEqual(['in_progress']);
+	});
+
+	test('no owner move while the BOD holds the action or once it is closed', () => {
+		expect(ownerMoves('awaiting_bod_closure')).toEqual([]);
+		expect(ownerMoves('closed')).toEqual([]);
 	});
 });

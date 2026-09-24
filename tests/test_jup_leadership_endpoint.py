@@ -681,6 +681,51 @@ def test_the_pic_records_progress_over_http(client, directory, started) -> None:
     assert history[-1]['payload']['owner_update'] is True
 
 
+STATE = f'{BASE}/actions/act-1/state{Q}'
+
+
+def test_the_pic_starts_blocks_and_unblocks_over_http(client, directory, records, caplog) -> None:
+    _as_pic(client, directory)
+    with caplog.at_level('INFO'):
+        started = client.post(STATE, json={'expected_version': 2, 'to_state': 'in_progress'})
+    assert started.status_code == 200, started.text
+    assert started.json()['version'] == 3
+    assert any("'operation': 'state'" in line and "'result': 'recorded'" in line for line in _audit_lines(caplog))
+
+    unexplained = client.post(STATE, json={'expected_version': 3, 'to_state': 'blocked'})
+    assert unexplained.status_code == 422
+    blocked = client.post(STATE, json={'expected_version': 3, 'to_state': 'blocked', 'reason': 'Waiting on PGN'})
+    assert blocked.status_code == 200, blocked.text
+    assert client.post(STATE, json={'expected_version': 4, 'to_state': 'in_progress'}).status_code == 200
+    _as_pic(client, directory)
+    history = client.get(ACTION).json()['history']
+    assert [h['state_after'] for h in history[-3:]] == ['in_progress', 'blocked', 'in_progress']
+    assert history[-2]['reason'] == 'Waiting on PGN'
+
+
+@pytest.mark.parametrize('to_state', ['closed', 'awaiting_bod_closure', 'not_started'])
+def test_the_pic_cannot_move_an_action_to_a_bod_state(client, directory, records, to_state: str) -> None:
+    _as_pic(client, directory)
+    assert client.post(STATE, json={'expected_version': 2, 'to_state': to_state}).status_code == 422
+    assert _action_state(client, directory) == ('not_started', 2)
+
+
+def test_only_the_pic_with_the_grant_moves_the_state(client, directory, records) -> None:
+    _as_pic(client, directory, submit=False)
+    assert client.post(STATE, json={'expected_version': 2, 'to_state': 'in_progress'}).status_code == 403
+    directory.groups = [_grant(board=True, submit=True)]
+    _sign_in_as(client, 'user', user_id='someone-else')
+    assert client.post(STATE, json={'expected_version': 2, 'to_state': 'in_progress'}).status_code == 403
+    assert _action_state(client, directory) == ('not_started', 2)
+
+
+def test_a_stale_state_move_conflicts(client, directory, records) -> None:
+    _as_pic(client, directory)
+    response = client.post(STATE, json={'expected_version': 1, 'to_state': 'in_progress'})
+    assert response.status_code == 409
+    assert response.json()['detail']['version'] == 2
+
+
 def test_capabilities_list_submit_only_when_granted(client, directory) -> None:
     directory.groups = [_grant(board=True, submit=True)]
     _sign_in_as(client, 'user')
