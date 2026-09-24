@@ -19,7 +19,7 @@ pytestmark = pytest.mark.skipif(
 
 from jup.leadership import migrate  # noqa: E402
 
-HEAD = 'jl0001'
+HEAD = 'jl0002'
 
 
 def _engine(url: str):
