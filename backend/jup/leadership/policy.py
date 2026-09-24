@@ -23,6 +23,8 @@ follows from a read grant, and none from the admin role.
   configured, and an action's own PIC never reviews it (both checked in `closure.py`).
 - `snapshots.publish`: freezing a view into a meeting draft and publishing it. Publishing also
   needs the publication policy (`JUP_LEADERSHIP_PUBLICATION_POLICY`, in `snapshots.py`).
+- `imports.review`: uploading a deck's candidate file, reading the review queue, and accepting,
+  linking or rejecting candidates (`jup.leadership.imports`).
 """
 
 from typing import Any
@@ -44,6 +46,7 @@ DEFAULT_PERMISSIONS: dict[str, Any] = {
             'actions': {'submit': False},
             'bod': {'review': False},
             'snapshots': {'publish': False},
+            'imports': {'review': False},
         }
     }
 }
@@ -70,6 +73,7 @@ CAPABILITIES: dict[str, tuple[str, str]] = {
     'actions.submit': ('actions', 'submit'),
     'bod.review': ('bod', 'review'),
     'snapshots.publish': ('snapshots', 'publish'),
+    'imports.review': ('imports', 'review'),
 }
 
 

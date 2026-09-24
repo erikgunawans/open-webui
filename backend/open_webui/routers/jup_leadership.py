@@ -16,13 +16,13 @@ Three properties hold for every route:
   The route class adds it after the handler runs, so a 401 raised inside the host's own
   authentication dependency gets it too.
 
-P2 adds the records store (ADR-0014): reading one action and its event history, the PIC's
-progress and evidence (`actions.submit`), the BOD's closure decisions (`bod.review`, and only
-while `JUP_LEADERSHIP_BOD_POLICY` is configured), and meeting snapshots (`snapshots.publish`;
-publishing only while `JUP_LEADERSHIP_PUBLICATION_POLICY` is configured) with the RKA records
-beside them. Each write is its own capability, and a read grant implies none of them. Every P2
-read and write leaves a `jup.governance` audit line naming the user, the operation, the record
-ids and the result, never content.
+P2 adds the records store (ADR-0014): reading one action and its event history, the PIC's progress
+and evidence (`actions.submit`), the BOD's closure decisions (`bod.review`, and only while
+`JUP_LEADERSHIP_BOD_POLICY` is configured), and meeting snapshots (`snapshots.publish`; publishing
+only while `JUP_LEADERSHIP_PUBLICATION_POLICY` is configured) with the RKA records beside them, and
+reviewed imports of a deck's candidate file (`imports.review`). Each write is its own capability,
+and a read grant implies none of them. Every P2 read and write leaves a `jup.governance` audit line
+naming the user, the operation, the record ids and the result, never content.
 
 The feature is off unless `JUP_LEADERSHIP_ENABLED` is set, and P1 serves only the labelled
 illustrative dataset named by `JUP_LEADERSHIP_SAMPLE_FILE`. Neither can be chosen by a request.
@@ -47,7 +47,7 @@ from fastapi.routing import APIRoute
 from pydantic import BaseModel, Field
 
 from jup.governance import audit
-from jup.leadership import closure, migrate, snapshots
+from jup.leadership import closure, imports, migrate, snapshots
 from jup.leadership import evidence as evidence_commands
 from jup.leadership.actions import REPORTING_TZ, CommandRefused, derive_flags, fold_history, latest_progress
 from jup.leadership.evidence_store import (
@@ -882,3 +882,152 @@ async def get_baselines(
         raise _integrity_refusal(error) from error
     _audit('served')
     return {'records': records}
+
+
+# --- Reviewed imports (P2 T6) ---------------------------------------------------------------
+
+
+class CandidateReviewIn(BaseModel):
+    decision: Literal['accept', 'link', 'reject']
+    action_id: str | None = Field(default=None, max_length=64)
+
+
+def _import_reviewer(
+    permissions: dict[str, Any], view: str, scope_id: str, audit_result: Callable[[str], None]
+) -> None:
+    if not may(permissions, 'imports.review', view, scope_id):
+        audit_result('refused')
+        raise _refuse()
+    _records_ready(audit_result)
+
+
+@router.post('/imports')
+async def post_import(
+    view: View,
+    scope_id: Scope,
+    file: UploadFile = File(...),
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """A deck's candidate file, stored for review. The same bytes again return the first batch."""
+
+    def _audit(result: str, **fields: Any) -> None:
+        audit('leadership_write', user=user.id, operation='import_upload', result=result, **fields)
+
+    _import_reviewer(permissions, view, scope_id, _audit)
+    try:
+        raw = await run_in_threadpool(read_bounded, file.file, imports.MAX_BYTES)
+    except EvidenceRejected as error:
+        _audit('too_large')
+        raise HTTPException(error.status, 'The candidate file is too large.') from error
+
+    def _run() -> Any:
+        with engine.begin() as connection:
+            return imports.ingest(connection, raw, filename=file.filename or '', uploader=user.id)
+
+    try:
+        batch = await run_in_threadpool(_run)
+    except imports.InvalidCandidates as error:
+        _audit('invalid')
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)) from error
+    _audit('recorded' if batch.created else 'replayed', batch_id=batch.id)
+    return {'batch_id': batch.id, 'created': batch.created}
+
+
+@router.get('/imports')
+async def get_imports(
+    view: View,
+    scope_id: Scope,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """Every import batch, newest first. Candidates are unreviewed material, so this is the reviewer's."""
+
+    def _audit(result: str) -> None:
+        audit('leadership_read', user=user.id, operation='imports', result=result)
+
+    _import_reviewer(permissions, view, scope_id, _audit)
+
+    def _list() -> list[dict[str, Any]]:
+        with engine.connect() as connection:
+            return imports.list_batches(connection)
+
+    batches = await run_in_threadpool(_list)
+    _audit('served')
+    return {'batches': batches}
+
+
+@router.get('/imports/{batch_id}')
+async def get_import(
+    batch_id: str,
+    view: View,
+    scope_id: Scope,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """One batch and its candidates, with matches, conflicts and the verification label."""
+
+    def _audit(result: str) -> None:
+        audit('leadership_read', user=user.id, operation='import', batch_id=batch_id, result=result)
+
+    _import_reviewer(permissions, view, scope_id, _audit)
+
+    def _read() -> dict[str, Any]:
+        with engine.connect() as connection:
+            return imports.read_batch(connection, batch_id)
+
+    try:
+        batch = await run_in_threadpool(_read)
+    except imports.BatchNotFound as error:
+        _audit('not_found')
+        raise HTTPException(status.HTTP_404_NOT_FOUND, 'No such import batch.') from error
+    _audit('served')
+    return batch
+
+
+@router.post('/imports/candidates/{candidate_id}/review')
+async def post_candidate_review(
+    candidate_id: str,
+    view: View,
+    scope_id: Scope,
+    form: CandidateReviewIn,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """Accept, link or reject one candidate. Each candidate is reviewed once."""
+
+    def _audit(result: str, **fields: Any) -> None:
+        audit(
+            'leadership_write',
+            user=user.id,
+            operation='import_review',
+            candidate_id=candidate_id,
+            decision=form.decision,
+            result=result,
+            **fields,
+        )
+
+    _import_reviewer(permissions, view, scope_id, _audit)
+
+    def _run() -> dict[str, Any]:
+        return imports.review_candidate(
+            engine, candidate_id=candidate_id, decision=form.decision, reviewer=user.id, action_id=form.action_id
+        )
+
+    try:
+        reviewed = await run_in_threadpool(_run)
+    except imports.BatchNotFound as error:
+        _audit('not_found')
+        raise HTTPException(status.HTTP_404_NOT_FOUND, 'No such candidate.') from error
+    except imports.AlreadyReviewed as error:
+        _audit('already_reviewed')
+        raise HTTPException(status.HTTP_409_CONFLICT, 'This candidate was already reviewed.') from error
+    except imports.ImportRefused as error:
+        _audit('refused_by_rule')
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)) from error
+    _audit(reviewed['review_state'], action_id=reviewed['action_id'])
+    return reviewed

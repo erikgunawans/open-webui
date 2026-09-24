@@ -47,6 +47,7 @@ def _grant(
     submit: bool | None = None,
     review: bool | None = None,
     publish: bool | None = None,
+    imports: bool | None = None,
 ) -> SimpleNamespace:
     """A group row carrying leadership permissions, shaped as the host stores them."""
     grants = {
@@ -60,6 +61,8 @@ def _grant(
         grants['bod'] = {'review': review}
     if publish is not None:
         grants['snapshots'] = {'publish': publish}
+    if imports is not None:
+        grants['imports'] = {'review': imports}
     return SimpleNamespace(permissions={'jup': {'ruang_pimpinan': grants}})
 
 
@@ -983,3 +986,99 @@ def test_capabilities_list_publish_only_with_a_policy(client, directory, monkeyp
     assert client.get(f'{BASE}/capabilities').json()['operations'] == []
     monkeypatch.setenv('JUP_LEADERSHIP_PUBLICATION_POLICY', OPEN_PUBLICATION)
     assert client.get(f'{BASE}/capabilities').json()['operations'] == ['snapshots.publish']
+
+
+# --- Reviewed imports (P2 T6) -------------------------------------------------------
+
+IMPORTS = f'{BASE}/imports{Q}'
+CANDIDATE_FILE = {
+    'schema_version': 1,
+    'source_document': 'BOD-2026-09.pptx',
+    'meeting_date': '2026-09-28',
+    'candidates': [
+        {
+            'key': 's12-r1',
+            'slide': '12',
+            'external_id': 'GAS-01',
+            'title': 'Finalisasi alokasi gas',
+            'owner_label': 'Pak Deco',
+            'due': {'precision': 'month', 'value': '2026-09'},
+            'state': 'in_progress',
+            'progress_summary': None,
+            'source_metadata': {'slide_hidden': True},
+            'missing': {'progress_summary': 'blank cell'},
+        }
+    ],
+}
+
+
+def _upload_candidates(client, body: dict | None = None, raw: bytes | None = None):
+    content = raw if raw is not None else json.dumps(body or CANDIDATE_FILE).encode()
+    return client.post(IMPORTS, files={'file': ('bod.json', content, 'application/json')})
+
+
+def _as_import_reviewer(client, directory, user_id: str = 'rev-1', role: str = 'user') -> None:
+    directory.groups = [_grant(board=True, imports=True)]
+    _sign_in_as(client, role, user_id=user_id)
+
+
+@pytest.mark.parametrize(
+    ('role', 'grant'),
+    [
+        ('admin', {}),
+        ('user', {}),
+        ('admin', {'submit': True, 'review': True, 'publish': True}),
+        ('user', {'imports': False}),
+    ],
+)
+def test_only_an_import_reviewer_uploads_or_reads_candidates(client, directory, records, role, grant) -> None:
+    directory.groups = [_grant(board=True, **grant)]
+    _sign_in_as(client, role, user_id='someone')
+    for response in (_upload_candidates(client), client.get(IMPORTS)):
+        assert response.status_code == 403
+        _no_store(response)
+
+
+def test_an_import_reviewer_uploads_reviews_and_the_action_appears(client, directory, records, caplog) -> None:
+    _as_import_reviewer(client, directory)
+    with caplog.at_level('INFO'):
+        uploaded = _upload_candidates(client)
+    assert uploaded.status_code == 200, uploaded.text
+    batch_id = uploaded.json()['batch_id']
+    assert _upload_candidates(client).json() == {'batch_id': batch_id, 'created': False}
+    assert any("'operation': 'import_upload'" in line for line in _audit_lines(caplog))
+
+    batch = client.get(f'{BASE}/imports/{batch_id}{Q}').json()
+    (candidate,) = batch['candidates']
+    assert (candidate['match_kind'], candidate['verification']) == ('new', 'unverified')
+    assert candidate['payload']['source_metadata'] == {'slide_hidden': True}
+
+    review = f'{BASE}/imports/candidates/{candidate["id"]}/review{Q}'
+    accepted = client.post(review, json={'decision': 'accept'})
+    assert accepted.status_code == 200, accepted.text
+    action_id = accepted.json()['action_id']
+    assert client.post(review, json={'decision': 'reject'}).status_code == 409
+    directory.groups = [_grant(board=True)]
+    action = client.get(f'{BASE}/actions/{action_id}{Q}').json()['action']
+    assert (action['title'], action['state'], action['pic_user_id']) == ('Finalisasi alokasi gas', 'not_started', None)
+
+
+def test_a_malformed_or_oversized_candidate_file_is_refused(client, directory, records, monkeypatch) -> None:
+    from jup.leadership import imports
+
+    _as_import_reviewer(client, directory)
+    assert _upload_candidates(client, raw=b'{"schema_version": 1}').status_code == 422
+    monkeypatch.setattr(imports, 'MAX_BYTES', 10)
+    assert _upload_candidates(client).status_code == 413
+    assert client.get(IMPORTS).json()['batches'] == []
+
+
+def test_a_review_that_breaks_a_rule_is_422(client, directory, records) -> None:
+    _as_import_reviewer(client, directory)
+    batch_id = _upload_candidates(client).json()['batch_id']
+    candidate_id = client.get(f'{BASE}/imports/{batch_id}{Q}').json()['candidates'][0]['id']
+    review = f'{BASE}/imports/candidates/{candidate_id}/review{Q}'
+    assert client.post(review, json={'decision': 'link', 'action_id': 'no-such-action'}).status_code == 422
+    assert client.post(review, json={'decision': 'approve'}).status_code == 422
+    assert client.post(f'{BASE}/imports/candidates/nope/review{Q}', json={'decision': 'reject'}).status_code == 404
+    assert client.get(f'{BASE}/imports/nope{Q}').status_code == 404

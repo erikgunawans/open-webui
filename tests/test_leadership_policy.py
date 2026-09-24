@@ -42,6 +42,7 @@ def test_the_defaults_are_all_false_and_complete() -> None:
         'actions': {'submit': False},
         'bod': {'review': False},
         'snapshots': {'publish': False},
+        'imports': {'review': False},
     }
 
 
