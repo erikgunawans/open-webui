@@ -265,7 +265,8 @@ pass.
   - **PIC assignment** (found in the walk: an imported action had no PIC user, so nobody could ever
     submit on it): capability `actions.assign`, `POST /actions/{id}/pic` by sign-in email, a
     `pic_assigned` event; a reason to replace a PIC; refused when closed, under BOD review, unchanged
-    or unknown. Who holds `actions.assign` in production is Erik's call.
+    or unknown. Erik decided on 2026-09-24 that he holds `actions.assign` in production; the grant is
+    applied with the P2 deploy and, like every production grant, needs its own OK then.
   - Not built: the RKA baseline-versus-draft comparison, and the two discussion modules that need
     two comparable published snapshots. Server refusals (422) and flag reasons still render in
     English under id-ID; history shows author ids, not names.
