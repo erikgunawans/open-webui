@@ -41,6 +41,7 @@ def test_the_defaults_are_all_false_and_complete() -> None:
         'scopes': {'jup_consolidated': False},
         'actions': {'submit': False},
         'bod': {'review': False},
+        'snapshots': {'publish': False},
     }
 
 

@@ -21,6 +21,8 @@ follows from a read grant, and none from the admin role.
 - `bod.review`: taking part in closure, return and reopening decisions. It opens nothing by itself:
   the BOD policy (`JUP_LEADERSHIP_BOD_POLICY`, read in `jup.leadership.closure`) must also be
   configured, and an action's own PIC never reviews it (both checked in `closure.py`).
+- `snapshots.publish`: freezing a view into a meeting draft and publishing it. Publishing also
+  needs the publication policy (`JUP_LEADERSHIP_PUBLICATION_POLICY`, in `snapshots.py`).
 """
 
 from typing import Any
@@ -41,6 +43,7 @@ DEFAULT_PERMISSIONS: dict[str, Any] = {
             'scopes': {'jup_consolidated': False},
             'actions': {'submit': False},
             'bod': {'review': False},
+            'snapshots': {'publish': False},
         }
     }
 }
@@ -66,6 +69,7 @@ def allowed_views(permissions: dict[str, Any], scope_id: str = 'jup-consolidated
 CAPABILITIES: dict[str, tuple[str, str]] = {
     'actions.submit': ('actions', 'submit'),
     'bod.review': ('bod', 'review'),
+    'snapshots.publish': ('snapshots', 'publish'),
 }
 
 

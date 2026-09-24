@@ -17,10 +17,12 @@ Three properties hold for every route:
   authentication dependency gets it too.
 
 P2 adds the records store (ADR-0014): reading one action and its event history, the PIC's
-progress and evidence (`actions.submit`), and the BOD's closure decisions (`bod.review`, and only
-while `JUP_LEADERSHIP_BOD_POLICY` is configured). Each write is its own capability, and a read
-grant implies none of them. Every P2 read and write leaves a `jup.governance` audit line naming
-the user, the operation, the record ids and the result, never content.
+progress and evidence (`actions.submit`), the BOD's closure decisions (`bod.review`, and only
+while `JUP_LEADERSHIP_BOD_POLICY` is configured), and meeting snapshots (`snapshots.publish`;
+publishing only while `JUP_LEADERSHIP_PUBLICATION_POLICY` is configured) with the RKA records
+beside them. Each write is its own capability, and a read grant implies none of them. Every P2
+read and write leaves a `jup.governance` audit line naming the user, the operation, the record
+ids and the result, never content.
 
 The feature is off unless `JUP_LEADERSHIP_ENABLED` is set, and P1 serves only the labelled
 illustrative dataset named by `JUP_LEADERSHIP_SAMPLE_FILE`. Neither can be chosen by a request.
@@ -28,6 +30,7 @@ illustrative dataset named by `JUP_LEADERSHIP_SAMPLE_FILE`. Neither can be chose
 
 import copy
 import datetime as dt
+import json
 import logging
 import os
 from collections.abc import Callable, Coroutine
@@ -44,7 +47,7 @@ from fastapi.routing import APIRoute
 from pydantic import BaseModel, Field
 
 from jup.governance import audit
-from jup.leadership import closure, migrate
+from jup.leadership import closure, migrate, snapshots
 from jup.leadership import evidence as evidence_commands
 from jup.leadership.actions import REPORTING_TZ, CommandRefused, derive_flags, fold_history, latest_progress
 from jup.leadership.evidence_store import (
@@ -165,7 +168,8 @@ async def get_capabilities(permissions: dict[str, Any] = Depends(leadership_perm
         'operations': [
             operation
             for operation in allowed_operations(permissions)
-            if operation != 'bod.review' or closure.configured_policy() is not None
+            if (operation != 'bod.review' or closure.configured_policy() is not None)
+            and (operation != 'snapshots.publish' or snapshots.configured_publication_policy() is not None)
         ],
         'reason': None if views else 'This account has no Ruang Pimpinan view.',
     }
@@ -622,3 +626,259 @@ async def post_closure_decision(
         'close_votes': decided.close_votes,
         'quorum': decided.quorum,
     }
+
+
+# --- Meeting snapshots and RKA records (P2 T5) ---------------------------------------------
+
+
+class SnapshotDraftIn(BaseModel):
+    meeting_label: str = Field(min_length=1, max_length=500)
+    meeting_date: str | None = Field(default=None, max_length=10)
+
+
+class SnapshotPublishIn(BaseModel):
+    expected_version: int
+    # The hash of the draft the publisher reviewed; anything else is a conflict.
+    content_hash: str = Field(min_length=64, max_length=64)
+
+
+def _records_ready(audit_unavailable: Callable[[str], None]) -> None:
+    if not _enabled():
+        audit_unavailable('unavailable')
+        raise _unavailable('Ruang Pimpinan is not enabled on this server.')
+    if not migrate.schema_ready():
+        audit_unavailable('unavailable')
+        raise _unavailable('The Ruang Pimpinan records store is not ready on this server.')
+
+
+def _integrity_refusal(error: Exception) -> HTTPException:
+    log.error('refused to serve a Ruang Pimpinan record that failed verification: %s', error)
+    return _unavailable('A stored meeting record failed its integrity check and is not served.')
+
+
+def _snapshot_body(versions: list[Any]) -> dict[str, Any]:
+    published = [v for v in versions if v.state == 'published']
+    latest = versions[-1]
+
+    def _with_content(version: Any) -> dict[str, Any]:
+        return version.summary() | {'content': json.loads(version.content_bytes)}
+
+    return {
+        'versions': [v.summary() for v in versions],
+        # The meeting record. None while everything is draft, never the draft in its place.
+        'published': _with_content(published[-1]) if published else None,
+        'latest': _with_content(latest),
+    }
+
+
+@router.get('/snapshots')
+async def get_snapshots(
+    view: View,
+    scope_id: Scope,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """The meeting snapshots of one view, newest first. Access is rechecked on every request."""
+
+    def _audit(result: str) -> None:
+        audit('leadership_read', user=user.id, operation='snapshots', view=view, result=result)
+
+    if not may_read(permissions, view, scope_id):
+        _audit('refused')
+        raise _refuse()
+    _records_ready(_audit)
+
+    def _list() -> list[dict[str, Any]]:
+        with engine.connect() as connection:
+            return snapshots.list_snapshots(connection, view)
+
+    try:
+        listed = await run_in_threadpool(_list)
+    except snapshots.IntegrityFailure as error:
+        _audit('integrity_failure')
+        raise _integrity_refusal(error) from error
+    _audit('served')
+    return {'view': view, 'snapshots': listed}
+
+
+@router.get('/snapshots/{snapshot_id}')
+async def get_snapshot(
+    snapshot_id: str,
+    view: View,
+    scope_id: Scope,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """One snapshot through the view it froze: every version's summary, the published record, the latest content.
+
+    A snapshot of the other view is 404 here, so the Board grant never opens an RKA record.
+    """
+
+    def _audit(result: str) -> None:
+        audit('leadership_read', user=user.id, operation='snapshot', snapshot_id=snapshot_id, view=view, result=result)
+
+    if not may_read(permissions, view, scope_id):
+        _audit('refused')
+        raise _refuse()
+    _records_ready(_audit)
+
+    def _read() -> list[Any]:
+        with engine.connect() as connection:
+            return snapshots.read_versions(connection, snapshot_id)
+
+    try:
+        versions = await run_in_threadpool(_read)
+    except snapshots.SnapshotNotFound:
+        versions = None
+    except snapshots.IntegrityFailure as error:
+        _audit('integrity_failure')
+        raise _integrity_refusal(error) from error
+    if not versions or versions[0].view != view:
+        _audit('not_found')
+        raise HTTPException(status.HTTP_404_NOT_FOUND, 'No such snapshot in this view.')
+    _audit('served')
+    return _snapshot_body(versions)
+
+
+def _publisher(permissions: dict[str, Any], view: str, scope_id: str, audit_result: Callable[[str], None]) -> None:
+    if not may(permissions, 'snapshots.publish', view, scope_id):
+        audit_result('refused')
+        raise _refuse()
+    _records_ready(audit_result)
+
+
+@router.post('/snapshots')
+async def post_snapshot_draft(
+    view: View,
+    scope_id: Scope,
+    form: SnapshotDraftIn,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """Freeze the view as it stands now into a new meeting draft. Nothing is published here."""
+
+    def _audit(result: str, **fields: Any) -> None:
+        audit('leadership_write', user=user.id, operation='snapshot_draft', view=view, result=result, **fields)
+
+    _publisher(permissions, view, scope_id, _audit)
+    dataset = await _dataset()
+
+    def _run() -> Any:
+        with engine.begin() as connection:
+            content = snapshots.view_content(connection, dataset, view)
+            return snapshots.create_draft(
+                connection,
+                view=view,
+                meeting_label=form.meeting_label,
+                meeting_date=form.meeting_date,
+                content=content,
+                author=user.id,
+            )
+
+    try:
+        draft = await run_in_threadpool(_run)
+    except ValueError as error:
+        _audit('invalid')
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)) from error
+    _audit('recorded', snapshot_id=draft.snapshot_id, version=draft.version, content_hash=draft.content_hash)
+    return draft.summary()
+
+
+@router.post('/snapshots/{snapshot_id}/publish')
+async def post_snapshot_publish(
+    snapshot_id: str,
+    view: View,
+    scope_id: Scope,
+    form: SnapshotPublishIn,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """Publish the latest draft, by the hash the publisher reviewed. 503 while no policy is configured."""
+
+    def _audit(result: str, **fields: Any) -> None:
+        audit(
+            'leadership_write',
+            user=user.id,
+            operation='snapshot_publish',
+            snapshot_id=snapshot_id,
+            view=view,
+            result=result,
+            **fields,
+        )
+
+    _publisher(permissions, view, scope_id, _audit)
+    policy = snapshots.configured_publication_policy()
+    if policy is None:
+        _audit('unavailable')
+        raise _unavailable('Publication is not configured on this server; every snapshot stays a draft.')
+
+    def _run() -> Any:
+        with engine.begin() as connection:
+            head = snapshots.read_versions(connection, snapshot_id)
+            if head[0].view != view:
+                raise snapshots.SnapshotNotFound(snapshot_id)
+            return snapshots.publish(
+                connection,
+                snapshot_id=snapshot_id,
+                expected_version=form.expected_version,
+                content_hash=form.content_hash,
+                publisher=user.id,
+                policy=policy,
+            )
+
+    try:
+        published = await run_in_threadpool(_run)
+    except snapshots.SnapshotNotFound as error:
+        _audit('not_found')
+        raise HTTPException(status.HTTP_404_NOT_FOUND, 'No such snapshot in this view.') from error
+    except snapshots.SnapshotConflict as error:
+        _audit('conflict')
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            {
+                'message': 'This snapshot changed since you reviewed it. Reload and try again.',
+                'version': error.latest_version,
+            },
+        ) from error
+    except snapshots.SnapshotRefused as error:
+        _audit('refused_by_rule')
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)) from error
+    except snapshots.IntegrityFailure as error:
+        _audit('integrity_failure')
+        raise _integrity_refusal(error) from error
+    _audit('published', version=published.version, content_hash=published.content_hash)
+    return published.summary()
+
+
+@router.get('/baselines')
+async def get_baselines(
+    scope_id: Scope,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """Every RKA record (approved baselines, revisions, forecasts), for a reader of the RKA view."""
+
+    def _audit(result: str) -> None:
+        audit('leadership_read', user=user.id, operation='baselines', result=result)
+
+    if not may_read(permissions, 'rka', scope_id):
+        _audit('refused')
+        raise _refuse()
+    _records_ready(_audit)
+
+    def _list() -> list[dict[str, Any]]:
+        with engine.connect() as connection:
+            return snapshots.list_rka(connection)
+
+    try:
+        records = await run_in_threadpool(_list)
+    except snapshots.IntegrityFailure as error:
+        _audit('integrity_failure')
+        raise _integrity_refusal(error) from error
+    _audit('served')
+    return {'records': records}

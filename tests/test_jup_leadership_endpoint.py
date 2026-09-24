@@ -41,7 +41,12 @@ class _Account:
 
 
 def _grant(
-    board: bool = False, rka: bool = False, scope: bool = True, submit: bool | None = None, review: bool | None = None
+    board: bool = False,
+    rka: bool = False,
+    scope: bool = True,
+    submit: bool | None = None,
+    review: bool | None = None,
+    publish: bool | None = None,
 ) -> SimpleNamespace:
     """A group row carrying leadership permissions, shaped as the host stores them."""
     grants = {
@@ -53,6 +58,8 @@ def _grant(
         grants['actions'] = {'submit': submit}
     if review is not None:
         grants['bod'] = {'review': review}
+    if publish is not None:
+        grants['snapshots'] = {'publish': publish}
     return SimpleNamespace(permissions={'jup': {'ruang_pimpinan': grants}})
 
 
@@ -832,3 +839,147 @@ def test_capabilities_list_bod_review_only_with_a_policy(client, directory, monk
     assert client.get(f'{BASE}/capabilities').json()['operations'] == []
     monkeypatch.setenv('JUP_LEADERSHIP_BOD_POLICY', INDIVIDUAL)
     assert client.get(f'{BASE}/capabilities').json()['operations'] == ['bod.review']
+
+
+# --- Meeting snapshots and RKA records (P2 T5) --------------------------------------
+
+SNAPSHOTS = f'{BASE}/snapshots{Q}'
+RKA_Q = '?view=rka&scope_id=jup-consolidated'
+OPEN_PUBLICATION = '{"four_eyes": false}'
+
+
+def _as_publisher(client, directory, user_id: str = 'sec-1', role: str = 'user', rka: bool = False) -> None:
+    directory.groups = [_grant(board=True, rka=rka, publish=True)]
+    _sign_in_as(client, role, user_id=user_id)
+
+
+def _new_draft(client, url: str = SNAPSHOTS):
+    return client.post(url, json={'meeting_label': 'Rapat BOD September 2026', 'meeting_date': '2026-09-28'})
+
+
+@pytest.mark.parametrize(
+    ('role', 'grant'),
+    [('admin', {}), ('user', {}), ('admin', {'submit': True, 'review': True}), ('user', {'publish': False})],
+)
+def test_only_a_publisher_freezes_a_draft(client, directory, records, role, grant) -> None:
+    directory.groups = [_grant(board=True, **grant)]
+    _sign_in_as(client, role, user_id='someone')
+    response = _new_draft(client)
+    assert response.status_code == 403
+    _no_store(response)
+    assert client.get(SNAPSHOTS).json()['snapshots'] == []
+
+
+def test_a_draft_is_frozen_and_never_served_as_the_record(client, directory, records, caplog) -> None:
+    _as_publisher(client, directory)
+    with caplog.at_level('INFO'):
+        draft = _new_draft(client)
+    assert draft.status_code == 200, draft.text
+    body = draft.json()
+    assert (body['state'], body['version'], body['view']) == ('draft', 1, 'board')
+    assert any("'operation': 'snapshot_draft'" in line for line in _audit_lines(caplog))
+
+    read = client.get(f'{BASE}/snapshots/{body["snapshot_id"]}{Q}')
+    assert read.status_code == 200
+    _no_store(read)
+    served = read.json()
+    assert served['published'] is None
+    assert served['latest']['state'] == 'draft'
+    assert served['latest']['content']['data_mode'] == 'illustrative'
+    listed = client.get(SNAPSHOTS).json()['snapshots']
+    assert [(item['latest']['state'], item['published']) for item in listed] == [('draft', None)]
+
+
+def test_publication_is_unavailable_until_a_policy_is_configured(client, directory, records, monkeypatch) -> None:
+    monkeypatch.delenv('JUP_LEADERSHIP_PUBLICATION_POLICY', raising=False)
+    _as_publisher(client, directory)
+    draft = _new_draft(client).json()
+    publish = f'{BASE}/snapshots/{draft["snapshot_id"]}/publish{Q}'
+    response = client.post(publish, json={'expected_version': 1, 'content_hash': draft['content_hash']})
+    assert response.status_code == 503
+    # Without the capability, the answer is 403 whatever the configuration.
+    directory.groups = [_grant(board=True)]
+    assert client.post(publish, json={'expected_version': 1, 'content_hash': draft['content_hash']}).status_code == 403
+
+
+def test_a_publisher_publishes_the_draft_they_reviewed(client, directory, records, monkeypatch) -> None:
+    monkeypatch.setenv('JUP_LEADERSHIP_PUBLICATION_POLICY', OPEN_PUBLICATION)
+    _as_publisher(client, directory)
+    draft = _new_draft(client).json()
+    publish = f'{BASE}/snapshots/{draft["snapshot_id"]}/publish{Q}'
+    stale = client.post(publish, json={'expected_version': 1, 'content_hash': '0' * 64})
+    assert stale.status_code == 409
+    response = client.post(publish, json={'expected_version': 1, 'content_hash': draft['content_hash']})
+    assert response.status_code == 200, response.text
+    assert (response.json()['state'], response.json()['content_hash']) == ('published', draft['content_hash'])
+    served = client.get(f'{BASE}/snapshots/{draft["snapshot_id"]}{Q}').json()
+    assert served['published']['version'] == 2
+    assert client.post(publish, json={'expected_version': 2, 'content_hash': draft['content_hash']}).status_code == 422
+
+
+def test_four_eyes_publication_over_http(client, directory, records, monkeypatch) -> None:
+    monkeypatch.setenv('JUP_LEADERSHIP_PUBLICATION_POLICY', '{"four_eyes": true}')
+    _as_publisher(client, directory, 'sec-1')
+    draft = _new_draft(client).json()
+    publish = f'{BASE}/snapshots/{draft["snapshot_id"]}/publish{Q}'
+    body = {'expected_version': 1, 'content_hash': draft['content_hash']}
+    assert client.post(publish, json=body).status_code == 422
+    _as_publisher(client, directory, 'pub-2')
+    assert client.post(publish, json=body).status_code == 200
+
+
+def test_a_snapshot_is_read_only_through_the_view_it_froze(client, directory, records) -> None:
+    _as_publisher(client, directory, rka=True)
+    rka_draft = _new_draft(client, f'{BASE}/snapshots{RKA_Q}').json()
+    assert rka_draft['view'] == 'rka'
+    assert client.get(f'{BASE}/snapshots/{rka_draft["snapshot_id"]}{Q}').status_code == 404
+    assert client.get(f'{BASE}/snapshots/{rka_draft["snapshot_id"]}{RKA_Q}').status_code == 200
+
+
+def test_a_revoked_reader_is_denied_a_snapshot_they_could_read_before(client, directory, records) -> None:
+    _as_publisher(client, directory)
+    snapshot_id = _new_draft(client).json()['snapshot_id']
+    directory.groups = [_grant(board=True)]
+    _sign_in_as(client, 'user', user_id='boc-1')
+    assert client.get(f'{BASE}/snapshots/{snapshot_id}{Q}').status_code == 200
+    directory.groups = []
+    for url in (f'{BASE}/snapshots/{snapshot_id}{Q}', SNAPSHOTS):
+        response = client.get(url)
+        assert response.status_code == 403
+        _no_store(response)
+
+
+def test_rka_records_are_for_an_rka_reader(client, directory, records) -> None:
+    from jup.leadership.snapshots import record_rka
+
+    with records.begin() as connection:
+        record_rka(
+            connection,
+            kind='baseline',
+            label='RKA 2026',
+            period_start='2026-01-01',
+            period_end='2026-12-31',
+            content={'revenue_idr_billion': '144.0'},
+            author='sec-1',
+            approved_by='rups',
+            approved_at=1_780_000_000_000,
+        )
+    baselines = f'{BASE}/baselines?scope_id=jup-consolidated'
+    directory.groups = [_grant(board=True)]
+    _sign_in_as(client, 'admin', user_id='admin-1')
+    assert client.get(baselines).status_code == 403
+    directory.groups = [_grant(rka=True)]
+    response = client.get(baselines)
+    assert response.status_code == 200
+    _no_store(response)
+    (record,) = response.json()['records']
+    assert (record['record_kind'], record['content']) == ('baseline', {'revenue_idr_billion': '144.0'})
+
+
+def test_capabilities_list_publish_only_with_a_policy(client, directory, monkeypatch) -> None:
+    directory.groups = [_grant(board=True, publish=True)]
+    _sign_in_as(client, 'user')
+    monkeypatch.delenv('JUP_LEADERSHIP_PUBLICATION_POLICY', raising=False)
+    assert client.get(f'{BASE}/capabilities').json()['operations'] == []
+    monkeypatch.setenv('JUP_LEADERSHIP_PUBLICATION_POLICY', OPEN_PUBLICATION)
+    assert client.get(f'{BASE}/capabilities').json()['operations'] == ['snapshots.publish']

@@ -109,7 +109,7 @@ class UnitOfWork:
     ) -> AppendResult:
         """Insert an action at version 1 together with its `created` event, which carries every field."""
         _check_columns(fields, _CREATE_COLUMNS)
-        body = _canonical_json({'data': {}, 'changes': fields})
+        body = canonical_json({'data': {}, 'changes': fields})
         if self._current_version(action_id) is not None:
             raise ActionExists(f'action {action_id!r} already exists')
         now = _now_ms()
@@ -147,7 +147,7 @@ class UnitOfWork:
         """
         changes = dict(changes or {})
         _check_columns(changes, MUTABLE_ACTION_COLUMNS)
-        body = _canonical_json({'data': payload, 'changes': changes})
+        body = canonical_json({'data': payload, 'changes': changes})
 
         if idempotency_key is not None:
             earlier = self._replay(action_id, idempotency_key, kind, body)
@@ -275,7 +275,7 @@ def _check_columns(values: dict[str, Any], allowed: frozenset[str]) -> None:
         raise ValueError(f'an event may not set {", ".join(refused)} on an action')
 
 
-def _canonical_json(value: Any) -> str:
+def canonical_json(value: Any) -> str:
     """Stable bytes for stored content, refusing any float (money travels as decimal strings)."""
     _refuse_floats(value, '$')
     try:
