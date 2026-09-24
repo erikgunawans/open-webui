@@ -2,6 +2,7 @@
 	import { getContext, onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
+	import ServerText from './ServerText.svelte';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import {
@@ -103,7 +104,7 @@
 	{#if loading}
 		<div class="flex justify-center py-4"><Spinner className="size-5" /></div>
 	{:else if unavailable}
-		<p class="jlp-meta">{unavailable}</p>
+		<p class="jlp-meta"><ServerText text={unavailable} /></p>
 	{:else if items.length === 0}
 		<p class="jlp-meta">{$i18n.t('No meeting has been frozen for this view yet.')}</p>
 	{:else}
@@ -147,7 +148,7 @@
 		</form>
 		<div aria-live="polite">
 			{#if draftProblem}
-				<p class="jlp-notice jlp-notice-refused mt-2">{draftProblem}</p>
+				<p class="jlp-notice jlp-notice-refused mt-2"><ServerText text={draftProblem} /></p>
 			{/if}
 		</div>
 	{/if}

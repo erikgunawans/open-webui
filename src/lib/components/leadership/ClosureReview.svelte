@@ -2,6 +2,7 @@
 	import { getContext, createEventDispatcher } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
+	import ServerText from './ServerText.svelte';
 
 	import {
 		postClosureDecision,
@@ -187,7 +188,7 @@
 <!-- Outside the section: a decision that ends the review (a return, a close) still confirms. -->
 <div aria-live="polite">
 	{#if problem}
-		<p class="jlp-notice jlp-notice-refused mt-2">{problem}</p>
+		<p class="jlp-notice jlp-notice-refused mt-2"><ServerText text={problem} /></p>
 	{:else if done}
 		<p class="jlp-notice mt-2">{done}</p>
 	{/if}

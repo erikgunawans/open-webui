@@ -2,6 +2,7 @@
 	import { getContext, createEventDispatcher } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
+	import ServerText from './ServerText.svelte';
 
 	import { user } from '$lib/stores';
 	import { leadershipAccess } from '$lib/stores/leadership';
@@ -190,7 +191,7 @@
 		{#if loading}
 			<div class="flex justify-center py-6"><Spinner className="size-5" /></div>
 		{:else if error}
-			<p class="jlp-notice">{error}</p>
+			<p class="jlp-notice"><ServerText text={error} /></p>
 		{:else if record}
 			<dl class="jlp-dl">
 				<dt>{$i18n.t('PIC')}</dt>
@@ -229,14 +230,16 @@
 							{ count: record.flags.days_overdue }
 						)}{/if}
 					{#if record.flags.overdue === null && record.flags.reasons.overdue}
-						<span class="jlp-meta jlp-block">{record.flags.reasons.overdue}</span>
+						<span class="jlp-meta jlp-block"
+							><ServerText text={record.flags.reasons.overdue} /></span
+						>
 					{/if}
 				</dd>
 				<dt>{$i18n.t('Stale')}</dt>
 				<dd>
 					{flag(record.flags.stale)}
 					{#if record.flags.stale === null && record.flags.reasons.stale}
-						<span class="jlp-meta jlp-block">{record.flags.reasons.stale}</span>
+						<span class="jlp-meta jlp-block"><ServerText text={record.flags.reasons.stale} /></span>
 					{/if}
 				</dd>
 			</dl>

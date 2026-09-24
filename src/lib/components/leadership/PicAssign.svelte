@@ -2,6 +2,7 @@
 	import { getContext, createEventDispatcher } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
+	import ServerText from './ServerText.svelte';
 
 	import {
 		postPicAssignment,
@@ -59,11 +60,6 @@
 			if (caught instanceof LeadershipRequestError && caught.isConflict) {
 				problem = $i18n.t('This action changed since you opened it. Reload and try again.');
 				dispatch('saved');
-			} else if (
-				caught instanceof LeadershipRequestError &&
-				caught.message === 'No account has that email.'
-			) {
-				problem = $i18n.t('No account has that email.');
 			} else {
 				problem = caught instanceof Error ? caught.message : `${caught}`;
 			}
@@ -114,7 +110,7 @@
 	{/if}
 	<div aria-live="polite">
 		{#if problem}
-			<p class="jlp-notice jlp-notice-refused mt-2">{problem}</p>
+			<p class="jlp-notice jlp-notice-refused mt-2"><ServerText text={problem} /></p>
 		{:else if done}
 			<p class="jlp-notice mt-2">{done}</p>
 		{/if}

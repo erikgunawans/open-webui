@@ -2,6 +2,7 @@
 	import { getContext } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
+	import ServerText from './ServerText.svelte';
 
 	import Modal from '$lib/components/common/Modal.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -75,7 +76,7 @@
 		{#if loading}
 			<div class="flex justify-center py-6"><Spinner className="size-5" /></div>
 		{:else if error}
-			<p class="jlp-notice">{error}</p>
+			<p class="jlp-notice"><ServerText text={error} /></p>
 		{:else if source}
 			<dl class="jlp-dl">
 				<dt>{$i18n.t('Document')}</dt>

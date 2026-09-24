@@ -2,6 +2,7 @@
 	import { getContext, createEventDispatcher } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
+	import ServerText from './ServerText.svelte';
 
 	import Modal from '$lib/components/common/Modal.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -129,7 +130,7 @@
 		{#if loading}
 			<div class="flex justify-center py-6"><Spinner className="size-5" /></div>
 		{:else if error}
-			<p class="jlp-notice">{error}</p>
+			<p class="jlp-notice"><ServerText text={error} /></p>
 		{:else if detail}
 			{#if detail.published && detail.latest.state === 'draft'}
 				<div class="jlp-row-buttons" role="group" aria-label={$i18n.t('Version shown')}>
@@ -255,7 +256,7 @@
 					>
 					<div aria-live="polite">
 						{#if publishProblem}
-							<p class="jlp-notice jlp-notice-refused mt-2">{publishProblem}</p>
+							<p class="jlp-notice jlp-notice-refused mt-2"><ServerText text={publishProblem} /></p>
 						{/if}
 					</div>
 				</section>

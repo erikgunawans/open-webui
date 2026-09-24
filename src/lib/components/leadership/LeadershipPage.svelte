@@ -2,6 +2,7 @@
 	import { getContext, onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
+	import ServerText from './ServerText.svelte';
 
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -213,7 +214,7 @@
 {:else if state.kind === 'failed'}
 	<div class="jlp-notice jlp-notice-refused">
 		<p class="font-medium">{$i18n.t('The report could not be loaded')}</p>
-		<p class="mt-1 text-sm">{state.message}</p>
+		<p class="mt-1 text-sm"><ServerText text={state.message} /></p>
 	</div>
 {:else if overview}
 	<div class="jlp-context-bar">
