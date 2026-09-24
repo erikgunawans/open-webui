@@ -1870,6 +1870,7 @@
 	"MinerU": "MinerU",
 	"MinerU API endpoint for the selected mode.": "",
 	"MinerU API Key required for Cloud API mode.": "کلید API MinerU برای حالت Cloud API مورد نیاز است.",
+	"Missing": "",
 	"Mistral OCR": "تشخیص متن میسترال",
 	"Mistral OCR API Key required.": "کلید API تشخیص متن میسترال مورد نیاز است.",
 	"Mistral OCR service endpoint.": "",

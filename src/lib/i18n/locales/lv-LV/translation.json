@@ -1885,6 +1885,7 @@
 	"MinerU": "MinerU",
 	"MinerU API endpoint for the selected mode.": "",
 	"MinerU API Key required for Cloud API mode.": "MinerU API atslēga nepieciešama mākoņa API režīmam.",
+	"Missing": "",
 	"Mistral OCR": "Mistral OCR",
 	"Mistral OCR API Key required.": "Nepieciešama Mistral OCR API atslēga.",
 	"Mistral OCR service endpoint.": "",

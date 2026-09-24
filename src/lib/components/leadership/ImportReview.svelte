@@ -196,17 +196,33 @@
 						<dl class="jlp-dl mt-2">
 							<dt>{$i18n.t('PIC')}</dt>
 							<dd>
-								{candidate.payload.owner_label ?? candidate.payload.missing.owner_label ?? '—'}
+								{#if candidate.payload.owner_label}
+									{candidate.payload.owner_label}
+								{:else}
+									<span class="jlp-meta"
+										>{$i18n.t('Missing')}: {candidate.payload.missing.owner_label ?? '—'}</span
+									>
+								{/if}
 							</dd>
 							<dt>{$i18n.t('Target')}</dt>
 							<dd>
-								{recordedDueId(candidate.payload.due) ?? candidate.payload.missing.due ?? '—'}
+								{#if candidate.payload.due}
+									{recordedDueId(candidate.payload.due)}
+								{:else}
+									<span class="jlp-meta"
+										>{$i18n.t('Missing')}: {candidate.payload.missing.due ?? '—'}</span
+									>
+								{/if}
 							</dd>
 							<dt>{$i18n.t('Progress reported')}</dt>
 							<dd>
-								{candidate.payload.progress_summary ??
-									candidate.payload.missing.progress_summary ??
-									'—'}
+								{#if candidate.payload.progress_summary}
+									{candidate.payload.progress_summary}
+								{:else}
+									<span class="jlp-meta"
+										>{$i18n.t('Missing')}: {candidate.payload.missing.progress_summary ?? '—'}</span
+									>
+								{/if}
 							</dd>
 						</dl>
 						{#if candidate.conflict}

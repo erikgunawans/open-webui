@@ -1856,6 +1856,7 @@
 	"MinerU": "MinerU",
 	"MinerU API endpoint for the selected mode.": "",
 	"MinerU API Key required for Cloud API mode.": "클라우드 API 모드를 사용하려면 MinerU API 키가 필요합니다.",
+	"Missing": "",
 	"Mistral OCR": "Mistral OCR",
 	"Mistral OCR API Key required.": "Mistral OCR API Key가 필요합니다.",
 	"Mistral OCR service endpoint.": "",

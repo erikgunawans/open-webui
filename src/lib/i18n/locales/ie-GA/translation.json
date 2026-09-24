@@ -1870,6 +1870,7 @@
 	"MinerU": "MinerU",
 	"MinerU API endpoint for the selected mode.": "Críochphointe API MinerU don mhodh roghnaithe.",
 	"MinerU API Key required for Cloud API mode.": "Eochair API MinerU ag teastáil le haghaidh mód Cloud API.",
+	"Missing": "",
 	"Mistral OCR": "OCR Mistral",
 	"Mistral OCR API Key required.": "Mistral OCR API Eochair ag teastáil.",
 	"Mistral OCR service endpoint.": "Críochphointe seirbhíse OCR Mistral.",

@@ -1900,6 +1900,7 @@
 	"MinerU": "MinerU",
 	"MinerU API endpoint for the selected mode.": "Končna točka API-ja MinerU za izbrani način.",
 	"MinerU API Key required for Cloud API mode.": "MinerU API Key required for Cloud API mode.",
+	"Missing": "",
 	"Mistral OCR": "Mistral OCR",
 	"Mistral OCR API Key required.": "Mistral OCR API Key required.",
 	"Mistral OCR service endpoint.": "Končna točka storitve Mistral OCR.",

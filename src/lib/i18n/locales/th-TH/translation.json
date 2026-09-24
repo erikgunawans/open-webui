@@ -1855,6 +1855,7 @@
 	"MinerU": "MinerU",
 	"MinerU API endpoint for the selected mode.": "",
 	"MinerU API Key required for Cloud API mode.": "ต้องใช้ MinerU API Key สำหรับโหมด Cloud API",
+	"Missing": "",
 	"Mistral OCR": "Mistral OCR",
 	"Mistral OCR API Key required.": "จำเป็นต้องมี Mistral OCR API Key",
 	"Mistral OCR service endpoint.": "",

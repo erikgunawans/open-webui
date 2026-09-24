@@ -1900,6 +1900,7 @@
 	"MinerU": "MinerU",
 	"MinerU API endpoint for the selected mode.": "",
 	"MinerU API Key required for Cloud API mode.": "API-ключ MinerU необходим для режима Cloud API.",
+	"Missing": "",
 	"Mistral OCR": "Mistral OCR",
 	"Mistral OCR API Key required.": "Требуется ключ API Mistral OCR.",
 	"Mistral OCR service endpoint.": "",

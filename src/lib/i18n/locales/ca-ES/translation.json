@@ -1885,6 +1885,7 @@
 	"MinerU": "MinerU",
 	"MinerU API endpoint for the selected mode.": "Punt final de l'API MinerU per al mode seleccionat.",
 	"MinerU API Key required for Cloud API mode.": "És necessària la clau API de MinerU pel mode Cloud API",
+	"Missing": "",
 	"Mistral OCR": "Mistral OCR",
 	"Mistral OCR API Key required.": "És necessària la clau API de Mistral OCR",
 	"Mistral OCR service endpoint.": "Punt final del servei Mistral OCR.",

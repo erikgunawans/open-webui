@@ -181,13 +181,14 @@
 				>
 			</form>
 		{/if}
-
-		<div aria-live="polite">
-			{#if problem}
-				<p class="jlp-notice jlp-notice-refused mt-2">{problem}</p>
-			{:else if done}
-				<p class="jlp-notice mt-2">{done}</p>
-			{/if}
-		</div>
 	</section>
 {/if}
+
+<!-- Outside the section: a decision that ends the review (a return, a close) still confirms. -->
+<div aria-live="polite">
+	{#if problem}
+		<p class="jlp-notice jlp-notice-refused mt-2">{problem}</p>
+	{:else if done}
+		<p class="jlp-notice mt-2">{done}</p>
+	{/if}
+</div>
