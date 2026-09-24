@@ -179,8 +179,10 @@ unreachable for every created or imported action. The T8 walk seeded `change_sta
 missed it. Now `POST /actions/{id}/state` (the recorded PIC with `actions.submit`; start, block
 with a reason, unblock) and Start / Resume / Mark blocked in the PIC's form.
 
-Also found, not built: `revise_due` has no route either, so a due date can't be revised through
-the product.
+Also found: `revise_due` had no route either. Built in `fad0afc12` after Erik decided a due date is the
+BOD's to move: `POST /actions/{id}/due` for `bod.review` holders who are not the action's PIC,
+and a form in the action detail; walked in Chrome (a misshapen value refused, 2026 → 2027 with the
+original kept, the PIC offered no form).
 
 Not verified: keyboard-only operation and focus rings. Synthetic Tab doesn't move focus, OS-level
 Tab reached another window, and `:focus-visible` doesn't match in the unfocused walk window, so no
