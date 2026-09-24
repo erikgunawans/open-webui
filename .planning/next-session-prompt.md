@@ -1,3 +1,23 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-25-t9b)
+
+> Prepended by /wrap 2026-09-25 (checkpoint 2026-09-25-t9b). Supersedes checkpoint 2026-09-25-t9's anchor and its item 1; everything else in the t9 block below still holds.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-25-t9b, then 2026-09-25-t9).
+Anchor: `origin/main` at `4c5e730d0` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-25-t9b`). Verify with `git log --oneline 4c5e730d0..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** as t9, and **CI is green on `4c5e730d0`** (Python CI and Frontend Build), which carries every change of the t9 session. Live unchanged on `ent-os-00027-lrc`; P2 T0–T9 pushed, not deployed.
+
+**Do next, in order** (t9's list without its CI check):
+1. **After Mon 2026-09-28 09:00 WIB: verify A1's first run** (fresh ops tab; guard `location.host` before every eval and navigate): `/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs` → `success` + chat id; `jup.governance` lines around 02:00Z. Close the tab.
+2. **Polish, display-only:** English 422 refusals and flag reasons under id-ID; author ids → names; state on frozen snapshot actions; raw RKA keys; then the RKA baseline-vs-draft and two snapshot-comparison modules.
+3. **Keyboard-only use and focus rings** on the leadership screens: Erik's hands, or a focused Chrome window.
+4. **P2 deploy prep**, each step Erik's OK: GCS hold proof on `jup-ops-data`; the three `JUP_LEADERSHIP_*` values in `deploy.sh`'s heredoc; the `actions.assign` grant for Erik.
+5. Carried items as listed in the t9 block below.
+
+**Constraints and open items waiting on Erik:** unchanged from the t9 block below; read it.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-25-t9)
 
 > Prepended by /wrap 2026-09-25 (checkpoint 2026-09-25-t9). Supersedes checkpoint 2026-09-24-p2t8's anchor.

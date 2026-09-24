@@ -1,6 +1,13 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-25-t9 (latest) — P2 T9 walked; two missing routes built; T4–T8 now really run on Postgres
+## Checkpoint 2026-09-25-t9b (latest) — CI confirmed green on the T9 wrap
+
+- **Session:** continuation of 2026-09-25-t9 after its wrap: CI watched to the end; `/agent-depth` read (no status change); `/wrap`.
+- **CI:** Python CI and Frontend Build green on `4c5e730d0` (the t9 wrap, which carries all of the session's code, including the due-revision screen). The Frontend Build on `a85583fce` was cancelled, superseded by the wrap push, not failed. "Release to PyPI" failed again (vendor workflow).
+- **Agent-depth ledger:** 9 live, E5 ready (ships with the first of E3/E4/A5), A4/A5/V1 blocked on Erik's D-decisions, E2 on the VM budget. Unchanged.
+- **Next:** as 2026-09-25-t9's list, minus the CI check.
+
+## Checkpoint 2026-09-25-t9 — P2 T9 walked; two missing routes built; T4–T8 now really run on Postgres
 
 - **Session:** `/next` → Erik: `actions.assign` held by "Erik Gunawan", "yes you can push" → Postgres run → Erik: "push 9c00bf349" → polish item after CI → Erik chose BOD-only due revision → Erik: "push fad0afc12 and a85583fce" → `/wrap`.
 - **Live:** unchanged, `ent-os-00027-lrc`. No deploy. `origin/main` is ahead of live by T0–T9.
