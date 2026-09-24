@@ -134,26 +134,81 @@ a missing import value's reason sat in the value's place; six vendor keys had em
 Seen once, not reproduced: the detail dialog closed after the first progress submit. Not walked:
 keyboard-only use, text scale and 390 px for the new screens.
 
+### T9 walk, 2026-09-24 (local, records mode, both BOD policies)
+
+Commit `b4f7cc84f` plus the fix it found (`863ba4a75`). Backend on 8080 and Vite on 5050, scratch
+`DATA_DIR`/`STATIC_DIR`, `JUP_LEADERSHIP_ACTIONS_SOURCE=records`, publication four-eyes, local
+evidence store; BOD policy `{"mode": "collective", "quorum": 2}` for the design walk, then a restart
+with `{"mode": "individual"}`. Synthetic PIC, two BOD members, BOC, two secretaries (publisher),
+import reviewer, assigner and admin; grants through `/groups/create`. The three recorded actions
+were created under the **illustrative dataset's own action ids**, so the RKA assumption's link
+resolves to a recorded action. Driven in real Chrome through Interceptor, one value per eval,
+guarded by `location.host`; refusals also checked against the API.
+
+1. **Revenue exception, definition, source** (BOC): Pendapatan usaha Rp144,47 miliar against
+   Rp158,47 miliar, −Rp14,00 miliar; the source dialog names the deck, slide 4, "presented",
+   "not verified". The definition shown is its status only (candidate, period, scope, unit,
+   comparison basis): no definition text exists until KPI definitions are decided.
+2. **RKA assumption to its action** (BOC): the WTP KBB assumption's related follow-up resolves to
+   the recorded `example-action-water`; its detail shows version 1, no forms.
+3. **PIC evidence**: the PIC started the action (new route, below), then submitted completion with
+   an https link; the action moved to awaiting BOD closure (version 3). A block without a reason
+   was refused in the form.
+4. **Unauthorised closure**: no decision form for the PIC, BOC or admin (admin is denied the view
+   outright); `POST /closure` as PIC, BOC, admin and assigner all 403, action unchanged.
+5. **Closure by the configured BOD**, collective: the first director's vote recorded "1 of 2"
+   without closing; a second vote from the same director refused (422); the second director's vote
+   closed it (version 5). Individual (after restart): the assigner named the PIC of
+   `example-action-gas` by mixed-case email, the PIC started it and uploaded a PDF as completion
+   (content-addressed, no storage key in the response), one director closed it; reopening offered.
+6. **Current view changed, snapshot didn't**: a draft frozen by one secretary, refused to its author
+   (four-eyes), published by the second under the same hash `f45d05a6…fb495` before the closure.
+   After it the RKA view reads "0 open of 1"; the snapshot response is byte-identical before and
+   after, the action inside still `awaiting_bod_closure`.
+7. **Revocation**: the BOC removed from the readers group; the same session token then gets 403 on
+   the snapshot, the snapshot list, the action history and the overview, and the page shows no
+   access and no meeting history.
+
+Also: text scale 150% and 200% on the PIC dialog, no overflow. 390 px through a same-origin iframe:
+the PIC dialog and the snapshot viewer fit (390/390); the register table scrolls inside its
+keyboard-reachable region.
+
+Found and fixed (`863ba4a75`): **no route moved an action out of `not_started`.** `change_state`
+and `OWNER_TRANSITIONS` existed, but nothing exposed them, so completion (in progress only) was
+unreachable for every created or imported action. The T8 walk seeded `change_state` directly and
+missed it. Now `POST /actions/{id}/state` (the recorded PIC with `actions.submit`; start, block
+with a reason, unblock) and Start / Resume / Mark blocked in the PIC's form.
+
+Also found, not built: `revise_due` has no route either, so a due date can't be revised through
+the product.
+
+Not verified: keyboard-only operation and focus rings. Synthetic Tab doesn't move focus, OS-level
+Tab reached another window, and `:focus-visible` doesn't match in the unfocused walk window, so no
+ring could be measured. Structurally the new buttons are native and carry `.jlp-button`, which has
+the ring rule; the leadership text fields have no focus rule of their own. Seen again (carried
+polish): refusals and flag reasons in English under id-ID, author ids in history, no state on
+frozen snapshot actions. Imports were not re-walked (T8 covered them).
+
 ## Acceptance matrix
 
-| ID             | Stage     | Status                  | Evidence / gap                                                                                                                           |
-| -------------- | --------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| UX-01          | P1        | passed (fixture)        | Layout A in both views; sources and register reachable without chat.                                                                     |
-| UX-02          | P1, P2/P4 | P1 part passed          | Scope, period, units, source status visible; id-ID, 390 px, table regions and keyboard order/rings checked. Freshness is P2/P4.          |
-| HOST-01        | P1        | passed (local)          | One entry, expanded and collapsed; active on descendants; Portfolio and chat landing unaffected. Mobile drawer reachable (toggle added). |
-| HOST-02        | P1        | passed (local)          | Light and dark measured, no double sidebar subtraction, no overflow; text scale 150% and 200% clean.                                     |
-| HOST-03        | P1, P2    | passed (P1 scope)       | Back/refresh keep context; board-only denied RKA by URL and API; admin without grant denied.                                             |
-| HOST-04        | P3        | context preview only    | Preview sends nothing. The real assistant surface is P3.                                                                                 |
-| DATA-01        | P1, P2/P4 | P1 part passed          | Actual, budget and forecast kept apart; variance only like-for-like. Reconciliation to sources is P2/P4.                                 |
-| DATA-02        | P1, P2/P4 | P1 part passed          | Missing is never zero (validator and card); malformed dataset is 503, never an empty report.                                             |
-| ACT-01         | P1, P2    | P1 part passed          | One shared action id resolves to one record in both views. Re-import identity is P2.                                                     |
-| ACT-02         | P2        | built, walked locally   | PIC evidence and BOD closure through the UI (T8 walk); T9's recorded end-to-end walk pending.                                            |
-| ACT-03         | P1, P2    | P1 part passed          | Month, year and range targets shown with their precision; no overdue computed.                                                           |
-| SNAP-01        | P2        | built, walked locally   | Draft, four-eyes refusal and publication by hash through the UI (T8 walk); T9 pending.                                                   |
-| ACCESS-01      | P1 → P5   | P1 read surfaces passed | Views, API and sources enforce and re-check per request. History, search, export and tools arrive later.                                 |
-| MX-01          | P1, P3    | P1 part passed          | UI and API read one reader module. Tools are P3.                                                                                         |
-| WRITE-01       | P3/P4/P5  | not started             |                                                                                                                                          |
-| INTEGRATION-01 | P4/P5     | not started             | Dynamics variant and CRM choice are still open.                                                                                          |
+| ID             | Stage     | Status                    | Evidence / gap                                                                                                                              |
+| -------------- | --------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| UX-01          | P1        | passed (fixture)          | Layout A in both views; sources and register reachable without chat.                                                                        |
+| UX-02          | P1, P2/P4 | P1 part passed            | Scope, period, units, source status visible; id-ID, 390 px, table regions and keyboard order/rings checked. Freshness is P2/P4.             |
+| HOST-01        | P1        | passed (local)            | One entry, expanded and collapsed; active on descendants; Portfolio and chat landing unaffected. Mobile drawer reachable (toggle added).    |
+| HOST-02        | P1        | passed (local)            | Light and dark measured, no double sidebar subtraction, no overflow; text scale 150% and 200% clean.                                        |
+| HOST-03        | P1, P2    | passed (P1 scope)         | Back/refresh keep context; board-only denied RKA by URL and API; admin without grant denied.                                                |
+| HOST-04        | P3        | context preview only      | Preview sends nothing. The real assistant surface is P3.                                                                                    |
+| DATA-01        | P1, P2/P4 | P1 part passed            | Actual, budget and forecast kept apart; variance only like-for-like. Reconciliation to sources is P2/P4.                                    |
+| DATA-02        | P1, P2/P4 | P1 part passed            | Missing is never zero (validator and card); malformed dataset is 503, never an empty report.                                                |
+| ACT-01         | P1, P2    | P1 part passed            | One shared action id resolves to one record in both views. Re-import identity is P2.                                                        |
+| ACT-02         | P2        | passed (local walk)       | T9: PIC start, completion evidence, unauthorised closure refused, BOD closure in collective (quorum 2) and individual modes (`863ba4a75`).  |
+| ACT-03         | P1, P2    | P1 part passed            | Month, year and range targets shown with their precision; no overdue computed.                                                              |
+| SNAP-01        | P2        | passed (local walk)       | T9: four-eyes refusal, publication by hash; the published snapshot byte-identical after a later closure.                                    |
+| ACCESS-01      | P1 → P5   | P2 history passed (local) | T9: a revoked reader is denied a snapshot, the snapshot list and action history on the same session. Search, export and tools arrive later. |
+| MX-01          | P1, P3    | P1 part passed            | UI and API read one reader module. Tools are P3.                                                                                            |
+| WRITE-01       | P3/P4/P5  | not started               |                                                                                                                                             |
+| INTEGRATION-01 | P4/P5     | not started               | Dynamics variant and CRM choice are still open.                                                                                             |
 
 ## Next stages (from the approved roadmap)
 
