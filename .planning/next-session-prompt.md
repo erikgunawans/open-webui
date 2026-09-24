@@ -1,3 +1,35 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-24-a1)
+
+> Prepended by /wrap 2026-09-24 (checkpoint 2026-09-24-a1). Supersedes checkpoint 2026-09-24-p2t0's anchor.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-24-a1).
+Anchor: `origin/main` at `30f7bacee` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-24-a1`). Verify with `git log --oneline 30f7bacee..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live on `ent-os-00027-lrc` (Ruang Pimpinan enabled, Erik-only grant). A1 is live: weekly digest `c516815a-1dfb-4d5a-ad7d-3b8e23618eaf` ("Ringkasan mingguan portofolio JUP", Asisten JUP, owned by Erik) first fires Mon 2026-09-28 09:00:43 WIB. P2 T0 (`055470184`) is pushed, not deployed.
+
+**Do next, in order:**
+1. **Verify T0 on Postgres 16.** `df -h /` first; the disk has filled twice (ENOSPC on 2026-09-24).
+   - Docker Desktop must be running (Erik restarts it).
+   - `docker run -d --rm --name jl-pg16 -e POSTGRES_PASSWORD=local -e POSTGRES_DB=jl -p 55432:5432 postgres:16`
+   - `JUP_TEST_POSTGRES_URL=postgresql://postgres:local@127.0.0.1:55432/jl uv run --no-sync --with psycopg2-binary pytest tests/test_leadership_migrate.py`, then stop the container.
+2. **P2 T1** (storage layer, event tables, `unit_of_work`) **after Erik reviews T0.** Review points: after T0, after T4, before any deploy.
+3. **After Mon 2026-09-28 09:00 WIB: verify A1's first run.** Through a fresh ops tab (guard `location.host` in every eval): GET `/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs` → `success` + chat id; `gcloud logging read` the `jup.governance` lines around 02:00Z for `admitted` and `portfolio_status` ok. Then close the tab.
+4. **Carried:** per-turn `admitted` audit lines carry no chat id; critique leftovers (blocker owner/next step/date, English chrome under id-ID, "Open Sidebar" untranslated); the stale portfolio-permission claim in `deploy/gcp/README.md` (#10); the CI Docker CUDA and Ollama variants that failed on `259429034`.
+
+**Constraints to honor:**
+- Deploy, DB-config and production-grant authorization is per change, never standing. Record before-values in `.planning/*before*.json`. Pushing needs its own OK, except inside `/wrap`. A new Ruang Pimpinan reader is a new grant: its own OK.
+- Ruang Pimpinan's approved decisions and ADR-0014 are settled; don't reopen them.
+- `deploy.sh --env-vars-file` replaces the whole environment: any env value must live in its heredoc.
+- `holaboss-ai` and `KPI-Dashboard-JUP` are read-only.
+
+**Open items waiting on Erik:**
+- Review T0 (gates T1); restart Docker Desktop.
+- Optionally revise the digest prompt, or add `BYSECOND=0`.
+- Ruang Pimpinan company decisions: BOD and PIC identities; individual vs collective BOD closure; publication authority; KPI owners and definitions; retention, backup and data location; Dynamics details from IT; the CRM choice.
+- Codex CLI upgrade (Forge's pinned model); plan decisions V1, E2, E7 and a D-decision per new egress; "JUP Staff" group membership; D19 wording and the Rp 10 miliar SPBG tier labelled POTENSI; the carried brand/contacts/docs items listed in the previous block below.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-24-p2t0)
 
 > Prepended by /wrap 2026-09-24 (checkpoint 2026-09-24-p2t0). Supersedes checkpoint 2026-09-24-leadership's anchor.

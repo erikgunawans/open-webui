@@ -1,6 +1,30 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-24-p2t0 (latest) — P1 gaps fixed, Ruang Pimpinan enabled (Erik only), P2 plan approved, T0 built
+## Checkpoint 2026-09-24-a1 (latest) — A1 timing retest passed, weekly digest live
+
+- **Session:** a background watcher collected the 05:00 WIB fire → read and validated it → Erik: "do all three" (clean up, create the digest, mark the plan) → push → `/wrap` (first attempt blocked by a full disk, `ENOSPC`; rerun after Erik freed space, 2.8 GB free).
+- **Live:** unchanged, `ent-os-00027-lrc`. No deploy this session.
+- **Commit:** `30f7bacee` (plan row), pushed.
+
+### What shipped
+
+- **A1 timing retest: valid, on time.** Automation `fc3e9381` fired at 22:00:22Z (run record `success`, chat `20950b9f…`); audit shows `admitted` 22:00:36Z and `portfolio_status` + `get_current_timestamp` ok at 22:00:44Z. The request log had **zero requests from 20:01:42Z to 22:10Z** (query re-run at 22:12Z against a wider window to prove it returns rows). Throttled CPU (request-based, `minScale=1`) is enough: no `--no-cpu-throttling`.
+- **Test automation deleted** (DELETE 200) and **the digest created** with Erik's OK: "Ringkasan mingguan portofolio JUP", id `c516815a-1dfb-4d5a-ad7d-3b8e23618eaf`, model `xiaomi/mimo-v2.6-pro-ultraspeed` (= Asisten JUP, the only model), owner Erik (`beda5418…`), `RRULE:FREQ=WEEKLY;BYDAY=MO;BYHOUR=9;BYMINUTE=0`. It is the only automation.
+  - Next runs: **Mon 2026-09-28 09:00:43 WIB**, Mon 2026-10-05. The `:43` is the creation second (no `BYSECOND`); harmless.
+  - The prompt was written by me (no draft existed): Indonesian, calls `portfolio_status`, no invented figures, per-project status line, changes since last week, risks with owner and deadline, decisions needed. Erik may revise it.
+- `.planning/agent-depth-plan.md`: A1 → `live`, evidence recorded under Track A.
+
+### Findings
+
+- **The disk filled again** (ENOSPC on every tool call, even `df`). Nothing was lost; Erik freed space. Watch it before any Docker pull.
+- Erik's old ops tab `893472588` stayed open through the window but made no request after 20:01:42Z, so an idle open tab does not necessarily void the test; a polling page does.
+
+### Open at checkpoint
+
+- **Verify A1's first real run** after Mon 2026-09-28 09:00 WIB: its chat, run record `success`, and the `admitted` + `portfolio_status` audit lines.
+- **T0 on Postgres 16**, then T1 on Erik's review of T0 (carried unchanged).
+
+## Checkpoint 2026-09-24-p2t0 — P1 gaps fixed, Ruang Pimpinan enabled (Erik only), P2 plan approved, T0 built
 
 - **Session:** `/next`. A1 wasn't due (22:00Z) → item 3, the P1 gap walk, found three defects and fixed them → Erik: deploy → push → enable Ruang Pimpinan → Erik-only grant → P2 plan → approved → build T0 → `/wrap`.
 - **Live:** `ent-os-00027-lrc` (image `dd15a3100` + `JUP_LEADERSHIP_ENABLED=true`, `JUP_LEADERSHIP_SAMPLE_FILE=/srv/jup/leadership/illustrative-seed.json`). Chain: `00025-s4l` → `00026-mvj` (deploy `dd15a3100`) → `00027-lrc` (env only). Rollback: `00026-mvj` (section dormant) or `00025-s4l`. Before-values: `.planning/deploy-e3126777a-before-2026-09-24.json`, `.planning/leadership-enable-before-2026-09-24.json`.
