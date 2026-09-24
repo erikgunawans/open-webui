@@ -541,7 +541,15 @@ export type SnapshotListItem = {
 	published: SnapshotVersion | null;
 };
 
-export type SnapshotWithContent = SnapshotVersion & { content: Record<string, unknown> };
+// What a snapshot froze: the view's overview as it was served, plus the sources it cited. A
+// sample-mode action carries `record` (its frozen event state) or `null` when it had none.
+export type SnapshotContent = Overview & {
+	view: LeadershipView;
+	sources: Source[];
+	actions: (Action & { record?: Record<string, unknown> | null })[];
+};
+
+export type SnapshotWithContent = SnapshotVersion & { content: SnapshotContent };
 
 export type SnapshotDetail = {
 	versions: SnapshotVersion[];

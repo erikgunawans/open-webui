@@ -5,7 +5,8 @@ import {
 	closureNote,
 	closureRequest,
 	isOpenAction,
-	isSampleRegister
+	isSampleRegister,
+	meetingRecordState
 } from './actions';
 
 const action = (overrides: Partial<Action> = {}): Action => ({
@@ -83,5 +84,15 @@ describe('awaitingReview', () => {
 			action({ id: 'c', state: 'closed' })
 		]);
 		expect(queue.map((item) => item.id)).toEqual(['a']);
+	});
+});
+
+describe('meetingRecordState', () => {
+	test('a draft is never the meeting record', () => {
+		expect(meetingRecordState({ published: null, latest: { state: 'draft' } })).toBe('draft_only');
+		expect(meetingRecordState({ published: {}, latest: { state: 'published' } })).toBe('published');
+		expect(meetingRecordState({ published: {}, latest: { state: 'draft' } })).toBe(
+			'draft_after_published'
+		);
 	});
 });

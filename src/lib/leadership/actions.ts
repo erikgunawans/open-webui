@@ -34,3 +34,12 @@ export const isSampleRegister = (overview: Pick<Overview, 'actions_source'>): bo
 // The BOD's queue: recorded actions whose closure request is waiting for a decision.
 export const awaitingReview = (actions: Action[]): Action[] =>
 	actions.filter((action) => action.state === 'awaiting_bod_closure');
+
+// A snapshot list's meeting record: the published version when there is one, never the draft.
+export const meetingRecordState = (item: {
+	published: unknown | null;
+	latest: { state: 'draft' | 'published' };
+}): 'published' | 'draft_only' | 'draft_after_published' => {
+	if (!item.published) return 'draft_only';
+	return item.latest.state === 'draft' ? 'draft_after_published' : 'published';
+};

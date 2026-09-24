@@ -6,7 +6,8 @@ import {
 	formatEventTimeId,
 	formatValue,
 	formatVariance,
-	recordedDueId
+	recordedDueId,
+	shortHash
 } from './format';
 
 describe('decimalId', () => {
@@ -85,5 +86,12 @@ describe('formatEventTimeId', () => {
 		// 2026-09-24T17:30:00Z is 00.30 on 25 September in Jakarta.
 		expect(formatEventTimeId(Date.UTC(2026, 8, 24, 17, 30))).toBe('25 September 2026, 00.30 WIB');
 		expect(formatEventTimeId(Date.UTC(2026, 0, 1, 2, 5))).toBe('1 Januari 2026, 09.05 WIB');
+	});
+});
+
+describe('shortHash', () => {
+	test('the first eight characters of a sha256', () => {
+		expect(shortHash('3f2a9c1e' + '0'.repeat(56))).toBe('3f2a9c1e…');
+		expect(shortHash('abc')).toBe('abc');
 	});
 });

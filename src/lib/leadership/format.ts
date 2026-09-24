@@ -94,3 +94,7 @@ export const formatEventTimeId = (ms: number): string => {
 	const date = formatDateId(`${part('year')}-${part('month')}-${part('day')}`);
 	return `${date}, ${part('hour')}.${part('minute')} WIB`;
 };
+
+// A content hash, short enough to read aloud in a meeting and long enough to compare: "3f2a9c1e…".
+export const shortHash = (hash: string): string =>
+	hash.length > 12 ? `${hash.slice(0, 8)}…` : hash;

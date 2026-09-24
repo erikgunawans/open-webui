@@ -478,3 +478,12 @@
 	font-weight: 600;
 	text-decoration-thickness: 2px;
 }
+
+.jlp-field input[type='date'] {
+	padding: 0.4rem 0.55rem;
+	border: 1px solid var(--jup-line);
+	border-radius: var(--jup-radius-sm);
+	background: var(--jup-surface);
+	color: var(--jup-ink);
+	font: inherit;
+}
