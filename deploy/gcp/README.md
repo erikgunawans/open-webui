@@ -97,9 +97,10 @@ The drift gates that watch this deployment are in `drift-gates.md`.
 - **No unauthenticated view.** ADR-0010 answers partner disclosure with a generated export, not a
   hosted surface. IAP is in front of everything.
 - **Signup is off** (`ENABLE_SIGNUP=False`). Accounts are created deliberately.
-- **The portfolio endpoint still has no operating-layer permission** (issue #10). Every account
-  promoted to `user` for chat can also read every gate refusal and counterparty rung. Know this
-  before promoting anyone.
+- **Gate state is admin-only.** The portfolio endpoint and the `portfolio_status` chat tool admit
+  only the operating layer, which is the `admin` role (issue #10, the Director's call 2026-09-19).
+  A signed-in `user` gets 403, not 401. Promoting someone to `admin` therefore also shows them
+  every gate refusal and counterparty rung, so treat that promotion as a grant.
 
 ## A note on build speed
 
