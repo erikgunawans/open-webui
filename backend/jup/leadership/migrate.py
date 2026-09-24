@@ -45,6 +45,7 @@ def run_leadership_migrations(engine: Any) -> bool:
 
         config = Config()
         config.set_main_option('script_location', str(MIGRATIONS_DIR))
+        config.set_main_option('path_separator', 'os')
         with engine.begin() as connection:
             config.attributes['connection'] = connection
             command.upgrade(config, 'head')

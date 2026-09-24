@@ -11,9 +11,13 @@ scope, each an exact boolean `True`. The host combines group grants with `or`, s
 holding `"true"` or `1` arrives here unchanged; counting it would let a typo in a group editor
 open board records.
 
-This module decides reading only. Submitting evidence, BOD closure and report publication are
-separate capabilities that arrive with the workflows that need them (P2), and none of them follows
-from a read grant.
+Reading is decided here, and so is each P2 capability as its workflow arrives. A capability is
+its own exact boolean under `jup.ruang_pimpinan`, and every one of them also needs the read grant
+for the view and scope: a capability never opens a view the reader could not see. None of them
+follows from a read grant, and none from the admin role.
+
+- `actions.submit`: progress and evidence, on actions whose recorded PIC is the caller (the PIC
+  check is the action's own, in `jup.leadership.evidence`).
 """
 
 from typing import Any
@@ -32,6 +36,7 @@ DEFAULT_PERMISSIONS: dict[str, Any] = {
             'board': {'view': False},
             'rka': {'view': False},
             'scopes': {'jup_consolidated': False},
+            'actions': {'submit': False},
         }
     }
 }
@@ -51,3 +56,23 @@ def may_read(permissions: dict[str, Any], view: str, scope_id: str) -> bool:
 def allowed_views(permissions: dict[str, Any], scope_id: str = 'jup-consolidated') -> list[str]:
     """The views this reader may open for `scope_id`, in section order."""
     return [view for view in VIEWS if may_read(permissions, view, scope_id)]
+
+
+# Capability keys, as `capabilities.operations` names them, mapped to their place in the grants.
+CAPABILITIES: dict[str, tuple[str, str]] = {'actions.submit': ('actions', 'submit')}
+
+
+def may(permissions: dict[str, Any], capability: str, view: str, scope_id: str) -> bool:
+    """True only for an exact boolean grant of `capability`, on top of the read grant."""
+    if capability not in CAPABILITIES or not may_read(permissions, view, scope_id):
+        return False
+    group, key = CAPABILITIES[capability]
+    try:
+        return permissions['jup']['ruang_pimpinan'][group][key] is True
+    except (KeyError, TypeError):
+        return False
+
+
+def allowed_operations(permissions: dict[str, Any], scope_id: str = 'jup-consolidated') -> list[str]:
+    """The capabilities this reader holds in at least one view they may read."""
+    return [c for c in CAPABILITIES if any(may(permissions, c, view, scope_id) for view in VIEWS)]

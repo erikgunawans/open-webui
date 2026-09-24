@@ -91,6 +91,8 @@ def upgrade() -> None:
         _fk('action_id', 'leadership_action.id'),
         _fk('evidence_id', 'leadership_evidence.id'),
         _fk('event_id', 'leadership_action_event.id'),
+        sa.Column('closure_kind', sa.String(16), nullable=False),
+        _fk('replacement_action_id', 'leadership_action.id', nullable=True),
         sa.Column('status', sa.String(16), nullable=False),
         _user('requested_by'),
         _ms('created_at'),

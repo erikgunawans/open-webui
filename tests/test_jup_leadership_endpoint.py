@@ -40,19 +40,16 @@ class _Account:
     id: str = 'test-user'
 
 
-def _grant(board: bool = False, rka: bool = False, scope: bool = True) -> SimpleNamespace:
+def _grant(board: bool = False, rka: bool = False, scope: bool = True, submit: bool | None = None) -> SimpleNamespace:
     """A group row carrying leadership permissions, shaped as the host stores them."""
-    return SimpleNamespace(
-        permissions={
-            'jup': {
-                'ruang_pimpinan': {
-                    'board': {'view': board},
-                    'rka': {'view': rka},
-                    'scopes': {'jup_consolidated': scope},
-                }
-            }
-        }
-    )
+    grants = {
+        'board': {'view': board},
+        'rka': {'view': rka},
+        'scopes': {'jup_consolidated': scope},
+    }
+    if submit is not None:
+        grants['actions'] = {'submit': submit}
+    return SimpleNamespace(permissions={'jup': {'ruang_pimpinan': grants}})
 
 
 class _Directory:
@@ -97,7 +94,7 @@ def client(seed: Path, directory: _Directory, monkeypatch: pytest.MonkeyPatch) -
         yield test_client
 
 
-def _sign_in_as(client, role: str | None) -> None:
+def _sign_in_as(client, role: str | None, user_id: str = 'test-user') -> None:
     from fastapi import HTTPException, status
 
     from open_webui.utils.auth import get_current_user
@@ -105,7 +102,7 @@ def _sign_in_as(client, role: str | None) -> None:
     def _current_user():
         if role is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Not authenticated')
-        return _Account(role=role)
+        return _Account(role=role, id=user_id)
 
     client.app.dependency_overrides[get_current_user] = _current_user
 
@@ -449,3 +446,205 @@ def test_revocation_denies_the_action_history_on_the_next_request(client, direct
     assert client.get(rka).status_code == 200
     directory.groups = []
     assert client.get(rka).status_code == 403
+
+
+# --- The PIC's writes (P2 T3) -------------------------------------------------------
+
+PDF = b'%PDF-1.7\n1 0 obj <<>> endobj\n%%EOF\n'
+Q = '?view=board&scope_id=jup-consolidated'
+EVIDENCE = f'{BASE}/actions/act-1/evidence{Q}'
+PROGRESS = f'{BASE}/actions/act-1/progress{Q}'
+
+
+@pytest.fixture
+def bucket(client, tmp_path: Path):
+    """A local evidence store standing in for the host bucket."""
+    from jup.leadership.evidence_store import LocalEvidenceStore
+    from open_webui.routers import jup_leadership
+
+    root = tmp_path / 'bucket'
+    client.app.dependency_overrides[jup_leadership.leadership_evidence_store] = lambda: LocalEvidenceStore(root)
+    return root
+
+
+@pytest.fixture
+def started(records):
+    """act-1 moved to in progress by its PIC (version 3)."""
+    from jup.leadership import actions
+    from jup.leadership.repository import unit_of_work
+
+    with unit_of_work(records) as uow:
+        actions.change_state(uow, action_id='act-1', expected_version=2, to_state='in_progress', author='pic-1')
+    return records
+
+
+def _as_pic(client, directory, submit: bool = True) -> None:
+    directory.groups = [_grant(board=True, submit=submit)]
+    _sign_in_as(client, 'user', user_id='pic-1')
+
+
+def _upload(client, version: int = 3, content: bytes = PDF, **data):
+    form = {'expected_version': str(version), **{k: str(v) for k, v in data.items()}}
+    return client.post(EVIDENCE, data=form, files={'file': ('berita acara.pdf', content, 'application/pdf')})
+
+
+def _stored_objects(bucket: Path) -> list[Path]:
+    return [p for p in bucket.rglob('*') if p.is_file()] if bucket.exists() else []
+
+
+def test_the_pic_uploads_evidence_and_downloads_it_back(client, directory, started, bucket, caplog) -> None:
+    _as_pic(client, directory)
+    with caplog.at_level('INFO'):
+        response = _upload(client, note='signed BA')
+    assert response.status_code == 200, response.text
+    _no_store(response)
+    body = response.json()
+    assert body['version'] == 4 and body['replayed'] is False and body['closure_request_id'] is None
+    evidence = body['evidence']
+    assert (evidence['revision'], evidence['kind'], evidence['filename']) == (1, 'file', 'berita acara.pdf')
+    assert [p.relative_to(bucket).as_posix() for p in _stored_objects(bucket)] == [
+        f'leadership/evidence/{evidence["sha256"]}'
+    ]
+    assert any(
+        "'operation': 'evidence_submit'" in line and "'result': 'recorded'" in line for line in _audit_lines(caplog)
+    )
+
+    download = client.get(f'{BASE}/evidence/{evidence["id"]}{Q}')
+    assert download.status_code == 200
+    assert download.content == PDF
+    assert download.headers['content-type'] == 'application/pdf'
+    assert download.headers['x-content-type-options'] == 'nosniff'
+    assert download.headers['content-disposition'].startswith('attachment;')
+    _no_store(download)
+
+
+def test_completion_evidence_awaits_the_bod_and_does_not_close(client, directory, started, bucket) -> None:
+    _as_pic(client, directory)
+    response = _upload(client, completion='true')
+    assert response.status_code == 200, response.text
+    assert response.json()['closure_request_id']
+    action = client.get(ACTION).json()['action']
+    assert action['state'] == 'awaiting_bod_closure'
+
+
+@pytest.mark.parametrize(
+    ('role', 'user_id', 'submit'),
+    [
+        ('admin', 'admin-1', None),  # admin with a read grant only
+        ('admin', 'admin-1', True),  # admin holding submit, but not the PIC
+        ('user', 'boc-1', None),  # a BOC observer: read grant, no submit
+        ('user', 'reader-1', False),  # a read-only reader
+        ('user', 'pic-2', True),  # holds submit, is the PIC of another action
+        ('user', 'pic-1', False),  # the PIC, without the submit capability
+    ],
+)
+def test_only_the_pic_with_the_capability_writes(client, directory, started, bucket, role, user_id, submit) -> None:
+    directory.groups = [_grant(board=True, submit=submit)]
+    _sign_in_as(client, role, user_id=user_id)
+    for response in (
+        _upload(client),
+        client.post(EVIDENCE, data={'expected_version': '3', 'url': 'https://example.com/ba'}),
+        client.post(PROGRESS, json={'expected_version': 3, 'narrative': 'x'}),
+    ):
+        assert response.status_code == 403, response.text
+        _no_store(response)
+    # Nothing reached the bucket, and the action did not move.
+    assert _stored_objects(bucket) == []
+    assert client.app.dependency_overrides  # sanity: overrides still in place
+    directory.groups = [_grant(board=True)]
+    assert client.get(ACTION).json()['action']['version'] == 3
+
+
+def test_a_pic_with_no_read_grant_cannot_write(client, directory, started, bucket) -> None:
+    directory.groups = [_grant(board=False, submit=True)]
+    _sign_in_as(client, 'user', user_id='pic-1')
+    assert _upload(client).status_code == 403
+
+
+def test_evidence_download_rechecks_access_after_revocation(client, directory, started, bucket) -> None:
+    _as_pic(client, directory)
+    evidence_id = _upload(client).json()['evidence']['id']
+    directory.groups = [_grant(board=True)]
+    _sign_in_as(client, 'user', user_id='boc-1')
+    assert client.get(f'{BASE}/evidence/{evidence_id}{Q}').status_code == 200
+    directory.groups = []
+    response = client.get(f'{BASE}/evidence/{evidence_id}{Q}')
+    assert response.status_code == 403
+    assert PDF not in response.content
+
+
+def test_link_evidence_is_served_as_a_link(client, directory, started, bucket) -> None:
+    _as_pic(client, directory)
+    response = client.post(EVIDENCE, data={'expected_version': '3', 'url': 'https://sharepoint.example/ba'})
+    assert response.status_code == 200, response.text
+    evidence_id = response.json()['evidence']['id']
+    body = client.get(f'{BASE}/evidence/{evidence_id}{Q}').json()
+    assert (body['kind'], body['url']) == ('link', 'https://sharepoint.example/ba')
+    assert _stored_objects(bucket) == []
+
+
+@pytest.mark.parametrize(
+    ('data', 'files'),
+    [
+        ({'expected_version': '3'}, None),
+        ({'expected_version': '3', 'url': 'https://example.com/x'}, {'file': ('a.pdf', PDF, 'application/pdf')}),
+        ({'expected_version': '3', 'url': 'http://example.com/x'}, None),
+    ],
+)
+def test_a_malformed_evidence_request_is_422(client, directory, started, bucket, data, files) -> None:
+    _as_pic(client, directory)
+    assert client.post(EVIDENCE, data=data, files=files).status_code == 422
+
+
+def test_an_oversized_file_is_413_and_stores_nothing(client, directory, started, bucket, monkeypatch) -> None:
+    monkeypatch.setenv('JUP_LEADERSHIP_EVIDENCE_MAX_BYTES', '10')
+    _as_pic(client, directory)
+    assert _upload(client).status_code == 413
+    assert _stored_objects(bucket) == []
+
+
+def test_a_disguised_file_is_415_and_stores_nothing(client, directory, started, bucket) -> None:
+    _as_pic(client, directory)
+    assert _upload(client, content=b'MZ\x90\x00 not a pdf').status_code == 415
+    assert _stored_objects(bucket) == []
+
+
+def test_a_stale_version_is_409_and_names_the_current_one(client, directory, started, bucket) -> None:
+    _as_pic(client, directory)
+    response = _upload(client, version=2)
+    assert response.status_code == 409
+    assert response.json()['detail']['version'] == 3
+
+
+def test_a_double_submitted_upload_returns_the_first_result(client, directory, started, bucket) -> None:
+    _as_pic(client, directory)
+    first = _upload(client, idempotency_key='click-1').json()
+    second = _upload(client, idempotency_key='click-1').json()
+    assert second['replayed'] is True
+    assert second['evidence']['id'] == first['evidence']['id']
+
+
+def test_file_evidence_without_a_configured_store_is_503(client, directory, started) -> None:
+    from open_webui.routers import jup_leadership
+
+    client.app.dependency_overrides[jup_leadership.leadership_evidence_store] = lambda: None
+    _as_pic(client, directory)
+    assert _upload(client).status_code == 503
+
+
+def test_the_pic_records_progress_over_http(client, directory, started) -> None:
+    _as_pic(client, directory)
+    response = client.post(PROGRESS, json={'expected_version': 3, 'narrative': 'Draft sent to PGN'})
+    assert response.status_code == 200, response.text
+    assert response.json()['version'] == 4
+    history = client.get(ACTION).json()['history']
+    assert history[-1]['payload']['narrative'] == 'Draft sent to PGN'
+    assert history[-1]['payload']['owner_update'] is True
+
+
+def test_capabilities_list_submit_only_when_granted(client, directory) -> None:
+    directory.groups = [_grant(board=True, submit=True)]
+    _sign_in_as(client, 'user')
+    assert client.get(f'{BASE}/capabilities').json()['operations'] == ['actions.submit']
+    directory.groups = [_grant(board=True)]
+    assert client.get(f'{BASE}/capabilities').json()['operations'] == []

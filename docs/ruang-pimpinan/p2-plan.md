@@ -271,3 +271,16 @@ These block production use of the matching operation, not the build:
 
 The illustrative sample stays the production data source until an owner-reviewed import replaces
 it.
+
+## Found while building (settle before any deploy)
+
+- **The vendor's "delete all files" would wipe evidence.** `DELETE /api/v1/files/all` (admin only)
+  calls `GCSStorageProvider.delete_all_files`, which lists and deletes every object in the bucket.
+  Evidence lives in the same bucket, `jup-ops-data`, under `leadership/evidence/` (E-3), so one admin
+  click would destroy board records. Options: a temporary hold on each evidence object at upload
+  (stays inside E-3), bucket soft delete, or a vendor patch that skips the prefix. Found in T3,
+  2026-09-24; nothing is deployed, so nothing is exposed yet.
+- **The vendor storage provider is not used for evidence.** Its GCS `get_file`/`delete_file` keep only
+  the first key segment and every upload leaves a copy in the vendor's `UPLOAD_DIR`, so T3 has its own
+  small store (`jup/leadership/evidence_store.py`) that follows the same `STORAGE_PROVIDER` and
+  `GCS_BUCKET_NAME` settings and writes only under the evidence prefix.

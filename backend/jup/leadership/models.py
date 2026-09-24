@@ -105,6 +105,10 @@ closure_request = Table(
     # The exact evidence revision under review; a later revision makes pending decisions stale.
     _id('evidence_id', ForeignKey('leadership_evidence.id'), nullable=False),
     _id('event_id', ForeignKey('leadership_action_event.id'), nullable=False),
+    # What closing would mean: 'completed', 'cancelled' (reason required) or 'superseded' (links
+    # the replacement). All three pass the same BOD gate.
+    Column('closure_kind', String(16), nullable=False),
+    _id('replacement_action_id', ForeignKey('leadership_action.id'), nullable=True),
     Column('status', String(16), nullable=False),
     Column('requested_by', String(_USER), nullable=False),
     Column('created_at', BigInteger, nullable=False),

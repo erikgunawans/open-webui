@@ -10,7 +10,7 @@ import copy
 
 import pytest
 
-from jup.leadership.policy import DEFAULT_PERMISSIONS, allowed_views, may_read
+from jup.leadership.policy import DEFAULT_PERMISSIONS, allowed_operations, allowed_views, may, may_read
 
 SCOPE = 'jup-consolidated'
 
@@ -39,6 +39,7 @@ def test_the_defaults_are_all_false_and_complete() -> None:
         'board': {'view': False},
         'rka': {'view': False},
         'scopes': {'jup_consolidated': False},
+        'actions': {'submit': False},
     }
 
 
@@ -104,3 +105,41 @@ def test_the_defaults_are_not_mutated_by_a_decision() -> None:
     allowed_views(DEFAULT_PERMISSIONS)
     may_read(DEFAULT_PERMISSIONS, 'board', SCOPE)
     assert before == DEFAULT_PERMISSIONS
+
+
+# --- Capabilities (P2) ----------------------------------------------------------------
+
+
+def _with(board: bool = True, submit: object = True, scope: bool = True) -> dict:
+    return {
+        'jup': {
+            'ruang_pimpinan': {
+                'board': {'view': board},
+                'rka': {'view': False},
+                'scopes': {'jup_consolidated': scope},
+                'actions': {'submit': submit},
+            }
+        }
+    }
+
+
+def test_submit_needs_its_own_grant_and_the_read_grant() -> None:
+    assert may(_with(), 'actions.submit', 'board', SCOPE)
+    assert not may(_with(submit=False), 'actions.submit', 'board', SCOPE)
+    # A capability never opens a view the reader cannot read.
+    assert not may(_with(board=False), 'actions.submit', 'board', SCOPE)
+    assert not may(_with(scope=False), 'actions.submit', 'board', SCOPE)
+    assert not may(_with(), 'actions.submit', 'rka', SCOPE)
+
+
+@pytest.mark.parametrize('truthy', ['true', 1, 'yes', {'x': 1}])
+def test_only_a_boolean_true_grants_submit(truthy: object) -> None:
+    assert not may(_with(submit=truthy), 'actions.submit', 'board', SCOPE)
+
+
+def test_unknown_capabilities_and_the_defaults_grant_nothing() -> None:
+    assert not may(_with(), 'bod.review', 'board', SCOPE)
+    assert not may(DEFAULT_PERMISSIONS, 'actions.submit', 'board', SCOPE)
+    assert allowed_operations(DEFAULT_PERMISSIONS) == []
+    assert allowed_operations(_with()) == ['actions.submit']
+    assert allowed_operations(_with(board=False)) == []
