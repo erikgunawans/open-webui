@@ -332,3 +332,120 @@ def test_the_refusal_is_the_policys_doing(client) -> None:
     assert client.get(BOARD).status_code == 403
     client.app.dependency_overrides[leadership_permissions] = lambda: _grant(board=True).permissions
     assert client.get(BOARD).status_code == 200
+
+
+# --- One action and its history (P2 T2) ---------------------------------------------
+
+ACTION = f'{BASE}/actions/act-1?view=board&scope_id=jup-consolidated'
+
+
+@pytest.fixture
+def records(client, tmp_path: Path):
+    """A migrated SQLite records store holding one action with a revised due date."""
+    from sqlalchemy import create_engine
+
+    from jup.leadership import actions, migrate
+    from jup.leadership.repository import unit_of_work
+    from open_webui.routers import jup_leadership
+
+    engine = create_engine(f'sqlite:///{tmp_path / "records.db"}')
+    assert migrate.run_leadership_migrations(engine) is True
+    with unit_of_work(engine) as uow:
+        actions.create_action(
+            uow,
+            action_id='act-1',
+            title='Finalise SPBG offtake term sheet',
+            pic_label='PIC Komersial',
+            pic_user_id='pic-1',
+            due=actions.Due('date', '2026-09-01'),
+            author='pic-1',
+        )
+    with unit_of_work(engine) as uow:
+        actions.revise_due(
+            uow,
+            action_id='act-1',
+            expected_version=1,
+            due=actions.Due('month', '2026-12'),
+            reason='PGN delay',
+            author='pic-1',
+        )
+    client.app.dependency_overrides[jup_leadership.leadership_engine] = lambda: engine
+    yield engine
+    engine.dispose()
+
+
+def _audit_lines(caplog) -> list[str]:
+    return [record.getMessage() for record in caplog.records if record.getMessage().startswith('jup.governance')]
+
+
+def test_a_granted_reader_gets_the_action_its_history_and_its_flags(client, directory, records, caplog) -> None:
+    directory.groups = [_grant(board=True)]
+    _sign_in_as(client, 'user')
+    with caplog.at_level('INFO'):
+        response = client.get(ACTION)
+    assert response.status_code == 200
+    _no_store(response)
+    body = response.json()
+    assert body['action']['id'] == 'act-1'
+    assert body['action']['version'] == 2
+    assert body['action']['original_due'] == {'precision': 'date', 'value': '2026-09-01'}
+    assert body['action']['current_due'] == {'precision': 'month', 'value': '2026-12'}
+    assert [entry['kind'] for entry in body['history']] == ['created', 'due_revised']
+    assert body['history'][1]['reason'] == 'PGN delay'
+    # Month precision: no overdue value is invented, and the reason says why.
+    assert body['flags']['overdue'] is None and body['flags']['reasons']['overdue']
+    assert body['flags']['stale'] is None
+    lines = _audit_lines(caplog)
+    assert any("'operation': 'action'" in line and "'result': 'served'" in line for line in lines)
+    assert not any('Finalise SPBG' in line for line in lines), 'audit lines carry ids, never record content'
+
+
+@pytest.mark.parametrize('role', ['user', 'admin'])
+def test_the_action_route_refuses_without_a_grant(client, records, role: str, caplog) -> None:
+    _sign_in_as(client, role)
+    with caplog.at_level('INFO'):
+        response = client.get(ACTION)
+    assert response.status_code == 403
+    _no_store(response)
+    assert 'SPBG' not in response.text
+    assert any("'result': 'refused'" in line for line in _audit_lines(caplog))
+
+
+def test_the_action_route_refuses_signed_out(client, records) -> None:
+    _sign_in_as(client, None)
+    assert client.get(ACTION).status_code == 401
+
+
+def test_an_unknown_action_is_404(client, directory, records) -> None:
+    directory.groups = [_grant(board=True)]
+    _sign_in_as(client, 'user')
+    response = client.get(f'{BASE}/actions/nope?view=board&scope_id=jup-consolidated')
+    assert response.status_code == 404
+    _no_store(response)
+
+
+def test_an_unready_records_store_is_503(client, directory, records, monkeypatch: pytest.MonkeyPatch) -> None:
+    from jup.leadership import migrate
+
+    monkeypatch.setattr(migrate, '_schema_ready', False)
+    directory.groups = [_grant(board=True)]
+    _sign_in_as(client, 'user')
+    response = client.get(ACTION)
+    assert response.status_code == 503
+    assert 'SPBG' not in response.text
+
+
+def test_the_action_route_is_off_when_the_section_is(client, directory, records, monkeypatch) -> None:
+    monkeypatch.setenv('JUP_LEADERSHIP_ENABLED', 'false')
+    directory.groups = [_grant(board=True)]
+    _sign_in_as(client, 'user')
+    assert client.get(ACTION).status_code == 503
+
+
+def test_revocation_denies_the_action_history_on_the_next_request(client, directory, records) -> None:
+    directory.groups = [_grant(rka=True)]
+    _sign_in_as(client, 'user')
+    rka = f'{BASE}/actions/act-1?view=rka&scope_id=jup-consolidated'
+    assert client.get(rka).status_code == 200
+    directory.groups = []
+    assert client.get(rka).status_code == 403

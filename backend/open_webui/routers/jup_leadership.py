@@ -16,14 +16,18 @@ Three properties hold for every route:
   The route class adds it after the handler runs, so a 401 raised inside the host's own
   authentication dependency gets it too.
 
-There is deliberately no write route. Action progress, BOD closure and report publication are P2,
-each with its own capability; a read grant implies none of them.
+There is deliberately no write route yet. Action progress, BOD closure and report publication
+arrive with their P2 tasks, each with its own capability; a read grant implies none of them. The
+one P2 route so far reads a single action and its event history from the records store
+(ADR-0014), and writes a `jup.governance` audit line naming the reader, the action and the
+result, never its content.
 
 The feature is off unless `JUP_LEADERSHIP_ENABLED` is set, and P1 serves only the labelled
 illustrative dataset named by `JUP_LEADERSHIP_SAMPLE_FILE`. Neither can be chosen by a request.
 """
 
 import copy
+import datetime as dt
 import logging
 import os
 from collections.abc import Callable, Coroutine
@@ -37,8 +41,12 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
 
+from jup.governance import audit
+from jup.leadership import migrate
+from jup.leadership.actions import REPORTING_TZ, derive_flags, fold_history, latest_progress
 from jup.leadership.policy import DEFAULT_PERMISSIONS, SCOPES, allowed_views, may_read
 from jup.leadership.reader import DatasetUnavailable, load_dataset, read_overview, read_source
+from jup.leadership.repository import read_action, read_events
 from open_webui.utils.access_control import get_permissions
 from open_webui.utils.auth import get_verified_user
 
@@ -165,3 +173,87 @@ async def get_source(
     if source is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='No such source in this view.')
     return source
+
+
+def leadership_engine() -> Any:
+    """The app database, where the leadership records live (ADR-0014). A dependency so tests can swap it."""
+    from open_webui.internal.db import engine
+
+    return engine
+
+
+def _due(row: dict[str, Any], prefix: str) -> dict[str, str] | None:
+    value = row[f'{prefix}_due']
+    return None if value is None else {'precision': row[f'{prefix}_due_precision'], 'value': value}
+
+
+def _read_action_record(engine: Any, action_id: str) -> dict[str, Any] | None:
+    row = read_action(engine, action_id)
+    if row is None:
+        return None
+    events = read_events(engine, action_id)
+    progress = latest_progress(events)
+    # No staleness threshold is recorded yet, so `stale` stays None with its reason; an assumed
+    # one would quietly mark actions fresh.
+    flags = derive_flags(
+        row,
+        today=dt.datetime.now(REPORTING_TZ).date(),
+        last_update_at_ms=progress.created_at if progress else None,
+    )
+    return {
+        'action': {
+            'id': row['id'],
+            'title': row['title'],
+            'pic_label': row['pic_label'],
+            'pic_user_id': row['pic_user_id'],
+            'state': row['state'],
+            'original_due': _due(row, 'original'),
+            'current_due': _due(row, 'current'),
+            'version': row['version'],
+            'created_at': row['created_at'],
+            'updated_at': row['updated_at'],
+        },
+        'flags': {
+            'overdue': flags.overdue,
+            'days_overdue': flags.days_overdue,
+            'due_before_next_meeting': flags.due_before_next_meeting,
+            'stale': flags.stale,
+            'reasons': flags.reasons,
+        },
+        'history': fold_history(events),
+    }
+
+
+@router.get('/actions/{action_id}')
+async def get_action(
+    action_id: str,
+    view: View,
+    scope_id: Scope,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """One action, its derived flags and its full event history, for a reader of either view.
+
+    Actions are shared by both views (ACT-01), so a grant for the view named in the request is
+    enough. Access is rechecked on every request: a revoked reader loses the history too.
+    """
+
+    def _audit(result: str) -> None:
+        audit('leadership_read', user=user.id, operation='action', action_id=action_id, view=view, result=result)
+
+    if not may_read(permissions, view, scope_id):
+        _audit('refused')
+        raise _refuse()
+    if not _enabled():
+        _audit('unavailable')
+        raise _unavailable('Ruang Pimpinan is not enabled on this server.')
+    if not migrate.schema_ready():
+        _audit('unavailable')
+        raise _unavailable('The Ruang Pimpinan records store is not ready on this server.')
+    record = await run_in_threadpool(_read_action_record, engine, action_id)
+    if record is None:
+        _audit('not_found')
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='No such action.')
+    _audit('served')
+    return record
