@@ -142,17 +142,22 @@ def configured_publication_policy() -> PublicationPolicy | None:
 # --- freezing a view ------------------------------------------------------------------------
 
 
-def view_content(connection: Any, dataset: dict[str, Any], view: str) -> dict[str, Any]:
+def view_content(connection: Any, dataset: dict[str, Any], view: str, actions_source: str = 'sample') -> dict[str, Any]:
     """One view as it stands: the reader's overview, each action's recorded state, and its sources.
 
-    An action with a record in the store is frozen at its current event version. One that exists
-    only in the dataset says so (`record: None`) instead of borrowing a state it does not have.
+    With the `records` actions source, the actions are the recorded register, each already carrying
+    its record. With `sample`, an action with a record in the store is frozen at its current event
+    version, and one that exists only in the dataset says so (`record: None`) instead of borrowing a
+    state it does not have.
     """
     from sqlalchemy import select
 
     from jup.leadership.models import action
-    from jup.leadership.reader import read_overview
+    from jup.leadership.reader import read_overview, recorded_actions
 
+    if actions_source == 'records':
+        overview = read_overview(dataset, view, recorded_actions(connection))
+        return {'view': view, **overview, 'sources': _cited_sources(dataset, overview)}
     overview = read_overview(dataset, view)
     ids = [item['id'] for item in overview['actions']]
     rows = {row['id']: row for row in connection.execute(select(action).where(action.c.id.in_(ids))).mappings()}
@@ -166,11 +171,14 @@ def view_content(connection: Any, dataset: dict[str, Any], view: str) -> dict[st
                 for key in ('version', 'state', 'pic_label', 'current_due', 'current_due_precision', 'updated_at')
             }
         )
+    return {'view': view, **overview, 'sources': _cited_sources(dataset, overview)}
+
+
+def _cited_sources(dataset: dict[str, Any], overview: dict[str, Any]) -> list[dict[str, Any]]:
     cited = set(overview['context']['source_ids'])
     for item in overview['actions']:
         cited.update(item.get('source_ids', ()))
-    sources = [source for source in dataset['sources'] if source['id'] in cited]
-    return {'view': view, **overview, 'sources': sources}
+    return [source for source in dataset['sources'] if source['id'] in cited]
 
 
 # --- snapshot commands ----------------------------------------------------------------------

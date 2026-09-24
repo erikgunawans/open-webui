@@ -59,7 +59,14 @@ from jup.leadership.evidence_store import (
     read_bounded,
 )
 from jup.leadership.policy import DEFAULT_PERMISSIONS, SCOPES, allowed_operations, allowed_views, may, may_read
-from jup.leadership.reader import DatasetUnavailable, load_dataset, read_overview, read_source
+from jup.leadership.reader import (
+    ACTIONS_SOURCES,
+    DatasetUnavailable,
+    load_dataset,
+    read_overview,
+    read_source,
+    recorded_actions,
+)
 from jup.leadership.repository import (
     ActionNotFound,
     IdempotencyKeyReused,
@@ -175,16 +182,56 @@ async def get_capabilities(permissions: dict[str, Any] = Depends(leadership_perm
     }
 
 
+def leadership_engine() -> Any:
+    """The app database, where the leadership records live (ADR-0014). A dependency so tests can swap it."""
+    from open_webui.internal.db import engine
+
+    return engine
+
+
+def _actions_source() -> str:
+    """`sample` (the default) or `records`, from the server's configuration; anything else is refused."""
+    value = os.environ.get('JUP_LEADERSHIP_ACTIONS_SOURCE', '').strip().lower() or 'sample'
+    if value not in ACTIONS_SOURCES:
+        raise _unavailable('The Ruang Pimpinan actions source is misconfigured on this server.')
+    return value
+
+
 @router.get('/overview')
 async def get_overview(
     view: View,
     scope_id: Scope,
+    user=Depends(get_verified_user),
     permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
 ) -> dict[str, Any]:
-    """One view's context, metrics, actions, assumptions and module states."""
+    """One view's context, metrics, actions, assumptions and module states, naming where its actions came from."""
+
+    def _audit(result: str, **fields: Any) -> None:
+        audit('leadership_read', user=user.id, operation='overview', view=view, result=result, **fields)
+
     if not may_read(permissions, view, scope_id):
+        _audit('refused')
         raise _refuse()
-    return read_overview(await _dataset(), view)
+    try:
+        dataset = await _dataset()
+        source = _actions_source()
+        if source == 'records' and not migrate.schema_ready():
+            raise _unavailable('The Ruang Pimpinan records store is not ready on this server.')
+    except HTTPException:
+        _audit('unavailable')
+        raise
+    if source == 'sample':
+        overview = read_overview(dataset, view)
+    else:
+
+        def _register() -> list[dict[str, Any]]:
+            with engine.connect() as connection:
+                return recorded_actions(connection)
+
+        overview = read_overview(dataset, view, await run_in_threadpool(_register))
+    _audit('served', actions_source=source, actions=len(overview['actions']))
+    return overview
 
 
 @router.get('/sources/{source_id}')
@@ -192,22 +239,28 @@ async def get_source(
     source_id: str,
     view: View,
     scope_id: Scope,
+    user=Depends(get_verified_user),
     permissions: dict[str, Any] = Depends(leadership_permissions),
 ) -> dict[str, Any]:
     """Citation metadata for a source the requested view declares; 404 for anything else."""
+
+    def _audit(result: str) -> None:
+        audit('leadership_read', user=user.id, operation='source', view=view, source_id=source_id, result=result)
+
     if not may_read(permissions, view, scope_id):
+        _audit('refused')
         raise _refuse()
-    source = read_source(await _dataset(), view, source_id)
+    try:
+        dataset = await _dataset()
+    except HTTPException:
+        _audit('unavailable')
+        raise
+    source = read_source(dataset, view, source_id)
     if source is None:
+        _audit('not_found')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='No such source in this view.')
+    _audit('served')
     return source
-
-
-def leadership_engine() -> Any:
-    """The app database, where the leadership records live (ADR-0014). A dependency so tests can swap it."""
-    from open_webui.internal.db import engine
-
-    return engine
 
 
 def _due(row: dict[str, Any], prefix: str) -> dict[str, str] | None:
@@ -404,6 +457,9 @@ async def post_evidence(
     scope_id: Scope,
     expected_version: int = Form(...),
     completion: bool = Form(False),
+    closure_kind: Literal['completed', 'cancelled', 'superseded'] | None = Form(None),
+    reason: str | None = Form(None, max_length=10_000),
+    replacement_action_id: str | None = Form(None, max_length=64),
     note: str | None = Form(None, max_length=10_000),
     idempotency_key: str | None = Form(None, max_length=128),
     url: str | None = Form(None, max_length=2_000),
@@ -415,8 +471,9 @@ async def post_evidence(
 ) -> dict[str, Any]:
     """One evidence revision, a file or an https link, from the action's PIC.
 
-    With `completion`, the action moves to awaiting BOD closure and a closure request is opened on
-    this revision. The action is never closed here.
+    With `completion` (or a `closure_kind` of cancelled, with a reason, or superseded, naming the
+    replacement), the action moves to awaiting BOD closure and a closure request is opened on this
+    revision. The action is never closed here.
     """
 
     def _audit(result: str, **fields: Any) -> None:
@@ -426,6 +483,7 @@ async def post_evidence(
             operation='evidence_submit',
             action_id=action_id,
             completion=completion,
+            closure_kind=closure_kind,
             result=result,
             **fields,
         )
@@ -462,6 +520,9 @@ async def post_evidence(
                     completion=completion,
                     note=note,
                     idempotency_key=idempotency_key,
+                    closure_kind=closure_kind,
+                    reason=reason,
+                    replacement_action_id=replacement_action_id,
                 )
 
         # Refuse a non-PIC before anything reaches the bucket. The check repeats inside the
@@ -765,10 +826,12 @@ async def post_snapshot_draft(
 
     _publisher(permissions, view, scope_id, _audit)
     dataset = await _dataset()
+    # A draft freezes what the view serves, from the same actions source.
+    source = _actions_source()
 
     def _run() -> Any:
         with engine.begin() as connection:
-            content = snapshots.view_content(connection, dataset, view)
+            content = snapshots.view_content(connection, dataset, view, source)
             return snapshots.create_draft(
                 connection,
                 view=view,

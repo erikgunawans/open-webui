@@ -6,10 +6,16 @@ An action with no recorded PIC user has no submitter at all. Admin, a BOC observ
 other reader are refused whatever else they hold.
 
 Evidence is versioned: each submission is a new `leadership_evidence` row at the next revision,
-tied to the event that recorded it, and nothing is ever replaced. A submission marked as
-completion moves the action from in progress to awaiting BOD closure and opens a closure request
-bound to that exact evidence revision. **It never closes the action.** Closing is a BOD decision
-(T4).
+tied to the event that recorded it, and nothing is ever replaced. A submission can also request
+closure, bound to that exact evidence revision, which moves the action to awaiting BOD closure:
+
+- `completed` (the `completion` flag), from in progress only;
+- `cancelled`, with a reason, from any open state (not started, in progress, blocked);
+- `superseded`, naming the replacement action, from any open state.
+
+**It never closes the action.** Closing is a BOD decision (T4), and all three kinds pass the same
+gate. The evidence of a cancellation or a supersession is whatever records it: the memo, the
+minutes, the replacement's charter.
 
 The evidence row, the event, the version bump and any closure request commit in one
 `unit_of_work()`. The file itself is stored first, under a content-addressed key, so a transaction
@@ -92,24 +98,33 @@ def submit_evidence(
     completion: bool = False,
     note: str | None = None,
     idempotency_key: str | None = None,
+    closure_kind: str | None = None,
+    reason: str | None = None,
+    replacement_action_id: str | None = None,
 ) -> Submission:
-    """Record one evidence revision; as completion, also request BOD closure."""
+    """Record one evidence revision; with a closure kind (or `completion`), also request BOD closure."""
+    closure_kind = _closure_kind(completion, closure_kind, reason, replacement_action_id, action_id)
     row = ensure_pic(uow.connection, action_id, actor)
     if row['version'] == expected_version:
-        if row['state'] == actions.CLOSED:
-            raise actions.CommandRefused('the action is closed; only a BOD decision can reopen it')
-        if completion and row['state'] != actions.IN_PROGRESS:
-            raise actions.CommandRefused(
-                f'completion evidence is submitted on an action in progress, not one that is {row["state"]!r}'
-            )
+        _check_request_state(row['state'], closure_kind)
+        if replacement_action_id is not None:
+            if uow.connection.execute(select(action.c.id).where(action.c.id == replacement_action_id)).scalar() is None:
+                raise actions.CommandRefused(f'no replacement action {replacement_action_id!r}')
 
     result = uow.append_event(
         action_id=action_id,
         expected_version=expected_version,
         kind='evidence_submitted',
-        payload={'evidence': item, 'completion': completion, 'note': note},
-        changes={'state': actions.AWAITING_BOD_CLOSURE} if completion else {},
+        payload={
+            'evidence': item,
+            'completion': closure_kind == 'completed',
+            'closure_kind': closure_kind,
+            'replacement_action_id': replacement_action_id,
+            'note': note,
+        },
+        changes={'state': actions.AWAITING_BOD_CLOSURE} if closure_kind else {},
         author=actor,
+        reason=reason,
         idempotency_key=idempotency_key,
     )
     connection = uow.connection
@@ -146,7 +161,7 @@ def submit_evidence(
     connection.execute(evidence.insert().values(**stored))
 
     request_id = None
-    if completion:
+    if closure_kind:
         request_id = uuid.uuid4().hex
         connection.execute(
             closure_request.insert().values(
@@ -154,8 +169,8 @@ def submit_evidence(
                 action_id=action_id,
                 evidence_id=stored['id'],
                 event_id=result.event.id,
-                closure_kind='completed',
-                replacement_action_id=None,
+                closure_kind=closure_kind,
+                replacement_action_id=replacement_action_id,
                 status='open',
                 requested_by=actor,
                 created_at=result.event.created_at,
@@ -163,6 +178,36 @@ def submit_evidence(
             )
         )
     return Submission(result, stored, request_id)
+
+
+def _closure_kind(
+    completion: bool, kind: str | None, reason: str | None, replacement: str | None, action_id: str
+) -> str | None:
+    """The closure this submission requests, if any, with what each kind must carry."""
+    if completion:
+        if kind not in (None, 'completed'):
+            raise actions.CommandRefused(f'completion evidence cannot also request {kind!r}')
+        kind = 'completed'
+    if kind is not None and kind not in actions.CLOSURE_KINDS:
+        raise actions.CommandRefused(f'a closure request is one of {", ".join(actions.CLOSURE_KINDS)}, not {kind!r}')
+    if kind == 'cancelled' and (not isinstance(reason, str) or not reason.strip()):
+        raise actions.CommandRefused('a cancellation request needs a reason')
+    if (kind == 'superseded') != (replacement is not None):
+        raise actions.CommandRefused('a supersession request, and only one, names its replacement action')
+    if replacement == action_id:
+        raise actions.CommandRefused('an action cannot supersede itself')
+    return kind
+
+
+def _check_request_state(state: str, kind: str | None) -> None:
+    if state == actions.CLOSED:
+        raise actions.CommandRefused('the action is closed; only a BOD decision can reopen it')
+    if kind == 'completed' and state != actions.IN_PROGRESS:
+        raise actions.CommandRefused(
+            f'completion evidence is submitted on an action in progress, not one that is {state!r}'
+        )
+    if kind is not None and state == actions.AWAITING_BOD_CLOSURE:
+        raise actions.CommandRefused('a closure request is already open on this action')
 
 
 def read_evidence(connection: Any, evidence_id: str) -> dict[str, Any] | None:

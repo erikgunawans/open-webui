@@ -417,3 +417,144 @@ def test_the_vendors_local_delete_all_files_leaves_evidence(monkeypatch: pytest.
     provider.LocalStorageProvider.delete_all_files()
     assert list(uploads.iterdir()) == []
     assert (tmp_path / checked.key).read_bytes() == checked.content
+
+
+# --- cancellation and supersession requests (P2 T7) --------------------------------------------
+
+
+def _link(url: str = 'https://sharepoint.example/memo') -> dict:
+    from jup.leadership.evidence import link_evidence
+
+    return link_evidence(url)
+
+
+def _request(engine):
+    from sqlalchemy import select
+
+    from jup.leadership.models import closure_request
+
+    with engine.connect() as connection:
+        return connection.execute(select(closure_request)).mappings().one()
+
+
+@needs_runtime
+@pytest.mark.parametrize(('action_id', 'version'), [('act-1', 2), ('act-2', 1)])
+def test_a_cancellation_is_requested_with_a_reason_from_any_open_state(engine, action_id: str, version: int) -> None:
+    from jup.leadership.repository import read_action, read_events
+
+    actor = PIC if action_id == 'act-1' else OTHER_PIC
+    submitted = _submit(
+        engine,
+        actor=actor,
+        action_id=action_id,
+        expected_version=version,
+        item=_link(),
+        closure_kind='cancelled',
+        reason='PGN withdrew the allocation',
+    )
+    assert read_action(engine, action_id)['state'] == 'awaiting_bod_closure'
+    request = _request(engine)
+    assert (request['id'], request['closure_kind'], request['evidence_id']) == (
+        submitted.closure_request_id,
+        'cancelled',
+        submitted.evidence['id'],
+    )
+    assert read_events(engine, action_id)[-1].reason == 'PGN withdrew the allocation'
+
+
+@needs_runtime
+def test_a_supersession_names_an_existing_replacement(engine) -> None:
+    submitted = _submit(engine, item=_link(), closure_kind='superseded', replacement_action_id='act-2')
+    request = _request(engine)
+    assert (request['closure_kind'], request['replacement_action_id']) == ('superseded', 'act-2')
+    assert submitted.closure_request_id == request['id']
+
+
+@needs_runtime
+@pytest.mark.parametrize(
+    'kwargs',
+    [
+        {'closure_kind': 'cancelled'},  # no reason
+        {'closure_kind': 'cancelled', 'reason': '  '},
+        {'closure_kind': 'superseded'},  # no replacement
+        {'closure_kind': 'superseded', 'replacement_action_id': 'act-1'},  # itself
+        {'closure_kind': 'superseded', 'replacement_action_id': 'no-such-action'},
+        {'closure_kind': 'completed', 'replacement_action_id': 'act-2'},  # only a supersession names one
+        {'closure_kind': 'closed'},
+        {'completion': True, 'closure_kind': 'cancelled', 'reason': 'x'},
+    ],
+)
+def test_a_malformed_closure_request_writes_nothing(engine, kwargs: dict) -> None:
+    from jup.leadership.actions import CommandRefused
+    from jup.leadership.repository import read_action
+
+    with pytest.raises(CommandRefused):
+        _submit(engine, item=_link(), **kwargs)
+    assert read_action(engine, 'act-1')['state'] == 'in_progress'
+
+
+@needs_runtime
+def test_a_second_closure_request_waits_for_the_first(engine) -> None:
+    from jup.leadership.actions import CommandRefused
+
+    _submit(engine, item=_link(), closure_kind='cancelled', reason='x')
+    with pytest.raises(CommandRefused, match='already open'):
+        _submit(engine, expected_version=3, item=_link(), closure_kind='superseded', replacement_action_id='act-2')
+
+
+@needs_runtime
+def test_the_bod_closes_a_cancellation_through_the_same_gate(engine) -> None:
+    from jup.leadership.closure import BodPolicy, decide
+    from jup.leadership.repository import read_action, unit_of_work
+
+    submitted = _submit(engine, item=_link(), closure_kind='cancelled', reason='x')
+    with unit_of_work(engine) as uow:
+        decided = decide(
+            uow,
+            action_id='act-1',
+            expected_version=3,
+            reviewer='bod-1',
+            decision='close',
+            policy=BodPolicy('individual', 1),
+            evidence_id=submitted.evidence['id'],
+        )
+    assert decided.outcome == 'closed'
+    assert read_action(engine, 'act-1')['state'] == 'closed'
+
+
+@needs_runtime
+def test_the_recorded_register_reads_back_in_the_dataset_shape(engine) -> None:
+    from sqlalchemy import insert
+
+    from jup.leadership.evidence import submit_progress
+    from jup.leadership.models import external_ref
+    from jup.leadership.reader import recorded_actions
+    from jup.leadership.repository import unit_of_work
+
+    with unit_of_work(engine) as uow:
+        submit_progress(uow, action_id='act-1', actor=PIC, expected_version=2, narrative='draft sent')
+    _submit(engine, expected_version=3, item=_link(), completion=True)
+    with engine.begin() as connection:
+        connection.execute(
+            insert(external_ref).values(
+                id='r1',
+                action_id='act-2',
+                source_document='d',
+                slide='1',
+                external_id='X',
+                confirmed_by='rev',
+                confirmed_at=1,
+            )
+        )
+        register = {a['id']: a for a in recorded_actions(connection)}
+    first = register['act-1']
+    assert (first['state'], first['progress_summary'], first['history_complete']) == (
+        'awaiting_bod_closure',
+        'draft sent',
+        True,
+    )
+    assert first['closure']['kind'] == 'completed' and first['closure']['status'] == 'open'
+    assert first['record']['evidence_revisions'] == 1
+    assert first['due'] is None and first['verification_status'] == 'unverified'
+    assert register['act-2']['verification_status'] == 'verified'
+    assert register['act-orphan']['closure'] is None

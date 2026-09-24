@@ -1,6 +1,6 @@
 # Ruang Pimpinan P2 — durable board workflows: task plan
 
-**Status: plan approved by Erik 2026-09-24, including decisions E-1, E-2 and E-3. T0–T3 built and pushed 2026-09-24 (T0 reviewed by Erik and verified on Postgres 16; T3 at `140979974`); T4 merged by Erik 2026-09-24 without the Cato audit (`fe91c7d9d`), evidence-wipe fix `7784beaaf`; T5 pushed (`02d6325aa`); T6 built 2026-09-24; none deployed.** Written 2026-09-24 against `main` at `d59a145dd`
+**Status: plan approved by Erik 2026-09-24, including decisions E-1, E-2 and E-3. T0–T3 built and pushed 2026-09-24 (T0 reviewed by Erik and verified on Postgres 16; T3 at `140979974`); T4 merged by Erik 2026-09-24 without the Cato audit (`fe91c7d9d`), evidence-wipe fix `7784beaaf`; T5 pushed (`02d6325aa`); T6 pushed (`3f37f47e7`); T7 built 2026-09-24; none deployed.** Written 2026-09-24 against `main` at `d59a145dd`
 (P1 live on `ent-os-00027-lrc`, Erik-only grant, illustrative sample).
 
 Source of intent: the approved design and the P2 brief in the read-only handoff package
@@ -223,6 +223,19 @@ pass.
   and never values or evidence content. For state changes the event row is the record of authority,
   and the audit line is the operational trail.
 - _Acceptance:_ ACCESS-01 (P2 surfaces), HOST-03 (expanded).
+- _As built 2026-09-24:_
+  - `JUP_LEADERSHIP_ACTIONS_SOURCE` is `sample` (default, P1's behaviour) or `records`; anything
+    else is 503. Every overview names its `actions_source`. In `records` mode the Board view serves
+    the whole register and the RKA view the recorded actions its dataset section references; an
+    empty register is served empty with `actions_note`, never the sample. A snapshot draft freezes
+    the same source.
+  - Metrics, context and assumptions stay the dataset's in both modes (ADR-0014).
+  - The closure request is part of an evidence submission: `closure_kind` `completed` (from in
+    progress), `cancelled` (with a reason) or `superseded` (naming the replacement), the last two
+    from any open state; one open request at a time.
+  - `/overview` and `/sources` now write audit lines too.
+  - Records-mode actions may have `due: null` and lifecycle states the P1 register does not
+    translate; the frontend must handle both (T8) before `records` is switched on anywhere.
 
 **T8 — Frontend** (`src/lib/components/leadership/`).
 

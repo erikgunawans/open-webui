@@ -158,3 +158,55 @@ def test_a_source_both_views_declare_is_returned_by_either(dataset: dict) -> Non
 def test_an_unknown_source_is_not_returned(dataset: dict) -> None:
     assert read_source(dataset, 'board', 'nope') is None
     assert read_source(dataset, 'board', '../../etc/passwd') is None
+
+
+# --- the actions source (P2 T7) ---------------------------------------------------------------
+
+
+def _recorded(action_id: str, title: str = 'x') -> dict:
+    return {'id': action_id, 'title': title, 'state': 'not_started'}
+
+
+def test_the_sample_source_is_labelled_as_such(dataset: dict) -> None:
+    overview = read_overview(dataset, 'board')
+    assert (overview['actions_source'], overview['actions_note']) == ('sample', None)
+    assert [a['id'] for a in overview['actions']] == dataset['views']['board']['action_ids']
+
+
+def test_the_records_source_serves_the_register_and_never_the_sample(dataset: dict) -> None:
+    register = [_recorded('act-new'), _recorded('example-action-water')]
+    board = read_overview(dataset, 'board', register)
+    assert board['actions_source'] == 'records'
+    assert [a['id'] for a in board['actions']] == ['act-new', 'example-action-water']
+    # The RKA view shows only the recorded actions its section references.
+    rka = read_overview(dataset, 'rka', register)
+    assert [a['id'] for a in rka['actions']] == ['example-action-water']
+    # Metrics keep the dataset's authority and label.
+    assert board['data_mode'] == dataset['data_mode'] and board['metrics']
+
+
+def test_an_empty_register_is_served_empty_with_its_reason(dataset: dict) -> None:
+    for view in ('board', 'rka'):
+        overview = read_overview(dataset, view, [])
+        assert overview['actions'] == []
+        assert overview['actions_note'] == 'No action is recorded for this view yet.'
+
+
+@pytest.mark.parametrize(
+    ('value', 'precision', 'expected'),
+    [
+        ('2026-09-30', 'date', {'precision': 'date', 'label': '30 September 2026', 'date': '2026-09-30'}),
+        ('2026-08', 'month', {'precision': 'month', 'label': 'Agustus 2026', 'year': 2026, 'month': 8}),
+        ('2027', 'year', {'precision': 'year', 'label': '2027', 'year': 2027}),
+        (
+            '2026/2027',
+            'year_range',
+            {'precision': 'year_range', 'label': '2026–2027', 'start_year': 2026, 'end_year': 2027},
+        ),
+        (None, None, None),
+    ],
+)
+def test_a_recorded_due_date_is_shown_at_its_precision(value, precision, expected) -> None:
+    from jup.leadership.reader import due_view
+
+    assert due_view(value, precision) == expected

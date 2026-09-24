@@ -1082,3 +1082,110 @@ def test_a_review_that_breaks_a_rule_is_422(client, directory, records) -> None:
     assert client.post(review, json={'decision': 'approve'}).status_code == 422
     assert client.post(f'{BASE}/imports/candidates/nope/review{Q}', json={'decision': 'reject'}).status_code == 404
     assert client.get(f'{BASE}/imports/nope{Q}').status_code == 404
+
+
+# --- Reader and API integration (P2 T7) ---------------------------------------------
+
+
+def test_the_overview_says_its_actions_are_the_sample_and_is_audited(client, directory, caplog) -> None:
+    directory.groups = [_grant(board=True)]
+    _sign_in_as(client, 'user', user_id='boc-1')
+    with caplog.at_level('INFO'):
+        body = client.get(BOARD).json()
+        client.get(f'{BASE}/sources/board-gas?view=board&scope_id=jup-consolidated')
+    assert (body['actions_source'], body['data_mode']) == ('sample', 'illustrative')
+    lines = _audit_lines(caplog)
+    assert any("'operation': 'overview'" in line and "'actions_source': 'sample'" in line for line in lines)
+    assert any("'operation': 'source'" in line and "'result': 'served'" in line for line in lines)
+
+
+def test_a_refused_overview_is_audited_too(client, caplog) -> None:
+    _sign_in_as(client, 'admin', user_id='admin-1')
+    with caplog.at_level('INFO'):
+        assert client.get(BOARD).status_code == 403
+    assert any("'operation': 'overview'" in line and "'result': 'refused'" in line for line in _audit_lines(caplog))
+
+
+def test_the_records_source_serves_the_register(client, directory, records, monkeypatch) -> None:
+    monkeypatch.setenv('JUP_LEADERSHIP_ACTIONS_SOURCE', 'records')
+    directory.groups = [_grant(board=True, rka=True)]
+    _sign_in_as(client, 'user', user_id='boc-1')
+    board = client.get(BOARD).json()
+    assert board['actions_source'] == 'records'
+    (served,) = board['actions']
+    assert (served['id'], served['owner_label'], served['state']) == ('act-1', 'PIC Komersial', 'not_started')
+    assert served['due']['label'] == 'Desember 2026'
+    assert served['record']['original_due']['date'] == '2026-09-01'
+    # act-1 is not referenced by the RKA section, so the RKA view has no recorded action.
+    rka = client.get(RKA).json()
+    assert (rka['actions'], rka['actions_note']) == ([], 'No action is recorded for this view yet.')
+
+
+def test_an_empty_register_never_falls_back_to_the_sample(client, directory, tmp_path, monkeypatch) -> None:
+    from sqlalchemy import create_engine
+
+    from jup.leadership import migrate
+    from open_webui.routers import jup_leadership
+
+    engine = create_engine(f'sqlite:///{tmp_path / "empty.db"}')
+    assert migrate.run_leadership_migrations(engine) is True
+    client.app.dependency_overrides[jup_leadership.leadership_engine] = lambda: engine
+    monkeypatch.setenv('JUP_LEADERSHIP_ACTIONS_SOURCE', 'records')
+    directory.groups = [_grant(board=True)]
+    _sign_in_as(client, 'user')
+    body = client.get(BOARD).json()
+    assert (body['actions_source'], body['actions']) == ('records', [])
+    engine.dispose()
+
+
+@pytest.mark.parametrize('value', ['live', 'verified', 'sample,records'])
+def test_a_misconfigured_actions_source_is_503(client, directory, monkeypatch, value: str) -> None:
+    monkeypatch.setenv('JUP_LEADERSHIP_ACTIONS_SOURCE', value)
+    directory.groups = [_grant(board=True)]
+    _sign_in_as(client, 'user')
+    response = client.get(BOARD)
+    assert response.status_code == 503
+    _no_store(response)
+
+
+def test_the_records_source_needs_a_ready_store(client, directory, monkeypatch) -> None:
+    from jup.leadership import migrate
+
+    monkeypatch.setenv('JUP_LEADERSHIP_ACTIONS_SOURCE', 'records')
+    monkeypatch.setattr(migrate, 'schema_ready', lambda: False)
+    directory.groups = [_grant(board=True)]
+    _sign_in_as(client, 'user')
+    assert client.get(BOARD).status_code == 503
+
+
+def test_a_draft_in_records_mode_freezes_the_register(client, directory, records, monkeypatch) -> None:
+    monkeypatch.setenv('JUP_LEADERSHIP_ACTIONS_SOURCE', 'records')
+    _as_publisher(client, directory)
+    snapshot_id = _new_draft(client).json()['snapshot_id']
+    content = client.get(f'{BASE}/snapshots/{snapshot_id}{Q}').json()['latest']['content']
+    assert content['actions_source'] == 'records'
+    assert [a['id'] for a in content['actions']] == ['act-1']
+    assert content['actions'][0]['record']['version'] == 2
+
+
+def test_the_pic_requests_a_cancellation_and_the_bod_closes_it(client, directory, started, monkeypatch) -> None:
+    monkeypatch.setenv('JUP_LEADERSHIP_BOD_POLICY', INDIVIDUAL)
+    _as_pic(client, directory)
+    refused = client.post(
+        EVIDENCE, data={'expected_version': '3', 'url': 'https://x.example/m', 'closure_kind': 'cancelled'}
+    )
+    assert refused.status_code == 422  # no reason
+    requested = client.post(
+        EVIDENCE,
+        data={
+            'expected_version': '3',
+            'url': 'https://x.example/m',
+            'closure_kind': 'cancelled',
+            'reason': 'Dibatalkan RUPS',
+        },
+    )
+    assert requested.status_code == 200, requested.text
+    evidence_id = requested.json()['evidence']['id']
+    _as_bod(client, directory)
+    assert _close(client, evidence_id).json()['outcome'] == 'closed'
+    assert _action_state(client, directory) == ('closed', 5)
