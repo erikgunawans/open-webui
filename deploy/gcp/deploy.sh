@@ -89,6 +89,12 @@ JUP_ADMIN_EMAILS: "$ADMIN_EMAILS"
 # group grant: the admin role grants nothing. Remove both lines to switch the section off.
 JUP_LEADERSHIP_ENABLED: "true"
 JUP_LEADERSHIP_SAMPLE_FILE: "/srv/jup/leadership/illustrative-seed.json"
+# P2, Erik's call 2026-09-25: the action register is the records store (empty until actions are
+# recorded, and it says so), not the deck sample. JUP_LEADERSHIP_BOD_POLICY and
+# JUP_LEADERSHIP_PUBLICATION_POLICY are deliberately absent: BOD closure and publication stay off
+# (503, every snapshot a draft) until the company decides individual/collective closure and
+# publication authority. Evidence files go to jup-ops-data under a temporary hold (proven 09-25).
+JUP_LEADERSHIP_ACTIONS_SOURCE: "records"
 EOF
 
 echo "==> deploying to Cloud Run"

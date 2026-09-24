@@ -246,3 +246,16 @@ evidence, actions and the endpoint (the new state route included). The server's 
 
 The admin group editor used to drop the `jup` key on save; that is patched (see the gap walk
 above). Re-check the grant after the first real edit in production anyway.
+
+### GCS evidence hold, proven on the production bucket, 2026-09-25
+
+With Erik's OK, on `gs://jup-ops-data` (uniform access, 7-day soft delete, no retention policy, no
+default event-based hold). One probe object, `leadership/evidence/_hold-proof-20260924T184012Z.txt`:
+uploaded, `--temporary-hold` set and read back `True`, then `gcloud storage rm` refused with
+`HTTPError 403: … is under active Temporary hold and cannot be deleted` even for the project owner;
+the hold released, the object deleted, the `leadership/` prefix empty again (before-values in
+`.planning/gcs-hold-proof-before-2026-09-25.json`). Run as `alesha-bot@axiara.ai`: impersonating the
+runtime account (`1001937491646-compute@developer`) is denied (`iam.serviceAccounts.getAccessToken`).
+That account's `roles/storage.objectUser` on the bucket includes `storage.objects.update`, which is
+what setting a hold needs; the first real evidence upload after the P2 deploy is the check of record.
+The probe stays recoverable under soft delete until 2026-10-02.

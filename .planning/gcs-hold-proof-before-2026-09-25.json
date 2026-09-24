@@ -1,0 +1,11 @@
+{
+  "recorded_at": "2026-09-24T18:40:23Z",
+  "change": "GCS temporary-hold proof on jup-ops-data (Erik's OK 2026-09-25): one probe object, held, delete refused, released, deleted",
+  "bucket": "gs://jup-ops-data",
+  "leadership_prefix_before": "empty (no objects under gs://jup-ops-data/leadership/)",
+  "bucket_settings": {"uniform_bucket_level_access": true, "soft_delete_seconds": 604800, "retention_policy": null, "default_event_based_hold": null},
+  "runtime_sa": "1001937491646-compute@developer.gserviceaccount.com",
+  "runtime_sa_bucket_role": "roles/storage.objectUser (includes storage.objects.update, which sets a temporary hold)",
+  "probe_object": "gs://jup-ops-data/leadership/evidence/_hold-proof-20260924T184012Z.txt",
+  "run_as": "alesha-bot@axiara.ai (impersonating the runtime SA is denied: iam.serviceAccounts.getAccessToken)"
+}
