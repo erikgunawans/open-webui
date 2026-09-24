@@ -30,20 +30,15 @@ import logging
 import os
 import uuid
 from dataclasses import dataclass
-from typing import Any
-
-from sqlalchemy import select, update
+from typing import TYPE_CHECKING, Any
 
 from jup.leadership import actions
 from jup.leadership.actions import CommandRefused
-from jup.leadership.models import action, closure_decision, closure_request, evidence
-from jup.leadership.repository import (
-    ActionNotFound,
-    AppendResult,
-    IdempotencyKeyReused,
-    UnitOfWork,
-    VersionConflict,
-)
+
+if TYPE_CHECKING:
+    # The database runtime is imported where it is used, so the policy parser stays importable
+    # (and tested) under CI's `--only-group dev`, as `actions.py` does.
+    from jup.leadership.repository import AppendResult, UnitOfWork
 
 log = logging.getLogger(__name__)
 
@@ -129,6 +124,11 @@ def decide(
     idempotency_key: str | None = None,
 ) -> Decision:
     """Record one BOD decision on an action. See the module docstring for the rules."""
+    from sqlalchemy import select, update
+
+    from jup.leadership.models import action, closure_decision, closure_request, evidence
+    from jup.leadership.repository import ActionNotFound, IdempotencyKeyReused, VersionConflict
+
     if decision not in DECISIONS:
         raise CommandRefused(f'a BOD decision is one of {", ".join(DECISIONS)}, not {decision!r}')
     command = {'decision': decision, 'evidence_id': evidence_id, 'reason': reason, 'return_to': return_to}
@@ -214,6 +214,10 @@ class _Plan:
 
 
 def _plan_reopen(connection: Any, row: Any, latest: str | None, reason: str | None) -> _Plan:
+    from sqlalchemy import select
+
+    from jup.leadership.models import closure_request
+
     _require_reason(reason, 'reopening')
     if row['state'] != actions.CLOSED:
         raise CommandRefused(f'only a closed action is reopened, not one that is {row["state"]!r}')
@@ -244,6 +248,10 @@ def _plan_review(
     return_to: str | None,
 ) -> _Plan:
     """A close or a return, on the open request and the latest evidence revision."""
+    from sqlalchemy import select
+
+    from jup.leadership.models import closure_decision, closure_request
+
     if row['state'] != actions.AWAITING_BOD_CLOSURE:
         raise CommandRefused(f'no closure request is open on an action that is {row["state"]!r}')
     request = (
@@ -282,6 +290,11 @@ def _plan_review(
 
 
 def _replayed(connection: Any, event: Any) -> Decision:
+    from sqlalchemy import select
+
+    from jup.leadership.models import closure_decision
+    from jup.leadership.repository import AppendResult
+
     decision_id = connection.execute(
         select(closure_decision.c.id).where(closure_decision.c.event_id == event.id)
     ).scalar_one()

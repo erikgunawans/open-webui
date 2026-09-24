@@ -362,7 +362,7 @@ def test_a_double_submitted_decision_replays(engine) -> None:
 
 @needs_runtime
 def test_a_failed_decision_leaves_nothing(engine, monkeypatch: pytest.MonkeyPatch) -> None:
-    from jup.leadership import closure as module
+    from jup.leadership import models as module
 
     def broken(**_: object):
         raise RuntimeError('decision insert failed')

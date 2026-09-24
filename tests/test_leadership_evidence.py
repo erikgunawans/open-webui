@@ -343,8 +343,15 @@ def _gcs(bucket: _FakeBucket):
     return gcs
 
 
+def _installed(name: str) -> bool:
+    try:
+        return importlib.util.find_spec(name) is not None
+    except ModuleNotFoundError:  # the parent package is missing too
+        return False
+
+
 needs_gcs = pytest.mark.skipif(
-    importlib.util.find_spec('google.api_core') is None, reason='the GCS client is not installed'
+    not (_installed('google.api_core') and _RUNTIME), reason='the GCS client is not installed'
 )
 
 
