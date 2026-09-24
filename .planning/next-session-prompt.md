@@ -1,3 +1,37 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-25-p2d)
+
+> Prepended by /wrap 2026-09-25 (checkpoint 2026-09-25-p2d). Supersedes checkpoint 2026-09-25-t9b's anchor and its list.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-25-p2d).
+Anchor: `origin/main` at `6f3f0da51` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-25-p2d`). Verify with `git log --oneline 6f3f0da51..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live is **still `ent-os-00027-lrc`** (`dd15a3100`, Ruang Pimpinan P1, Erik-only grant). Everything P2 is pushed and CI-green up to `3a1248a3e`, including this session's polish, "changes since the last meeting" (`GET /meeting-changes`), the field focus ring, and `deploy.sh` now setting `JUP_LEADERSHIP_ACTIONS_SOURCE=records` (BOD and publication policies deliberately unset). The GCS temporary hold is proven on `jup-ops-data`. **The P2 deploy Erik approved ("then P2 Deploy", 2026-09-25) is half-done:** `deploy.sh` submitted Cloud Build `299c3299-972b-4de0-b233-d34020cc48cd` (global, image tag `6f3f0da51`) and then died on *"Reauthentication failed. cannot prompt during non-interactive execution"*. `gcloud run deploy` never ran. Tests 843 passed / 22 skipped; vitest 71.
+
+**Do next, in order:**
+1. **Finish the P2 deploy** (already approved; nothing else is). Ask Erik to run `! gcloud auth login alesha-bot@axiara.ai` first, then confirm `gcloud config list` shows alesha-bot / jup-ops. Check build `299c3299` (`gcloud builds describe … --region=global`) for the record, then **rerun `bash deploy/gcp/deploy.sh` from a clean tree** (deploy.sh is the source of truth; it rebuilds at the new HEAD). Before-values: `.planning/deploy-p2-before-2026-09-25.json` (re-diff the live env against the heredoc first; the only expected change is `+JUP_LEADERSHIP_ACTIONS_SOURCE=records`). Rollback: `gcloud run services update-traffic ent-os --project=jup-ops --region=asia-southeast2 --to-revisions=ent-os-00027-lrc=100`.
+2. **Verify the live revision** through a fresh Interceptor tab at `ops.axiara.ai` (guard `location.host` before every eval and navigate; fetch with `cache:'reload'` first): leadership migrations ran (records routes not 503), `/ruang-pimpinan/board` shows the empty records register with its note, `GET /meeting-changes` answers `available: false`, BOD closure/publication say not configured. Close the tab. Record after-values.
+3. **Then, its own OK:** the `actions.assign` grant for Erik on group `Ruang Pimpinan — uji` (record before-values).
+4. **After Mon 2026-09-28 09:00 WIB:** verify A1's first run (`/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs` → `success` + chat id; `jup.governance` lines around 02:00Z).
+5. **Keyboard-only Tab walk and focus rings** on the leadership screens: Erik's hands (the new ring is loaded but was never seen rendering; T9 reported Tab stuck on "Tutup").
+6. Carried: per-turn `admitted` audit lines carry no chat id; critique leftovers; CI Docker CUDA/Ollama variants; "Release to PyPI" fails on every push (vendor workflow).
+
+**Constraints to honor:**
+- Deploy, DB-config and production-grant authorization is per change, never standing; the P2 deploy above is the one approval in hand. Record before-values in `.planning/*before*.json`. Pushing needs its own OK, except inside `/wrap`.
+- `deploy.sh`'s `--env-vars-file` replaces the whole env: every production value lives in its heredoc.
+- Do not set `JUP_LEADERSHIP_BOD_POLICY` or `JUP_LEADERSHIP_PUBLICATION_POLICY` until Erik decides closure mode/quorum and publication authority.
+- Local walks: seed only the start state; guard `location.host` before every Interceptor write and navigate. The scratch walk (backend 8080 + Vite 5050, `start-backend.sh`/`as.sh`) lives in the previous session's scratchpad `…/710fbd50…/scratchpad/t9`; stop both servers after.
+- Postgres checks as in the t9 block (container `jl-pg16`, `JUP_TEST_POSTGRES_URL`); stop it after. CI's Python job is `--only-group dev` and path-filtered.
+- Check the id-ID value of every reused i18n key; vendor keys like "Actions" are empty and must not be filled app-wide.
+- Disk: ~4.3 GB free, swap near full: `df -h` before any large pull or build.
+
+**Open items waiting on Erik:**
+- `gcloud auth login` for alesha-bot (blocks item 1).
+- RKA baseline-vs-draft comparison: blocked on KPI definitions (content keyed by KPI + unit, a reason on RKA records, a route to record them). "Decisions required": a decision model (who authors, authority, dates).
+- BOD closure mode and quorum; publication authority; the rest of the Ruang Pimpinan company decisions (BOD/PIC identities, KPI owners, retention, Dynamics, CRM, staleness threshold).
+- Two T7 calls; Codex/Forge model pin; disk/RAM cleanup; digest prompt / `BYSECOND=0`; plan decisions V1, E2, E7; "JUP Staff" membership; D19 wording and the Rp 10 miliar tier label.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-25-t9b)
 
 > Prepended by /wrap 2026-09-25 (checkpoint 2026-09-25-t9b). Supersedes checkpoint 2026-09-25-t9's anchor and its item 1; everything else in the t9 block below still holds.

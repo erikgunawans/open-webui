@@ -1,6 +1,39 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-25-t9b (latest) — CI confirmed green on the T9 wrap
+## Checkpoint 2026-09-25-p2d (latest) — P2 polish, meeting changes, hold proven; P2 deploy started, stopped at gcloud re-auth
+
+- **Session:** `/next` (item 1 waits for Mon 09-28) → polish → Erik: "push 0d987b3f8 and c086b9088" → Claude desktop closed, Chrome walk → "OK" → "push" → "yes please" (RKA comparison) → blocked, Erik chose "changes since last meeting" → "push dc6b12721" → "the keyboard and focus-ring check then the P2 deploy prep" → hold proof OK, records / BOD unset / publication unset → "push 78c3fd0b4 and 3a1248a3e. then P2 Deploy" → `/wrap`.
+- **Live:** **unchanged, `ent-os-00027-lrc`** (`dd15a3100`). The P2 deploy of `6f3f0da51` was started: Cloud Build `299c3299-972b-4de0-b233-d34020cc48cd` (global) was submitted, then `gcloud builds submit` died streaming its log: *"Reauthentication failed. cannot prompt during non-interactive execution"* (alesha-bot's session needs `gcloud auth login`). The build keeps running server-side; **`gcloud run deploy` never ran.** Before-values: `.planning/deploy-p2-before-2026-09-25.json` (env diff vs live: only `+JUP_LEADERSHIP_ACTIONS_SOURCE=records`; both secret refs unchanged).
+- **Commits:** pushed and green: `0d987b3f8` (refusals/flag reasons in id-ID), `c086b9088` (author names), `82fe86b6c` (frozen action state), `77a308013` (RKA content labels), `dc6b12721` (changes since last meeting), `78c3fd0b4` (field focus ring), `3a1248a3e` (deploy.sh `ACTIONS_SOURCE=records`, hold proof). Python CI + Frontend Build green on `dc6b12721`; Frontend Build green on `3a1248a3e` (no Python CI: path filter, no backend change). `6f3f0da51` (deploy before-values) was local until this wrap.
+- **Tests:** full suite 843 passed, 22 skipped; `--only-group dev` 545 passed; snapshot+endpoint+meeting-changes suites 174 passed on Postgres 16; vitest 71. Mutation-checked: author-name resolution, meeting ordering by date, scope comparability.
+
+### What shipped
+
+- **Server text in the reader's language:** `src/lib/leadership/refusals.ts` recognises every server refusal and flag reason (fixed and value-built) as a code; `ServerText.svelte` holds one literal `$i18n.t` per code; unknown text shows as sent; the `LeadershipRequestError:` prefix no longer leaks. 41 id-ID strings.
+- **History names its authors:** `GET /actions/{id}` adds `author_name` per event via `leadership_user_names` (one directory call); null for someone no longer in the directory.
+- **`ActionState.svelte`** shared by register and snapshot viewer; frozen actions show their frozen state.
+- **`rkaEntry`**: `pendapatan_idr_miliar: 158.47` reads "Pendapatan · Rp158,47 miliar"; raw key on hover.
+- **Changes since the last meeting:** `GET /meeting-changes` compares the two latest *published* meeting records of a view by meeting date (a draft never counts; fewer than two is `available: false`). Metric differences are server Decimal, only for the same unit, kind and scope (else a note says which differed); action state/target changes, new and dropped; different actions sources are not compared. `MeetingChanges.svelte` on both views; the Board's `prior-meeting-change` module reads "Tersedia" once real. Walked in Chrome (0 meetings, RKA Sept→Okt, Board two meetings).
+- **Focus ring on every leadership field** (`app.css` excludes input/textarea from its global ring). Rule loaded and matches every dialog field; *not seen rendering*.
+- **GCS temporary hold proven on `jup-ops-data`:** probe held, `rm` refused with 403 for the project owner, released, removed (soft-delete copy until 2026-10-02). Runtime SA impersonation is denied; its `storage.objectUser` includes `objects.update`. `status.md` records it.
+- `deploy.sh` heredoc: `JUP_LEADERSHIP_ACTIONS_SOURCE: "records"`; BOD and publication policies deliberately absent (Erik, 2026-09-25).
+
+### Findings
+
+- **The RKA baseline-vs-draft comparison is blocked:** RKA content is free-form, the draft is dataset metrics, and no key links them (KPI definitions); the table has no reason column; no route records an RKA record. "Decisions required" needs a new record type. Both written into `p2-plan.md`.
+- **Real keyboard focus still can't be driven here:** AppleScript activate, tab select, AXRaise and a click all leave `document.hasFocus()` false in the Interceptor tab group's window.
+- **Python CI is path-filtered** (`backend/**`, `tests/**`, …): a frontend-only push gets no Python run; that is not a missing result.
+- The vendor's `"Actions"` i18n key is empty in id-ID; the meeting module uses "Follow-up actions" instead of filling the vendor key app-wide.
+- The walk's `boc@walk.test` has lost its grant in the scratch DB (not investigated).
+
+### Open at checkpoint
+
+- **Finish the P2 deploy** after `gcloud auth login` (see the handoff).
+- Keyboard-only Tab walk and focus rings: Erik's hands.
+- RKA baseline-vs-draft and "decisions required": blocked on Erik's KPI definitions / decision model.
+- A1's first run after Mon 2026-09-28 09:00 WIB.
+
+## Checkpoint 2026-09-25-t9b — CI confirmed green on the T9 wrap
 
 - **Session:** continuation of 2026-09-25-t9 after its wrap: CI watched to the end; `/agent-depth` read (no status change); `/wrap`.
 - **CI:** Python CI and Frontend Build green on `4c5e730d0` (the t9 wrap, which carries all of the session's code, including the due-revision screen). The Frontend Build on `a85583fce` was cancelled, superseded by the wrap push, not failed. "Release to PyPI" failed again (vendor workflow).
