@@ -487,3 +487,12 @@
 	color: var(--jup-ink);
 	font: inherit;
 }
+
+.jlp-row-buttons input[type='text'] {
+	padding: 0.25rem 0.45rem;
+	border: 1px solid var(--jup-line);
+	border-radius: var(--jup-radius-sm);
+	background: var(--jup-surface);
+	color: var(--jup-ink);
+	font-size: 0.8125rem;
+}

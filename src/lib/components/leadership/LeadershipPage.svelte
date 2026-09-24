@@ -24,6 +24,7 @@
 	import ActionDetail from './ActionDetail.svelte';
 	import MeetingHistory from './MeetingHistory.svelte';
 	import RkaRecords from './RkaRecords.svelte';
+	import ImportReview from './ImportReview.svelte';
 	import SourceDetails from './SourceDetails.svelte';
 	import ContextPreview from './ContextPreview.svelte';
 
@@ -415,6 +416,10 @@
 
 	{#if view === 'rka'}
 		<RkaRecords {scopeId} />
+	{/if}
+
+	{#if $leadershipAccess.operations.includes('imports.review')}
+		<ImportReview {view} {scopeId} />
 	{/if}
 
 	<section class="jlp-surface mt-4" aria-labelledby="jlp-modules-title">
