@@ -64,7 +64,9 @@
 		.join('|')}`;
 	$: load(loadKey);
 
-	const load = async (_key: string) => {
+	// `quiet` keeps the current report on screen while it refreshes, so a dialog open over it (an
+	// action the reader just wrote to) stays open.
+	const load = async (_key: string, quiet = false) => {
 		controller?.abort();
 		const own = new AbortController();
 		controller = own;
@@ -75,7 +77,7 @@
 			return;
 		}
 
-		state = { kind: 'loading' };
+		if (!quiet || state.kind !== 'ready') state = { kind: 'loading' };
 		try {
 			const overview = await getOverview(localStorage.token, view, scopeId, own.signal);
 			if (!own.signal.aborted) state = { kind: 'ready', overview };
@@ -397,7 +399,13 @@
 
 	<SourceDetails bind:show={sourceOpen} {view} {scopeId} {sourceId} />
 
-	<ActionDetail bind:show={detailOpen} {view} {scopeId} actionId={detailId} />
+	<ActionDetail
+		bind:show={detailOpen}
+		{view}
+		{scopeId}
+		actionId={detailId}
+		on:changed={() => load(loadKey, true)}
+	/>
 
 	<ContextPreview bind:show={previewOpen} {viewLabel} context={overview.context} {recordLabel} />
 

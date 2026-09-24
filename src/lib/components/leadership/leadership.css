@@ -414,3 +414,67 @@
 .jlp-dl dt {
 	color: var(--jup-ink-soft);
 }
+
+/* Forms (P2): outlined, so the brand's text token carries the contrast, never its fill. */
+.jlp-form {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.7rem;
+	margin-top: 0.7rem;
+}
+
+.jlp-field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	width: 100%;
+	font-size: 0.875rem;
+	border: 0;
+	padding: 0;
+	margin: 0;
+}
+
+.jlp-field > span,
+.jlp-field > legend {
+	color: var(--jup-ink-soft);
+	margin-bottom: 0.2rem;
+}
+
+.jlp-field textarea,
+.jlp-field input[type='text'],
+.jlp-field input[type='url'] {
+	width: 100%;
+	padding: 0.45rem 0.55rem;
+	border: 1px solid var(--jup-line);
+	border-radius: var(--jup-radius-sm);
+	background: var(--jup-surface);
+	color: var(--jup-ink);
+	font: inherit;
+}
+
+.jlp-choice {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.45rem;
+}
+
+.jlp-button {
+	padding: 0.4rem 0.9rem;
+	border: 1px solid var(--jup-brand-text);
+	border-radius: var(--jup-radius-sm);
+	color: var(--jup-brand-text);
+	font-size: 0.875rem;
+	font-weight: 600;
+}
+
+.jlp-button:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
+.jlp-link[aria-pressed='true'] {
+	color: var(--jup-ink);
+	font-weight: 600;
+	text-decoration-thickness: 2px;
+}

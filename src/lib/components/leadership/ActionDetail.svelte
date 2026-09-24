@@ -1,8 +1,10 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
+	import { getContext, createEventDispatcher } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
 
+	import { user } from '$lib/stores';
+	import { leadershipAccess } from '$lib/stores/leadership';
 	import Modal from '$lib/components/common/Modal.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import {
@@ -16,7 +18,11 @@
 	} from '$lib/apis/leadership';
 	import { formatEventTimeId, recordedDueId } from '$lib/leadership/format';
 
+	import ActionSubmit from './ActionSubmit.svelte';
+
 	const i18n = getContext<Writable<i18nType>>('i18n');
+	// A write changed the record: the page reloads its register too.
+	const dispatch = createEventDispatcher<{ changed: void }>();
 
 	export let show = false;
 	export let view: LeadershipView;
@@ -59,6 +65,18 @@
 	};
 
 	$: if (show && actionId) load(actionId);
+
+	// Offered to the recorded PIC holding `actions.submit`; the server decides either way.
+	$: isPic =
+		record !== null &&
+		record.action.pic_user_id !== null &&
+		record.action.pic_user_id === $user?.id &&
+		$leadershipAccess.operations.includes('actions.submit');
+
+	const saved = () => {
+		dispatch('changed');
+		if (actionId) load(actionId);
+	};
 	$: if (!show) controller?.abort();
 
 	// A file revision is fetched with the reader's token and handed to the browser as a download;
@@ -199,6 +217,10 @@
 					{/if}
 				</dd>
 			</dl>
+
+			{#if isPic}
+				<ActionSubmit {record} {view} {scopeId} on:saved={saved} />
+			{/if}
 
 			<section class="mt-4" aria-labelledby="jlp-evidence-title">
 				<h3 class="jlp-surface-title" id="jlp-evidence-title">{$i18n.t('Evidence')}</h3>

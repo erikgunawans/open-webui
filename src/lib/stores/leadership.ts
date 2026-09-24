@@ -1,6 +1,6 @@
 import { derived, writable, type Readable } from 'svelte/store';
 
-import { getCapabilities, type LeadershipView } from '$lib/apis/leadership';
+import { getCapabilities, type LeadershipView, type Operation } from '$lib/apis/leadership';
 import { user } from '$lib/stores';
 
 // What the signed-in reader may open in Ruang Pimpinan, for the sidebar entry and the section
@@ -16,6 +16,9 @@ export type LeadershipAccess = {
 	enabled: boolean;
 	views: LeadershipView[];
 	scopeIds: string[];
+	// What the reader may do beyond reading. Decides which forms are offered, never whether a
+	// write is accepted: the server checks each capability on every request.
+	operations: Operation[];
 };
 
 const EMPTY: LeadershipAccess = {
@@ -23,7 +26,8 @@ const EMPTY: LeadershipAccess = {
 	loading: false,
 	enabled: false,
 	views: [],
-	scopeIds: []
+	scopeIds: [],
+	operations: []
 };
 
 const state = writable<LeadershipAccess>(EMPTY);
@@ -43,7 +47,8 @@ const load = async (userId: string) => {
 			loading: false,
 			enabled: capabilities.enabled,
 			views: capabilities.views,
-			scopeIds: capabilities.scope_ids
+			scopeIds: capabilities.scope_ids,
+			operations: capabilities.operations
 		});
 	} catch {
 		// Any failure leaves the entry unavailable. It must never disturb chat.
