@@ -1,3 +1,40 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-25-t9)
+
+> Prepended by /wrap 2026-09-25 (checkpoint 2026-09-25-t9). Supersedes checkpoint 2026-09-24-p2t8's anchor.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-25-t9).
+Anchor: `origin/main` at `a85583fce` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-25-t9`). Verify with `git log --oneline a85583fce..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live on `ent-os-00027-lrc`, unchanged (Ruang Pimpinan enabled, Erik-only grant, illustrative sample). P2 T0–T9 are pushed, **not deployed**. T9's seven-step walk passed in real Chrome, records mode, both BOD policies (`docs/ruang-pimpinan/status.md`, "T9 walk"). New since T8: `POST /actions/{id}/state` (PIC start/block/unblock, `863ba4a75`) and `POST /actions/{id}/due` (BOD-only due revision, `fad0afc12`). Full suite 821 passed, 22 skipped; on Postgres 16 the eight leadership suites 373 passed, 0 skipped; vitest 58. CI green on `9c00bf349`; on `a85583fce` Python CI green, Frontend Build was still running at wrap: check it first. A1's digest `c516815a-1dfb-4d5a-ad7d-3b8e23618eaf` first fires Mon 2026-09-28 09:00:43 WIB.
+
+**Do next, in order:**
+1. **Confirm Frontend Build on `a85583fce`** (`gh run list --limit 10`, match the full SHA; `gh run list --commit <short>` matched nothing this session). If red, fix it before anything else.
+2. **After Mon 2026-09-28 09:00 WIB: verify A1's first run** through a fresh ops tab (guard `location.host` before every eval AND every navigate): GET `/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs` → `success` + chat id; `gcloud logging read` the `jup.governance` lines around 02:00Z. Close the tab.
+3. **Polish, display-only:** server refusals (422) and flag reasons in English under id-ID (map known refusals to literal `$i18n.t` keys, as `PicAssign` does for "No account has that email."); author ids → names in history; frozen snapshot actions show no state (the frozen content has it); RKA content shows raw keys. Then the unbuilt RKA baseline-vs-draft comparison and two snapshot-comparison modules.
+4. **Keyboard-only use and focus rings** on the leadership screens: couldn't be verified by Interceptor (see status.md). Needs Erik's hands, or a session where the walk tab's Chrome window has OS focus. Leadership text fields have no focus rule of their own (`app.css` excludes input/textarea from its global ring).
+5. **P2 deploy prep**, each step Erik's OK: GCS temporary-hold proof on the real `jup-ops-data` bucket; `JUP_LEADERSHIP_ACTIONS_SOURCE` / `_BOD_POLICY` / `_PUBLICATION_POLICY` in `deploy.sh`'s heredoc; the `actions.assign` grant for Erik.
+6. Carried: per-turn `admitted` audit lines carry no chat id; critique leftovers (blocker owner/next step/date, English chrome under id-ID, "Open Sidebar"); CI Docker CUDA/Ollama variants; "Release to PyPI" fails on every push (vendor workflow).
+
+**Constraints to honor:**
+- Deploy, DB-config and production-grant authorization is per change, never standing. Record before-values in `.planning/*before*.json`. Pushing needs its own OK, except inside `/wrap`. A new Ruang Pimpinan reader or capability holder is a new grant: its own OK.
+- Settled by Erik 2026-09-24: **Erik holds `actions.assign`** in production (applied with the P2 deploy, its own OK then); **only the BOD moves a due date** (`bod.review`, never the action's own PIC, one member in either mode). Ruang Pimpinan's approved decisions, ADR-0014, and the T5/T6 calls are settled. The owner never closes; admin is not BOD; evidence never goes through vendor Files.
+- Local walks: seed only the start state (users, grants, created actions); never call the flow's own domain commands, or a missing route hides. Recorded actions seeded under the illustrative dataset's action ids make the RKA link resolve. Interceptor's active tab drifts: this session it navigated Erik's `localhost:3001` tab; check `location.host` before any write or navigate.
+- Postgres checks: `docker run -d --rm --name jl-pg16 -e POSTGRES_PASSWORD=local -e POSTGRES_DB=jl -p 55432:5432 postgres:16`, then `JUP_TEST_POSTGRES_URL=postgresql://postgres:local@127.0.0.1:55432/jl uv run --no-sync --with psycopg2-binary pytest tests/test_leadership_*.py tests/test_jup_leadership_endpoint.py` (now every suite really uses Postgres via `leadership_db_url`); stop the container after. In zsh pass file lists as an array, never an unquoted `$S`.
+- CI's Python job runs `--only-group dev`: no top-level sqlalchemy/`google` imports in `backend/jup` modules, tests or `tests/conftest.py`. Reproduce with `UV_PROJECT_ENVIRONMENT=$TMPDIR/devenv uv run --frozen --only-group dev pytest`.
+- ruff enforces C901 ≤ 10 and E501 ≤ 120. Frontend gate: `bun run format`, `bun run i18n:parse`, `git diff --exit-code`; check every key a screen uses has a non-empty id-ID value.
+- `jl0002` is pushed: schema changes are new revisions, never edits. Due-date precision vocabulary is `date`, `month`, `year`, `year_range`.
+- `holaboss-ai` and `KPI-Dashboard-JUP` are read-only.
+
+**Open items waiting on Erik:**
+- Keyboard/focus-ring check on the leadership screens (hands-on, or approve a session with a focused Chrome window).
+- Two T7 calls: (1) now narrowed — the RKA view resolves recorded actions whose ids match the dataset, so the real question is whether imports should keep or link the dataset's action ids; (2) cancellation/supersession requests ride on an evidence submission.
+- Codex/Forge model pin, or keep "Claude-only" (T4 was merged without the Cato audit).
+- Disk/RAM: 6.4 GB free, swap near full at wrap; `uv cache prune` needs the uv MCP servers stopped; optional deletion of the Claude desktop VM image (9.1 GB).
+- Ruang Pimpinan company decisions: BOD and PIC identities; individual vs collective BOD closure (and quorum); publication authority (four-eyes?); KPI owners and definitions (step 1 of the walk can show only a definition's status until then); retention, backup and data location (also when an evidence hold may be released); Dynamics details from IT; the CRM choice; a staleness threshold.
+- Optionally revise the digest prompt, or add `BYSECOND=0`. Plan decisions V1, E2, E7 and a D-decision per new egress; "JUP Staff" group membership; D19 wording and the Rp 10 miliar SPBG tier labelled POTENSI.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-24-p2t8)
 
 > Prepended by /wrap 2026-09-24 (checkpoint 2026-09-24-p2t8). Supersedes checkpoint 2026-09-24-p2t7's anchor.

@@ -1,6 +1,37 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-24-p2t8 (latest) — P2 T8 frontend built, walked in Chrome, PIC assignment added
+## Checkpoint 2026-09-25-t9 (latest) — P2 T9 walked; two missing routes built; T4–T8 now really run on Postgres
+
+- **Session:** `/next` → Erik: `actions.assign` held by "Erik Gunawan", "yes you can push" → Postgres run → Erik: "push 9c00bf349" → polish item after CI → Erik chose BOD-only due revision → Erik: "push fad0afc12 and a85583fce" → `/wrap`.
+- **Live:** unchanged, `ent-os-00027-lrc`. No deploy. `origin/main` is ahead of live by T0–T9.
+- **Commits (all pushed):** `863ba4a75` (PIC start/block/unblock route), `f438c71b1` (T9 walk record), `f3c65f6c2` (Erik holds `actions.assign`), `9c00bf349` (suites on Postgres), `fad0afc12` (BOD due revision), `a85583fce` (status). CI: Python CI and Frontend Build green on `9c00bf349`; Python CI green on `a85583fce`, Frontend Build still running at wrap.
+- **Tests:** full suite 821 passed, 22 skipped (SQLite); on Postgres 16.15 the eight leadership suites 373 passed, 0 skipped; CI's `--only-group dev` 533 passed; vitest 58. New guards mutation-checked (PIC-only state move; owner cannot move own due date).
+
+### What shipped
+
+- **T9, the recorded end-to-end walk** (`docs/ruang-pimpinan/status.md`, "T9 walk"): the design's seven steps in real Chrome, records mode, collective BOD (quorum 2) then individual, nine synthetic identities. ACT-02 and SNAP-01 now "passed (local walk)"; ACCESS-01's P2 history part passed. Text scale 150%/200% and 390 px (same-origin iframe) clean on the new screens.
+- **`POST /actions/{id}/state`** (`863ba4a75`): the recorded PIC with `actions.submit` starts, blocks (reason) and unblocks; Start / Resume / Mark blocked in the PIC form.
+- **`POST /actions/{id}/due`** (`fad0afc12`): `bod.review` holders who are not the action's PIC move the due date with a reason; one member in either mode; no closure policy needed; `DueRevise` form in the action detail. Walked in Chrome.
+- **`leadership_db_url`** (`tests/conftest.py`, `9c00bf349`): closure, snapshots, imports, evidence, actions and endpoint suites take a fresh Postgres database per test when `JUP_TEST_POSTGRES_URL` is set, SQLite otherwise.
+
+### Findings
+
+- **No route moved an action out of `not_started`**, so completion was unreachable for every created or imported action; `revise_due` had no route either. The T8 walk hid the first because its seed called `change_state` directly. Seed only the start state; grep the router for each domain command's caller.
+- **Earlier "Postgres runs of T4–T8" ran T4–T8 on SQLite:** only the repository and migration suites read the variable. Proven fixed with the server's DDL log (48 `CREATE DATABASE` for two suites, none left).
+- **T7 call (1) is smaller than thought:** the RKA view resolves a recorded action as soon as ids match (seeded under the dataset's ids, the WTP assumption reached `example-action-water`). The empty view is imports minting new ids.
+- **Interceptor drift navigated Erik's `localhost:3001` Storymaker tab** away (restored with `back`; in-page state lost). The walk helper now refuses both the write and the navigate on the wrong host.
+- **Keyboard/focus rings not verifiable here:** synthetic Tab doesn't move focus, OS Tab went to another window, `:focus-visible` never matches in the unfocused walk window. Leadership text fields have no focus rule of their own.
+- Collective mode refuses a second close vote from the same director (422). Four-eyes refusal text is English under id-ID.
+
+### Open at checkpoint
+
+- **Keyboard-only use and focus rings** on the leadership screens: needs Erik's hands or a focused Chrome window.
+- Polish: English server refusals and flag reasons under id-ID; author ids instead of names in history; frozen snapshot actions show no state; RKA content shows raw keys; RKA baseline-vs-draft comparison and the two snapshot-comparison modules not built.
+- T7 call (1) (imports should carry or link dataset action ids) and call (2).
+- Before any P2 deploy: GCS hold on the real bucket; each new env value's OK; the `actions.assign` grant for Erik (its own OK then).
+- A1's first run after Mon 2026-09-28 09:00 WIB.
+
+## Checkpoint 2026-09-24-p2t8 — P2 T8 frontend built, walked in Chrome, PIC assignment added
 
 - **Session:** `/next` → T8 slices a–f, each committed → Erik: "ok to push" → Erik: "please start" (local Chrome walk) → walk fixes → Erik: "push 0c92f11f2" → Erik: "yes please build" (PIC assignment) → Erik: "push 9e35391b2" → `/wrap`.
 - **Live:** unchanged, `ent-os-00027-lrc`. No deploy. `origin/main` is ahead of live by T0–T8.
