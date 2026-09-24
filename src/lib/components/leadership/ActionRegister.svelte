@@ -4,6 +4,7 @@
 	import type { i18n as i18nType } from 'i18next';
 
 	import type { Action } from '$lib/apis/leadership';
+	import { closureNote } from '$lib/leadership/actions';
 	import { formatDateId } from '$lib/leadership/format';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
@@ -11,16 +12,37 @@
 
 	export let actions: Action[];
 	export let selectedId: string | null = null;
-	// P1 serves a partial example, never a register. The caption says so every time it renders.
+	// The sample is a partial example, never a register. The caption says so every time it renders.
 	export let partial = true;
+	// `records` is the records store's register: its states are the lifecycle's, not the deck's.
+	export let source: 'sample' | 'records' = 'sample';
 
-	// The deck reports a state; it is not a live status check. Closure is BOD's decision (P2).
-	$: STATE = {
+	// The deck reports a state; it is not a live status check. Closure is BOD's decision.
+	$: SAMPLE_STATE = {
 		in_progress: $i18n.t('Ongoing according to the source'),
 		completion_submitted: $i18n.t('Completion submitted, awaiting BOD review'),
 		closed: $i18n.t('Closed by BOD'),
 		returned: $i18n.t('Returned by BOD for follow-up'),
 		cancelled: $i18n.t('Cancelled')
+	} as Record<string, string>;
+
+	// The records store's lifecycle. Only a BOD decision reaches `closed`.
+	$: RECORD_STATE = {
+		not_started: $i18n.t('Not started'),
+		in_progress: $i18n.t('In progress'),
+		blocked: $i18n.t('Blocked'),
+		awaiting_bod_closure: $i18n.t('Awaiting BOD closure'),
+		closed: $i18n.t('Closed by BOD')
+	} as Record<string, string>;
+
+	$: STATE = source === 'records' ? RECORD_STATE : SAMPLE_STATE;
+
+	$: CLOSURE = {
+		recorded: $i18n.t('Closure recorded'),
+		requested: $i18n.t('Closure requested, awaiting BOD'),
+		closed: $i18n.t('Closed by BOD decision'),
+		returned: $i18n.t('Last request returned by BOD'),
+		none: $i18n.t('Not closed by BOD')
 	} as Record<string, string>;
 
 	// Month, year and year-range targets carry no day, so no overdue count can be computed.
@@ -62,7 +84,11 @@
 						<span class="jlp-meta jlp-block">{action.owner_label}</span>
 					</td>
 					<td>
-						{action.progress_summary}
+						{#if action.progress_summary}
+							{action.progress_summary}
+						{:else}
+							<span class="jlp-meta">{$i18n.t('No progress reported yet')}</span>
+						{/if}
 						<span class="jlp-meta jlp-block">
 							{$i18n.t('As of {{date}}', {
 								date: formatDateId(action.source_as_of)
@@ -70,13 +96,17 @@
 						</span>
 					</td>
 					<td>
-						{action.due.label}
-						<span class="jlp-meta jlp-block">{PRECISION[action.due.precision]}</span>
+						{#if action.due}
+							{action.due.label}
+							<span class="jlp-meta jlp-block">{PRECISION[action.due.precision]}</span>
+						{:else}
+							<span class="jlp-meta">{$i18n.t('No target recorded')}</span>
+						{/if}
 					</td>
 					<td>
 						<span class="jlp-status">{STATE[action.state] ?? action.state}</span>
 						<span class="jlp-meta jlp-block">
-							{action.closure ? $i18n.t('Closure recorded') : $i18n.t('Not closed by BOD')}
+							{CLOSURE[closureNote(action)]}
 						</span>
 						<span class="jlp-row-buttons">
 							<button type="button" class="jlp-link" on:click={() => dispatch('select', action.id)}

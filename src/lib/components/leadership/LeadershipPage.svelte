@@ -14,6 +14,7 @@
 		type LeadershipView,
 		type Overview
 	} from '$lib/apis/leadership';
+	import { isOpenAction, isSampleRegister } from '$lib/leadership/actions';
 	import { SUPPORTED, validateContextQuery, type ContextProblem } from '$lib/leadership/context';
 	import { barShare, formatDateId, formatValue } from '$lib/leadership/format';
 
@@ -39,6 +40,21 @@
 
 	$: scopeId = SUPPORTED[view].scope;
 	$: viewLabel = view === 'board' ? 'Direksi & Komisaris' : 'RKA & Realisasi';
+
+	// The short list names what still needs attention: the sample's examples as they are, the
+	// recorded register without what the BOD has closed.
+	const shortList = (overview: Overview) =>
+		isSampleRegister(overview)
+			? overview.actions
+			: overview.actions.filter((action) => isOpenAction(action.state));
+
+	$: MINI_STATE = {
+		not_started: $i18n.t('Not started'),
+		in_progress: $i18n.t('In progress'),
+		blocked: $i18n.t('Blocked'),
+		awaiting_bod_closure: $i18n.t('Awaiting BOD closure'),
+		closed: $i18n.t('Closed by BOD')
+	} as Record<string, string>;
 
 	// Reload whenever the view, the context identifiers or the signed-in account changes. A
 	// response for an earlier request is dropped, so one reader's report never renders for the next.
@@ -316,17 +332,30 @@
 				>
 			</div>
 			<p class="jlp-meta">
-				{$i18n.t('{{count}} examples from the presentation · not a total', {
-					count: overview.actions.length
-				})}
+				{#if isSampleRegister(overview)}
+					{$i18n.t('{{count}} examples from the presentation · not a total', {
+						count: overview.actions.length
+					})}
+				{:else}
+					{$i18n.t('{{count}} open of {{total}} recorded actions', {
+						count: shortList(overview).length,
+						total: overview.actions.length
+					})}
+				{/if}
 			</p>
+			{#if overview.actions_note}
+				<p class="jlp-meta">{overview.actions_note}</p>
+			{/if}
 			<ul class="jlp-mini-list">
-				{#each overview.actions as action (action.id)}
+				{#each shortList(overview) as action (action.id)}
 					<li class="jlp-mini" class:jlp-row-selected={recordId === action.id}>
 						<strong>{action.title}</strong>
 						<span class="jlp-meta jlp-block">{action.owner_label}</span>
 						<span class="jlp-meta jlp-block">
-							{$i18n.t('Target')}: {action.due.label} · {$i18n.t('Ongoing according to the source')}
+							{$i18n.t('Target')}: {action.due ? action.due.label : $i18n.t('No target recorded')} ·
+							{isSampleRegister(overview)
+								? $i18n.t('Ongoing according to the source')
+								: (MINI_STATE[action.state] ?? action.state)}
 						</span>
 					</li>
 				{/each}
@@ -369,15 +398,18 @@
 				<ActionRegister
 					actions={overview.actions}
 					selectedId={recordId}
-					partial={overview.coverage === 'partial'}
+					source={overview.actions_source}
+					partial={isSampleRegister(overview) && overview.coverage === 'partial'}
 					on:source={(event) => openSource(event.detail)}
 					on:select={(event) => select(event.detail)}
 				/>
-				<p class="jlp-meta mt-3">
-					{$i18n.t(
-						'Origin meetings, earlier updates and due-date history are not in this example. The full register arrives with the persistent action record.'
-					)}
-				</p>
+				{#if isSampleRegister(overview)}
+					<p class="jlp-meta mt-3">
+						{$i18n.t(
+							'Origin meetings, earlier updates and due-date history are not in this example. The full register arrives with the persistent action record.'
+						)}
+					</p>
+				{/if}
 			</div>
 		</Modal>
 	{/if}
