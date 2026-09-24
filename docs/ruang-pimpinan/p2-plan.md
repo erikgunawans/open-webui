@@ -173,6 +173,13 @@ pass.
   - An unpublished draft can't pass as published.
   - A forecast write can't touch a baseline.
   - A revoked reader is denied a snapshot they could read before.
+- _Decided by Erik 2026-09-24, as built in `02d6325aa`:_
+  - `JUP_LEADERSHIP_PUBLICATION_POLICY` is `{"four_eyes": true | false}`; with four eyes, a draft's
+    author cannot publish it.
+  - `snapshots.publish` covers both freezing a draft and publishing it.
+  - Corrections have no HTTP route yet; it lands with the T7/T8 screens.
+  - Corrections record no reason for now; a reason column needs its own migration (a new revision,
+    never an edit to `jl0002`).
 
 **T6 — Reviewed imports** (`imports.py`).
 
