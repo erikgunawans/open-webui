@@ -267,9 +267,18 @@ pass.
     `pic_assigned` event; a reason to replace a PIC; refused when closed, under BOD review, unchanged
     or unknown. Erik decided on 2026-09-24 that he holds `actions.assign` in production; the grant is
     applied with the P2 deploy and, like every production grant, needs its own OK then.
-  - Not built: the RKA baseline-versus-draft comparison, and the two discussion modules that need
-    two comparable published snapshots. Server refusals (422) and flag reasons still render in
-    English under id-ID; history shows author ids, not names.
+  - _Added 2026-09-25:_ server refusals and flag reasons render in the reader's language
+    (`0d987b3f8`); history names its authors (`c086b9088`); frozen snapshot actions show their
+    state (`82fe86b6c`); RKA content reads as labels and figures (`77a308013`). **Changes since the
+    last meeting**: `GET /meeting-changes` compares the two latest _published_ meeting records of a
+    view by meeting date (a draft never counts; fewer than two is `available: false`, not empty).
+    Metric differences are server Decimal arithmetic, only between readings of the same unit, kind
+    and scope; otherwise a note says which differed. Action state and target changes, new and
+    dropped actions; actions frozen from different sources are not compared.
+  - Not built: the RKA baseline-versus-draft comparison. It needs an RKA content contract (figures
+    keyed by KPI, each with its unit), a reason on each RKA record, and a route to record one:
+    blocked on the KPI definitions. "Decisions required" needs authored proposals and decisions
+    with authority and dates, a new record type, not a comparison.
 
 **T9 — End-to-end walk and evidence.**
 

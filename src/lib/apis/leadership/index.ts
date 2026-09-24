@@ -645,6 +645,51 @@ export const getSnapshots = (
 		signal
 	);
 
+// The last meeting record of one view against the one before it. Unavailable, never empty, until
+// two meetings are published. A difference is the server's decimal arithmetic, and only between
+// readings of the same unit, kind and scope; otherwise `difference_note` says which one differed.
+export type MetricChange = {
+	id: string;
+	label: string;
+	change: 'changed' | 'unchanged' | 'added' | 'removed';
+	before: Reading | null;
+	after: Reading | null;
+	difference: string | null;
+	difference_note: 'missing' | 'unit' | 'kind' | 'scope' | null;
+};
+
+export type ActionBrief = { id: string; title: string; state: string; due: string | null };
+
+export type ActionChange = {
+	id: string;
+	title: string;
+	state_before: string;
+	state_after: string;
+	due_before: string | null;
+	due_after: string | null;
+};
+
+export type MeetingChanges =
+	| { view: LeadershipView; available: false; published_meetings: number }
+	| {
+			view: LeadershipView;
+			available: true;
+			before: SnapshotVersion;
+			after: SnapshotVersion;
+			metrics: MetricChange[];
+			// False when the two meetings froze actions from different sources (sample or records).
+			actions_comparable: boolean;
+			actions_source: 'sample' | 'records';
+			actions: { added: ActionBrief[]; removed: ActionBrief[]; changed: ActionChange[] };
+	  };
+
+export const getMeetingChanges = (
+	token: string,
+	view: LeadershipView,
+	scopeId: string,
+	signal?: AbortSignal
+) => request<MeetingChanges>(`/meeting-changes?${viewQuery(view, scopeId)}`, token, signal);
+
 export const getSnapshot = (
 	token: string,
 	view: LeadershipView,

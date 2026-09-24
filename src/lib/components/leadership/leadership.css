@@ -264,6 +264,14 @@
 	margin-bottom: 0.35rem;
 }
 
+/* A group inside a surface: one step below its title. */
+.jlp-group-title {
+	color: var(--jup-ink);
+	font-size: 0.875rem;
+	font-weight: 600;
+	margin-bottom: 0.25rem;
+}
+
 .jlp-bars {
 	margin: 0.6rem 0 0.9rem;
 	display: flex;

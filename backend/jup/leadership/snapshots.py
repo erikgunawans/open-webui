@@ -37,6 +37,7 @@ import os
 import re
 import uuid
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Any
 
 from jup.leadership.actions import CommandRefused
@@ -309,6 +310,125 @@ def list_snapshots(connection: Any, view: str) -> list[dict[str, Any]]:
             }
         )
     return listed
+
+
+# --- changes since the last meeting ---------------------------------------------------------
+
+# What a reading must share with the one it is compared to before a difference means anything.
+# The period is allowed to move (YTD July against YTD August is the point); each side keeps its own.
+_COMPARABLE = (('unit', 'unit'), ('kind', 'kind'), ('scope_id', 'scope'))
+
+
+def meeting_changes(connection: Any, view: str) -> dict[str, Any]:
+    """The last meeting record of one view against the one before it.
+
+    Only published versions are meeting records; a draft is never compared against. Meetings are
+    ordered by meeting date (a snapshot without one by when it was frozen), not by publication order.
+    """
+    from sqlalchemy import select
+
+    from jup.leadership.models import snapshot
+
+    heads = connection.execute(select(snapshot.c.id).where(snapshot.c.view_key == view)).scalars()
+    records = [record for record in (latest_published(connection, head) for head in heads) if record]
+    if len(records) < 2:
+        return {'available': False, 'published_meetings': len(records)}
+    records.sort(key=_meeting_order)
+    before, after = records[-2], records[-1]
+    compared = compare_contents(json.loads(before.content_bytes), json.loads(after.content_bytes))
+    return {'available': True, 'before': before.summary(), 'after': after.summary(), **compared}
+
+
+def _meeting_order(record: SnapshotVersion) -> tuple[str, int]:
+    frozen_on = dt.datetime.fromtimestamp(record.created_at / 1000, dt.UTC).date().isoformat()
+    return (record.meeting_date or frozen_on, record.created_at)
+
+
+def compare_contents(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
+    """Two frozen view contents, metric by metric and action by action. Pure."""
+    comparable = before.get('actions_source') == after.get('actions_source')
+    return {
+        'metrics': _compare_metrics(before.get('metrics', []), after.get('metrics', [])),
+        'actions_comparable': comparable,
+        # The state vocabulary of the actions compared: the deck's (`sample`) or the lifecycle's.
+        'actions_source': after.get('actions_source'),
+        'actions': _compare_actions(before.get('actions', []), after.get('actions', []))
+        if comparable
+        else {'added': [], 'removed': [], 'changed': []},
+    }
+
+
+def _compare_metrics(before: list[dict[str, Any]], after: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    old = {metric['id']: metric for metric in before}
+    new = {metric['id']: metric for metric in after}
+    compared = []
+    for metric_id in [*new, *(key for key in old if key not in new)]:
+        was, now = old.get(metric_id), new.get(metric_id)
+        was_reading = was['primary'] if was else None
+        now_reading = now['primary'] if now else None
+        difference, note = _difference(was_reading, now_reading) if was and now else (None, None)
+        if was is None:
+            change = 'added'
+        elif now is None:
+            change = 'removed'
+        else:
+            change = 'unchanged' if was_reading == now_reading else 'changed'
+        compared.append(
+            {
+                'id': metric_id,
+                'label': (now or was)['label'],
+                'change': change,
+                'before': was_reading,
+                'after': now_reading,
+                'difference': difference,
+                'difference_note': note,
+            }
+        )
+    return compared
+
+
+def _difference(before: dict[str, Any], after: dict[str, Any]) -> tuple[str | None, str | None]:
+    if before.get('value') is None or after.get('value') is None:
+        return None, 'missing'
+    for key, note in _COMPARABLE:
+        if before.get(key) != after.get(key):
+            return None, note
+    difference = Decimal(after['value']) - Decimal(before['value'])
+    return ('0' if difference == 0 else str(difference)), None
+
+
+def _compare_actions(before: list[dict[str, Any]], after: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    old = {item['id']: item for item in before}
+    new = {item['id']: item for item in after}
+
+    def brief(item: dict[str, Any]) -> dict[str, Any]:
+        return {'id': item['id'], 'title': item['title'], 'state': item['state'], 'due': _due_label(item)}
+
+    changed = []
+    for action_id, now in new.items():
+        was = old.get(action_id)
+        if was is None or (was['state'], _due_label(was)) == (now['state'], _due_label(now)):
+            continue
+        changed.append(
+            {
+                'id': action_id,
+                'title': now['title'],
+                'state_before': was['state'],
+                'state_after': now['state'],
+                'due_before': _due_label(was),
+                'due_after': _due_label(now),
+            }
+        )
+    return {
+        'added': [brief(item) for key, item in new.items() if key not in old],
+        'removed': [brief(item) for key, item in old.items() if key not in new],
+        'changed': changed,
+    }
+
+
+def _due_label(item: dict[str, Any]) -> str | None:
+    due = item.get('due')
+    return due.get('label') if isinstance(due, dict) else None
 
 
 # --- RKA records ----------------------------------------------------------------------------

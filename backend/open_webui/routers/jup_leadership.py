@@ -986,6 +986,37 @@ async def get_snapshots(
     return {'view': view, 'snapshots': listed}
 
 
+@router.get('/meeting-changes')
+async def get_meeting_changes(
+    view: View,
+    scope_id: Scope,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """The last meeting record of this view against the one before it; unavailable until there are two."""
+
+    def _audit(result: str) -> None:
+        audit('leadership_read', user=user.id, operation='meeting_changes', view=view, result=result)
+
+    if not may_read(permissions, view, scope_id):
+        _audit('refused')
+        raise _refuse()
+    _records_ready(_audit)
+
+    def _compare() -> dict[str, Any]:
+        with engine.connect() as connection:
+            return snapshots.meeting_changes(connection, view)
+
+    try:
+        changes = await run_in_threadpool(_compare)
+    except snapshots.IntegrityFailure as error:
+        _audit('integrity_failure')
+        raise _integrity_refusal(error) from error
+    _audit('served')
+    return {'view': view, **changes}
+
+
 @router.get('/snapshots/{snapshot_id}')
 async def get_snapshot(
     snapshot_id: str,

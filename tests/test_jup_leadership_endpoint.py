@@ -1056,6 +1056,58 @@ def test_a_revoked_reader_is_denied_a_snapshot_they_could_read_before(client, di
         _no_store(response)
 
 
+CHANGES = f'{BASE}/meeting-changes{Q}'
+
+
+def _published_meeting(client, label: str, date: str) -> None:
+    draft = client.post(SNAPSHOTS, json={'meeting_label': label, 'meeting_date': date}).json()
+    publish = f'{BASE}/snapshots/{draft["snapshot_id"]}/publish{Q}'
+    assert client.post(publish, json={'expected_version': 1, 'content_hash': draft['content_hash']}).status_code == 200
+
+
+def test_changes_since_the_last_meeting_need_two_meeting_records(
+    client, directory, records, monkeypatch, caplog
+) -> None:
+    monkeypatch.setenv('JUP_LEADERSHIP_PUBLICATION_POLICY', OPEN_PUBLICATION)
+    _as_publisher(client, directory)
+    response = client.get(CHANGES)
+    assert response.status_code == 200
+    _no_store(response)
+    assert response.json() == {'view': 'board', 'available': False, 'published_meetings': 0}
+    _published_meeting(client, 'Rapat BOD Agustus 2026', '2026-08-27')
+    _new_draft(client)  # a draft never counts as a meeting
+    assert client.get(CHANGES).json()['available'] is False
+    _published_meeting(client, 'Rapat BOD September 2026', '2026-09-24')
+    with caplog.at_level('INFO'):
+        body = client.get(CHANGES).json()
+    assert body['available'] is True
+    assert (body['before']['meeting_label'], body['after']['meeting_label']) == (
+        'Rapat BOD Agustus 2026',
+        'Rapat BOD September 2026',
+    )
+    assert body['metrics'] and body['actions_comparable'] is True
+    assert 'content' not in body['before'], 'the comparison names its records; it does not resend them'
+    lines = _audit_lines(caplog)
+    assert any("'operation': 'meeting_changes'" in line and "'result': 'served'" in line for line in lines)
+
+
+@pytest.mark.parametrize('role', ['user', 'admin'])
+def test_changes_since_the_last_meeting_refuse_without_a_grant(client, directory, records, role) -> None:
+    _sign_in_as(client, role)
+    response = client.get(CHANGES)
+    assert response.status_code == 403
+    _no_store(response)
+
+
+def test_changes_are_read_through_the_view_asked_for(client, directory, records, monkeypatch) -> None:
+    monkeypatch.setenv('JUP_LEADERSHIP_PUBLICATION_POLICY', OPEN_PUBLICATION)
+    _as_publisher(client, directory)
+    _published_meeting(client, 'Agustus', '2026-08-27')
+    _published_meeting(client, 'September', '2026-09-24')
+    # A Board-only reader: two Board meetings compare, and the RKA view stays closed to them.
+    assert client.get(f'{BASE}/meeting-changes{RKA_Q}').status_code == 403
+
+
 def test_rka_records_are_for_an_rka_reader(client, directory, records) -> None:
     from jup.leadership.snapshots import record_rka
 

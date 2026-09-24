@@ -24,6 +24,7 @@
 	import ActionRegister from './ActionRegister.svelte';
 	import ActionDetail from './ActionDetail.svelte';
 	import MeetingHistory from './MeetingHistory.svelte';
+	import MeetingChanges from './MeetingChanges.svelte';
 	import RkaRecords from './RkaRecords.svelte';
 	import ImportReview from './ImportReview.svelte';
 	import SourceDetails from './SourceDetails.svelte';
@@ -181,6 +182,9 @@
 			'The leadership dataset failed validation.'
 		)
 	} as Record<string, string>;
+
+	// Set by the meeting comparison once two published meeting records exist.
+	let changesAvailable = false;
 
 	$: MODULE_STATE = {
 		unavailable: $i18n.t('Not yet available'),
@@ -413,6 +417,8 @@
 		</section>
 	{/if}
 
+	<MeetingChanges {view} {scopeId} bind:available={changesAvailable} />
+
 	<MeetingHistory {view} {scopeId} />
 
 	{#if view === 'rka'}
@@ -429,8 +435,16 @@
 			{#each overview.module_states as module (module.id)}
 				<li class="jlp-module">
 					<span class="jlp-module-label">{module.label}</span>
-					<span class="jlp-status">{MODULE_STATE[module.state] ?? module.state}</span>
-					<span class="jlp-meta jlp-block">{module.reason}</span>
+					{#if module.id === 'prior-meeting-change' && changesAvailable}
+						<!-- The dataset predates the meeting records; the comparison above is real data. -->
+						<span class="jlp-status">{MODULE_STATE.available}</span>
+						<span class="jlp-meta jlp-block"
+							>{$i18n.t('Compared from the two latest published meeting records.')}</span
+						>
+					{:else}
+						<span class="jlp-status">{MODULE_STATE[module.state] ?? module.state}</span>
+						<span class="jlp-meta jlp-block">{module.reason}</span>
+					{/if}
 				</li>
 			{/each}
 		</ul>
