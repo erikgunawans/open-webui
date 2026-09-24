@@ -252,6 +252,24 @@ pass.
   text-scale and 390 px checks as in the P1 gap walk. Named dialogs use `ariaLabelledby`.
 - _Acceptance:_ UX-02 (expanded).
 
+- _As built 2026-09-24_ (`139ceab99` … `ea6975d04`, walk fixes `0c92f11f2`, PIC assignment `9e35391b2`):
+  - The API client covers every P2 route. The register and the page's short list render
+    records-mode actions (no due date, no progress, the lifecycle states, the closure request's
+    status); the sample captions show only for the sample. `records` is no longer blocked by the
+    frontend, but switching it on is still deploy configuration with its own OK.
+  - Action detail with flags, evidence revisions and history; the PIC's progress and evidence form;
+    the BOD queue and decision (close, return, reopen); meeting history, snapshot viewer and
+    publication by hash; RKA record list; import review.
+  - `GET /actions/{id}` now lists the evidence revisions, and its history names each revision's
+    `evidence_id` instead of carrying the bucket's `storage_key`.
+  - **PIC assignment** (found in the walk: an imported action had no PIC user, so nobody could ever
+    submit on it): capability `actions.assign`, `POST /actions/{id}/pic` by sign-in email, a
+    `pic_assigned` event; a reason to replace a PIC; refused when closed, under BOD review, unchanged
+    or unknown. Who holds `actions.assign` in production is Erik's call.
+  - Not built: the RKA baseline-versus-draft comparison, and the two discussion modules that need
+    two comparable published snapshots. Server refusals (422) and flag reasons still render in
+    English under id-ID; history shows author ids, not names.
+
 **T9 — End-to-end walk and evidence.**
 
 - Run locally in real Chrome with synthetic PIC, BOC, BOD (individual and collective), publisher,

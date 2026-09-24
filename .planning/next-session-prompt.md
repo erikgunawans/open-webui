@@ -1,3 +1,40 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-24-p2t8)
+
+> Prepended by /wrap 2026-09-24 (checkpoint 2026-09-24-p2t8). Supersedes checkpoint 2026-09-24-p2t7's anchor.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-24-p2t8).
+Anchor: `origin/main` at `9e35391b2` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-24-p2t8`). Verify with `git log --oneline 9e35391b2..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live on `ent-os-00027-lrc`, unchanged (Ruang Pimpinan enabled, Erik-only grant, illustrative sample). P2 T0–T8 plus PIC assignment (`actions.assign`, `POST /actions/{id}/pic`) are pushed, **not deployed**; Python CI and Frontend Build green on `9e35391b2`. Full suite 805 passed, 22 skipped; vitest 54. Every T8 screen was walked in real Chrome against a local records-mode server (recorded in `docs/ruang-pimpinan/status.md`, "T8 walk"). A1's digest `c516815a-1dfb-4d5a-ad7d-3b8e23618eaf` first fires Mon 2026-09-28 09:00:43 WIB.
+
+**Do next, in order:**
+1. **Ask Erik who holds `actions.assign` in production** (him, or a BOD secretary). It is a new capability holder, so its own OK; nothing to build until then.
+2. **P2 T9 — the recorded end-to-end walk** (`docs/ruang-pimpinan/p2-plan.md` § T9): the design's seven steps with synthetic PIC, BOC, BOD (individual **and** collective, quorum 2), publisher, import reviewer, assigner and admin; record each acceptance id in `status.md` with commit, environment, data mode and command. Include what the T8 walk skipped: keyboard-only use, text scale 150%/200%, and 390 px (same-origin iframe) on the new screens. `df -h /System/Volumes/Data` and `sysctl vm.swapusage` first (10 GB free at wrap). The walk recipe that worked: scratch `DATA_DIR`/`STATIC_DIR`, `.venv/bin/python -m uvicorn open_webui.main:app` from `backend/` on 8080, `vite dev` on 5050, users via `/auths/signup` (first = admin) and `/auths/add`, grants via `/groups/create` + `/groups/id/{id}/users/add`, actions via `actions.create_action(..., pic_user_id=...)` or now the PIC route. Interceptor's a11y tree is empty on this page: drive it with main-world DOM clicks guarded by `location.host`, and read one value per eval.
+3. **Postgres 16 run of T4–T8** (command below; add `tests/test_leadership_actions.py` and `tests/test_jup_leadership_endpoint.py`).
+4. **After Mon 2026-09-28 09:00 WIB: verify A1's first run** through a fresh ops tab (guard `location.host`): GET `/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs` → `success` + chat id; `gcloud logging read` the `jup.governance` lines around 02:00Z. Close the tab.
+5. **Carried polish:** server refusals (422) and flag reasons render in English under id-ID; history shows author ids, not names; frozen snapshot actions show no state; RKA content shows raw keys; the RKA baseline-vs-draft comparison and the two snapshot-comparison modules are not built. Per-turn `admitted` audit lines carry no chat id; critique leftovers (blocker owner/next step/date, English chrome under id-ID, "Open Sidebar"); CI Docker CUDA/Ollama variants; "Release to PyPI" fails on every push (vendor workflow).
+
+**Constraints to honor:**
+- Deploy, DB-config and production-grant authorization is per change, never standing. Record before-values in `.planning/*before*.json`. Pushing needs its own OK, except inside `/wrap`. A new Ruang Pimpinan reader or capability holder (including `actions.assign`) is a new grant: its own OK.
+- The env values `JUP_LEADERSHIP_ACTIONS_SOURCE`, `JUP_LEADERSHIP_BOD_POLICY` and `JUP_LEADERSHIP_PUBLICATION_POLICY` are deploy configuration: each lives in `deploy.sh`'s heredoc (`--env-vars-file` replaces the whole environment), each needs its own OK. The frontend no longer blocks `records`.
+- Before a P2 deploy: prove the GCS temporary hold on the real `jup-ops-data` bucket (one upload, then `gcloud storage objects describe` shows `temporaryHold: true`) — a production write, so Erik's OK.
+- CI's Python job runs `--only-group dev`: no top-level sqlalchemy/`google` imports in `backend/jup` modules or tests. Reproduce with `UV_PROJECT_ENVIRONMENT=$TMPDIR/devenv uv run --frozen --only-group dev pytest`.
+- ruff enforces C901 ≤ 10 and E501 ≤ 120. Frontend gate: `bun run format`, `bun run i18n:parse`, `git diff --exit-code`; after the parse, also check that every key the new screens use has a non-empty id-ID value (vendor keys can be empty and never show as new).
+- `jl0002` is pushed: schema changes are new revisions, never edits. Due-date precision vocabulary is `date`, `month`, `year`, `year_range`.
+- Ruang Pimpinan's approved decisions, ADR-0014, and Erik's confirmed T5/T6 calls are settled. The owner never closes; admin is not BOD; evidence never goes through vendor Files.
+- `holaboss-ai` and `KPI-Dashboard-JUP` are read-only.
+- Postgres checks: `docker run -d --rm --name jl-pg16 -e POSTGRES_PASSWORD=local -e POSTGRES_DB=jl -p 55432:5432 postgres:16`, then `JUP_TEST_POSTGRES_URL=postgresql://postgres:local@127.0.0.1:55432/jl uv run --no-sync --with psycopg2-binary pytest tests/test_leadership_repository.py tests/test_leadership_migrate.py tests/test_leadership_closure.py tests/test_leadership_snapshots.py tests/test_leadership_imports.py tests/test_leadership_evidence.py tests/test_leadership_actions.py`; stop the container after.
+
+**Open items waiting on Erik:**
+- Who holds `actions.assign` in production.
+- Two T7 calls: (1) in `records` mode the RKA view shows only recorded actions its dataset section references, so it stays empty until something links actions to RKA assumptions; (2) cancellation/supersession requests ride on an evidence submission.
+- Codex/Forge model pin, or keep "Claude-only" (T4 was merged without the Cato audit).
+- Disk/RAM: `uv cache prune` needs the uv MCP servers stopped; optional deletion of the Claude desktop VM image (9.1 GB).
+- Ruang Pimpinan company decisions: BOD and PIC identities; individual vs collective BOD closure (and quorum); publication authority (four-eyes?); KPI owners and definitions; retention, backup and data location (also when an evidence hold may be released); Dynamics details from IT; the CRM choice; a staleness threshold.
+- Optionally revise the digest prompt, or add `BYSECOND=0`. Plan decisions V1, E2, E7 and a D-decision per new egress; "JUP Staff" group membership; D19 wording and the Rp 10 miliar SPBG tier labelled POTENSI.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-24-p2t7)
 
 > Prepended by /wrap 2026-09-24 (checkpoint 2026-09-24-p2t7). Supersedes checkpoint 2026-09-24-p2t3's anchor.

@@ -105,6 +105,35 @@ go to whichever app is in front. The painted ring and the drawer's slide-in were
 because the driven tab is hidden (no window focus, and `requestAnimationFrame` paused). The rules,
 their colours and the state changes were measured instead.
 
+### T8 walk, 2026-09-24 (local, records mode)
+
+Backend on 8080 and Vite on 5050, scratch `DATA_DIR`/`STATIC_DIR`, `JUP_LEADERSHIP_ACTIONS_SOURCE=records`,
+BOD policy individual, publication four-eyes, local evidence store. Synthetic PIC, BOD, two
+secretaries, import reviewer, commissioner and assigner; actions seeded with `create_action`.
+Driven in real Chrome through Interceptor.
+
+- Register and short list render records-mode actions, including one with no due date.
+- PIC: progress recorded without a state change; an `http` link refused; completion with an https
+  link moved the action to awaiting BOD closure; the history names the evidence id, no storage key.
+- BOD: the queue listed both requests; a close after the PIC added revision 2 was refused (the
+  version check fires before the stale-evidence check, since new evidence bumps the version) and the
+  record reloaded to revision 2; the close then landed; a return without a reason was refused, with
+  a reason and `blocked` it landed; a closed action offers reopening.
+- Snapshots: a draft froze with its hash and a "not an approved meeting record" label; four-eyes
+  refused the author's publish; the second secretary published the same hash.
+- Commissioner: no forms, queue or import panel. RKA view: the approved baseline listed; its action
+  list empty in records mode (the open T7 call).
+- Imports: candidates unverified until reviewed; no Accept without an owner; accept and link made
+  both verified and the batch "All reviewed".
+- PIC assignment: an unknown email refused; a mixed-case email matched; the assigned PIC then got
+  the update form.
+- id-ID labels checked; the action detail stacks over the register dialog.
+
+Fixed from the walk (`0c92f11f2`): a BOD decision's confirmation vanished with the review section;
+a missing import value's reason sat in the value's place; six vendor keys had empty id-ID values.
+Seen once, not reproduced: the detail dialog closed after the first progress submit. Not walked:
+keyboard-only use, text scale and 390 px for the new screens.
+
 ## Acceptance matrix
 
 | ID             | Stage     | Status                  | Evidence / gap                                                                                                                           |
@@ -118,9 +147,9 @@ their colours and the state changes were measured instead.
 | DATA-01        | P1, P2/P4 | P1 part passed          | Actual, budget and forecast kept apart; variance only like-for-like. Reconciliation to sources is P2/P4.                                 |
 | DATA-02        | P1, P2/P4 | P1 part passed          | Missing is never zero (validator and card); malformed dataset is 503, never an empty report.                                             |
 | ACT-01         | P1, P2    | P1 part passed          | One shared action id resolves to one record in both views. Re-import identity is P2.                                                     |
-| ACT-02         | P2        | not started             | No write route exists; nothing can close an action.                                                                                      |
+| ACT-02         | P2        | built, walked locally   | PIC evidence and BOD closure through the UI (T8 walk); T9's recorded end-to-end walk pending.                                            |
 | ACT-03         | P1, P2    | P1 part passed          | Month, year and range targets shown with their precision; no overdue computed.                                                           |
-| SNAP-01        | P2        | not started             |                                                                                                                                          |
+| SNAP-01        | P2        | built, walked locally   | Draft, four-eyes refusal and publication by hash through the UI (T8 walk); T9 pending.                                                   |
 | ACCESS-01      | P1 → P5   | P1 read surfaces passed | Views, API and sources enforce and re-check per request. History, search, export and tools arrive later.                                 |
 | MX-01          | P1, P3    | P1 part passed          | UI and API read one reader module. Tools are P3.                                                                                         |
 | WRITE-01       | P3/P4/P5  | not started             |                                                                                                                                          |

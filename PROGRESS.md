@@ -1,6 +1,37 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-24-p2t7 (latest) — P2 T4–T7 built and pushed; evidence-wipe fixed
+## Checkpoint 2026-09-24-p2t8 (latest) — P2 T8 frontend built, walked in Chrome, PIC assignment added
+
+- **Session:** `/next` → T8 slices a–f, each committed → Erik: "ok to push" → Erik: "please start" (local Chrome walk) → walk fixes → Erik: "push 0c92f11f2" → Erik: "yes please build" (PIC assignment) → Erik: "push 9e35391b2" → `/wrap`.
+- **Live:** unchanged, `ent-os-00027-lrc`. No deploy. `origin/main` is ahead of live by T0–T8.
+- **Commits (all pushed; Python CI and Frontend Build green on `ea6975d04` and `9e35391b2`, Frontend Build green on `0c92f11f2`):** `139ceab99` (T8a API client, register safe for records), `3013eeaba` (T8b action detail; server lists evidence, hides `storage_key`), `87d995736` (T8c PIC form), `fd6060ed2` (T8d BOD queue and decision), `da8c7460a` (T8e meetings, snapshots, RKA records), `ea6975d04` (T8f import review), `0c92f11f2` (walk fixes), `9e35391b2` (PIC assignment).
+- **Tests:** full suite 805 passed, 22 skipped; CI's `--only-group dev` 533 passed; vitest 54; svelte-check has no finding in any leadership file (vendor has 7794); the format → i18n → `git diff --exit-code` gate is clean. New guards mutation-checked (evidence list and storage key; PIC capability, reason, unknown person, under review).
+
+### What shipped
+
+- **T8 frontend**, six slices: API client for every P2 route (409 detail kept); records-mode register (null due, no progress, lifecycle states, closure request status); `ActionDetail` (flags, evidence revisions with download or link, history newest first); `ActionSubmit` (progress; evidence file or https link, optional completion / cancellation+reason / supersession+replacement; one idempotency key per form); `ClosureReview` (close, return with reason and state, reopen; vote count vs quorum) and a BOD queue on the page; `MeetingHistory` + `SnapshotViewer` (published by default, draft labelled, versions and correction links, freeze and publish by hash); `RkaRecords`; `ImportReview`. Capabilities store now carries `operations`. Every string id-ID.
+- **Server, T8b:** `GET /actions/{id}` lists the evidence revisions; the history's evidence events name `evidence_id` and no longer carry the bucket `storage_key`.
+- **PIC assignment:** `actions.assign` capability (default false); `assign_pic` → `pic_assigned` event; `POST /actions/{id}/pic` by sign-in email (stored as the user id); reason required to replace; refused when closed, under BOD review, unchanged or unknown. No schema change.
+- **Local Chrome walk** of every T8 screen with seven synthetic roles: recorded in `docs/ruang-pimpinan/status.md` (T8 walk). ACT-02 and SNAP-01 now "built, walked locally".
+
+### Findings
+
+- **An imported action had no PIC user**, so nobody could ever submit evidence on it. Fixed by the PIC assignment; who holds `actions.assign` in production is open.
+- **From the UI the version check always fires before the stale-evidence check:** any new evidence revision bumps the version. The stale-evidence 409 is reachable only through the API; the UI's "changed since you opened it" and reload cover it.
+- **Vendor i18n keys with empty id-ID values** ("History", "Open", "Note", "Reason", "Open link", "Missing") are not flagged by `i18n:parse`, because the key already exists. Check the id-ID value of every key a new screen uses, not only the new ones.
+- **The Interceptor a11y tree came back empty** on the leadership page; the walk drove it with main-world DOM clicks guarded by `location.host`.
+- **A truncated read misled me once:** `tail` of a joined eval string cut the part I was reading. Read one value per eval when asserting a message.
+- Dev servers were cheap: runtime and MiniLM already cached; a scratch `DATA_DIR`/`STATIC_DIR` and env file in the session scratchpad.
+
+### Open at checkpoint
+
+- **Who holds `actions.assign`** in production (a new capability holder: its own OK).
+- **T9**: the recorded end-to-end walk (design's seven steps, acceptance ids in `status.md`), plus keyboard-only, text scale and 390 px on the new screens.
+- Before any P2 deploy: the GCS hold on the real bucket; Postgres 16 run of T4–T8; each new env value's OK.
+- Two T7 calls; English server refusals and flag reasons under id-ID; author ids instead of names; the RKA baseline-vs-draft comparison and the two snapshot-comparison modules not built.
+- A1's first run after Mon 2026-09-28 09:00 WIB.
+
+## Checkpoint 2026-09-24-p2t7 — P2 T4–T7 built and pushed; evidence-wipe fixed
 
 - **Session:** `/next` → disk 1.7 GB, Codex blocked → T4 → Erik: "Merge. Ok to push and Evidence-wipe fix" → push, hold fix, CI fix → T5 → push → T6 → push → Erik confirmed T5 and T6 calls → T7 → push → T8 stopped on disk/swap → `/wrap`.
 - **Live:** unchanged, `ent-os-00027-lrc`. No deploy. `origin/main` is ahead of live by T0–T7 (all inert until deployed; the new env values are unset, so every new path answers 503 or keeps P1 behaviour).
