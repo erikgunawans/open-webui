@@ -1,6 +1,34 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-24-p2t3 (latest) — T0 verified on Postgres 16, P2 T1–T3 built and pushed
+## Checkpoint 2026-09-24-p2t7 (latest) — P2 T4–T7 built and pushed; evidence-wipe fixed
+
+- **Session:** `/next` → disk 1.7 GB, Codex blocked → T4 → Erik: "Merge. Ok to push and Evidence-wipe fix" → push, hold fix, CI fix → T5 → push → T6 → push → Erik confirmed T5 and T6 calls → T7 → push → T8 stopped on disk/swap → `/wrap`.
+- **Live:** unchanged, `ent-os-00027-lrc`. No deploy. `origin/main` is ahead of live by T0–T7 (all inert until deployed; the new env values are unset, so every new path answers 503 or keeps P1 behaviour).
+- **Commits (all pushed, Python CI green on each after `dc0996fd0`):** `fe91c7d9d` (T4), `7784beaaf` (evidence hold), `dc0996fd0` (CI fix), `02d6325aa` (T5), `3f37f47e7` (T6), `36ec2c253` + `96046c78c` (T6/T5 decisions recorded), `e8e367223` (T7).
+- **Tests:** full suite 790 passed, 22 skipped (Postgres-only). CI's `--only-group dev` job reproduced locally: 533 passed. Every task mutation-checked (T4 14, T5 20, T6 17, T7 17 guards; all killed after the survivors got tests). **T4–T7 not yet run on Postgres 16** (disk).
+
+### What shipped
+
+- **T4** `closure.py`: `bod.review` capability; `JUP_LEADERSHIP_BOD_POLICY` `{"mode":"individual"}` or `{"mode":"collective","quorum":N≥2}`, unset/invalid → 503 for a reviewer, 403 for anyone else. PIC never reviews own action. A decision names the evidence revision; a newer one → 409 stale. Collective counts distinct reviewers on the latest revision only. Return (in progress/blocked, reason) and reopen (reason, closure kept) are single-reviewer. `POST /actions/{id}/closure`. Erik merged it **without the Cato audit** the plan called for.
+- **Evidence-wipe fix** `7784beaaf`: `GCSEvidenceStore.put` uploads with `if_generation_match=0`, sets a temporary hold, rereads it; `EvidenceNotHeld` fails the put so no row points at an unheld object. The vendor's delete-all raises `Forbidden` at the first held object (it wraps only `NotFound`). Runtime SA has `roles/storage.objectUser` on `jup-ops-data`, enough to set holds. **Not yet proven against the real bucket.**
+- **T5** `snapshots.py`: drafts freeze one view as canonical JSON + sha256; immutable versions (draft / publication / correction); publication needs `snapshots.publish` + `JUP_LEADERSHIP_PUBLICATION_POLICY` `{"four_eyes": bool}` and the reviewed hash; every read verifies hash, state and links. RKA records: baseline / revision / forecast, insert-only. Routes `GET/POST /snapshots`, `GET /snapshots/{id}`, `POST /snapshots/{id}/publish`, `GET /baselines`.
+- **T6** `imports.py`: structured candidate file (no PPTX), checked whole; nulls need a reason; `source_metadata` kept verbatim; same bytes = no-op; matching only through reviewed `leadership_external_ref`; title/owner/due differences stored as conflicts; review once (accept / link / reject); verified only after accept or link. `imports.review`; `POST/GET /imports`, `GET /imports/{id}`, `POST /imports/candidates/{id}/review`.
+- **T7**: `JUP_LEADERSHIP_ACTIONS_SOURCE` `sample` (default) / `records` / else 503; every overview names `actions_source`; records mode: Board = whole register, RKA = recorded actions its section references; empty register served empty with `actions_note`, never the sample. `recorded_actions()` in the dataset's action shape. Evidence carries `closure_kind` (completed / cancelled+reason / superseded+replacement). `/overview` and `/sources` audited.
+- Erik confirmed the four T5 and four T6 calls (recorded in `p2-plan.md`).
+
+### Findings
+
+- **CI's Python job runs `--only-group dev`:** a test module that imports sqlalchemy or `google` at top level breaks collection. Domain modules import the DB runtime inside functions (as `actions.py` did); guard `find_spec` of a dotted name against a missing parent.
+- **The falling free space is swap, not a leak.** `vm.swapusage` 8.4 of 9.2 GB used; free disk swung 2.0 → 4.9 GB within minutes. Erik deleted the claude-mem backup (`claude-mem.db.bak-cwd-remap-*`) and `~/.claude-mem/logs/*`. `uv cache prune` timed out on the lock held by macos-mcp (Claude desktop), serena ×2 and chroma-mcp.
+- ruff's C901 (complexity 10) bit every new module; the domain functions are split into planner helpers.
+
+### Open at checkpoint
+
+- **T8 frontend** not started. The P1 register breaks on records-mode actions (`due: null`, lifecycle states), so `records` must not be switched on before T8.
+- Two T7 calls await Erik: RKA view membership in records mode; closure requests riding on evidence.
+- Postgres 16 run of T4–T7; the hold on the real bucket; the Cato/Codex question; A1's first run after Mon 2026-09-28 09:00 WIB.
+
+## Checkpoint 2026-09-24-p2t3 — T0 verified on Postgres 16, P2 T1–T3 built and pushed
 
 - **Session:** `/next` → Docker unresponsive, so the carried #10 README fix → Erik restarted Docker → T0 on Postgres 16 → Erik: "OK on T0" → T1 → T2 → T3 → push (Erik's OK) → Codex upgrade attempt, blocked by a full disk → `/wrap`.
 - **Live:** unchanged, `ent-os-00027-lrc`. No deploy this session. `origin/main` is ahead of live by T0–T3 (all inert until deployed).

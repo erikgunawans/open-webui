@@ -1,3 +1,47 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-24-p2t7)
+
+> Prepended by /wrap 2026-09-24 (checkpoint 2026-09-24-p2t7). Supersedes checkpoint 2026-09-24-p2t3's anchor.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-24-p2t7).
+Anchor: `origin/main` at `e8e367223` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-24-p2t7`). Verify with `git log --oneline e8e367223..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live on `ent-os-00027-lrc`, unchanged (Ruang Pimpinan enabled, Erik-only grant, illustrative sample). P2 T0–T7 are pushed, **not deployed**, Python CI green: T4 BOD closure (`closure.py`), the GCS evidence hold (`7784beaaf`), T5 snapshots + RKA records (`snapshots.py`), T6 reviewed imports (`imports.py`), T7 actions source + closure requests + audited reads. Full suite 790 passed, 22 skipped (Postgres-only). A1's digest `c516815a-1dfb-4d5a-ad7d-3b8e23618eaf` first fires Mon 2026-09-28 09:00:43 WIB.
+
+**Do next, in order:**
+1. **`df -h /System/Volumes/Data` and `sysctl vm.swapusage` first.** Free disk swings by GBs with swap (8.4/9.2 GB used at wrap, 2.0–4.9 GB free). Below ~3 GB, ask Erik to free space; before any dev-server run, ask him to quit the Claude desktop app.
+2. **P2 T8 — frontend** (`src/lib/components/leadership/`), per `docs/ruang-pimpinan/p2-plan.md` § T8. Suggested slices, each its own commit:
+   a. API client types for every P2 route (`src/lib/apis/leadership/index.ts`); make `ActionRegister` safe for records-mode actions (`due: null`, lifecycle states `not_started`/`blocked`/`awaiting_bod_closure`, `actions_source`/`actions_note` shown) — **this unblocks `JUP_LEADERSHIP_ACTIONS_SOURCE=records`**.
+   b. Action detail with event history (`GET /actions/{id}`).
+   c. PIC progress + evidence form (file or link; completion / cancellation+reason / supersession+replacement).
+   d. BOD review queue + decision dialog (close / return / reopen; stale-evidence 409 names the latest revision).
+   e. Meeting history + snapshot viewer (draft vs published, correction links) and RKA baseline list.
+   f. Import review screen (candidates, matches, conflicts, accept/link/reject).
+   Every string through a literal `$i18n.t('...')` with id-ID ([[i18n-extractor-needs-literal-calls]]); named dialogs use `ariaLabelledby`; vitest for pure helpers; `svelte-check`; then the frontend gate sequence ([[frontend-gate-red-from-prose-and-locales]]). Chrome/Interceptor verification needs a local dev server — only with enough disk.
+3. **Postgres 16 run of T4–T7** when disk allows (command below).
+4. **After Mon 2026-09-28 09:00 WIB: verify A1's first run** through a fresh ops tab (guard `location.host`): GET `/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs` → `success` + chat id; `gcloud logging read` the `jup.governance` lines around 02:00Z. Close the tab.
+5. **Carried:** T8 closes the P2 build; T9 is the end-to-end walk. Per-turn `admitted` audit lines carry no chat id; critique leftovers (blocker owner/next step/date, English chrome under id-ID, "Open Sidebar"); CI Docker CUDA/Ollama variants failing on `259429034`; "Release to PyPI" fails on every push (vendor workflow).
+
+**Constraints to honor:**
+- Deploy, DB-config and production-grant authorization is per change, never standing. Record before-values in `.planning/*before*.json`. Pushing needs its own OK, except inside `/wrap`. A new Ruang Pimpinan reader or capability holder is a new grant: its own OK.
+- **Do not set `JUP_LEADERSHIP_ACTIONS_SOURCE=records` anywhere before T8 slice (a)**: the P1 register dereferences `action.due.label`.
+- The new env values (`JUP_LEADERSHIP_BOD_POLICY`, `JUP_LEADERSHIP_PUBLICATION_POLICY`, `JUP_LEADERSHIP_ACTIONS_SOURCE`) are deploy configuration: each would live in `deploy.sh`'s heredoc (`--env-vars-file` replaces the whole environment), each needs its own OK.
+- Before a P2 deploy: prove the GCS temporary hold on the real `jup-ops-data` bucket (one upload, then `gcloud storage objects describe` shows `temporaryHold: true`) — a production write, so Erik's OK.
+- CI's Python job runs `--only-group dev`: no top-level sqlalchemy/`google` imports in `backend/jup` modules or tests. Reproduce with `UV_PROJECT_ENVIRONMENT=$TMPDIR/devenv uv run --frozen --only-group dev pytest`.
+- ruff enforces C901 ≤ 10 and E501 ≤ 120; run `ruff check` on the leadership files before committing.
+- `jl0002` is pushed: schema changes are new revisions, never edits. Due-date precision vocabulary is `date`, `month`, `year`, `year_range`.
+- Ruang Pimpinan's approved decisions, ADR-0014, and Erik's confirmed T5/T6 calls (in `p2-plan.md`) are settled. The owner never closes; admin is not BOD; evidence never goes through vendor Files.
+- `holaboss-ai` and `KPI-Dashboard-JUP` are read-only.
+- Postgres checks: `docker run -d --rm --name jl-pg16 -e POSTGRES_PASSWORD=local -e POSTGRES_DB=jl -p 55432:5432 postgres:16`, then `JUP_TEST_POSTGRES_URL=postgresql://postgres:local@127.0.0.1:55432/jl uv run --no-sync --with psycopg2-binary pytest tests/test_leadership_repository.py tests/test_leadership_migrate.py tests/test_leadership_closure.py tests/test_leadership_snapshots.py tests/test_leadership_imports.py tests/test_leadership_evidence.py`; stop the container after.
+
+**Open items waiting on Erik:**
+- Two T7 calls: (1) in `records` mode the RKA view shows only recorded actions its dataset section references (imported actions get new ids, so it stays empty until something links actions to RKA assumptions); (2) cancellation/supersession requests ride on an evidence submission (the alternative is a schema change for evidence-less requests).
+- Disk/RAM: `uv cache prune` needs the uv MCP servers stopped (quit Claude desktop; `kill` serena/chroma-mcp PIDs from `lsof ~/.cache/uv/.lock`); optional deletion of the Claude desktop VM image (9.1 GB).
+- Codex/Forge model pin, or keep "Claude-only" (T4 was merged without the Cato audit).
+- Ruang Pimpinan company decisions: BOD and PIC identities; individual vs collective BOD closure (and quorum); publication authority (four-eyes?); KPI owners and definitions; retention, backup and data location (also when an evidence hold may be released); Dynamics details from IT; the CRM choice; a staleness threshold.
+- Optionally revise the digest prompt, or add `BYSECOND=0`. Plan decisions V1, E2, E7 and a D-decision per new egress; "JUP Staff" group membership; D19 wording and the Rp 10 miliar SPBG tier labelled POTENSI.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-24-p2t3)
 
 > Prepended by /wrap 2026-09-24 (checkpoint 2026-09-24-p2t3). Supersedes checkpoint 2026-09-24-a1's anchor.
