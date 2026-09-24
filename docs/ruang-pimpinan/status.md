@@ -189,6 +189,18 @@ the ring rule; the leadership text fields have no focus rule of their own. Seen 
 polish): refusals and flag reasons in English under id-ID, author ids in history, no state on
 frozen snapshot actions. Imports were not re-walked (T8 covered them).
 
+### Postgres 16, 2026-09-24
+
+Until now only the repository and migration suites read `JUP_TEST_POSTGRES_URL`; the closure,
+snapshot, import, evidence, action and endpoint suites built SQLite whatever was set, so earlier
+"Postgres runs of T4–T8" tested T4–T8 on SQLite. They now take their store from the shared
+`leadership_db_url` fixture (`tests/conftest.py`): a fresh database per test on the given server,
+dropped after; SQLite when unset, so CI is unchanged. On Postgres 16.15 (`postgres:16`, local
+container): 373 passed, 0 skipped, across repository, migrate, closure, snapshots, imports,
+evidence, actions and the endpoint (the new state route included). The server's DDL log showed 48
+`CREATE DATABASE` for the actions and closure suites alone, none left behind. SQLite: 351 passed,
+22 skipped.
+
 ## Acceptance matrix
 
 | ID             | Stage     | Status                    | Evidence / gap                                                                                                                              |

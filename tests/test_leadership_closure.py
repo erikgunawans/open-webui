@@ -73,7 +73,7 @@ def test_the_policy_comes_from_the_environment(monkeypatch: pytest.MonkeyPatch) 
 
 
 @pytest.fixture
-def engine(tmp_path: Path):
+def engine(tmp_path: Path, leadership_db_url: str):
     """act-1 awaiting BOD closure on evidence revision 1 (version 3); act-2 in progress."""
     from sqlalchemy import create_engine
 
@@ -81,7 +81,7 @@ def engine(tmp_path: Path):
     from jup.leadership.evidence import link_evidence, submit_evidence
     from jup.leadership.repository import unit_of_work
 
-    engine = create_engine(f'sqlite:///{tmp_path / "webui.db"}')
+    engine = create_engine(leadership_db_url)
     assert migrate.run_leadership_migrations(engine) is True
     for action_id in ('act-1', 'act-2'):
         with unit_of_work(engine) as uow:

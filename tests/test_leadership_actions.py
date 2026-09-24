@@ -107,12 +107,12 @@ def test_flags_never_replace_the_state() -> None:
 
 
 @pytest.fixture
-def engine(tmp_path: Path):
+def engine(tmp_path: Path, leadership_db_url: str):
     from sqlalchemy import create_engine
 
     from jup.leadership import migrate
 
-    engine = create_engine(f'sqlite:///{tmp_path / "webui.db"}')
+    engine = create_engine(leadership_db_url)
     assert migrate.run_leadership_migrations(engine) is True
     yield engine
     engine.dispose()

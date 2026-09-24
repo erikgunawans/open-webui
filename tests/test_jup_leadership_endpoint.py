@@ -352,7 +352,7 @@ ACTION = f'{BASE}/actions/act-1?view=board&scope_id=jup-consolidated'
 
 
 @pytest.fixture
-def records(client, tmp_path: Path):
+def records(client, tmp_path: Path, leadership_db_url: str):
     """A migrated SQLite records store holding one action with a revised due date."""
     from sqlalchemy import create_engine
 
@@ -360,7 +360,7 @@ def records(client, tmp_path: Path):
     from jup.leadership.repository import unit_of_work
     from open_webui.routers import jup_leadership
 
-    engine = create_engine(f'sqlite:///{tmp_path / "records.db"}')
+    engine = create_engine(leadership_db_url)
     assert migrate.run_leadership_migrations(engine) is True
     with unit_of_work(engine) as uow:
         actions.create_action(

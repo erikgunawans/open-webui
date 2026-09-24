@@ -71,3 +71,34 @@ def fixture_path(fixtures_dir: Path) -> Callable[..., Path]:
         return path
 
     return _resolve
+
+
+@pytest.fixture
+def leadership_db_url(tmp_path: Path):
+    """An empty database URL for one test's leadership records store.
+
+    SQLite in a temp dir by default. With `JUP_TEST_POSTGRES_URL` set (a disposable server;
+    production is Cloud SQL Postgres 16), a fresh database is created on it and dropped after,
+    so every suite that builds its store here runs on Postgres too, not only the repository's
+    own Postgres-marked cases. Imports stay inside: CI's dev-only group has no sqlalchemy.
+    """
+    base = os.environ.get('JUP_TEST_POSTGRES_URL')
+    if not base:
+        yield f'sqlite:///{tmp_path / "webui.db"}'
+        return
+
+    import uuid
+
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.engine import make_url
+
+    name = f'jl_{uuid.uuid4().hex[:12]}'
+    admin = create_engine(base, isolation_level='AUTOCOMMIT')
+    with admin.connect() as connection:
+        connection.execute(text(f'CREATE DATABASE {name}'))
+    try:
+        yield make_url(base).set(database=name).render_as_string(hide_password=False)
+    finally:
+        with admin.connect() as connection:
+            connection.execute(text(f'DROP DATABASE IF EXISTS {name} WITH (FORCE)'))
+        admin.dispose()

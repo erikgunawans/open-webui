@@ -116,13 +116,13 @@ def test_the_store_follows_the_host_configuration(monkeypatch: pytest.MonkeyPatc
 
 
 @pytest.fixture
-def engine(tmp_path: Path):
+def engine(tmp_path: Path, leadership_db_url: str):
     from sqlalchemy import create_engine
 
     from jup.leadership import actions, migrate
     from jup.leadership.repository import unit_of_work
 
-    engine = create_engine(f'sqlite:///{tmp_path / "webui.db"}')
+    engine = create_engine(leadership_db_url)
     assert migrate.run_leadership_migrations(engine) is True
     for action_id, pic in (('act-1', PIC), ('act-2', OTHER_PIC), ('act-orphan', None)):
         with unit_of_work(engine) as uow:

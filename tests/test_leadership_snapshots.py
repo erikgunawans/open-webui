@@ -52,14 +52,14 @@ def dataset(fixture_path: Callable[..., Path]) -> dict:
 
 
 @pytest.fixture
-def engine(tmp_path: Path):
+def engine(tmp_path: Path, leadership_db_url: str):
     """One recorded action sharing an id with the seed's gas action, in progress (version 2)."""
     from sqlalchemy import create_engine
 
     from jup.leadership import actions, migrate
     from jup.leadership.repository import unit_of_work
 
-    engine = create_engine(f'sqlite:///{tmp_path / "webui.db"}')
+    engine = create_engine(leadership_db_url)
     assert migrate.run_leadership_migrations(engine) is True
     with unit_of_work(engine) as uow:
         actions.create_action(
