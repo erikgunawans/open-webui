@@ -3,6 +3,7 @@
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
 	import ServerText from './ServerText.svelte';
+	import ActionState from './ActionState.svelte';
 
 	import Modal from '$lib/components/common/Modal.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -210,6 +211,7 @@
 											? action.due.label
 											: $i18n.t('No target recorded')}</span
 									>
+									<ActionState state={action.state} source={shown.content.actions_source} />
 								</li>
 							{/each}
 						</ul>
