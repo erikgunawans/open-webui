@@ -1,4 +1,4 @@
-"""Read-only HTTP surface for Ruang Pimpinan (P1).
+"""The HTTP surface for Ruang Pimpinan: P1's reads and P2's recorded workflow.
 
 Thin by design, like `jup_portfolio`: validation, variance and view reachability live in
 `jup.leadership`, and are tested without a server. This module resolves configuration, applies
@@ -16,11 +16,11 @@ Three properties hold for every route:
   The route class adds it after the handler runs, so a 401 raised inside the host's own
   authentication dependency gets it too.
 
-There is deliberately no write route yet. Action progress, BOD closure and report publication
-arrive with their P2 tasks, each with its own capability; a read grant implies none of them. The
-one P2 route so far reads a single action and its event history from the records store
-(ADR-0014), and writes a `jup.governance` audit line naming the reader, the action and the
-result, never its content.
+P2 adds the records store (ADR-0014): reading one action and its event history, the PIC's
+progress and evidence (`actions.submit`), and the BOD's closure decisions (`bod.review`, and only
+while `JUP_LEADERSHIP_BOD_POLICY` is configured). Each write is its own capability, and a read
+grant implies none of them. Every P2 read and write leaves a `jup.governance` audit line naming
+the user, the operation, the record ids and the result, never content.
 
 The feature is off unless `JUP_LEADERSHIP_ENABLED` is set, and P1 serves only the labelled
 illustrative dataset named by `JUP_LEADERSHIP_SAMPLE_FILE`. Neither can be chosen by a request.
@@ -44,8 +44,8 @@ from fastapi.routing import APIRoute
 from pydantic import BaseModel, Field
 
 from jup.governance import audit
+from jup.leadership import closure, migrate
 from jup.leadership import evidence as evidence_commands
-from jup.leadership import migrate
 from jup.leadership.actions import REPORTING_TZ, CommandRefused, derive_flags, fold_history, latest_progress
 from jup.leadership.evidence_store import (
     EvidenceRejected,
@@ -159,9 +159,14 @@ async def get_capabilities(permissions: dict[str, Any] = Depends(leadership_perm
         'enabled': True,
         'views': views,
         'scope_ids': [scope for scope in SCOPES if allowed_views(permissions, scope)],
-        # Each capability is its own grant on top of a view grant (policy.py). Closure,
-        # publication and execution arrive with their own P2/P3 tasks.
-        'operations': allowed_operations(permissions),
+        # Each capability is its own grant on top of a view grant (policy.py). BOD review is
+        # listed only while a BOD policy is configured: without one nobody can close.
+        # Publication and execution arrive with their own P2/P3 tasks.
+        'operations': [
+            operation
+            for operation in allowed_operations(permissions)
+            if operation != 'bod.review' or closure.configured_policy() is not None
+        ],
         'reason': None if views else 'This account has no Ruang Pimpinan view.',
     }
 
@@ -301,6 +306,16 @@ def _write_error(error: Exception) -> HTTPException:
     """The HTTP answer for a refused write. Nothing was written in any of these cases."""
     if isinstance(error, evidence_commands.NotThePic):
         return HTTPException(status.HTTP_403_FORBIDDEN, "Only this action's recorded PIC can submit on it.")
+    if isinstance(error, closure.OwnerCannotReview):
+        return HTTPException(status.HTTP_403_FORBIDDEN, "An action's PIC cannot review its closure.")
+    if isinstance(error, closure.StaleEvidence):
+        return HTTPException(
+            status.HTTP_409_CONFLICT,
+            {
+                'message': 'The evidence changed since you reviewed it. Review the latest revision.',
+                'evidence_id': error.latest,
+            },
+        )
     if isinstance(error, ActionNotFound):
         return HTTPException(status.HTTP_404_NOT_FOUND, 'No such action.')
     if isinstance(error, VersionConflict):
@@ -319,6 +334,7 @@ def _write_error(error: Exception) -> HTTPException:
 
 _REFUSALS = (
     evidence_commands.NotThePic,
+    closure.OwnerCannotReview,
     ActionNotFound,
     VersionConflict,
     IdempotencyKeyReused,
@@ -522,3 +538,87 @@ async def get_evidence(
             'X-Content-Type-Options': 'nosniff',
         },
     )
+
+
+# --- The BOD's decisions (P2 T4) ----------------------------------------------------------
+
+
+class ClosureDecisionIn(BaseModel):
+    expected_version: int
+    decision: Literal['close', 'return', 'reopen']
+    # The evidence revision the reviewer looked at; required to close or return.
+    evidence_id: str | None = Field(default=None, max_length=64)
+    reason: str | None = Field(default=None, max_length=10_000)
+    return_to: Literal['in_progress', 'blocked'] | None = None
+    idempotency_key: str | None = Field(default=None, max_length=128)
+
+
+@router.post('/actions/{action_id}/closure')
+async def post_closure_decision(
+    action_id: str,
+    view: View,
+    scope_id: Scope,
+    form: ClosureDecisionIn,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """Close, return or reopen, as a BOD reviewer. Never the action's own PIC.
+
+    The capability is checked before anything else, so an unauthorised caller learns 403 and not
+    whether closure is configured. With the capability but no BOD policy, the answer is 503: there
+    is no closure path, and nothing pretends otherwise.
+    """
+
+    def _audit(result: str, **fields: Any) -> None:
+        audit(
+            'leadership_write',
+            user=user.id,
+            operation='closure_decision',
+            action_id=action_id,
+            decision=form.decision,
+            result=result,
+            **fields,
+        )
+
+    if not may(permissions, 'bod.review', view, scope_id):
+        _audit('refused')
+        raise _refuse()
+    if not _enabled():
+        _audit('unavailable')
+        raise _unavailable('Ruang Pimpinan is not enabled on this server.')
+    if not migrate.schema_ready():
+        _audit('unavailable')
+        raise _unavailable('The Ruang Pimpinan records store is not ready on this server.')
+    policy = closure.configured_policy()
+    if policy is None:
+        _audit('unavailable')
+        raise _unavailable('BOD closure is not configured on this server.')
+
+    command = form.model_dump()
+
+    def _run() -> Any:
+        with unit_of_work(engine) as uow:
+            return closure.decide(uow, action_id=action_id, reviewer=user.id, policy=policy, **command)
+
+    try:
+        decided = await run_in_threadpool(_run)
+    except _REFUSALS as error:
+        _audit(type(error).__name__)
+        raise _write_error(error) from error
+    _audit(
+        'replayed' if decided.replayed else decided.outcome,
+        decision_id=decided.decision_id,
+        mode=policy.mode,
+        close_votes=decided.close_votes,
+        quorum=decided.quorum,
+    )
+    return {
+        'action_id': action_id,
+        'version': decided.event.event.version,
+        'replayed': decided.replayed,
+        'decision_id': decided.decision_id,
+        'outcome': decided.outcome,
+        'close_votes': decided.close_votes,
+        'quorum': decided.quorum,
+    }

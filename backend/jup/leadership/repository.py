@@ -202,6 +202,21 @@ class UnitOfWork:
         self.connection.execute(action_event.insert().values(**row))
         return _event(row)
 
+    def event_for_key(self, action_id: str, key: str) -> Event | None:
+        """The event an idempotency key already recorded on this action, if any.
+
+        For commands whose event depends on what they read (a BOD vote's count), so a replay has
+        to be recognised by the command before anything is recomputed.
+        """
+        row = (
+            self.connection.execute(
+                select(action_event).where(action_event.c.action_id == action_id, action_event.c.idempotency_key == key)
+            )
+            .mappings()
+            .first()
+        )
+        return _event(row) if row is not None else None
+
     def _replay(self, action_id: str, key: str, kind: str, body: str) -> AppendResult | None:
         row = (
             self.connection.execute(

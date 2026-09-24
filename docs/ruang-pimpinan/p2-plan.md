@@ -1,6 +1,6 @@
 # Ruang Pimpinan P2 — durable board workflows: task plan
 
-**Status: plan approved by Erik 2026-09-24, including decisions E-1, E-2 and E-3. T0–T3 built and pushed 2026-09-24 (T0 reviewed by Erik and verified on Postgres 16; T3 at `140979974`); none deployed. Next: T4, then Erik's review.** Written 2026-09-24 against `main` at `d59a145dd`
+**Status: plan approved by Erik 2026-09-24, including decisions E-1, E-2 and E-3. T0–T3 built and pushed 2026-09-24 (T0 reviewed by Erik and verified on Postgres 16; T3 at `140979974`); T4 built 2026-09-24, committed locally, awaiting the closure-policy audit and Erik's review; none deployed.** Written 2026-09-24 against `main` at `d59a145dd`
 (P1 live on `ent-os-00027-lrc`, Erik-only grant, illustrative sample).
 
 Source of intent: the approved design and the P2 brief in the read-only handoff package

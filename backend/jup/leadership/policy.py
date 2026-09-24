@@ -18,6 +18,9 @@ follows from a read grant, and none from the admin role.
 
 - `actions.submit`: progress and evidence, on actions whose recorded PIC is the caller (the PIC
   check is the action's own, in `jup.leadership.evidence`).
+- `bod.review`: taking part in closure, return and reopening decisions. It opens nothing by itself:
+  the BOD policy (`JUP_LEADERSHIP_BOD_POLICY`, read in `jup.leadership.closure`) must also be
+  configured, and an action's own PIC never reviews it (both checked in `closure.py`).
 """
 
 from typing import Any
@@ -37,6 +40,7 @@ DEFAULT_PERMISSIONS: dict[str, Any] = {
             'rka': {'view': False},
             'scopes': {'jup_consolidated': False},
             'actions': {'submit': False},
+            'bod': {'review': False},
         }
     }
 }
@@ -59,7 +63,10 @@ def allowed_views(permissions: dict[str, Any], scope_id: str = 'jup-consolidated
 
 
 # Capability keys, as `capabilities.operations` names them, mapped to their place in the grants.
-CAPABILITIES: dict[str, tuple[str, str]] = {'actions.submit': ('actions', 'submit')}
+CAPABILITIES: dict[str, tuple[str, str]] = {
+    'actions.submit': ('actions', 'submit'),
+    'bod.review': ('bod', 'review'),
+}
 
 
 def may(permissions: dict[str, Any], capability: str, view: str, scope_id: str) -> bool:

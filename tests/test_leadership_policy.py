@@ -40,6 +40,7 @@ def test_the_defaults_are_all_false_and_complete() -> None:
         'rka': {'view': False},
         'scopes': {'jup_consolidated': False},
         'actions': {'submit': False},
+        'bod': {'review': False},
     }
 
 
@@ -143,3 +144,19 @@ def test_unknown_capabilities_and_the_defaults_grant_nothing() -> None:
     assert allowed_operations(DEFAULT_PERMISSIONS) == []
     assert allowed_operations(_with()) == ['actions.submit']
     assert allowed_operations(_with(board=False)) == []
+
+
+def test_bod_review_needs_its_own_grant_and_the_read_grant() -> None:
+    def _bod(review: object = True, board: bool = True) -> dict:
+        grants = _with(board=board, submit=False)
+        grants['jup']['ruang_pimpinan']['bod'] = {'review': review}
+        return grants
+
+    assert may(_bod(), 'bod.review', 'board', SCOPE)
+    assert not may(_bod(review=False), 'bod.review', 'board', SCOPE)
+    assert not may(_bod(review='true'), 'bod.review', 'board', SCOPE)
+    assert not may(_bod(board=False), 'bod.review', 'board', SCOPE)
+    # Neither capability implies the other.
+    assert not may(_bod(), 'actions.submit', 'board', SCOPE)
+    assert not may(_with(), 'bod.review', 'board', SCOPE)
+    assert allowed_operations(_bod()) == ['bod.review']

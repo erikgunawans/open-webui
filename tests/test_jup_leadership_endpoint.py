@@ -40,7 +40,9 @@ class _Account:
     id: str = 'test-user'
 
 
-def _grant(board: bool = False, rka: bool = False, scope: bool = True, submit: bool | None = None) -> SimpleNamespace:
+def _grant(
+    board: bool = False, rka: bool = False, scope: bool = True, submit: bool | None = None, review: bool | None = None
+) -> SimpleNamespace:
     """A group row carrying leadership permissions, shaped as the host stores them."""
     grants = {
         'board': {'view': board},
@@ -49,6 +51,8 @@ def _grant(board: bool = False, rka: bool = False, scope: bool = True, submit: b
     }
     if submit is not None:
         grants['actions'] = {'submit': submit}
+    if review is not None:
+        grants['bod'] = {'review': review}
     return SimpleNamespace(permissions={'jup': {'ruang_pimpinan': grants}})
 
 
@@ -648,3 +652,183 @@ def test_capabilities_list_submit_only_when_granted(client, directory) -> None:
     assert client.get(f'{BASE}/capabilities').json()['operations'] == ['actions.submit']
     directory.groups = [_grant(board=True)]
     assert client.get(f'{BASE}/capabilities').json()['operations'] == []
+
+
+# --- The BOD's decisions (P2 T4) ----------------------------------------------------
+
+CLOSURE = f'{BASE}/actions/act-1/closure{Q}'
+INDIVIDUAL = '{"mode": "individual"}'
+COLLECTIVE = '{"mode": "collective", "quorum": 2}'
+
+
+@pytest.fixture
+def awaiting(started, monkeypatch: pytest.MonkeyPatch):
+    """act-1 awaiting BOD closure on link evidence revision 1 (version 4), individual policy."""
+    from jup.leadership.evidence import link_evidence, submit_evidence
+    from jup.leadership.repository import unit_of_work
+
+    monkeypatch.setenv('JUP_LEADERSHIP_BOD_POLICY', INDIVIDUAL)
+    with unit_of_work(started) as uow:
+        submission = submit_evidence(
+            uow,
+            action_id='act-1',
+            expected_version=3,
+            actor='pic-1',
+            item=link_evidence('https://sharepoint.example/ba'),
+            completion=True,
+        )
+    return submission.evidence['id']
+
+
+def _as_bod(client, directory, user_id: str = 'bod-1', role: str = 'user') -> None:
+    directory.groups = [_grant(board=True, review=True)]
+    _sign_in_as(client, role, user_id=user_id)
+
+
+def _close(client, evidence_id: str, version: int = 4, **extra):
+    return client.post(
+        CLOSURE, json={'expected_version': version, 'decision': 'close', 'evidence_id': evidence_id, **extra}
+    )
+
+
+def _action_state(client, directory) -> tuple[str, int]:
+    directory.groups = [_grant(board=True)]
+    action = client.get(ACTION).json()['action']
+    return action['state'], action['version']
+
+
+@pytest.mark.parametrize(
+    ('role', 'user_id', 'grant'),
+    [
+        ('user', 'pic-1', {'submit': True, 'review': True}),  # the PIC, even holding bod.review
+        ('user', 'boc-1', {}),  # a BOC observer: read grant only
+        ('admin', 'admin-1', {}),  # an admin without BOD
+        ('admin', 'admin-1', {'submit': True}),  # an admin holding every other capability
+        ('user', 'reader-1', {'review': False}),  # a read-only reader
+    ],
+)
+def test_a_direct_api_closure_by_each_unauthorised_identity_is_refused(
+    client, directory, awaiting, role, user_id, grant, caplog
+) -> None:
+    directory.groups = [_grant(board=True, **grant)]
+    _sign_in_as(client, role, user_id=user_id)
+    with caplog.at_level('INFO'):
+        for body in (
+            {'decision': 'close', 'evidence_id': awaiting},
+            {'decision': 'return', 'evidence_id': awaiting, 'reason': 'x', 'return_to': 'in_progress'},
+            {'decision': 'reopen', 'reason': 'x'},
+        ):
+            response = client.post(CLOSURE, json={'expected_version': 4, **body})
+            assert response.status_code == 403, response.text
+            _no_store(response)
+    assert any("'operation': 'closure_decision'" in line for line in _audit_lines(caplog))
+    assert _action_state(client, directory) == ('awaiting_bod_closure', 4)
+
+
+def test_a_bod_reviewer_without_a_read_grant_is_refused(client, directory, awaiting) -> None:
+    directory.groups = [_grant(board=False, review=True)]
+    _sign_in_as(client, 'user', user_id='bod-1')
+    assert _close(client, awaiting).status_code == 403
+
+
+def test_an_unconfigured_policy_is_503_for_a_reviewer_and_403_for_everyone_else(
+    client, directory, awaiting, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    for raw in ('', '{"mode": "collective", "quorum": 1}'):
+        monkeypatch.setenv('JUP_LEADERSHIP_BOD_POLICY', raw)
+        _as_bod(client, directory)
+        response = _close(client, awaiting)
+        assert response.status_code == 503
+        assert 'not configured' in response.json()['detail']
+        _no_store(response)
+        # An unauthorised caller cannot tell unconfigured from denied.
+        directory.groups = [_grant(board=True)]
+        assert _close(client, awaiting).status_code == 403
+    assert _action_state(client, directory) == ('awaiting_bod_closure', 4)
+
+
+def test_an_authorised_bod_reviewer_closes_in_individual_mode(client, directory, awaiting, caplog) -> None:
+    _as_bod(client, directory)
+    with caplog.at_level('INFO'):
+        response = _close(client, awaiting)
+    assert response.status_code == 200, response.text
+    _no_store(response)
+    assert (response.json()['outcome'], response.json()['version']) == ('closed', 5)
+    assert any(
+        "'operation': 'closure_decision'" in line and "'result': 'closed'" in line for line in _audit_lines(caplog)
+    )
+    assert _action_state(client, directory) == ('closed', 5)
+    last = client.get(ACTION).json()['history'][-1]
+    assert (last['kind'], last['author'], last['state_after']) == ('bod_decision', 'bod-1', 'closed')
+
+
+def test_authorised_bod_reviewers_close_in_collective_mode(client, directory, awaiting, monkeypatch) -> None:
+    monkeypatch.setenv('JUP_LEADERSHIP_BOD_POLICY', COLLECTIVE)
+    _as_bod(client, directory, 'bod-1')
+    first = _close(client, awaiting).json()
+    assert (first['outcome'], first['close_votes'], first['quorum']) == ('vote_recorded', 1, 2)
+    assert _close(client, awaiting, version=5).status_code == 422  # the same reviewer again
+    _as_bod(client, directory, 'bod-2')
+    assert _close(client, awaiting, version=5).json()['outcome'] == 'closed'
+    assert _action_state(client, directory) == ('closed', 6)
+
+
+def test_returned_evidence_goes_back_to_the_pic(client, directory, awaiting) -> None:
+    _as_bod(client, directory)
+    response = client.post(
+        CLOSURE,
+        json={
+            'expected_version': 4,
+            'decision': 'return',
+            'evidence_id': awaiting,
+            'reason': 'BA is unsigned',
+            'return_to': 'in_progress',
+        },
+    )
+    assert response.json()['outcome'] == 'returned'
+    assert _action_state(client, directory) == ('in_progress', 5)
+    # The PIC can submit again; the returned request stays in the record.
+    _as_pic(client, directory)
+    assert (
+        client.post(
+            EVIDENCE, data={'expected_version': '5', 'url': 'https://x.example/ba-2', 'completion': 'true'}
+        ).status_code
+        == 200
+    )
+
+
+def test_stale_evidence_is_409_and_names_the_latest(client, directory, awaiting) -> None:
+    _as_pic(client, directory)
+    newer = client.post(EVIDENCE, data={'expected_version': '4', 'url': 'https://x.example/ba-2'}).json()['evidence'][
+        'id'
+    ]
+    _as_bod(client, directory)
+    response = _close(client, awaiting, version=5)
+    assert response.status_code == 409
+    assert response.json()['detail']['evidence_id'] == newer
+    assert _close(client, newer, version=5).json()['outcome'] == 'closed'
+
+
+def test_a_reopened_action_keeps_its_closure_in_the_history(client, directory, awaiting) -> None:
+    _as_bod(client, directory)
+    _close(client, awaiting)
+    reopen = client.post(CLOSURE, json={'expected_version': 5, 'decision': 'reopen', 'reason': 'PGN withdrew'})
+    assert reopen.json()['outcome'] == 'reopened'
+    history = client.get(ACTION).json()['history']
+    assert [h['state_after'] for h in history[-2:]] == ['closed', 'in_progress']
+
+
+def test_a_stale_version_is_409_and_an_invalid_decision_422(client, directory, awaiting) -> None:
+    _as_bod(client, directory)
+    assert _close(client, awaiting, version=3).status_code == 409
+    assert client.post(CLOSURE, json={'expected_version': 4, 'decision': 'approve'}).status_code == 422
+    assert client.post(CLOSURE, json={'expected_version': 4, 'decision': 'reopen'}).status_code == 422
+
+
+def test_capabilities_list_bod_review_only_with_a_policy(client, directory, monkeypatch) -> None:
+    directory.groups = [_grant(board=True, review=True)]
+    _sign_in_as(client, 'user')
+    monkeypatch.delenv('JUP_LEADERSHIP_BOD_POLICY', raising=False)
+    assert client.get(f'{BASE}/capabilities').json()['operations'] == []
+    monkeypatch.setenv('JUP_LEADERSHIP_BOD_POLICY', INDIVIDUAL)
+    assert client.get(f'{BASE}/capabilities').json()['operations'] == ['bod.review']
