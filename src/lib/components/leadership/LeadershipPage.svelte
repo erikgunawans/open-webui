@@ -464,10 +464,12 @@
 
 	{#if registerOpen}
 		<!-- The full register is a detail view: same records, every column. -->
-		<Modal size="lg" bind:show={registerOpen}>
+		<Modal size="lg" bind:show={registerOpen} ariaLabelledby="jlp-register-title">
 			<div class="jlp-root jlp-dialog" role="document">
 				<div class="jlp-dialog-head">
-					<h2 class="jlp-dialog-title">{$i18n.t('Follow-up register across meetings')}</h2>
+					<h2 class="jlp-dialog-title" id="jlp-register-title">
+						{$i18n.t('Follow-up register across meetings')}
+					</h2>
 					<button type="button" class="jlp-link" on:click={() => (registerOpen = false)}
 						>{$i18n.t('Close')}</button
 					>

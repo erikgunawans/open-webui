@@ -8,6 +8,7 @@ Nothing fails when this patch is lost: Svelte drops the unknown prop silently an
 back to being unnamed. This test is what notices. See `deploy/gcp/VENDOR-PATCHES.md`.
 """
 
+import re
 from pathlib import Path
 
 SRC = Path(__file__).parent.parent / 'src' / 'lib' / 'components'
@@ -20,7 +21,14 @@ def test_modal_accepts_and_renders_aria_labelledby() -> None:
 
 
 def test_leadership_dialogs_point_at_their_heading() -> None:
-    for name, heading in (('SourceDetails', 'jlp-source-title'), ('ContextPreview', 'jlp-preview-title')):
-        source = (SRC / 'leadership' / f'{name}.svelte').read_text(encoding='utf-8')
-        assert f'ariaLabelledby="{heading}"' in source, f'{name} does not name its dialog'
-        assert f'id="{heading}"' in source, f'{name} lost the heading its dialog points at'
+    # Every Modal under leadership/, not a hand-kept list: the full register dialog was missed
+    # by the list this replaced (found 2026-09-25).
+    found = 0
+    for path in sorted((SRC / 'leadership').glob('*.svelte')):
+        source = path.read_text(encoding='utf-8')
+        for opening in re.findall(r'<Modal\b[^>]*>', source):
+            found += 1
+            named = re.search(r'ariaLabelledby="([^"]+)"', opening)
+            assert named, f'{path.name} has an unnamed dialog: {opening}'
+            assert f'id="{named.group(1)}"' in source, f'{path.name} lost the heading its dialog points at'
+    assert found >= 5, f'only {found} leadership dialogs found; the scan is not seeing them'

@@ -87,10 +87,13 @@ Same local setup, real Chrome through Interceptor, reader `reader` unless named.
 - **Keyboard.** Board has 10 tab stops and RKA 17, all native links and buttons in reading order,
   no positive `tabindex`, and no pointer-only elements. Every stop takes the leadership ring
   (`outline: 2px`, `--jup-brand-text`): 6.57:1 on light, 7.29:1 on dark, against 3:1 required.
-  The source dialog traps focus (only "Tutup" is reachable) and Escape closes it.
+  The source dialog traps focus (only "Tutup" is reachable) and Escape closes it. That is
+  correct, not a stuck Tab: its content is a read-only list and "Tutup" is its one control.
 - **Dialog name (defect, fixed).** The vendor Modal had no accessible name. It now takes
   `ariaLabelledby` (VENDOR-PATCHES entry, `tests/test_modal_accessible_name.py`). Verified live:
   "Rincian sumber" and "Pratinjau konteks untuk Asisten".
+  The full-register dialog was still unnamed (found 2026-09-25, fixed); the test now scans
+  every leadership Modal instead of a hand-kept list.
 - **Text scale.** At a 150% and a 200% root size, Board and RKA have no page overflow and no
   clipped text; figures scale 24 → 48 px. At 200%, RKA's Asumsi table (1152 px) scrolls inside its
   own labelled, focusable region.
