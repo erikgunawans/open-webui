@@ -1,0 +1,17 @@
+{
+  "recorded_at": "2026-09-25T04:11:47Z",
+  "change": "Deploy of 5b86ea21c (Erik OK 2026-09-25)",
+  "service": "ent-os",
+  "latest_ready": "ent-os-00029-hz6",
+  "traffic": [
+    {
+      "latestRevision": true,
+      "percent": 100,
+      "revisionName": "ent-os-00029-hz6"
+    }
+  ],
+  "image": "asia-southeast2-docker.pkg.dev/jup-ops/ent-os/ent-os:5b86ea21c",
+  "env_unchanged_from_before": true,
+  "verified_live": "Interceptor as Erik, ?lang=id-ID: sidebar reads Tutup Bilah Samping / Catatan / Folder / Menu pengguna; chat input reads Obrolan Sementara, Model terpilih, Mode suara, Integrasi. Hardcoded English aria-labels remain (New Chat, Controls, Available Tools, Voice Input in Navbar/MessageInput). Erik locale restored to en-US after the check.",
+  "rollback": "gcloud run services update-traffic ent-os --project=jup-ops --region=asia-southeast2 --to-revisions=ent-os-00028-44m=100"
+}
