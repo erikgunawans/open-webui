@@ -34,17 +34,17 @@ design. The sandbox work for terminal and browser is needed on either path.
 | A2  | Subagents + timers (Open WebUI native)                  | live    | delegation                         | —                                            |
 | A3  | Code interpreter for staff (Pyodide, in-browser)        | live    | code execution                     | —                                            |
 | E1  | Tool-call audit: one audit line per tool invocation     | live    | the audit trail for every tool     | —                                            |
-| A4  | Web search + URL fetch                                  | blocked | web search                         | D-decision: search engine and egress         |
-| A5  | MCP tool servers                                        | blocked | MCP                                | D-decision per server; E5 gate (ADR-0013)    |
-| V1  | ChatGPT Live voice — backend delegation endpoint        | blocked | voice (holaOS has none)            | JUP D-decision on US processing (ADR-0006)   |
+| A4  | Web search (Brave, D19); URL fetch stays gated          | ready   | web search                         | Brave terms + key; per-change OK             |
+| A5  | MCP tool servers                                        | ready   | MCP                                | first server from D20 class; ships with E5   |
+| V1  | ChatGPT Live voice — backend delegation endpoint        | ready   | voice (holaOS has none)            | OpenAI key (D21: ZDR not a gate)             |
 | V2  | ChatGPT Live voice — call UI and voice KB scope         | planned | voice                              | V1                                           |
-| E2  | Sandbox host: private VM, gVisor containers, egress proxy | planned | the fence for E3 and E4          | Erik: VM budget                              |
+| E2  | Sandbox host: private VM, gVisor containers, egress proxy | parked  | the fence for E3 and E4            | Erik deferred 2026-09-26; reopens it         |
 | E3  | Terminal via Open Terminal in the sandbox, admin-only   | planned | terminal, files                    | E1, E2, E5                                   |
 | E4  | Browser automation via Playwright MCP in the sandbox    | planned | browser                            | A5, E2, E5                                   |
 | E5  | Approval step for risky tool calls (ADR-0013)           | ready   | long autonomous runs               | ships with first of E3/E4/A5                 |
 | E6  | Skill proposals: agent drafts, admin approves, sync     | planned | self-improving skills              | E1                                           |
 | E7  | Messaging gateway (Telegram first, then WhatsApp)       | planned | chat channels                      | ADR-0012 amendment, D-decision per channel   |
-| I1  | Integrations via MCP (Google Workspace first)           | planned | integrations                       | A5, D-decision per integration               |
+| I1  | Integrations via MCP (Google Workspace first)           | planned | integrations                       | A5, E5 live, D-decision each (D20)           |
 | X1  | Hermes as an admin-only lab runtime                     | parked  | runtime experiments                | Erik reopens it                              |
 
 ## Where the gap is (holaOS `a6b58be` vs Asisten JUP `254da9640`)
@@ -80,10 +80,13 @@ tool call writes one too. A capability that can't meet that isn't turned on.
   subagent turn.
 - **A3 Code interpreter.** Pyodide runs in the user's browser, so there is no server exec and no
   egress. Grant `features.code_interpreter` to staff. The Jupyter engine stays off.
-- **A4 Web search.** Needs a D-decision naming the engine and where queries go. `fetch_url` stays
-  behind `chat.web_upload`, which Phase 0 enforced.
+- **A4 Web search.** Decided 2026-09-26 as D19: Brave Search API, queries only, a per-chat
+  toggle off by default for staff. Check Brave's retention terms before creating the key.
+  `fetch_url` stays behind `chat.web_upload`, which Phase 0 enforced, until E2's proxy exists.
 - **A5 MCP.** Native in Open WebUI (`tool_server.connections`). Tool calls are not model traffic,
-  but they are egress, so each server needs a D-decision. The first candidate is internal only.
+  but they are egress. D20 (2026-09-26) is a standing rule: JUP-hosted, read-only servers with no
+  outbound calls are pre-approved and the first server must be one; every third-party server needs
+  its own D-decision and waits for E5.
 
 ## Track V — ChatGPT Live as a voice interface (ADR-0005, ADR-0006)
 
@@ -103,9 +106,9 @@ surface, because we see the whole answer before a word is spoken.
     runs.
   - Voice retrieval is limited **by construction** to a named Strategy KB subset (ADR-0006). Nothing
     outside that set can be reached.
-- **Blocked on:** the JUP governance decision that voice material may be processed in the US under
-  ZDR. It belongs in `~/jup/DECISIONS.md` (class of D13/D15), and ADR-0006 says it is not made there.
-  We also need an OpenAI org with ZDR confirmed.
+- **Decided:** D16 (2026-09-19) accepts US processing; D21 (2026-09-26, Erik's final answer)
+  removes ZDR as a precondition, so OpenAI's default retention of up to 30 days applies until ZDR
+  is approved on the org. People briefed by voice must be told both facts.
 - **Verify at build time, not now:** the exact GPT-Live session and delegation API. The ADRs name
   `gpt-live-1`, `/v1/live/sessions` and `session.thinking.append`. Re-read OpenAI's docs before
   writing code.
@@ -150,9 +153,9 @@ touching staff or records, and its model calls go through our funnel with no fal
 
 ## Decisions Erik owns, in the order they unblock work
 
-1. **A1:** the digest's day and time (WIB).
-2. **A2, A3, E1:** a per-change OK for each (a DB config write, a DB permission, a deploy).
-3. **V:** the JUP decision on US processing of voice under ZDR, and the named voice KB set.
-4. **E2:** a VM budget for the sandbox host.
-5. **E7:** the ADR-0012 amendment for one machine identity.
-6. **A4/A5/E7/I1:** one D-decision per new egress: search engine, MCP server, channel, integration.
+1. **A4, A5, V1:** decided 2026-09-26 (D19, D20, D21). What remains is a per-change OK for each key,
+   config write and deploy.
+2. **V2:** the named voice KB set (D16), each addition dated and named.
+3. **E2:** deferred 2026-09-26; a VM budget when Erik reopens it. E3 and E4 wait on it.
+4. **E7:** the ADR-0012 amendment for one machine identity.
+5. **E7/I1:** one D-decision per new egress (channel, integration); third-party MCP only after E5 (D20).

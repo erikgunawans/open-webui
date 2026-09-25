@@ -25,3 +25,7 @@ moment, with no further review.
 
 This ADR records the engineering constraint only. The corresponding **JUP governance decision**
 belongs in `~/jup/DECISIONS.md`, in the class of D13 and D15, and is not made here.
+
+**Amended 2026-09-26:** the governance decision was made as D16 (2026-09-19). D21 then removed ZDR
+as a precondition, so until ZDR is approved on the OpenAI org, voice material may be retained by
+OpenAI for up to 30 days. The named-document-set boundary is unchanged.
