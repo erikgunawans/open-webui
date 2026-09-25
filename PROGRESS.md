@@ -6,7 +6,8 @@
 - **Live:** **`ent-os-00028-44m`** (image `c5f47be29`), 100% traffic. Rollback `ent-os-00027-lrc`. Only env change `+JUP_LEADERSHIP_ACTIONS_SOURCE=records`; BOD and publication policies unset by design. `jl0001`→`jl0002` ran on Cloud SQL at startup, no errors.
 - **Verified live as Erik** (Interceptor, IAP): overview 200 in records mode, 0 actions with its note; `/meeting-changes` `available: false`; snapshots empty; the page shows "0 open of 0 recorded actions" and the unavailable meeting comparison. Erik has no leadership operations yet. After-values: `.planning/deploy-p2-after-2026-09-25.json`.
 - **Orphan:** build `299c3299` (image `6f3f0da51`) finished SUCCESS after the first run died on re-auth; never deployed.
-- **Next:** the `actions.assign` grant (its own OK); then A1 after Mon 09-28 09:00 WIB; Erik's keyboard pass; the open decisions.
+- **Grant (Erik OK):** `actions.assign` added to `Ruang Pimpinan — uji` (only change; 1 member, views unchanged); Erik's capabilities now `["actions.assign"]`. Before/after in `.planning/grant-actions-assign-before-2026-09-25.json`.
+- **Next:** A1 after Mon 09-28 09:00 WIB; Erik's keyboard pass; the open decisions.
 
 ## Checkpoint 2026-09-25-p2d — P2 polish, meeting changes, hold proven; P2 deploy started, stopped at gcloud re-auth
 

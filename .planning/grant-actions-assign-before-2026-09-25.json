@@ -1,0 +1,51 @@
+{
+  "recorded_at": "2026-09-25T01:03:08Z",
+  "change": "grant actions.assign to group Ruang Pimpinan — uji (member: Erik), Erik OK 2026-09-25",
+  "group_id": "e5657398-c01a-4b16-b3e4-283e4260e3fa",
+  "members": 1,
+  "revert": "POST /api/v1/groups/id/<id>/update with these name, description and permissions",
+  "name": "Ruang Pimpinan — uji",
+  "description": "Erik only; illustrative P1 sample (2026-09-24)",
+  "updated_at": 1790193674,
+  "permissions": {
+    "jup": {
+      "ruang_pimpinan": {
+        "board": {
+          "view": true
+        },
+        "rka": {
+          "view": true
+        },
+        "scopes": {
+          "jup_consolidated": true
+        }
+      }
+    }
+  },
+  "after": {
+    "applied_at": "2026-09-24T19:52:00Z",
+    "update_status": 200,
+    "ruang_pimpinan": {
+      "board": {
+        "view": true
+      },
+      "rka": {
+        "view": true
+      },
+      "scopes": {
+        "jup_consolidated": true
+      },
+      "actions": {
+        "assign": true
+      }
+    },
+    "members": 1,
+    "erik_capabilities": [
+      "actions.assign"
+    ],
+    "erik_views": [
+      "board",
+      "rka"
+    ]
+  }
+}
