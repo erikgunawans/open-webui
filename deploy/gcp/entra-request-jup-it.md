@@ -26,7 +26,8 @@ Then:
 4. Optional, recommended: **Enterprise applications → Asisten JUP → Properties → Assignment
    required = Yes**, then assign only the staff who should have access. Without it, every account in
    the tenant can reach the sign-in step. The app still holds new accounts as pending until an
-   admin approves them.
+   admin approves them. If you turn this on, please assign `erik@jakarta-utilitas.com` first; he
+   is the first to sign in, to test the setup before any other staff.
 
 ## Please send back
 

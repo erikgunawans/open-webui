@@ -26,7 +26,9 @@ Setelah itu:
 4. Opsional, tetapi kami sarankan: **Enterprise applications → Asisten JUP → Properties →
    Assignment required = Yes**, lalu *assign* hanya staf yang memang perlu akses. Tanpa pengaturan
    ini, semua akun di tenant bisa sampai ke tahap login. Walaupun begitu, aplikasi tetap menahan
-   akun baru dalam status menunggu (*pending*) sampai disetujui administrator.
+   akun baru dalam status menunggu (*pending*) sampai disetujui administrator. Jika pengaturan ini
+   diaktifkan, mohon *assign* `erik@jakarta-utilitas.com` lebih dulu. Beliau yang pertama login
+   untuk menguji pengaturan ini sebelum staf lain.
 
 ## Mohon dikirimkan kembali
 

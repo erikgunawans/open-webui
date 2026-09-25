@@ -66,10 +66,17 @@ path on `ent-os-backend`.
 
 ## Erik signs in through Entra too (decided 2026-09-26)
 
-He needs an account in JUP's tenant. His app account is `erik@axiara.ai`, and a first Entra sign-in
+His JUP tenant account already exists: `erik@jakarta-utilitas.com`. His app account is `erik@axiara.ai`, and a first Entra sign-in
 under a JUP address would create a **second**, `pending` account with none of his chats, grants or
 admin role. So before his first Entra sign-in, the address on his existing account is changed to
-the JUP one, and the JUP address is added to `JUP_ADMIN_EMAILS`. Each of those is a production
+`erik@jakarta-utilitas.com`, and that address is added to `JUP_ADMIN_EMAILS`.
+
+**The rename is a cutover, not a preparation step.** An account holds one address. After the
+rename, a visit to `ops.axiara.ai` still presents `erik@axiara.ai`, which no longer matches any
+account, so the app creates a fresh one. Because `erik@axiara.ai` is on `JUP_ADMIN_EMAILS`, that
+fresh account is an empty admin. So the rename happens only once the Entra path is proven on
+`non-jupe.jup.co.id`, immediately before his first Entra sign-in. After that, he stops using
+`ops.axiara.ai` and `erik@axiara.ai` comes off `JUP_ADMIN_EMAILS`. Each of those is a production
 write, with its own OK and before-values. `ops.axiara.ai` can be retired only after his Entra
 sign-in works.
 
