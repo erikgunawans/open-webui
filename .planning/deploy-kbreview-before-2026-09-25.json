@@ -1,0 +1,40 @@
+{
+  "recorded_at": "2026-09-25T12:19:11Z",
+  "change": "Deploy of 8f7955b36 (Erik OK 2026-09-25): knowledge-base review queue (ADR-0015). No env change; no migration (state in file.meta). Collection attach and kb.submit grant are separate OKs.",
+  "service": "ent-os",
+  "latest_ready": "ent-os-00033-79b",
+  "traffic": [
+    {
+      "latestRevision": true,
+      "percent": 100,
+      "revisionName": "ent-os-00033-79b"
+    }
+  ],
+  "image": "asia-southeast2-docker.pkg.dev/jup-ops/ent-os/ent-os:69784af79",
+  "env": [
+    "VECTOR_DB=pgvector",
+    "STORAGE_PROVIDER=gcs",
+    "GCS_BUCKET_NAME=jup-ops-data",
+    "JUP_RECORDS_DIR=/srv/jup/records",
+    "JUP_ARTEFACT_ROOT=/srv/jup",
+    "ENABLE_SIGNUP=False",
+    "DEFAULT_USER_ROLE=pending",
+    "ENV=prod",
+    "DEFAULT_LOCALE=id-ID",
+    "WEBUI_NAME=Asisten JUP",
+    "ENABLE_OLLAMA_API=False",
+    "ENABLE_PIP_INSTALL_FRONTMATTER_REQUIREMENTS=False",
+    "RAG_EMBEDDING_MODEL_AUTO_UPDATE=False",
+    "ENABLE_VERSION_UPDATE_CHECK=False",
+    "WEBUI_AUTH_TRUSTED_EMAIL_HEADER=X-Goog-Authenticated-User-Email",
+    "JUP_ADMIN_EMAILS=erik@axiara.ai",
+    "JUP_LEADERSHIP_ENABLED=true",
+    "JUP_LEADERSHIP_SAMPLE_FILE=/srv/jup/leadership/illustrative-seed.json",
+    "JUP_LEADERSHIP_ACTIONS_SOURCE=records"
+  ],
+  "secrets": [
+    "WEBUI_SECRET_KEY <- webui-secret-key:latest",
+    "DATABASE_URL <- database-url:latest"
+  ],
+  "rollback": "gcloud run services update-traffic ent-os --project=jup-ops --region=asia-southeast2 --to-revisions=ent-os-00033-79b=100"
+}

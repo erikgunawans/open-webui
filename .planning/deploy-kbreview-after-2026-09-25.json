@@ -1,0 +1,16 @@
+{
+  "recorded_at": "2026-09-25T12:37:45Z",
+  "service": "ent-os",
+  "latest_ready": "ent-os-00034-z4l",
+  "traffic": [
+    {
+      "latestRevision": true,
+      "percent": 100,
+      "revisionName": "ent-os-00034-z4l"
+    }
+  ],
+  "image": "asia-southeast2-docker.pkg.dev/jup-ops/ent-os/ent-os:8f7955b36",
+  "env_identical_to_before": true,
+  "verified_live": "Erik's Chrome via Interceptor, fresh tab: /api/v1/kb-review/capabilities -> {submit:false, review:true}; /submissions?state=all -> 200 [] (meta JSON filter runs on Postgres 16); /submissions/mine -> 200 []; page + sidebar entry render; id-ID sidebar 'Tinjauan Pengetahuan' and page copy in Indonesian; locale restored to en-US; no ERROR logs. Collection not created and kb.submit not granted (separate OKs).",
+  "rollback": "gcloud run services update-traffic ent-os --project=jup-ops --region=asia-southeast2 --to-revisions=ent-os-00033-79b=100"
+}
