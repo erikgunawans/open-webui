@@ -1,5 +1,5 @@
 /**
- * Run a program as Erik inside his signed-in ops.axiara.ai tab, through Interceptor.
+ * Run a program as Erik inside his signed-in non-jupe.jup.co.id tab, through Interceptor.
  *
  * The app sits behind IAP, so admin writes go through the browser session rather than a CLI
  * credential. Two measured limits shape this:
@@ -13,7 +13,8 @@
  * Every eval checks the host first, because the driven tab has drifted to another app before.
  */
 
-export const HOST = process.env.JUP_OPS_HOST ?? "ops.axiara.ai";
+// The JUP address since 2026-09-25; ops.axiara.ai still serves the same app as a fallback.
+export const HOST = process.env.JUP_OPS_HOST ?? "non-jupe.jup.co.id";
 const CHUNK = 2500;
 const POLL_MS = 3000;
 const TIMEOUT_MS = 10 * 60 * 1000;

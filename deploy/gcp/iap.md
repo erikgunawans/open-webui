@@ -105,10 +105,17 @@ the application.
 | Serverless NEG | `ent-os-neg` | region `asia-southeast2` → Cloud Run `ent-os` |
 | Backend service | `ent-os-backend` | global, `EXTERNAL_MANAGED`, **IAP enabled** |
 | Static IP | `ent-os-ip` | **34.111.8.177** |
-| Managed cert | `ent-os-cert` | `ops.axiara.ai` |
+| Managed cert | `ent-os-cert` | `ops.axiara.ai` (fallback since 2026-09-25) |
+| Managed cert | `ent-os-cert-jup` | **`non-jupe.jup.co.id`**, added 2026-09-25 |
 | URL map / proxy / rule | `ent-os-lb` / `ent-os-proxy` / `ent-os-fr` | port 443 |
 | IAP grant | `roles/iap.httpsResourceAccessor` | `user:erik@axiara.ai` |
 | Run invoker | `roles/run.invoker` | `service-1001937491646@gcp-sa-iap.iam.gserviceaccount.com` |
+
+**The address is `https://non-jupe.jup.co.id` since 2026-09-25** (Erik's call). `jup.co.id` DNS is
+hosted at Indowebsite; JUP IT added `non-jupe A 34.111.8.177`. The URL map has no host rules, so
+every hostname on the IP reaches the app, and nothing inside the app is tied to a hostname. The proxy
+carries both certs; `ops.axiara.ai` stays as a fallback until Erik retires it (detach `ent-os-cert`,
+delete it, remove the `ops` record).
 
 Only port 443 has a forwarding rule. `http://ops.axiara.ai` will not answer at all — there is no
 port-80 rule and no redirect, because a second forwarding rule is a second standing charge.

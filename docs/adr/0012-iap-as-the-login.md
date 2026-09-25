@@ -131,3 +131,16 @@ here: a build that fails is an inconvenience, and an auth path that fails is an 
 like a session bug.
 
 Nothing here is implemented. This ADR produces a decision; a separate ticket implements it.
+
+## Amendment 2026-09-25 — the address moves to `non-jupe.jup.co.id`
+
+Erik's call: the app is served at **`https://non-jupe.jup.co.id`**, a JUP-owned name, with
+`ops.axiara.ai` kept as a fallback until he retires it. Only the load balancer changed: a second
+Google-managed certificate (`ent-os-cert-jup`) on the same proxy and IP, and one A record that JUP IT
+added at Indowebsite. IAP and the trusted header are unchanged.
+
+**What this does not change:** IAP still admits only Google identities. The first staff named for
+access use `@jakarta-utilitas.com` addresses, which run on Microsoft 365, so a JUP address does not
+by itself let them in. That is a separate decision: sign-in
+with their Entra accounts through Identity Platform behind IAP, or a Google account per person on
+their work address.

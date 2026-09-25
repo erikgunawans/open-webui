@@ -126,7 +126,7 @@ def test_an_empty_suffix_passes_through_untouched_rather_than_becoming_an_empty_
 def test_both_iap_headers_are_normalized_and_everything_else_is_passed_through_in_order() -> None:
     normalized = normalize_headers(
         [
-            (b'host', b'ops.axiara.ai'),
+            (b'host', b'non-jupe.jup.co.id'),
             (EMAIL_HEADER, b'accounts.google.com:erik@axiara.ai'),
             (b'cookie', b'token=abc:def'),
             (ID_HEADER, b'accounts.google.com:1035479915'),
@@ -134,7 +134,7 @@ def test_both_iap_headers_are_normalized_and_everything_else_is_passed_through_i
     )
 
     assert normalized == [
-        (b'host', b'ops.axiara.ai'),
+        (b'host', b'non-jupe.jup.co.id'),
         (EMAIL_HEADER, b'erik@axiara.ai'),
         # A colon in an unrelated header is none of this function's business.
         (b'cookie', b'token=abc:def'),
@@ -168,11 +168,11 @@ def test_a_high_byte_value_survives_the_round_trip() -> None:
 
 async def test_the_downstream_app_sees_a_bare_address() -> None:
     inner = RecordingApp()
-    scope = http_scope((b'host', b'ops.axiara.ai'), (EMAIL_HEADER, b'accounts.google.com:erik@axiara.ai'))
+    scope = http_scope((b'host', b'non-jupe.jup.co.id'), (EMAIL_HEADER, b'accounts.google.com:erik@axiara.ai'))
 
     await IapIdentityHeaderMiddleware(inner)(scope, None, None)
 
-    assert inner.headers == [(b'host', b'ops.axiara.ai'), (EMAIL_HEADER, b'erik@axiara.ai')]
+    assert inner.headers == [(b'host', b'non-jupe.jup.co.id'), (EMAIL_HEADER, b'erik@axiara.ai')]
 
 
 async def test_the_callers_scope_is_not_mutated() -> None:
@@ -202,7 +202,7 @@ async def test_a_websocket_scope_is_normalized_too() -> None:
     'scope',
     [
         {'type': 'lifespan'},
-        http_scope((b'host', b'ops.axiara.ai')),
+        http_scope((b'host', b'non-jupe.jup.co.id')),
         http_scope(),
         {'type': 'http', 'path': '/'},
     ],
@@ -358,7 +358,7 @@ def test_the_allowlist_defaults_to_the_environment(monkeypatch: pytest.MonkeyPat
         (http_scope((EMAIL_HEADER, b'erik@axiara.ai')), frozenset({'erik@axiara.ai'}), 'erik@axiara.ai'),
         (http_scope((EMAIL_HEADER, b'ERIK@AXIARA.AI')), frozenset({'erik@axiara.ai'}), 'erik@axiara.ai'),
         (http_scope((EMAIL_HEADER, b'someone@example.com')), frozenset({'erik@axiara.ai'}), None),
-        (http_scope((b'host', b'ops.axiara.ai')), frozenset({'erik@axiara.ai'}), None),
+        (http_scope((b'host', b'non-jupe.jup.co.id')), frozenset({'erik@axiara.ai'}), None),
         (http_scope((EMAIL_HEADER, b'erik@axiara.ai')), frozenset(), None),
         (http_scope((EMAIL_HEADER, b'erik@axiara.ai'), type='websocket'), frozenset({'erik@axiara.ai'}), None),
         ({'type': 'lifespan'}, frozenset({'erik@axiara.ai'}), None),
