@@ -1,3 +1,28 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-25-a1)
+
+> Prepended by /wrap 2026-09-25 (checkpoint 2026-09-25-a1). Supersedes i18n's anchor and its list; the i18n and p2d blocks' constraints (below) still hold.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-25-a1).
+Anchor: `origin/main` at `14010cbd0` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-25-a1`). Verify with `git log --oneline 14010cbd0..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live on **`ent-os-00030-nq9`** (image `4fb47561b`; rollback `ent-os-00029-hz6`), env unchanged: P2 records mode, BOD closure and publication off. **A1 is proven:** a manual run today (chat `bb19afa1…`) put `chat` on every `admitted` and `tool_call` audit line. The full-register dialog now has an accessible name; every leadership Modal is test-guarded. The "Tab stuck on Tutup" note was the trap working as designed. Nothing is pending in code.
+
+**Do next, in order:**
+1. **Erik's keyboard pass** on the leadership screens: Tab through the board, the register dialog, action detail and forms, and confirm the focus ring is visible. The one thing not checkable here (synthetic Tab doesn't move focus; `:focus-visible` never matches in the driven window). Fix what it finds.
+2. **Routine, not proof:** after Mon 2026-09-28 09:00 WIB, a glance that A1's scheduled run is `success` (`/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs`). Fresh ops tab; `tab switch` to it; guard `location.host`; close it after.
+3. **First real use of the records register** when Erik has a deck: import review (needs an `imports.review` grant, its own OK), then naming PICs with `actions.assign`. The first evidence upload is also the GCS-hold check under the runtime account.
+4. Optional polish, only if Erik wants it: the 4 hardcoded English `aria-label`s (`chat/Navbar.svelte` "New Chat" ×2, "Controls"; `chat/MessageInput.svelte` "Available Tools", "Voice Input"); "Delete"→"Hapus", "Playground"; the 2,238 empty id-ID keys (Settings 269 first).
+5. Carried: CI Docker CUDA/Ollama variants; "Release to PyPI" fails on every push (vendor).
+
+**Constraints to honor:** as in the i18n and p2d blocks below, plus:
+- Manual `/automations/{id}/run` bypasses `claim_due` (schedule untouched) but creates a real chat in the owner's account — it is a production write; ask first.
+- Erik's own ops tab may be open: never drive it; open a fresh tab and close it after.
+- `gh run list --commit <short-sha>` returns nothing; filter `--json headSha` by prefix instead.
+
+**Open items waiting on Erik:** BOD closure mode and quorum, and publication authority; KPI definitions (RKA baseline-vs-draft); a decision model for "Decisions required"; BOD/PIC identities and grants; lifting the hold on blocker owner/next step/date; agent-depth D-decisions (A4 search engine + egress, A5 per MCP server, V1 US processing) and the E2 VM budget.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-25-i18n)
 
 > Prepended by /wrap 2026-09-25 (checkpoint 2026-09-25-i18n). Supersedes p2g's anchor and its list; the p2d block's constraints (below) still hold, except the critique leftovers, which are closed.

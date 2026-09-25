@@ -1,6 +1,15 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-25-i18n (latest) — chat id on audit lines; sidebar + chat screen in id-ID; live on ent-os-00029-hz6
+## Checkpoint 2026-09-25-a1 (latest) — register dialog named; live on ent-os-00030-nq9; A1 proven early
+
+- **Session:** `/next` (A1 gated to Mon, keyboard pass needs Erik, register needs a deck, polish optional) → Erik chose "pre-diagnose the Tab trap" → "push 4fb47561b" → "ok to deploy" → "push" → "can we make the Monday morning test done today?" → "push" → `/wrap`.
+- **"Tab stuck on Tutup" is not a defect.** It traces to `docs/ruang-pimpinan/status.md`: the source dialog's only control is Close, so the trap holding Tab there is correct. focus-trap 7.8 re-scans tabbables on every Tab, so async dialog content stays reachable. Noted in status.md.
+- **Real defect fixed (`4fb47561b`):** the full-register dialog (`LeadershipPage.svelte`) was the one leadership Modal with no `ariaLabelledby`. `tests/test_modal_accessible_name.py` now scans every `<Modal` under `leadership/` instead of a hand list (proven red without the fix). CI: Python CI + Frontend Build green; "Release to PyPI" red as always.
+- **Live:** **`ent-os-00030-nq9`** (image `4fb47561b`, build `842e645d`), 100% traffic, env identical. Rollback `ent-os-00029-hz6`. Verified as Erik in a fresh tab: register dialog `aria-labelledby=jlp-register-title`, name "Follow-up register across meetings", focus on Close. Before/after: `.planning/deploy-dialog-{before,after}-2026-09-25.json` (`590acff7e`).
+- **A1 proven today (Erik's call), not Monday:** manual `POST /automations/c516815a…/run` → run `0ad9c93b…` `success`, chat `bb19afa1-c43c-468a-b205-7d87f3aab4cc`. `jup.governance` 05:44:44–55Z: 4 `admitted` + 6 `tool_call` lines, **every one carries `chat=bb19afa1…`** — first live proof of `264813589`. A manual run bypasses `claim_due`: schedule untouched, next run Mon 09-28 09:00:43 WIB. Side effect: one extra digest chat in Erik's account. Evidence `.planning/a1-manual-run-2026-09-25.json` (`14010cbd0`).
+- **Commits (all pushed):** `4fb47561b`, `590acff7e`, `14010cbd0`.
+
+## Checkpoint 2026-09-25-i18n — chat id on audit lines; sidebar + chat screen in id-ID; live on ent-os-00029-hz6
 
 - **Session:** `/next` (items 1–3 blocked: A1 is Mon 09-28, keyboard pass needs Erik, records register needs a deck) → carried chat-id fix validated, Erik: "OK to push" → "start the critique leftovers" → Erik settled the leftovers → "OK to push" → "ok to deploy" → "OK to push" → `/wrap`.
 - **Live:** **`ent-os-00029-hz6`** (image `5b86ea21c`), 100% traffic; env identical to before. Rollback `ent-os-00028-44m`. Before/after: `.planning/deploy-i18n-{before,after}-2026-09-25.json`.
