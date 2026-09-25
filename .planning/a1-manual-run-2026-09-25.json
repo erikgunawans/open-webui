@@ -1,0 +1,9 @@
+{
+  "recorded_at": "2026-09-25T05:47:00Z",
+  "change": "Manual run of A1 (Erik: make the Monday test done today). POST /api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/run -> 200 at ~05:44:30Z, from a fresh Interceptor tab as Erik; tab closed after.",
+  "revision": "ent-os-00030-nq9",
+  "run": {"id": "0ad9c93b-9047-4e88-aead-d6a877d8bce8", "status": "success", "chat_id": "bb19afa1-c43c-468a-b205-7d87f3aab4cc", "error": null},
+  "audit": "jup.governance 05:44:44Z-05:44:55Z: 4 admitted lines (contract attached/carried) and 6 tool_call lines (portfolio_status, calculate_timestamp, query_knowledge_files x2, search_chats x2, all ok), every one with chat=bb19afa1-c43c-468a-b205-7d87f3aab4cc. First live proof of 264813589.",
+  "schedule_untouched": "manual /run bypasses claim_due; automation still active, RRULE weekly MO 09:00, next run 2026-09-28 09:00:43 WIB",
+  "side_effect": "one extra digest chat in Erik's account (bb19afa1...)"
+}
