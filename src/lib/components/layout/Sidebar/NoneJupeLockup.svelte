@@ -89,9 +89,13 @@
 	}
 
 	:global(.dark) .nj-wordmark,
-	:global(.dark) .nj-jup,
-	:global(.dark) .nj-e {
+	:global(.dark) .nj-jup {
 		color: #ffffff;
+	}
+
+	/* The "e" keeps the wordmark's one green in dark: green-300, 8.17:1 on the dark paper. */
+	:global(.dark) .nj-e {
+		color: var(--jup-brand-text, #4ac287);
 	}
 
 	:global(.dark) .nj-tagline {

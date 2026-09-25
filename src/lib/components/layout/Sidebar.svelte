@@ -241,6 +241,11 @@
 	$: kbReviewActive =
 		$page.url.pathname === '/kb-review' || $page.url.pathname.startsWith('/kb-review/');
 
+	// JUP: New Chat is the current page on the chat home, so the sidebar always says where you are.
+	$: newChatActive = $page.url.pathname === '/';
+	// JUP: an empty history says what will appear there, instead of a bare heading.
+	$: emptyChatsText = $i18n.t('Your chats will appear here.');
+
 	const initPinnedMenuSortable = () => {
 		const el = document.getElementById('pinned-menu-items-list');
 		if (el && !$mobile) {
@@ -1081,7 +1086,7 @@
 
 					{#if showLeadership}
 						<div>
-							<Tooltip content="Ruang Pimpinan" placement="right">
+							<Tooltip content={$i18n.t('Ruang Pimpinan')} placement="right">
 								<a
 									class=" cursor-pointer flex size-8 items-center justify-center transition group"
 									href="/ruang-pimpinan"
@@ -1229,7 +1234,7 @@
 			bind:this={navElement}
 			id={visible ? 'sidebar' : undefined}
 			role="navigation"
-			aria-label={$i18n.t('Chat history')}
+			aria-label={$i18n.t('Main navigation')}
 			aria-hidden={!$showSidebar}
 			inert={!$showSidebar}
 			class="h-screen max-h-[100dvh] min-h-screen select-none {$mobile
@@ -1310,6 +1315,7 @@
 								draggable="false"
 								on:click={newChatHandler}
 								aria-label={$i18n.t('New Chat')}
+								aria-current={newChatActive ? 'page' : undefined}
 							>
 								<div class="self-center flex size-4 shrink-0 items-center justify-center">
 									<EditPencilIcon className=" size-4" strokeWidth="1.5" />
@@ -1387,7 +1393,9 @@
 									</div>
 
 									<div class="flex flex-1 self-center translate-y-[0.5px]">
-										<div class=" self-center text-[0.8125rem] leading-5">Ruang Pimpinan</div>
+										<div class=" self-center text-[0.8125rem] leading-5">
+											{$i18n.t('Ruang Pimpinan')}
+										</div>
 									</div>
 								</a>
 							</div>
@@ -1789,6 +1797,11 @@
 						<div class=" flex-1 flex flex-col overflow-y-auto scrollbar-hidden">
 							<div class="pt-1.5">
 								{#if $chats}
+									{#if $chats.length === 0 && !chatListLoading}
+										<div class="jup-sidebar-empty px-2.5 py-1 text-xs">
+											{emptyChatsText}
+										</div>
+									{/if}
 									{#each $chats as chat, idx (`chat-${chat?.id ?? idx}`)}
 										{#if idx === 0 || (idx > 0 && chat.time_range !== $chats[idx - 1].time_range)}
 											<div

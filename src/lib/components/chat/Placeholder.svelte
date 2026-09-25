@@ -188,7 +188,7 @@
 					<!-- JUP: a greeting, not the model slug, and the page's heading. First name only:
 					     the account holds the full legal name, and a greeting is not a form. -->
 					<h1
-						class=" text-2xl @sm:text-2xl font-normal line-clamp-1 flex items-center"
+						class=" text-2xl @sm:text-2xl font-medium tracking-[-0.02em] line-clamp-1 flex items-center"
 						in:fade={{ duration: 100 }}
 					>
 						{greetingText}
@@ -301,8 +301,9 @@
 			<FolderPlaceholder folder={$selectedFolder} />
 		</div>
 	{:else}
-		<div class="mx-auto max-w-2xl mt-2" in:fade={{ duration: 200, delay: 200 }}>
-			<div class="mx-5">
+		<!-- JUP: the same width as the input above, so the suggestions share its left edge. -->
+		<div class="mx-auto w-full @md:max-w-3xl mt-2" in:fade={{ duration: 200, delay: 200 }}>
+			<div class="mx-2">
 				<Suggestions
 					suggestionPrompts={atSelectedModel?.info?.meta?.suggestion_prompts ??
 						models[selectedModelIdx]?.info?.meta?.suggestion_prompts ??

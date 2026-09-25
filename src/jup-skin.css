@@ -243,6 +243,89 @@
 	color: var(--jup-ink);
 }
 
+/* ── Sidebar wayfinding ───────────────────────────────────────────────────
+   The vendor marks the current page with bg-black/[0.035], barely visible on paper, and its
+   hover (gray-100) is lighter than the paper itself. The current page becomes a raised surface
+   pill, like a segmented tab, with its icon in brand green: the tokens' "green is the active
+   marker". Our entries set aria-current; the vendor ones only carry the faint fill class. */
+#sidebar :is(a, button).hover\:bg-gray-100:hover {
+	background-color: var(--jup-surface-2);
+}
+
+#sidebar a:is([aria-current='page'], .bg-black\/\[0\.035\]) {
+	background-color: var(--jup-surface);
+	box-shadow: var(--jup-seg-shadow);
+	color: var(--jup-ink);
+	font-weight: 500;
+}
+
+#sidebar a:is([aria-current='page'], .bg-black\/\[0\.035\]) > div:first-child {
+	color: var(--jup-brand-text);
+}
+
+/* Actions (New Chat, Search) above, destinations below. */
+#sidebar div:has(> #sidebar-search-button) {
+	margin-bottom: 0.375rem;
+	padding-bottom: 0.375rem;
+	box-shadow: 0 1px 0 var(--jup-line-soft);
+}
+
+/* Section headings in dark, and the section "+" / "…" buttons in both themes, sat at 1.4:1 to
+   3.9:1. Both move to ink-faint (5.24:1 light, 7.03:1 dark). */
+#sidebar :is(a, button).text-gray-300,
+.dark #sidebar .dark\:text-gray-500 {
+	color: var(--jup-ink-faint);
+}
+
+#sidebar :is(a, button).text-gray-300:hover {
+	color: var(--jup-ink);
+}
+
+.jup-sidebar-empty {
+	color: var(--jup-ink-faint);
+}
+
+/* The panel's focus ring, in the sidebar too (the vendor ring is blue-500). */
+#sidebar :is(a, button, [role='button']):focus-visible {
+	outline: 2px solid var(--jup-ring);
+	outline-offset: -2px;
+}
+
+/* ── Chat home ─────────────────────────────────────────────────────────────
+   Blue is for sending. Voice mode (`jup-voice`) shows on an empty prompt and would otherwise
+   take the action blue, so it becomes an outlined control. */
+#main-content button.jup-voice.bg-black,
+.dark #main-content button.jup-voice.dark\:bg-white.dark\:text-black {
+	background-color: transparent;
+	color: var(--jup-ink-soft);
+	box-shadow: inset 0 0 0 1px var(--jup-line);
+}
+
+#main-content button.jup-voice.bg-black:hover,
+.dark #main-content button.jup-voice.dark\:bg-white.dark\:text-black:hover {
+	background-color: var(--jup-hover);
+	color: var(--jup-ink);
+}
+
+/* The navbar icons (Temporary Chat, Controls) were gray-500, 2.76:1 against 3:1. */
+#main-content :is(a, button).size-6.text-gray-500 {
+	color: var(--jup-ink-faint);
+}
+
+#main-content :is(a, button).size-6.text-gray-500:hover {
+	color: var(--jup-ink);
+}
+
+/* The prompt placeholder is absolutely positioned, so it shrink-wraps to a narrow ancestor and
+   line-clamp cut "…ajukan pertanyaan…" to "ajukan". One unwrapped line, in a token colour
+   (the vendor's #676767 is 3.2:1 on the dark canvas). */
+#chat-input p.is-editor-empty:first-child::before {
+	white-space: nowrap;
+	width: max-content;
+	max-width: calc(100vw - 7rem);
+	color: var(--jup-ink-faint);
+}
+
 /* ── One keyboard focus ring inside the panel ──────────────────────────── */
 #main-content :is(a, button, [role='button'], [role='tab'], summary):focus-visible {
 	outline: 2px solid var(--jup-ring);
