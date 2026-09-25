@@ -1,6 +1,6 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-25-p2d2 (latest) — P2 deployed: live on ent-os-00028-44m
+## Checkpoint 2026-09-25-p2d2 (latest) — P2 deployed: live on ent-os-00028-44m; Erik holds actions.assign
 
 - **Session:** after the p2d wrap Erik ran `gcloud auth login`; `deploy.sh` rerun from a clean tree at `c5f47be29`.
 - **Live:** **`ent-os-00028-44m`** (image `c5f47be29`), 100% traffic. Rollback `ent-os-00027-lrc`. Only env change `+JUP_LEADERSHIP_ACTIONS_SOURCE=records`; BOD and publication policies unset by design. `jl0001`→`jl0002` ran on Cloud SQL at startup, no errors.

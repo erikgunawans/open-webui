@@ -1,3 +1,24 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-25-p2g)
+
+> Prepended by /wrap 2026-09-25 (checkpoint 2026-09-25-p2g). Supersedes p2d2's anchor and its list; p2d's constraints and open items (below) still hold.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-25-p2d2).
+Anchor: `origin/main` at `fde76fc58` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-25-p2g`). Verify with `git log --oneline fde76fc58..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** **P2 is live on `ent-os-00028-44m`** (image `c5f47be29`; rollback `ent-os-00027-lrc`): records mode (empty register, says so), BOD closure and publication off (policies unset by design), meeting comparison unavailable until two published meetings. Group `Ruang Pimpinan — uji` (`e5657398-c01a-4b16-b3e4-283e4260e3fa`): Board + RKA on `jup_consolidated` + **`actions.assign`**, member Erik only; before/after in `.planning/grant-actions-assign-before-2026-09-25.json`. Deploy before/after: `.planning/deploy-p2-{before,after}-2026-09-25.json`. Tests 843 passed / 22 skipped; vitest 71. Nothing is pending in code.
+
+**Do next, in order:**
+1. **After Mon 2026-09-28 09:00 WIB: verify A1's first run** through a fresh ops tab (guard `location.host` before every eval and navigate): `/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs` → `success` + chat id; `gcloud logging read` the `jup.governance` lines around 02:00Z. Close the tab. (Run `gcloud builds list --limit=1` first; the alesha-bot session can demand re-auth: `! gcloud auth login alesha-bot@axiara.ai`.)
+2. **Erik's keyboard pass** on the leadership screens (Tab through register, action detail, forms; the new field ring should show; T9 reported Tab stuck on "Tutup"). Fix what it finds.
+3. **First real use of the records register** when Erik has a deck: import review (needs an `imports.review` grant, its own OK), then naming PICs with `actions.assign`. The first real evidence upload is also the check of record for the GCS hold under the runtime account.
+4. Carried: per-turn `admitted` audit lines carry no chat id; critique leftovers (blocker owner/next step/date, English chrome under id-ID, "Open Sidebar"); CI Docker CUDA/Ollama variants; "Release to PyPI" fails on every push (vendor).
+
+**Constraints to honor:** as in the p2d block below, plus: production now runs records mode, so a seed or test must never write to the live DB; every further grant (`imports.review`, `actions.submit`, `bod.review`, `snapshots.publish`) and any new env value is its own OK with before-values.
+
+**Open items waiting on Erik:** BOD closure mode and quorum, and publication authority (both needed before those features switch on); KPI definitions (unblock the RKA baseline-vs-draft comparison); a decision model for "Decisions required"; BOD/PIC identities and who else gets which grant; the rest of the p2d block's list.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-25-p2d2)
 
 > Prepended 2026-09-25 after the p2d wrap. Supersedes p2d's items 1 and 2 (done); everything else in the p2d block below still holds.
