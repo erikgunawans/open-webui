@@ -1,3 +1,26 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-25-kbd)
+
+> Prepended by /wrap 2026-09-25 (checkpoint 2026-09-25-kbd). Supersedes a1's anchor and its list; the a1, i18n and p2d blocks' constraints (below) still hold.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-25-kbd).
+Anchor: `origin/main` at `db6056f55` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-25-kbd`). Verify with `git log --oneline db6056f55..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live on **`ent-os-00031-4xd`** (image `cf035a3d3`; rollback `ent-os-00030-nq9`), env unchanged: P2 records mode, BOD closure and publication off. The keyboard pass is done with real OS keys: every stop ringed, both dialogs trap and return focus. Its one defect is fixed: row buttons are described by their record, and Select reports `aria-pressed`. Nothing is pending in code.
+
+**Do next, in order:**
+1. **Routine, not proof:** after Mon 2026-09-28 09:00 WIB, check that A1's scheduled run is `success` (`/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs`). Fresh ops tab; `tab switch` to it; guard `location.host`; close it after.
+2. **First real use of the records register** when Erik has a deck: import review (needs an `imports.review` grant, its own OK), then naming PICs with `actions.assign`. The first evidence upload is also the GCS-hold check under the runtime account. **Once the register has rows, keyboard-walk action detail and its forms** (the one part the pass could not reach), using the recipe in memory `interceptor-keyboard-focus-limits`.
+3. Optional polish, only if Erik wants it: the vendor sidebar's unnamed button (3rd tab stop); the 4 hardcoded English `aria-label`s (`chat/Navbar.svelte` "New Chat" ×2, "Controls"; `chat/MessageInput.svelte` "Available Tools", "Voice Input"); "Delete"→"Hapus", "Playground"; the 2,238 empty id-ID keys (Settings 269 first).
+4. Carried: CI Docker CUDA/Ollama variants; "Release to PyPI" fails on every push (vendor).
+
+**Constraints to honor:** as in the a1, i18n and p2d blocks below, plus:
+- **Real (HID) keys go to Chrome's ACTIVE tab, not the tab `interceptor eval` reads.** The `location.host` guard does not protect key presses. Before every key: frontmost app = Chrome AND the focused window's `"active": true` tab id = ours (`interceptor window`). Never send Enter or text unless that holds. Once, keys reached WhatsApp Web.
+- `interceptor-bridge` still has macOS Accessibility (it can control the whole Mac); Erik decides whether to revoke it.
+
+**Open items waiting on Erik:** whether to keep the bridge's Accessibility grant; BOD closure mode and quorum, and publication authority; KPI definitions (RKA baseline-vs-draft); a decision model for "Decisions required"; BOD/PIC identities and grants; lifting the hold on blocker owner/next step/date; agent-depth D-decisions (A4 search engine + egress, A5 per MCP server, V1 US processing) and the E2 VM budget.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-25-a1)
 
 > Prepended by /wrap 2026-09-25 (checkpoint 2026-09-25-a1). Supersedes i18n's anchor and its list; the i18n and p2d blocks' constraints (below) still hold.

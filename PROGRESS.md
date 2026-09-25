@@ -1,6 +1,16 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-25-a1 (latest) — register dialog named; live on ent-os-00030-nq9; A1 proven early
+## Checkpoint 2026-09-25-kbd (latest) — real keyboard pass done; row buttons name their record; live on ent-os-00031-4xd
+
+- **Session:** `/next` (item 1 keyboard pass = Erik's hands) → "can you use interceptor to drive the keyboard pass?" → "retry" → "granted" (Accessibility) → "done" ×2 → "yes go ahead now" → "push and then deploy" → "push" → `/wrap`.
+- **Driving real keys works now.** Root cause of every earlier failure: `interceptor-bridge` lacked macOS Accessibility, so its CGEvents were dropped silently. The fix: `tccutil reset Accessibility com.interceptor.bridge`, then `interceptor macos trust --accessibility-prompt`, Erik turns it on, then `pkill` the bridge → `granted`. **Still on** (Erik's call to revoke). **Trap:** HID keys go to Chrome's *active* tab, not the eval tab; once they reached WhatsApp Web (Tab/F6 only, harmless). The walk gates every key on "frontmost = Chrome AND focused window's active tab = ours". Recipe in memory `interceptor-keyboard-focus-limits`.
+- **Pass result (live, `ent-os-00030-nq9`):** Board 26 stops incl. sidebar and RKA 15, every one `:focus-visible` with the 2px ring. Register dialog: Close ↔ register region trap, Escape returns focus to the trigger. Source dialog: Close only, Escape returns focus. **Not walked:** action detail and its forms (the records register is empty).
+- **Defect fixed (`cf035a3d3`):** "Select", "Source" and "Details" repeated per card/row with no context, and Select never announced its state. Each now has `aria-describedby` → its record title; Select has `aria-pressed` (gets the existing pressed style). Guard: `tests/test_leadership_row_buttons_context.py` (red without the fix). Recorded in `docs/ruang-pimpinan/status.md`. CI: Python CI + Frontend Build green; PyPI red as always.
+- **Live:** **`ent-os-00031-4xd`** (image `cf035a3d3`), 100%, env identical. Rollback `ent-os-00030-nq9`. Verified in a fresh tab: 6 row buttons are described by their card titles; Select is false, then true and weight 600 after selecting. No ERROR logs. Before/after: `.planning/deploy-rowbuttons-{before,after}-2026-09-25.json` (`db6056f55`).
+- **Seen, not fixed:** the vendor sidebar's 3rd tab stop is a button with no accessible name.
+- **Commits (all pushed):** `cf035a3d3`, `db6056f55`.
+
+## Checkpoint 2026-09-25-a1 — register dialog named; live on ent-os-00030-nq9; A1 proven early
 
 - **Session:** `/next` (A1 gated to Mon, keyboard pass needs Erik, register needs a deck, polish optional) → Erik chose "pre-diagnose the Tab trap" → "push 4fb47561b" → "ok to deploy" → "push" → "can we make the Monday morning test done today?" → "push" → `/wrap`.
 - **"Tab stuck on Tutup" is not a defect.** It traces to `docs/ruang-pimpinan/status.md`: the source dialog's only control is Close, so the trap holding Tab there is correct. focus-trap 7.8 re-scans tabbables on every Tab, so async dialog content stays reachable. Noted in status.md.
