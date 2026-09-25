@@ -1,0 +1,22 @@
+{
+  "recorded_at": "2026-09-25T11:42:17Z",
+  "service": "ent-os",
+  "latest_ready": "ent-os-00033-79b",
+  "traffic": [
+    {
+      "latestRevision": true,
+      "percent": 100,
+      "revisionName": "ent-os-00033-79b"
+    }
+  ],
+  "image": "asia-southeast2-docker.pkg.dev/jup-ops/ent-os/ent-os:69784af79",
+  "env_diff_vs_before": {
+    "added": [
+      "ENABLE_VERSION_UPDATE_CHECK=False"
+    ],
+    "removed": []
+  },
+  "secrets_unchanged": true,
+  "verified_live": "Erik's Chrome via Interceptor, fresh tab: /api/config features.enable_version_update_check=false; /api/version/updates -> current=latest=0.11.3 (no GitHub call); no toast; no ERROR logs on the revision.",
+  "rollback": "gcloud run services update-traffic ent-os --project=jup-ops --region=asia-southeast2 --to-revisions=ent-os-00032-jf2=100"
+}
