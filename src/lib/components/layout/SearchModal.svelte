@@ -845,7 +845,7 @@
 												}}
 											>
 												<button
-													aria-label="Chat Menu"
+													aria-label={$i18n.t('Chat Menu')}
 													class="self-center dark:hover:text-white transition"
 												>
 													<svg

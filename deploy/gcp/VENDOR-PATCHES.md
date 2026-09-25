@@ -347,3 +347,26 @@ routes refuse with 503 because the schema is not ready.
 a real import.
 
 **Conflict risk:** low. Keep the call ahead of the `jup_leadership` mount.
+
+## Everyday control names go through i18n — twelve vendor components (2026-09-25)
+
+**What:** literal English `aria-label`s become `$i18n.t(...)` calls: "New Chat" and "Controls"
+(`chat/Navbar.svelte`), "Available Tools", "Voice Input" and "Expand input" (`chat/MessageInput.svelte`),
+"Voice Input" (`channel/MessageInput.svelte`), "Fork chat" (`ResponseMessage.svelte`), "Chat Menu"
+(`Sidebar/ChatItem.svelte`, `SearchModal.svelte`), "Close" (`InputModal.svelte`,
+`CodeEditorModal.svelte`), and the zoom controls in `PDFViewer`, `PptxPreview` and `DocxPreview`
+(the first two gain an `i18n` context). The update toast's close button gains `type="button"` and
+an `aria-label`.
+
+**Why:** no translation can reach a string literal, so under id-ID a screen reader still said "New
+Chat" or "Chat Menu". The toast's close button had no name at all, and it was the third tab stop on
+every page (found in the keyboard pass, 2026-09-25). Admin-only screens, parameter names such as
+`top_k`, and the `aria-label` on the sidebar's non-interactive "Loading" divs are left as they are.
+
+**If dropped:** silent. The labels read in English again, and the toast button goes back to having
+no name.
+
+**The test that catches it:** `tests/test_vendor_aria_labels_translated.py`.
+
+**Conflict risk:** low. These are one-attribute edits. On a conflict, take the vendor's line and
+wrap the label again.

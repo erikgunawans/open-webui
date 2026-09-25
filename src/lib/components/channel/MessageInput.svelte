@@ -1048,7 +1048,7 @@
 														toast.error($i18n.t('Permission denied when accessing microphone'));
 													}
 												}}
-												aria-label="Voice Input"
+												aria-label={$i18n.t('Voice Input')}
 											>
 												<svg
 													xmlns="http://www.w3.org/2000/svg"

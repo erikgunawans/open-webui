@@ -1991,7 +1991,7 @@
 									<button
 										type="button"
 										class="absolute top-2.5 right-3 z-20 p-1 rounded-lg hover:bg-gray-100/50 dark:hover:bg-gray-800/50"
-										aria-label="Expand input"
+										aria-label={$i18n.t('Expand input')}
 										on:click={() => {
 											showInputModal = true;
 										}}
@@ -2330,7 +2330,7 @@
 												>
 													<button
 														class="translate-y-[0.5px] px-1 flex gap-1 items-center text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 rounded-lg self-center transition"
-														aria-label="Available Tools"
+														aria-label={$i18n.t('Available Tools')}
 														type="button"
 														on:click={() => {
 															showTools = !showTools;
@@ -2607,7 +2607,7 @@
 																toast.error($i18n.t('Permission denied when accessing microphone'));
 															}
 														}}
-														aria-label="Voice Input"
+														aria-label={$i18n.t('Voice Input')}
 													>
 														<Mic className="size-[1.125rem]" />
 													</button>
