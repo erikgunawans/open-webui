@@ -1,4 +1,4 @@
-"""The app is branded Asisten JUP: its name carries no suffix and its marks are the logo system's.
+"""The app is branded None-JUPe: its name carries no suffix and its marks are the logo system's.
 
 Both halves fail silently. An upstream merge that restores `WEBUI_NAME += ' (Open WebUI)'` renames
 the product back without an error, and a static asset edited in one copy but not the other serves
@@ -14,8 +14,8 @@ ROOT = Path(__file__).parent.parent
 ENV = ROOT / 'backend' / 'open_webui' / 'env.py'
 STATIC_DIRS = (ROOT / 'static' / 'static', ROOT / 'backend' / 'open_webui' / 'static')
 ASSETS = (
-    'asisten-jup-mark.png',
-    'asisten-jup-mark-white.png',
+    'none-jupe-mark.png',
+    'none-jupe-mark-white.png',
     'favicon.png',
     'favicon-96x96.png',
     'favicon.ico',
@@ -34,9 +34,9 @@ def test_the_name_is_not_suffixed_with_open_webui() -> None:
     assert "WEBUI_NAME += ' (Open WebUI)'" not in ENV.read_text(encoding='utf-8')
 
 
-def test_deploy_names_the_app_asisten_jup() -> None:
+def test_deploy_names_the_app_none_jupe() -> None:
     deploy = (ROOT / 'deploy' / 'gcp' / 'deploy.sh').read_text(encoding='utf-8')
-    assert 'WEBUI_NAME: "Asisten JUP"' in deploy
+    assert 'WEBUI_NAME: "None-JUPe"' in deploy
 
 
 @pytest.mark.parametrize('name', ASSETS)
@@ -48,3 +48,8 @@ def test_both_static_copies_serve_the_same_asset(name: str) -> None:
 def test_the_bangjayaos_marks_are_gone() -> None:
     for directory in STATIC_DIRS:
         assert not list(directory.glob('bangjayaos-*')), f'BangJayaOS mark left in {directory}'
+
+
+def test_the_asisten_jup_marks_are_gone() -> None:
+    for directory in STATIC_DIRS:
+        assert not list(directory.glob('asisten-jup-*')), f'Asisten JUP mark left in {directory}'

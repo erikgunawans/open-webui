@@ -88,7 +88,7 @@
 	import DocumentArrowUpIcon from '../icons/DocumentArrowUp.svelte';
 	import { leadershipAccess } from '$lib/stores/leadership';
 	import { kbReviewAccess } from '$lib/stores/kbReview';
-	import AsistenJupLockup from './Sidebar/AsistenJupLockup.svelte';
+	import NoneJupeLockup from './Sidebar/NoneJupeLockup.svelte';
 	import Sidebar from '../icons/Sidebar.svelte';
 	import WorkspaceIcon from './Sidebar/icons/Workspace.svelte';
 	import HotkeyHint from '../common/HotkeyHint.svelte';
@@ -986,14 +986,14 @@
 							<div
 								class="self-center flex size-[calc(30px*var(--app-text-scale,1))] items-center justify-center rounded-lg transition group-hover:bg-gray-100 dark:group-hover:bg-gray-900"
 							>
-								<!-- JUP: the Asisten JUP logogram alone, full colour on light and white on dark. -->
+								<!-- JUP: the None-JUPe mark alone, full colour on light and white on dark. -->
 								<img
-									src="{WEBUI_BASE_URL}/static/asisten-jup-mark.png"
+									src="{WEBUI_BASE_URL}/static/none-jupe-mark.png"
 									class="sidebar-new-chat-icon size-5 group-hover:hidden dark:hidden"
 									alt=""
 								/>
 								<img
-									src="{WEBUI_BASE_URL}/static/asisten-jup-mark-white.png"
+									src="{WEBUI_BASE_URL}/static/none-jupe-mark-white.png"
 									class="sidebar-new-chat-icon size-5 hidden dark:block dark:group-hover:hidden"
 									alt=""
 								/>
@@ -1253,17 +1253,17 @@
 				<div
 					class="sidebar px-1 pt-1.5 pb-1 flex justify-between space-x-1 text-gray-600 dark:text-gray-400 sticky top-0 z-10 -mb-2"
 				>
-					<!-- JUP: the Asisten JUP lockup replaces the Open WebUI logo and name. Replacing the
+					<!-- JUP: the None-JUPe lockup replaces the Open WebUI logo and name. Replacing the
 					     branding rests on LICENSE clause 4 and the fifty-user ceiling (ADR-0001). -->
 					<a
 						id="sidebar-webui-name"
 						href="/"
 						class="flex flex-1 items-center pl-1.5 pr-0.5 py-1 no-drag-region"
 						draggable="false"
-						aria-label="Asisten JUP"
+						aria-label="None-JUPe"
 						on:click={newChatHandler}
 					>
-						<AsistenJupLockup />
+						<NoneJupeLockup />
 					</a>
 					<Tooltip
 						content={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')}

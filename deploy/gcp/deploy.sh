@@ -57,7 +57,7 @@ ENV: "prod"
 DEFAULT_LOCALE: "id-ID"
 # The product name, shown as-is: the " (Open WebUI)" suffix is patched out of env.py. Replacing
 # the branding at all rests on LICENSE clause 4 and the fifty-user ceiling (ADR-0001).
-WEBUI_NAME: "Asisten JUP"
+WEBUI_NAME: "None-JUPe"
 # Agentic-capabilities plan, Phase 0 (2026-09-23).
 # There is no Ollama backend. This value only SEEDS the DB key ollama.enable on a fresh database;
 # on the live DB the key already exists and was switched off through the admin API. The

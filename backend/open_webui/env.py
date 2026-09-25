@@ -934,7 +934,7 @@ if LICENSE_PUBLIC_KEY:
 # Do not alter, remove, obscure, or replace it except as LICENSE permits:
 # https://docs.openwebui.com/license.
 WEBUI_NAME = os.getenv('WEBUI_NAME', 'Open WebUI')
-# JUP: the product is named "Asisten JUP" with no " (Open WebUI)" suffix. Removing the branding
+# JUP: the product is named "None-JUPe" with no " (Open WebUI)" suffix. Removing the branding
 # rests on LICENSE clause 4 and the fifty-user ceiling (ADR-0001); see deploy/gcp/VENDOR-PATCHES.md.
 
 # LICENSE covers this Open WebUI branding surface, including this favicon

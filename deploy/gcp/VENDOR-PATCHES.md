@@ -224,15 +224,15 @@ run of `include_router` lines, so a merge can drop a neighbour. Keep all three l
 ## The name carries no " (Open WebUI)" suffix — `backend/open_webui/env.py` (2026-09-23)
 
 **What:** the two lines that append `' (Open WebUI)'` to any custom `WEBUI_NAME` are replaced by a
-comment. With `WEBUI_NAME: "Asisten JUP"` in deploy.sh, the app reads exactly "Asisten JUP".
+comment. With `WEBUI_NAME: "None-JUPe"` in deploy.sh, the app reads exactly "None-JUPe".
 
-**Why:** Erik renamed the app to Asisten JUP on 2026-09-23. LICENSE clause 4 permits removing the
-Open WebUI branding while end users stay at fifty or fewer in any rolling 30 days. That is the
-same ground the logo replacement already rests on (ADR-0001).
+**Why:** Erik renamed the app to Asisten JUP on 2026-09-23, and to None-JUPe on 2026-09-26.
+LICENSE clause 4 permits removing the Open WebUI branding while end users stay at fifty or fewer
+in any rolling 30 days. That is the same ground the logo replacement already rests on (ADR-0001).
 
-**If dropped:** silent. The name reads "Asisten JUP (Open WebUI)" again.
+**If dropped:** silent. The name reads "None-JUPe (Open WebUI)" again.
 
-**The test that catches it:** `tests/test_brand_asisten_jup.py`.
+**The test that catches it:** `tests/test_brand_none_jupe.py`.
 
 **Conflict risk:** low. Upstream rarely touches these lines, but they carry a LICENSE comment that
 merges will keep reasserting.
