@@ -194,6 +194,24 @@ def task_of(form_data: dict) -> str | None:
     return task if isinstance(task, str) and task else None
 
 
+def _chat_fields(form_data: dict, state: Any) -> dict:
+    """The chat a funnel turn belongs to, as audit fields: `chat`, and `parent_chat` for a subagent.
+
+    Read at the funnel only, where `utils/chat.py` has already merged `request.state.metadata`
+    over the payload's own, so the id is the one the app assigned. Absent keys are left out
+    rather than written as null: a task call with no chat is not a turn that lost its chat.
+    """
+    metadata = form_data.get('metadata')
+    chat = metadata.get('chat_id') if isinstance(metadata, dict) else None
+    parent = getattr(state, PARENT_CHAT_STATE_ATTR, None) if state is not None else None
+    fields = {}
+    if isinstance(chat, str) and chat:
+        fields['chat'] = chat
+    if parent:
+        fields['parent_chat'] = parent
+    return fields
+
+
 def _system_texts(form_data: dict) -> list[str]:
     """Every scrap of system-role text in the payload, flattened.
 
@@ -280,8 +298,9 @@ def admit(
     `state` is `request.state`, injected so this is testable without a FastAPI request.
     """
     task = task_of(form_data)
+    chat = _chat_fields(form_data, state)
     if task in EXEMPT_TASKS:
-        audit('exempt', task=task, user=user_id, model=model or form_data.get('model'))
+        audit('exempt', task=task, user=user_id, model=model or form_data.get('model'), **chat)
         if state is not None:
             setattr(state, ADMITTED_STATE_ATTR, True)
         return None
@@ -290,7 +309,7 @@ def admit(
     attach_contract(form_data)
     if not carries_contract(form_data):
         reason = 'ungovernable payload: the operating contract could not be attached'
-        audit('refused', task=task, user=user_id, model=model or form_data.get('model'), reason=reason)
+        audit('refused', task=task, user=user_id, model=model or form_data.get('model'), reason=reason, **chat)
         return GovernanceRefusal(
             reason,
             'Refused by JUP governance: this request could not be governed, because its '
@@ -303,6 +322,7 @@ def admit(
         user=user_id,
         model=model or form_data.get('model'),
         contract='carried' if already else 'attached',
+        **chat,
     )
     if state is not None:
         setattr(state, ADMITTED_STATE_ATTR, True)

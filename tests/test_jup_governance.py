@@ -275,6 +275,31 @@ def test_audit_records_admitted_exempt_and_refused(tmp_path, monkeypatch):
     assert events[-1]['route'] == 'openai' and events[-1]['user'] == 'u2'
 
 
+def test_funnel_audit_lines_carry_the_chat(tmp_path, monkeypatch):
+    """A turn line with no chat id cannot be joined to the chat it governed."""
+    trail = tmp_path / 'audit.jsonl'
+    monkeypatch.setenv('JUP_GOVERNANCE_AUDIT', str(trail))
+
+    turn = _turn()
+    turn['metadata'] = {'chat_id': 'chat-1'}
+    admit(turn, state=_State(), user_id='u1')
+    child = _State()
+    child.jup_parent_chat_id = 'chat-1'
+    sub = _turn()
+    sub['metadata'] = {'chat_id': 'chat-2'}
+    admit(sub, state=child, user_id='u1')
+    admit(_turn(task='title_generation'), state=_State(), user_id='u1')
+    bad = {'model': 'gpt-4o', 'messages': 'not a list', 'metadata': {'chat_id': 'chat-3'}}
+    admit(bad, state=_State(), user_id='u1')
+
+    events = [json.loads(line) for line in trail.read_text().splitlines()]
+    assert [e['event'] for e in events] == ['admitted', 'admitted', 'exempt', 'refused']
+    assert events[0]['chat'] == 'chat-1' and 'parent_chat' not in events[0]
+    assert events[1]['chat'] == 'chat-2' and events[1]['parent_chat'] == 'chat-1'
+    assert 'chat' not in events[2]
+    assert events[3]['chat'] == 'chat-3'
+
+
 def test_audit_never_raises_when_the_trail_cannot_be_written(tmp_path, monkeypatch):
     """A control that can 500 a turn by failing to log it is a liability."""
     blocker = tmp_path / 'not-a-dir'
