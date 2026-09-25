@@ -1,3 +1,31 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-25-kbr)
+
+> Prepended by /wrap 2026-09-25 (checkpoint 2026-09-25-kbr). Supersedes kbd's anchor and its list; the kbd, a1, i18n and p2d blocks' constraints (below) still hold.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-25-kbr).
+Anchor: `origin/main` at `269423f4a` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-25-kbr`). Verify with `git log --oneline 269423f4a..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live on **`ent-os-00034-z4l`** (image `8f7955b36`; rollback `ent-os-00033-79b`); env = kbd's plus `ENABLE_VERSION_UPDATE_CHECK=False`. New live: translated everyday aria-labels; the **KB review queue** (`/kb-review`, ADR-0015) — "JUP Staff Contributions" does not exist yet, is not attached to Asisten JUP, and nobody holds `jup.kb.submit`. The LB carries `ent-os-cert` (ops.axiara.ai, ACTIVE) and **`ent-os-cert-jup` (`non-jupe.jup.co.id`), PROVISIONING / `FAILED_NOT_VISIBLE` at wrap** — DNS was correct via the real delegation (`ns01`–`ns04.indowebsite.net` → `34.111.8.177`) but the cert was created before the record existed. Tests 953 passed / 22 skipped.
+
+**Do next, in order:**
+1. **Finish the domain switch.** `gcloud compute ssl-certificates describe ent-os-cert-jup --global --project=jup-ops --format='value(managed.status,managed.domainStatus)'`. If ACTIVE: poll `curl -s -o /dev/null -w '%{http_code}' https://non-jupe.jup.co.id/` until the handshake works (302 to IAP), verify the app live in Erik's Chrome (fresh `--activate` tab, guard `location.host`), then `git apply .planning/host-switch-non-jupe-2026-09-25.patch` (in-tab.ts HOST, iap.md, test fixtures, ADR-0012 amendment), run `tests/test_jup_iap_identity.py`, commit, ask to push. **If still `FAILED_NOT_VISIBLE`** and DNS still resolves from `@ns01.indowebsite.net`: delete and re-create `ent-os-cert-jup`, then `target-https-proxies update ent-os-proxy --ssl-certificates=ent-os-cert,ent-os-cert-jup` (no downtime; `ops.axiara.ai` keeps its own cert). Rollback for the proxy: `--ssl-certificates=ent-os-cert`.
+2. **Routine:** after Mon 2026-09-28 09:00 WIB, A1's scheduled run `success` (`/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs`).
+3. **KB review follow-through, each its own OK with before-values:** create "JUP Staff Contributions" now or on first approval (Erik hasn't chosen), attach it to Asisten JUP `meta.knowledge`; then a group "Kontributor Pengetahuan" with `{"jup":{"kb":{"submit":true}}}` for the five contributors **once they can log in**.
+4. First real use of the records register when Erik has a deck (unchanged from kbd).
+5. Optional: remaining 2,238 empty id-ID keys (Settings 269 first); the "fixed questions" KB eval set; a branded doc/slide generation tool (answered as not built).
+6. Carried: CI Docker CUDA/Ollama variants; "Release to PyPI" fails on every push (vendor).
+
+**Constraints to honor:** as in the kbd, a1, i18n and p2d blocks below, plus:
+- **Interceptor:** a tab from `tab new` without `--activate` is not the eval target when Erik's own ops tab is active ("tab N is not in the interceptor group"); open with `--activate` and a unique query marker (`?v=…`) and guard on it.
+- `deploy.sh` has no skip-build path; an env-only change is a full ~11 min build. gcloud (alesha-bot) needed `! gcloud auth login alesha-bot@axiara.ai` once this session.
+- Disk runs near full: check `df -h /System/Volumes/Data` before a build (24 GB free at wrap). A local `bun run build` + worktree cost ~0.8 GB.
+- The security hook blocks a command line pairing `rm -rf` with a bare ` /` argument elsewhere; split such calls.
+- Keep `ops.axiara.ai` until Erik retires it (then detach + delete `ent-os-cert`, remove the `ops` record).
+
+**Open items waiting on Erik:** **the login route for JUP staff** (Entra via Identity Platform — needs JUP IT — vs a Google account per person; memory `iap-google-only-blocks-jup-staff`); create/attach the contributions collection now or on first approval; when to retire `ops.axiara.ai`; whether to keep interceptor-bridge's Accessibility grant; BOD closure mode and quorum, publication authority; KPI definitions; a decision model for "Decisions required"; BOD/PIC identities and grants; the blocker owner/next step/date hold; agent-depth D-decisions (A4, A5, V1) and the E2 VM budget.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-25-kbd)
 
 > Prepended by /wrap 2026-09-25 (checkpoint 2026-09-25-kbd). Supersedes a1's anchor and its list; the a1, i18n and p2d blocks' constraints (below) still hold.
