@@ -16,6 +16,7 @@ MAIN_PY = Path(__file__).resolve().parent.parent / 'backend' / 'open_webui' / 'm
 ROUTERS = {
     'jup_portfolio': '/api/v1/portfolio',
     'jup_leadership': '/api/v1/leadership',
+    'jup_kb_review': '/api/v1/kb-review',
 }
 
 

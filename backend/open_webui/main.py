@@ -161,6 +161,7 @@ from open_webui.routers import (
     functions,
     groups,
     images,
+    jup_kb_review,
     jup_leadership,
     jup_portfolio,
     knowledge,
@@ -884,6 +885,7 @@ if ENABLE_DB_MIGRATIONS:
     run_leadership_migrations(engine)
 app.include_router(jup_portfolio.router, prefix='/api/v1/portfolio', tags=['portfolio'])
 app.include_router(jup_leadership.router, prefix='/api/v1/leadership', tags=['leadership'])
+app.include_router(jup_kb_review.router, prefix='/api/v1/kb-review', tags=['kb-review'])
 
 # SCIM 2.0 API for identity management
 if ENABLE_SCIM:
