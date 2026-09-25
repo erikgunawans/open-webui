@@ -1,3 +1,31 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-26-cs)
+
+> Prepended by /wrap 2026-09-26 (checkpoint 2026-09-26-cs). Supersedes nj's anchor and its list; the nj, kbr, kbd, a1, i18n and p2d blocks' constraints (below) still hold.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-26-cs).
+Anchor: `origin/main` at `5f9f79fd1` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-26-cs`). Verify with `git log --oneline 5f9f79fd1..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live on **`ent-os-00042-w6f`** (image `5f9f79fd1`; rollback `ent-os-00041-pg2`). Chat-home critique fixes live and verified (`/` opens chat for admins; sidebar pill + green icon; blue only for Send; contrast; i18n). Settings/Admin nav on jup-skin. Agent-depth: **D19** Brave web search, **D20** MCP standing rule, **D21** voice without ZDR are recorded in `~/jup/DECISIONS.md`; A4/A5/V1 `ready`, E2 `parked`. Web search is configured and granted to staff (`features.web_search`), not yet proven end to end. Tests 954 / 22 skipped; vitest 71.
+
+**Do next, in order:**
+1. **A4 proof:** when Erik reports his first search (web search toggle on, a current question), confirm the answer cites web sources and the `jup.governance` lines for that chat; then set A4 `live` in the `.planning/agent-depth-plan.md` ledger. If he hasn't tried it, ask him to.
+2. **When JUP IT sends tenant ID, client ID, secret:** the Entra cutover exactly as nj's items 1–3 (ADR-0016 "Order of work", each step its own OK; Erik's account rename + `JUP_ADMIN_EMAILS` immediately before his first Entra sign-in; then the five contributors).
+3. **Routine:** after Mon 2026-09-28 09:00 WIB, A1's run `success` (`/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs`).
+4. **Next agent-depth build, when Erik picks it:** A5's first server from D20's pre-approved class, built together with E5 (ADR-0013); or V1 (D21 lifts the ZDR gate; still needs an OpenAI key on a JUP org, and V2's named voice document set). Plan-first, present and stop.
+5. Optional UI: re-run `/impeccable critique` on the chat home to score the fixes; confirm the empty-history text on an account with no chats; Workspace/Ruang Pimpinan critiques; remaining 2,238 empty id-ID keys.
+6. Carried: CI Docker CUDA/Ollama variants; "Release to PyPI" fails on every push (vendor).
+
+**Constraints to honor:** as in the nj, kbr, kbd, a1, i18n and p2d blocks below, plus:
+- **Each deploy and each DB write is its own OK.** Save before-values of any permission write to `.planning/` first.
+- **Sidebar ids exist twice** (collapsed rail + panel): scope probes to `#sidebar …`, never bare `getElementById`.
+- **Screenshots re-render:** they can shift layout and fake truncation; measure with `getBoundingClientRect`/`getComputedStyle` before believing a picture.
+- **i18n:parse can miss a literal call** in Svelte markup (JavascriptLexer); put new strings in `<script>` as `$: x = $i18n.t('…')` when in doubt and `jq` every new key after parsing.
+- Admins bypass `chat.call` (and similar `permissions.chat.*` checks): a permission change does not change what Erik sees.
+
+**Open items waiting on Erik:** his first web search (A4 proof); JUP IT's Entra values; when to retire `ops.axiara.ai`; which agent-depth build is next (A5+E5 or V1) and, for V1, the OpenAI org/key and the voice document set; the E2 budget when he reopens it; whether to keep interceptor-bridge's Accessibility grant; BOD closure mode and quorum, publication authority; KPI definitions; a decision model for "Decisions required"; BOD/PIC identities and grants; the blocker owner/next step/date hold.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-26-nj)
 
 > Prepended by /wrap 2026-09-26 (checkpoint 2026-09-26-nj). Supersedes kbr's anchor and its list; the kbr, kbd, a1, i18n and p2d blocks' constraints (below) still hold.
