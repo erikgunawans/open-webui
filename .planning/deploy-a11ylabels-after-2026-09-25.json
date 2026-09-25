@@ -1,0 +1,16 @@
+{
+  "recorded_at": "2026-09-25T11:02:55Z",
+  "service": "ent-os",
+  "latest_ready": "ent-os-00032-jf2",
+  "traffic": [
+    {
+      "latestRevision": true,
+      "percent": 100,
+      "revisionName": "ent-os-00032-jf2"
+    }
+  ],
+  "image": "asia-southeast2-docker.pkg.dev/jup-ops/ent-os/ent-os:862c76c10",
+  "env_identical_to_before": true,
+  "verified_live": "Erik's Chrome via Interceptor, fresh tab, cache-reloaded: board tab stops 1-8 all named (update toast no longer an unnamed stop); /?lang=id-ID reads Tutup (toast close), Obrolan Baru, Kontrol, Alat yang Tersedia, Input Suara; locale restored to en-US; no ERROR logs on the revision.",
+  "rollback": "gcloud run services update-traffic ent-os --project=jup-ops --region=asia-southeast2 --to-revisions=ent-os-00031-4xd=100"
+}
