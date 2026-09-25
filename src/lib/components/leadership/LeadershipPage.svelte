@@ -320,14 +320,23 @@
 							{#each overview.assumptions as assumption (assumption.id)}
 								<tr class:jlp-row-selected={recordId === assumption.id}>
 									<td>
-										<strong class="jlp-cell-title">{assumption.label}</strong>
+										<strong id="assumption-{assumption.id}" class="jlp-cell-title"
+											>{assumption.label}</strong
+										>
 										<span class="jlp-row-buttons">
-											<button type="button" class="jlp-link" on:click={() => select(assumption.id)}
-												>{$i18n.t('Select')}</button
+											<button
+												type="button"
+												class="jlp-link"
+												aria-pressed={recordId === assumption.id}
+												aria-describedby="assumption-{assumption.id}"
+												on:click={() => select(assumption.id)}>{$i18n.t('Select')}</button
 											>
 											{#each assumption.source_ids as id (id)}
-												<button type="button" class="jlp-link" on:click={() => openSource(id)}
-													>{$i18n.t('Source')}</button
+												<button
+													type="button"
+													class="jlp-link"
+													aria-describedby="assumption-{assumption.id}"
+													on:click={() => openSource(id)}>{$i18n.t('Source')}</button
 												>
 											{/each}
 										</span>
@@ -369,7 +378,7 @@
 			<ul class="jlp-mini-list">
 				{#each shortList(overview) as action (action.id)}
 					<li class="jlp-mini" class:jlp-row-selected={recordId === action.id}>
-						<strong>{action.title}</strong>
+						<strong id="mini-action-{action.id}">{action.title}</strong>
 						<span class="jlp-meta jlp-block">{action.owner_label}</span>
 						<span class="jlp-meta jlp-block">
 							{$i18n.t('Target')}: {action.due ? action.due.label : $i18n.t('No target recorded')} ·
@@ -378,8 +387,11 @@
 								: (MINI_STATE[action.state] ?? action.state)}
 						</span>
 						{#if !isSampleRegister(overview)}
-							<button type="button" class="jlp-link" on:click={() => openDetail(action.id)}
-								>{$i18n.t('Details')}</button
+							<button
+								type="button"
+								class="jlp-link"
+								aria-describedby="mini-action-{action.id}"
+								on:click={() => openDetail(action.id)}>{$i18n.t('Details')}</button
 							>
 						{/if}
 					</li>

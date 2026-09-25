@@ -75,12 +75,19 @@
 				)}{/if}
 		</span>
 		<span class="jlp-metric-buttons">
-			<button type="button" class="jlp-link" on:click={() => dispatch('select', metric.id)}
-				>{$i18n.t('Select')}</button
+			<button
+				type="button"
+				class="jlp-link"
+				aria-pressed={selected}
+				aria-describedby="metric-{metric.id}"
+				on:click={() => dispatch('select', metric.id)}>{$i18n.t('Select')}</button
 			>
 			{#each metric.source_ids as sourceId (sourceId)}
-				<button type="button" class="jlp-link" on:click={() => dispatch('source', sourceId)}
-					>{$i18n.t('Source')}</button
+				<button
+					type="button"
+					class="jlp-link"
+					aria-describedby="metric-{metric.id}"
+					on:click={() => dispatch('source', sourceId)}>{$i18n.t('Source')}</button
 				>
 			{/each}
 		</span>

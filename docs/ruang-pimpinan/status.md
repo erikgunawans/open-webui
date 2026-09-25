@@ -94,6 +94,18 @@ Same local setup, real Chrome through Interceptor, reader `reader` unless named.
   "Rincian sumber" and "Pratinjau konteks untuk Asisten".
   The full-register dialog was still unnamed (found 2026-09-25, fixed); the test now scans
   every leadership Modal instead of a hand-kept list.
+- **Real keyboard pass, live (2026-09-25, `ent-os-00030-nq9`).** Trusted OS Tab keys, after
+  granting the Interceptor bridge macOS Accessibility, against a focused window. Board: 26 stops
+  including the sidebar, every one `:focus-visible` with the 2px ring. RKA: 15 page stops, the Asumsi
+  region takes the green ring. Register dialog: opens on Close, Tab cycles Close ↔ the register
+  region, Escape returns focus to "Open the register". Source dialog: Close only, Escape returns
+  focus to "Source". Action detail and its forms were not walked, because the records register is
+  empty.
+- **Row buttons without context (defect, fixed).** "Select", "Source" and "Details" repeat on every
+  card and row, with nothing to tell a screen reader which record each one belongs to, and Select
+  never announced which record was selected. Each button now takes `aria-describedby` pointing at
+  its record's title, and Select takes `aria-pressed`, which also gives it the pressed-link style
+  (`tests/test_leadership_row_buttons_context.py`).
 - **Text scale.** At a 150% and a 200% root size, Board and RKA have no page overflow and no
   clipped text; figures scale 24 → 48 px. At 200%, RKA's Asumsi table (1152 px) scrolls inside its
   own labelled, focusable region.

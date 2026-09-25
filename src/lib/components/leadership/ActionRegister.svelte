@@ -61,7 +61,7 @@
 			{#each actions as action (action.id)}
 				<tr class:jlp-row-selected={selectedId === action.id}>
 					<td>
-						<strong class="jlp-cell-title">{action.title}</strong>
+						<strong id="register-action-{action.id}" class="jlp-cell-title">{action.title}</strong>
 						<span class="jlp-meta jlp-block">{action.owner_label}</span>
 					</td>
 					<td>
@@ -90,19 +90,27 @@
 							{CLOSURE[closureNote(action)]}
 						</span>
 						<span class="jlp-row-buttons">
-							<button type="button" class="jlp-link" on:click={() => dispatch('select', action.id)}
-								>{$i18n.t('Select')}</button
+							<button
+								type="button"
+								class="jlp-link"
+								aria-pressed={selectedId === action.id}
+								aria-describedby="register-action-{action.id}"
+								on:click={() => dispatch('select', action.id)}>{$i18n.t('Select')}</button
 							>
 							{#if source === 'records'}
 								<button
 									type="button"
 									class="jlp-link"
+									aria-describedby="register-action-{action.id}"
 									on:click={() => dispatch('detail', action.id)}>{$i18n.t('Details')}</button
 								>
 							{/if}
 							{#each action.source_ids as sourceId (sourceId)}
-								<button type="button" class="jlp-link" on:click={() => dispatch('source', sourceId)}
-									>{$i18n.t('Source')}</button
+								<button
+									type="button"
+									class="jlp-link"
+									aria-describedby="register-action-{action.id}"
+									on:click={() => dispatch('source', sourceId)}>{$i18n.t('Source')}</button
 								>
 							{/each}
 						</span>
