@@ -13,11 +13,12 @@
    without !important.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── The inner panel: a soft edge instead of a hard grey border ─────────── */
+/* ── The inner panel: a fine Pigment Green edge and a soft lift ────────────
+   1px, the finest line every screen draws crisply; the green is the same in both themes. */
 #main-content {
 	border-color: transparent;
 	box-shadow:
-		0 0 0 1px var(--jup-panel-ring),
+		0 0 0 1px var(--jup-panel-edge),
 		var(--jup-panel-shadow);
 }
 

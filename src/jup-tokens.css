@@ -83,6 +83,9 @@
 	--jup-ring: #004999;
 	--jup-hover: #f1f4f6;
 	--jup-panel-ring: #dde2e6;
+	/* The inner panel's edge: a hairline of Pigment Green (Erik, 2026-09-26). Decorative, so no
+	   contrast floor applies; the fill it frames carries the content. */
+	--jup-panel-edge: #00a550;
 	--jup-panel-shadow: 0 1px 2px rgba(1, 22, 39, 0.05), 0 8px 24px -12px rgba(1, 22, 39, 0.12);
 	--jup-seg-track: #eef1f3;
 	--jup-seg-on: #ffffff;
