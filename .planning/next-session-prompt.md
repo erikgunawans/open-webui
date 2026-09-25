@@ -1,3 +1,31 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-26-nj)
+
+> Prepended by /wrap 2026-09-26 (checkpoint 2026-09-26-nj). Supersedes kbr's anchor and its list; the kbr, kbd, a1, i18n and p2d blocks' constraints (below) still hold.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-26-nj).
+Anchor: `origin/main` at `4dc20f49c` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-26-nj`). Verify with `git log --oneline 4dc20f49c..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live on **`ent-os-00040-jkp`** (image `4dc20f49c`; rollback `ent-os-00039-jp9`). The app is **None-JUPe** (logo 2a) at `https://non-jupe.jup.co.id` (ops.axiara.ai still serves as fallback); the model is still "Asisten JUP" by Erik's choice. Inner layer redesigned (`src/jup-skin.css`, segmented tabs, blue actions, green 1px panel edge), Ruang Pimpinan restyled. ADR-0016 accepted: Entra via Identity Platform, which is enabled on jup-ops with no providers. Tests 954 / 22 skipped.
+
+**Do next, in order:**
+1. **When JUP IT sends tenant ID, client ID, secret** (secure channel): add the OIDC provider (issuer `https://login.microsoftonline.com/<tenant>/v2.0`, code flow), create the serverless NEG + `ent-os-backend-jup` + host rule `non-jupe.jup.co.id` → it, enable IAP external identities with the IAP-hosted page — each step its own OK with before-values (ADR-0016 "Order of work"). Rollback = remove the host rule.
+2. **First Entra sign-in is Erik, at cutover:** rename his account `erik@axiara.ai` → `erik@jakarta-utilitas.com` and add it to `JUP_ADMIN_EMAILS` (each its own OK) immediately before; check the header value that reaches the app; then drop `erik@axiara.ai` from the allowlist; then ops.axiara.ai can be retired (detach+delete `ent-os-cert`, remove the `ops` record).
+3. Then the five contributors: approve their `pending` accounts, group "Kontributor Pengetahuan" with `{"jup":{"kb":{"submit":true}}}`; "JUP Staff Contributions" is created on first approval (Erik: wait), then attach to Asisten JUP `meta.knowledge` (its own OK).
+4. **Routine:** after Mon 2026-09-28 09:00 WIB, A1's run `success` (`/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs`).
+5. Optional UI follow-ups: Admin settings vertical tabs and other vendor surfaces not yet on jup-skin; the "Memuat…" load-more spinner under short Workspace lists (vendor); remaining 2,238 empty id-ID keys.
+6. Carried: CI Docker CUDA/Ollama variants; "Release to PyPI" fails on every push (vendor).
+
+**Constraints to honor:** as in the kbr, kbd, a1, i18n and p2d blocks below, plus:
+- **Each deploy is its own OK** (Erik said "deploy" per change this session); ~11 min full build; `deploy.sh` refuses a dirty tree.
+- **Style through `src/jup-skin.css` and tokens, not vendor files.** Hooks are one class (`jup-seg`, `jup-primary`) or CSS selectors on shared vendor markup. Unlayered rules beat Tailwind utilities without `!important`. Measure every new colour pair.
+- **Screenshots work** (`interceptor tab new … --activate`, `timeout 30 interceptor screenshot --save`, delete the png): but the renderer drops CSS-set SVG fill/stroke and can misshow box-shadows — confirm with getComputedStyle. A timeout usually means Chrome isn't frontmost: `osascript … activate` + `tab switch`.
+- **Local `bun run build` OOMs** (swap nearly full); compile-check changed Svelte with `svelte/compiler`, let Cloud Build build.
+- Preview CSS changes live first with `interceptor style inject` (needs `!important`), then commit.
+
+**Open items waiting on Erik:** JUP IT's Entra values (he sends the request: `deploy/gcp/entra-request-jup-it.md` / `.id.md`); when to retire `ops.axiara.ai` (after his Entra sign-in); agent-depth D-decisions (A4 search engine + egress, A5 per MCP server, V1 US voice processing) and the E2 VM budget; whether to keep interceptor-bridge's Accessibility grant; BOD closure mode and quorum, publication authority; KPI definitions; a decision model for "Decisions required"; BOD/PIC identities and grants; the blocker owner/next step/date hold.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-25-kbr)
 
 > Prepended by /wrap 2026-09-25 (checkpoint 2026-09-25-kbr). Supersedes kbd's anchor and its list; the kbd, a1, i18n and p2d blocks' constraints (below) still hold.
