@@ -90,22 +90,27 @@
 /* ── Primary actions: Polynesian Blue, not black ───────────────────────────
    The vendor's primary buttons inside the panel are black pills that flip to
    white in dark. Blue carries the action in both themes at >=4.86:1 with white.
-   Scoped to the panel, so image viewers and overlays elsewhere keep their black. */
-#main-content :is(button, a).bg-black.text-white {
+   Scoped to the panel and the Settings pane (the sibling of its nav), so image viewers and
+   overlays elsewhere keep their black. */
+:is(#main-content, #settings-tabs-container ~ *) :is(button, a).bg-black.text-white {
 	background-color: var(--jup-action);
 	color: var(--jup-on-action);
 }
 
-#main-content :is(button, a).bg-black.text-white:hover {
+:is(#main-content, #settings-tabs-container ~ *) :is(button, a).bg-black.text-white:hover {
 	background-color: var(--jup-action-hover);
 }
 
-.dark #main-content :is(button, a).dark\:bg-white.dark\:text-black {
+.dark
+	:is(#main-content, #settings-tabs-container ~ *)
+	:is(button, a).dark\:bg-white.dark\:text-black {
 	background-color: var(--jup-action);
 	color: var(--jup-on-action);
 }
 
-.dark #main-content :is(button, a).dark\:bg-white.dark\:text-black:hover {
+.dark
+	:is(#main-content, #settings-tabs-container ~ *)
+	:is(button, a).dark\:bg-white.dark\:text-black:hover {
 	background-color: var(--jup-action-hover);
 }
 
@@ -186,6 +191,58 @@
 	color: var(--jup-ink-faint);
 }
 
+/* ── Settings navigation ──────────────────────────────────────────────────
+   The Settings modal (personal and Admin) sits outside the panel. Its vendor nav draws
+   inactive items at gray-500 (2.9:1 on white) and group headings at gray-400 (2:1); the
+   active item gets a near-invisible gray-50. Hooked on the nav's id and aria-selected. */
+#settings-tabs-container [role='tab'] {
+	height: 2rem;
+	padding-inline: 0.625rem;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--jup-ink-soft);
+	transition:
+		color 150ms ease,
+		background-color 150ms ease;
+}
+
+#settings-tabs-container [role='tab']:hover {
+	background: var(--jup-hover);
+	color: var(--jup-ink);
+}
+
+#settings-tabs-container [role='tab'][aria-selected='true'] {
+	background: var(--jup-seg-track);
+	color: var(--jup-ink);
+	font-weight: 500;
+}
+
+/* The vertical list marks its active item with an action-blue edge; the phone row keeps the fill. */
+@media (min-width: 768px) {
+	#settings-tabs-container [role='tab'][aria-selected='true'] {
+		box-shadow: inset 2px 0 0 var(--jup-action);
+	}
+}
+
+#settings-tabs-container [role='tab']:focus-visible {
+	outline: 2px solid var(--jup-ring);
+	outline-offset: 1px;
+}
+
+#settings-tabs-container span.text-\[0\.625rem\] {
+	color: var(--jup-ink-faint);
+	font-weight: 600;
+}
+
+/* "Back" */
+#settings-tabs-container > button:first-child {
+	color: var(--jup-ink-faint);
+}
+
+#settings-tabs-container > button:first-child:hover {
+	color: var(--jup-ink);
+}
+
 /* ── One keyboard focus ring inside the panel ──────────────────────────── */
 #main-content :is(a, button, [role='button'], [role='tab'], summary):focus-visible {
 	outline: 2px solid var(--jup-ring);
@@ -193,7 +250,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.jup-seg > :is(a, button) {
+	.jup-seg > :is(a, button),
+	#settings-tabs-container [role='tab'] {
 		transition: none;
 	}
 }

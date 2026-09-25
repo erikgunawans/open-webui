@@ -171,6 +171,20 @@
 		(isAdminTab(tabId) ? adminSettingGroups[tabId] : personalSettingGroups[tabId]) ?? 'General';
 	const shouldShowSettingGroup = (tabIds: string[], index: number) =>
 		index === 0 || settingGroupTitle(tabIds[index]) !== settingGroupTitle(tabIds[index - 1]);
+	// JUP: headings are looked up by name, and i18n:parse only extracts literal calls.
+	$: settingGroupLabels = {
+		General: $i18n.t('General'),
+		Basics: $i18n.t('Basics'),
+		Services: $i18n.t('Services'),
+		Preferences: $i18n.t('Preferences'),
+		Data: $i18n.t('Data'),
+		Profile: $i18n.t('Profile'),
+		System: $i18n.t('System'),
+		AI: $i18n.t('AI'),
+		Quality: $i18n.t('Quality'),
+		Tools: $i18n.t('Tools'),
+		Experience: $i18n.t('Experience')
+	} as Record<string, string>;
 	const settingGroupHeadingClass = (first: boolean) =>
 		`hidden md:block shrink-0 text-[0.625rem] text-gray-400 dark:text-gray-600 px-2 ${
 			first ? 'mt-0.5' : 'mt-2'
@@ -977,7 +991,7 @@
 				{#each filteredPersonalSettings as tabId, index (tabId)}
 					{#if shouldShowSettingGroup(filteredPersonalSettings, index)}
 						<span class={settingGroupHeadingClass(index === 0)}>
-							{$i18n.t(settingGroupTitle(tabId))}
+							{settingGroupLabels[settingGroupTitle(tabId)]}
 						</span>
 					{/if}
 
@@ -1169,7 +1183,7 @@
 				{#each filteredAdminSettings as tabId, index (tabId)}
 					{#if shouldShowSettingGroup(filteredAdminSettings, index)}
 						<span class={settingGroupHeadingClass(index === 0)}>
-							{$i18n.t(settingGroupTitle(tabId))}
+							{settingGroupLabels[settingGroupTitle(tabId)]}
 						</span>
 					{/if}
 
