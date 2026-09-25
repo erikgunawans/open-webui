@@ -34,7 +34,7 @@ design. The sandbox work for terminal and browser is needed on either path.
 | A2  | Subagents + timers (Open WebUI native)                  | live    | delegation                         | —                                            |
 | A3  | Code interpreter for staff (Pyodide, in-browser)        | live    | code execution                     | —                                            |
 | E1  | Tool-call audit: one audit line per tool invocation     | live    | the audit trail for every tool     | —                                            |
-| A4  | Web search (Brave, D19); URL fetch stays gated          | ready   | web search                         | Brave terms + key; per-change OK             |
+| A4  | Web search (Brave, D19); URL fetch stays gated          | live    | web search                         | —                                            |
 | A5  | MCP tool servers                                        | ready   | MCP                                | first server from D20 class; ships with E5   |
 | V1  | ChatGPT Live voice — backend delegation endpoint        | ready   | voice (holaOS has none)            | OpenAI key (D21: ZDR not a gate)             |
 | V2  | ChatGPT Live voice — call UI and voice KB scope         | planned | voice                              | V1                                           |
@@ -58,7 +58,7 @@ design. The sandbox work for terminal and browser is needed on either path.
 | Voice        | **none**                                                          | none (ADR-0005/0006 decided, no code)    | V1–V2      |
 | Cron         | 60 s cron worker, workflow graph                                  | automations exist, none configured       | A1         |
 | Subagents    | `delegate_task` family                                            | native, off                              | A2         |
-| Web search   | Holaboss search + Exa                                             | off                                      | A4         |
+| Web search   | Holaboss search + Exa                                             | Brave, per-chat toggle (D19)             | A4         |
 | Self-improving skills | the agent writes its own                                 | admin-managed only                       | E6 (reviewed) |
 | Governance   | none: bypassed approvals, no sandbox, no audit                    | funnel + contract + audit + deny-default | keep it    |
 
@@ -83,6 +83,8 @@ tool call writes one too. A capability that can't meet that isn't turned on.
 - **A4 Web search.** Decided 2026-09-26 as D19: Brave Search API, queries only, a per-chat
   toggle off by default for staff. Check Brave's retention terms before creating the key.
   `fetch_url` stays behind `chat.web_upload`, which Phase 0 enforced, until E2's proxy exists.
+  **Live 2026-09-26:** chat `2bd91910…` on `ent-os-00042-w6f` logged `tool_call search_web ok`
+  between two `admitted` turns (contract attached), and the answer cited 3 web sources.
 - **A5 MCP.** Native in Open WebUI (`tool_server.connections`). Tool calls are not model traffic,
   but they are egress. D20 (2026-09-26) is a standing rule: JUP-hosted, read-only servers with no
   outbound calls are pre-approved and the first server must be one; every third-party server needs
@@ -153,8 +155,8 @@ touching staff or records, and its model calls go through our funnel with no fal
 
 ## Decisions Erik owns, in the order they unblock work
 
-1. **A4, A5, V1:** decided 2026-09-26 (D19, D20, D21). What remains is a per-change OK for each key,
-   config write and deploy.
+1. **A5, V1:** decided 2026-09-26 (D20, D21); A4 (D19) is live. What remains is a per-change OK for
+   each key, config write and deploy.
 2. **V2:** the named voice KB set (D16), each addition dated and named.
 3. **E2:** deferred 2026-09-26; a VM budget when Erik reopens it. E3 and E4 wait on it.
 4. **E7:** the ADR-0012 amendment for one machine identity.
