@@ -27,8 +27,8 @@ Setelah itu:
    Assignment required = Yes**, lalu *assign* hanya staf yang memang perlu akses. Tanpa pengaturan
    ini, semua akun di tenant bisa sampai ke tahap login. Walaupun begitu, aplikasi tetap menahan
    akun baru dalam status menunggu (*pending*) sampai disetujui administrator. Jika pengaturan ini
-   diaktifkan, mohon *assign* `erik@jakarta-utilitas.com` lebih dulu. Beliau yang pertama login
-   untuk menguji pengaturan ini sebelum staf lain.
+   diaktifkan, mohon *assign* `erik@jakarta-utilitas.com` lebih dulu. Akun itu yang pertama
+   login untuk menguji pengaturan ini sebelum staf lain.
 
 ## Mohon dikirimkan kembali
 
