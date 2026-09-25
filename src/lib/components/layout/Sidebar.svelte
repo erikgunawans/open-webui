@@ -85,7 +85,9 @@
 	import SearchIcon from './Sidebar/icons/Search.svelte';
 	import GateLadderIcon from './Sidebar/icons/GateLadder.svelte';
 	import MeetingBoardIcon from './Sidebar/icons/MeetingBoard.svelte';
+	import DocumentArrowUpIcon from '../icons/DocumentArrowUp.svelte';
 	import { leadershipAccess } from '$lib/stores/leadership';
+	import { kbReviewAccess } from '$lib/stores/kbReview';
 	import AsistenJupLockup from './Sidebar/AsistenJupLockup.svelte';
 	import Sidebar from '../icons/Sidebar.svelte';
 	import WorkspaceIcon from './Sidebar/icons/Workspace.svelte';
@@ -232,6 +234,12 @@
 	$: showLeadership = $leadershipAccess.enabled && $leadershipAccess.views.length > 0;
 	$: leadershipActive =
 		$page.url.pathname === '/ruang-pimpinan' || $page.url.pathname.startsWith('/ruang-pimpinan/');
+
+	// JUP: the knowledge-base review queue (ADR-0015). Shown to a holder of the submit grant and to
+	// admins, who review. Presentation only: the server re-checks both on every request.
+	$: showKbReview = $kbReviewAccess.submit || $user?.role === 'admin';
+	$: kbReviewActive =
+		$page.url.pathname === '/kb-review' || $page.url.pathname.startsWith('/kb-review/');
 
 	const initPinnedMenuSortable = () => {
 		const el = document.getElementById('pinned-menu-items-list');
@@ -1099,6 +1107,34 @@
 						</div>
 					{/if}
 
+					{#if showKbReview}
+						<div>
+							<Tooltip content={$i18n.t('Knowledge review')} placement="right">
+								<a
+									class=" cursor-pointer flex size-8 items-center justify-center transition group"
+									href="/kb-review"
+									on:click={async (e) => {
+										e.stopImmediatePropagation();
+										e.preventDefault();
+										goto('/kb-review');
+										itemClickHandler();
+									}}
+									draggable="false"
+									aria-label={$i18n.t('Knowledge review')}
+									aria-current={kbReviewActive ? 'page' : undefined}
+								>
+									<div
+										class="self-center flex size-[calc(30px*var(--app-text-scale,1))] items-center justify-center rounded-lg transition {kbReviewActive
+											? 'bg-black/[0.035] dark:bg-white/[0.045]'
+											: 'group-hover:bg-gray-100 dark:group-hover:bg-gray-900'}"
+									>
+										<DocumentArrowUpIcon className="size-4" strokeWidth="1.5" />
+									</div>
+								</a>
+							</Tooltip>
+						</div>
+					{/if}
+
 					{#each pinnedItems as itemId (itemId)}
 						{@const meta = getMenuItemMeta(itemId)}
 						{#if meta && isMenuItemVisible(itemId)}
@@ -1354,6 +1390,38 @@
 										<div class=" self-center text-[0.8125rem] leading-5">Ruang Pimpinan</div>
 									</div>
 								</a>
+							</div>
+						{/if}
+
+						{#if showKbReview}
+							<div class="px-1 flex justify-center text-gray-700 dark:text-gray-300">
+								<Tooltip
+									content={$i18n.t('Knowledge review')}
+									placement="right"
+									className="grow flex"
+								>
+									<a
+										id="sidebar-kb-review-button"
+										class="grow flex items-center space-x-2 rounded-xl px-2 py-1.5 transition outline-none {kbReviewActive
+											? 'bg-black/[0.035] dark:bg-white/[0.045]'
+											: 'hover:bg-gray-100 dark:hover:bg-gray-900'}"
+										href="/kb-review"
+										on:click={itemClickHandler}
+										draggable="false"
+										aria-label={$i18n.t('Knowledge review')}
+										aria-current={kbReviewActive ? 'page' : undefined}
+									>
+										<div class="self-center flex size-4 shrink-0 items-center justify-center">
+											<DocumentArrowUpIcon className="size-4" strokeWidth="1.5" />
+										</div>
+
+										<div class="flex flex-1 self-center translate-y-[0.5px]">
+											<div class=" self-center text-[0.8125rem] leading-5">
+												{$i18n.t('Knowledge review')}
+											</div>
+										</div>
+									</a>
+								</Tooltip>
 							</div>
 						{/if}
 
