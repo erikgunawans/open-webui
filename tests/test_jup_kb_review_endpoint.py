@@ -522,6 +522,7 @@ async def real_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from open_webui.internal import db as host_db
     from open_webui.models.files import File
     from open_webui.models.knowledge import Knowledge
+    from open_webui.models.users import User
     from open_webui.routers.jup_kb_review import KbReviewStore
 
     # Off by default, and then the vendor ignores a passed session and opens the app's own database.
@@ -530,6 +531,7 @@ async def real_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     async with engine.begin() as connection:
         await connection.run_sync(lambda sync: File.__table__.create(sync))
         await connection.run_sync(lambda sync: Knowledge.__table__.create(sync))
+        await connection.run_sync(lambda sync: User.__table__.create(sync))
     async with AsyncSession(engine, expire_on_commit=False) as session:
         yield KbReviewStore(db=session), session
     await engine.dispose()
@@ -567,9 +569,15 @@ async def test_the_store_merges_the_review_into_meta(real_store) -> None:
 
 async def test_the_store_finds_the_collection_by_exact_name(real_store) -> None:
     from open_webui.models.knowledge import Knowledge
+    from open_webui.models.users import User
 
     store, session = real_store
     assert await store.find_collection() is None
+    for uid, role in ((ADMIN, 'admin'), (OWNER, 'user')):
+        stamps = {'created_at': 1, 'updated_at': 1, 'last_active_at': 1}
+        session.add(User(id=uid, name=uid, email=f'{uid}@example.test', role=role, **stamps))
+    # A same-named collection owned by a non-admin, created first, must never be chosen.
+    session.add(Knowledge(id='squatter', user_id=OWNER, name='JUP Staff Contributions', description='', created_at=1))
     session.add(Knowledge(id='strategy', user_id=ADMIN, name='JUP Strategy KB', description='', created_at=1))
     session.add(Knowledge(id='later', user_id=ADMIN, name='JUP Staff Contributions', description='', created_at=5))
     session.add(Knowledge(id='first', user_id=ADMIN, name='JUP Staff Contributions', description='', created_at=2))

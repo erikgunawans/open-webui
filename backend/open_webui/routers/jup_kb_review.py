@@ -127,15 +127,21 @@ class KbReviewStore:
             return [FileModel.model_validate(row) for row in result.scalars().all()]
 
     async def find_collection(self) -> str | None:
-        """The oldest collection with the exact name, if any."""
+        """The oldest collection with the exact name and an admin owner, if any.
+
+        Owner-checked because the name alone is claimable: anyone allowed to create a collection
+        could name one "JUP Staff Contributions" first, and every approval would land in theirs.
+        """
         from sqlalchemy import select
 
         from open_webui.internal.db import get_async_db_context
         from open_webui.models.knowledge import Knowledge
+        from open_webui.models.users import User
 
         statement = (
             select(Knowledge.id)
-            .filter(Knowledge.name == rules.CONTRIBUTIONS_KB_NAME)
+            .join(User, User.id == Knowledge.user_id)
+            .filter(Knowledge.name == rules.CONTRIBUTIONS_KB_NAME, User.role == 'admin')
             .order_by(Knowledge.created_at.asc())
             .limit(1)
         )
