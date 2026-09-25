@@ -1,0 +1,17 @@
+{
+  "recorded_at": "2026-09-25T09:24:46Z",
+  "change": "Deploy of cf035a3d3 (Erik OK 2026-09-25): leadership Select/Source/Details buttons point aria-describedby at their record title; Select carries aria-pressed. Found by the real keyboard pass. No env change.",
+  "service": "ent-os",
+  "latest_ready": "ent-os-00031-4xd",
+  "traffic": [
+    {
+      "latestRevision": true,
+      "percent": 100,
+      "revisionName": "ent-os-00031-4xd"
+    }
+  ],
+  "image": "asia-southeast2-docker.pkg.dev/jup-ops/ent-os/ent-os:cf035a3d3",
+  "env_unchanged": true,
+  "verified_live": "Fresh Interceptor tab at ops.axiara.ai/ruang-pimpinan/board after a cache:reload fetch: 6 row buttons, each aria-describedby resolving to its card title (Pendapatan usaha, Laba / rugi bersih, Margin laba kotor); Select aria-pressed false, and true (weight 600) on the selected card after Select (?record=example-revenue-ytd). No ERROR logs on the revision.",
+  "rollback": "gcloud run services update-traffic ent-os --project=jup-ops --region=asia-southeast2 --to-revisions=ent-os-00030-nq9=100"
+}
