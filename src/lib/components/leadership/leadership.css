@@ -1,13 +1,22 @@
-/* Ruang Pimpinan. Every colour is a JUP token, so light, dark and the GSM contrast rules come from
- * src/jup-tokens.css rather than being restated here. Accents are fills; words use the `-text`
- * tokens. Structure is square (--jup-radius), controls take --jup-radius-sm, and the 14px inset
- * panel around all of this belongs to the app shell.
+/* Ruang Pimpinan (and the KB review queue, which shares these classes).
  *
- * Type scale follows Portfolio: 12 / 14 / 16 / 20 / 24px, labels 12px, sentences 14px, running text
- * held to a 68ch measure. Sizes are rem so the app's text-scale setting applies. */
+ * Redesigned 2026-09-26 to the None-JUPe inner layer: every colour is a JUP token, so light, dark
+ * and the GSM contrast rules come from src/jup-tokens.css rather than being restated here. Accents
+ * are fills; words use the `-text` tokens. Cards take --jup-radius, controls --jup-radius-sm, and
+ * surfaces are set off by a soft ring rather than a hard border.
+ *
+ * Type scale: 12 / 13 / 14 / 16 / 20 / 28px, labels 12px, sentences 14px, running text held to a
+ * 68ch measure. Figures are Space Grotesk with tabular numerals: at display size Space Mono read
+ * as a typewriter and crowded the card. Sizes are rem so the app's text-scale setting applies. */
 
 .jlp-root {
 	color: var(--jup-ink);
+	--jlp-card-ring: 0 0 0 1px var(--jup-line-soft);
+	--jlp-card-lift: 0 1px 2px rgba(1, 22, 39, 0.04);
+}
+
+.dark .jlp-root {
+	--jlp-card-lift: none;
 }
 
 .jlp-section {
@@ -21,6 +30,7 @@
 .jlp-scroll {
 	flex: 1;
 	min-height: 0;
+	overflow-x: hidden;
 	overflow-y: auto;
 }
 
@@ -28,8 +38,16 @@
 	margin: 0 auto;
 	width: 100%;
 	max-width: 72rem;
-	padding: 1.5rem 1.25rem 3rem;
+	padding: 2rem 1.5rem 3.5rem;
 }
+
+@media (max-width: 640px) {
+	.jlp-container {
+		padding: 1.25rem 1rem 3rem;
+	}
+}
+
+/* ── Header and view switcher ─────────────────────────────────────────── */
 
 .jlp-header {
 	display: flex;
@@ -41,48 +59,36 @@
 
 .jlp-title {
 	font-family: var(--jup-font-display);
-	font-size: 1.5rem;
-	font-weight: 600;
+	font-size: 1.75rem;
+	line-height: 1.15;
+	font-weight: 700;
+	letter-spacing: -0.025em;
+	text-wrap: balance;
 }
 
 .jlp-subtitle {
 	color: var(--jup-ink-soft);
-	font-size: 0.875rem;
+	font-size: 0.9375rem;
 	max-width: 68ch;
-	margin-top: 0.25rem;
+	margin-top: 0.375rem;
 }
 
+/* The view switcher is the shared segmented control (jup-skin.css); this only places it. */
 .jlp-tabs {
-	display: flex;
-	gap: 0.25rem;
-	margin-top: 1rem;
-	border-bottom: 1px solid var(--jup-line);
+	margin-top: 1.25rem;
 }
 
 .jlp-tab {
-	padding: 0.5rem 0.85rem;
 	font-size: 0.875rem;
-	font-weight: 500;
-	color: var(--jup-ink-soft);
-	border-bottom: 2px solid transparent;
-	margin-bottom: -1px;
 }
 
-.jlp-tab:hover {
-	color: var(--jup-ink);
-}
-
-.jlp-tab[aria-current='page'] {
-	color: var(--jup-ink);
-	border-bottom-color: var(--jup-brand-text);
-	font-weight: 600;
-}
+/* ── Focus: one ring, the panel's ─────────────────────────────────────── */
 
 .jlp-tab:focus-visible,
 .jlp-link:focus-visible,
 .jlp-button:focus-visible,
 .jlp-table-scroll:focus-visible {
-	outline: 2px solid var(--jup-brand-text);
+	outline: 2px solid var(--jup-ring);
 	outline-offset: 2px;
 }
 
@@ -90,48 +96,151 @@
    leadership forms would show no focus at all. Every field here, and any control without one of
    the classes above, gets the same ring. */
 .jlp-root :is(input, select, textarea, summary, [tabindex]:not([tabindex='-1'])):focus-visible {
-	outline: 2px solid var(--jup-brand-text);
+	outline: 2px solid var(--jup-ring);
 	outline-offset: 1px;
 }
+
+/* ── Meeting context strip ────────────────────────────────────────────── */
 
 .jlp-context-bar {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 0.5rem 0.9rem;
-	margin: 1rem 0;
+	gap: 0.5rem 0.875rem;
+	margin: 1.25rem 0 1rem;
+	padding: 0.75rem 0.75rem 0.75rem 1rem;
+	border-radius: var(--jup-radius);
+	background: var(--jup-surface-2);
 	font-size: 0.875rem;
 }
 
 .jlp-context-label {
 	font-weight: 600;
+	letter-spacing: -0.01em;
 }
 
 .jlp-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
 	background: var(--jup-defer-bg);
 	color: var(--jup-defer-text);
-	border-radius: var(--jup-radius-sm);
-	padding: 0.2rem 0.55rem;
+	border-radius: 999px;
+	padding: 0.2rem 0.625rem;
 	font-size: 0.75rem;
+	font-weight: 500;
 }
 
+.jlp-badge::before {
+	content: '';
+	width: 0.375rem;
+	height: 0.375rem;
+	border-radius: 50%;
+	background: currentColor;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────
+   .jlp-button is the one filled action in a place; .jlp-link is a quiet text button. */
+
 .jlp-button {
-	margin-left: auto;
-	border: 1px solid var(--jup-line);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	min-height: 2.25rem;
+	padding: 0.4rem 0.95rem;
+	border: 0;
 	border-radius: var(--jup-radius-sm);
-	background: var(--jup-surface);
-	color: var(--jup-ink);
-	padding: 0.35rem 0.75rem;
+	background: var(--jup-action);
+	color: var(--jup-on-action);
 	font-size: 0.875rem;
+	font-weight: 600;
+	white-space: nowrap;
+	cursor: pointer;
+	transition:
+		background-color 150ms ease,
+		transform 100ms ease;
 }
 
 .jlp-button:hover {
-	border-color: var(--jup-ink-soft);
+	background: var(--jup-action-hover);
 }
 
+.jlp-button:active {
+	transform: translateY(1px);
+}
+
+.jlp-button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	transform: none;
+}
+
+.jlp-button svg {
+	width: 1rem;
+	height: 1rem;
+	flex: none;
+}
+
+/* The context strip's action sits at the end of the strip, with its secondary words muted. */
+.jlp-context-bar .jlp-button {
+	margin-left: auto;
+}
+
+.jlp-button .jlp-meta {
+	color: inherit;
+	opacity: 0.8;
+	font-weight: 500;
+}
+
+@media (max-width: 900px) {
+	.jlp-context-bar .jlp-button {
+		margin-left: 0;
+	}
+}
+
+.jlp-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	padding: 0.2rem 0.5rem;
+	margin: -0.2rem -0.25rem;
+	border-radius: 6px;
+	color: var(--jup-link-text);
+	font-size: 0.8125rem;
+	font-weight: 500;
+	text-decoration: none;
+	cursor: pointer;
+	transition: background-color 150ms ease;
+}
+
+.jlp-link:hover {
+	background: var(--jup-hover);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+.jlp-link[aria-pressed='true'] {
+	background: var(--jup-gate-bg);
+	color: var(--jup-gate-text);
+	font-weight: 600;
+}
+
+/* A link inside running text stays a link. */
+.jlp-notice .jlp-link,
+p > .jlp-link {
+	margin: 0;
+	padding: 0;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+/* ── Text roles ───────────────────────────────────────────────────────── */
+
 .jlp-meta {
-	color: var(--jup-ink-soft);
-	font-size: 0.75rem;
+	color: var(--jup-ink-faint);
+	font-size: 0.8125rem;
+	line-height: 1.45;
 }
 
 .jlp-block {
@@ -139,48 +248,62 @@
 	margin-top: 0.15rem;
 }
 
-.jlp-link {
-	color: var(--jup-brand-text);
-	font-size: 0.75rem;
-	text-decoration: underline;
-	text-underline-offset: 2px;
-}
-
 .jlp-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
 	font-size: 0.75rem;
 	font-weight: 500;
 	color: var(--jup-neu-text);
+	background: var(--jup-neu-bg);
+	border-radius: 999px;
+	padding: 0.2rem 0.6rem;
+	white-space: nowrap;
+}
+
+.jlp-status::before {
+	content: '';
+	width: 0.375rem;
+	height: 0.375rem;
+	border-radius: 50%;
+	background: currentColor;
+	opacity: 0.7;
 }
 
 .jlp-negative {
 	color: var(--jup-down-text);
 }
 
+/* ── Key figures ──────────────────────────────────────────────────────── */
+
 .jlp-metric-row {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-	gap: 0.75rem;
+	gap: 1rem;
 }
 
 .jlp-metric {
 	display: flex;
 	flex-direction: column;
-	gap: 0.3rem;
+	gap: 0.25rem;
 	background: var(--jup-surface);
-	border: 1px solid var(--jup-line);
+	box-shadow: var(--jlp-card-ring), var(--jlp-card-lift);
 	border-radius: var(--jup-radius);
-	padding: 1rem 1.1rem;
+	padding: 1.125rem 1.25rem 1rem;
+	transition: box-shadow 150ms ease;
 }
 
 .jlp-metric-selected,
 .jlp-row-selected {
-	outline: 2px solid var(--jup-brand-text);
-	outline-offset: -2px;
+	box-shadow:
+		0 0 0 2px var(--jup-ring),
+		var(--jlp-card-lift);
+	outline: none;
 }
 
 .jlp-metric-head {
 	display: flex;
-	align-items: baseline;
+	align-items: center;
 	justify-content: space-between;
 	gap: 0.5rem;
 }
@@ -188,88 +311,157 @@
 .jlp-metric-label {
 	font-size: 0.875rem;
 	font-weight: 600;
+	color: var(--jup-ink-soft);
 }
 
 .jlp-kind {
-	color: var(--jup-ink-soft);
-	font-size: 0.75rem;
+	color: var(--jup-chip-text);
+	background: var(--jup-chip-bg);
+	border-radius: 999px;
+	padding: 0.125rem 0.5rem;
+	font-size: 0.6875rem;
+	font-weight: 500;
+	letter-spacing: 0.02em;
+	white-space: nowrap;
 }
 
 .jlp-metric-value {
-	font-family: var(--jup-font-mono);
-	font-size: 1.5rem;
-	font-weight: 700;
+	font-family: var(--jup-font-display);
+	font-size: 1.75rem;
+	line-height: 1.15;
+	font-weight: 600;
+	letter-spacing: -0.025em;
 	font-variant-numeric: tabular-nums;
+	margin-top: 0.375rem;
 }
 
 .jlp-metric-missing {
-	font-size: 1rem;
+	font-size: 1.125rem;
 	font-weight: 600;
 	color: var(--jup-neu-text);
+	margin-top: 0.375rem;
+}
+
+/* Budget and variance, as label/value pairs under the figure. */
+.jlp-compare {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.375rem;
+	margin-top: 0.375rem;
+	font-size: 0.8125rem;
+	color: var(--jup-ink-faint);
+}
+
+.jlp-compare strong {
+	color: var(--jup-ink-soft);
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
 }
 
 .jlp-variance {
-	font-size: 0.875rem;
-	font-weight: 500;
+	display: inline-flex;
+	margin-left: 0.25rem;
+	vertical-align: 1px;
+	align-items: center;
+	gap: 0.25rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	padding: 0.15rem 0.5rem;
+	border-radius: 999px;
+	background: var(--jup-up-bg);
+	color: var(--jup-up-text);
+}
+
+.jlp-variance.jlp-negative {
+	background: var(--jup-down-bg);
+	color: var(--jup-down-text);
+}
+
+.jlp-variance svg {
+	width: 0.75rem;
+	height: 0.75rem;
+	flex: none;
+}
+
+.jlp-metric-note {
+	margin-top: 0.5rem;
 }
 
 .jlp-metric-foot {
 	display: flex;
 	flex-wrap: wrap;
+	align-items: center;
 	justify-content: space-between;
-	gap: 0.4rem;
+	gap: 0.5rem;
 	margin-top: auto;
-	padding-top: 0.5rem;
-	border-top: 1px solid var(--jup-line-soft);
+	padding-top: 0.875rem;
+}
+
+.jlp-metric-note + .jlp-metric-foot,
+.jlp-compare + .jlp-metric-foot {
+	margin-top: 0.75rem;
 }
 
 .jlp-metric-buttons,
 .jlp-row-buttons {
 	display: inline-flex;
 	flex-wrap: wrap;
-	gap: 0.6rem;
+	gap: 0.5rem;
 }
 
 .jlp-row-buttons {
 	margin-top: 0.3rem;
 }
 
+/* ── Surfaces ─────────────────────────────────────────────────────────── */
+
 .jlp-grid {
 	display: grid;
 	grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-	gap: 0.75rem;
-	margin-top: 0.75rem;
+	gap: 1rem;
+	margin-top: 1rem;
 }
 
 @media (max-width: 900px) {
 	.jlp-grid {
 		grid-template-columns: minmax(0, 1fr);
 	}
-
-	.jlp-button {
-		margin-left: 0;
-	}
 }
 
 .jlp-surface {
 	background: var(--jup-surface);
-	border: 1px solid var(--jup-line);
+	box-shadow: var(--jlp-card-ring), var(--jlp-card-lift);
 	border-radius: var(--jup-radius);
-	padding: 1rem 1.1rem;
+	padding: 1.125rem 1.25rem 1.25rem;
 	min-width: 0;
+}
+
+/* Stacked surfaces (the vendor-style mt-4 on each) get the grid's rhythm. */
+.jlp-surface.mt-4,
+.jlp-container > .jlp-surface,
+.jlp-container > section.jlp-surface {
+	margin-top: 1rem;
 }
 
 .jlp-surface-head {
 	display: flex;
-	align-items: baseline;
+	align-items: center;
 	justify-content: space-between;
 	gap: 0.5rem;
+	margin-bottom: 0.25rem;
 }
 
 .jlp-surface-title {
 	font-size: 1rem;
 	font-weight: 600;
-	margin-bottom: 0.35rem;
+	letter-spacing: -0.01em;
+	margin-bottom: 0.25rem;
+}
+
+.jlp-surface-head .jlp-surface-title {
+	margin-bottom: 0;
 }
 
 /* A group inside a surface: one step below its title. */
@@ -280,121 +472,182 @@
 	margin-bottom: 0.25rem;
 }
 
+/* ── Actual vs budget bars ────────────────────────────────────────────── */
+
 .jlp-bars {
-	margin: 0.6rem 0 0.9rem;
+	margin: 0.875rem 0 1rem;
 	display: flex;
 	flex-direction: column;
-	gap: 0.3rem;
+	gap: 0.375rem;
 }
 
 .jlp-bar-label {
 	display: flex;
 	justify-content: space-between;
-	font-size: 0.75rem;
-	color: var(--jup-ink-soft);
+	font-size: 0.8125rem;
+	color: var(--jup-ink-faint);
 }
 
 .jlp-bar-label strong {
 	color: var(--jup-ink);
-	font-family: var(--jup-font-mono);
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
 }
 
 .jlp-bar-track {
-	height: 0.6rem;
-	background: var(--jup-neu-bg);
+	height: 0.5rem;
+	border-radius: 999px;
+	background: var(--jup-surface-2);
+	overflow: hidden;
+	margin-bottom: 0.375rem;
 }
 
 .jlp-bar-fill {
 	height: 100%;
+	border-radius: 999px;
 	background: var(--jup-brand);
 }
 
 /* The budget bar is a reference, not a result: the blue fill, never the brand green. */
 .jlp-bar-target {
-	background: var(--jup-blue);
+	background: var(--jup-action);
 }
 
 .jlp-notes {
 	display: flex;
 	flex-direction: column;
-	gap: 0.35rem;
+	gap: 0.5rem;
 	font-size: 0.875rem;
+	line-height: 1.55;
 	max-width: 68ch;
+	color: var(--jup-ink-soft);
+	padding-top: 0.875rem;
+	border-top: 1px solid var(--jup-line-soft);
 }
+
+.jlp-notes strong {
+	color: var(--jup-ink);
+}
+
+/* ── Lists ────────────────────────────────────────────────────────────── */
 
 .jlp-mini-list {
 	display: flex;
 	flex-direction: column;
 	gap: 0.5rem;
-	margin-top: 0.6rem;
+	margin-top: 0.75rem;
+}
+
+.jlp-mini-list:empty {
+	display: none;
 }
 
 .jlp-mini {
 	font-size: 0.875rem;
-	padding: 0.55rem 0.65rem;
-	border: 1px solid var(--jup-line-soft);
+	padding: 0.75rem 0.875rem;
+	border-radius: 10px;
+	background: var(--jup-surface-2);
+	transition: background-color 150ms ease;
+}
+
+.jlp-mini:hover {
+	background: var(--jup-hover);
 }
 
 .jlp-modules {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-	gap: 0.6rem;
-	margin-top: 0.5rem;
+	gap: 0.625rem;
+	margin-top: 0.75rem;
 }
 
 .jlp-module {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.375rem;
 	font-size: 0.875rem;
-	padding: 0.55rem 0.65rem;
-	background: var(--jup-neu-bg);
+	padding: 0.875rem 1rem;
+	border-radius: 10px;
+	background: var(--jup-surface-2);
 }
 
 .jlp-module-label {
 	font-weight: 600;
-	margin-right: 0.4rem;
+	letter-spacing: -0.005em;
+}
+
+.jlp-module .jlp-block {
+	margin-top: 0;
 }
 
 .jlp-caption {
 	margin-bottom: 0.5rem;
 }
 
-/* Tables scroll inside their own region, so a narrow screen never scrolls the whole page sideways. */
+/* ── Tables ───────────────────────────────────────────────────────────────
+   Tables scroll inside their own region, so a narrow screen never scrolls the whole page sideways. */
+
 .jlp-table-scroll {
 	overflow-x: auto;
 	max-width: 100%;
+	margin-top: 0.5rem;
 }
 
 .jlp-table {
 	width: 100%;
 	min-width: 36rem;
-	border-collapse: collapse;
+	border-collapse: separate;
+	border-spacing: 0;
 	font-size: 0.875rem;
 }
 
 .jlp-table th {
 	text-align: left;
-	font-size: 0.75rem;
+	font-size: 0.6875rem;
 	font-weight: 600;
-	color: var(--jup-ink-soft);
-	border-bottom: 1px solid var(--jup-line);
-	padding: 0.4rem 0.5rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--jup-ink-faint);
+	background: var(--jup-surface-2);
+	padding: 0.5rem 0.75rem;
+}
+
+.jlp-table th:first-child {
+	border-radius: 8px 0 0 8px;
+}
+
+.jlp-table th:last-child {
+	border-radius: 0 8px 8px 0;
 }
 
 .jlp-table td {
 	vertical-align: top;
 	border-bottom: 1px solid var(--jup-line-soft);
-	padding: 0.55rem 0.5rem;
+	padding: 0.75rem;
+	font-variant-numeric: tabular-nums;
+	transition: background-color 150ms ease;
+}
+
+.jlp-table tbody tr:last-child td {
+	border-bottom: 0;
+}
+
+.jlp-table tbody tr:hover td {
+	background: var(--jup-hover);
 }
 
 .jlp-cell-title {
 	font-weight: 600;
 }
 
+/* ── Notices ──────────────────────────────────────────────────────────── */
+
 .jlp-notice {
 	background: var(--jup-neu-bg);
 	color: var(--jup-neu-text);
-	border: 1px solid var(--jup-line);
 	border-radius: var(--jup-radius);
-	padding: 1rem 1.1rem;
+	padding: 1rem 1.25rem;
 }
 
 .jlp-notice-refused {
@@ -402,8 +655,10 @@
 	color: var(--jup-down-text);
 }
 
+/* ── Dialogs ──────────────────────────────────────────────────────────── */
+
 .jlp-dialog {
-	padding: 1.25rem;
+	padding: 1.5rem;
 	background: var(--jup-surface);
 }
 
@@ -412,32 +667,34 @@
 	align-items: baseline;
 	justify-content: space-between;
 	gap: 0.75rem;
-	margin-bottom: 0.75rem;
+	margin-bottom: 1rem;
 }
 
 .jlp-dialog-title {
 	font-size: 1.25rem;
 	font-weight: 600;
+	letter-spacing: -0.015em;
 }
 
 .jlp-dl {
 	display: grid;
 	grid-template-columns: minmax(8rem, auto) 1fr;
-	gap: 0.4rem 1rem;
+	gap: 0.5rem 1rem;
 	font-size: 0.875rem;
 }
 
 .jlp-dl dt {
-	color: var(--jup-ink-soft);
+	color: var(--jup-ink-faint);
 }
 
-/* Forms (P2): outlined, so the brand's text token carries the contrast, never its fill. */
+/* ── Forms ────────────────────────────────────────────────────────────── */
+
 .jlp-form {
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
-	gap: 0.7rem;
-	margin-top: 0.7rem;
+	gap: 0.875rem;
+	margin-top: 0.875rem;
 }
 
 .jlp-field {
@@ -454,62 +711,56 @@
 .jlp-field > span,
 .jlp-field > legend {
 	color: var(--jup-ink-soft);
+	font-weight: 500;
 	margin-bottom: 0.2rem;
 }
 
 .jlp-field textarea,
 .jlp-field select,
 .jlp-field input[type='text'],
-.jlp-field input[type='url'] {
+.jlp-field input[type='url'],
+.jlp-field input[type='date'],
+.jlp-row-buttons input[type='text'] {
 	width: 100%;
-	padding: 0.45rem 0.55rem;
+	padding: 0.5rem 0.65rem;
 	border: 1px solid var(--jup-line);
 	border-radius: var(--jup-radius-sm);
 	background: var(--jup-surface);
 	color: var(--jup-ink);
 	font: inherit;
+	transition:
+		border-color 150ms ease,
+		box-shadow 150ms ease;
+}
+
+.jlp-field input[type='date'] {
+	width: auto;
+}
+
+.jlp-row-buttons input[type='text'] {
+	width: auto;
+	padding: 0.3rem 0.5rem;
+	font-size: 0.8125rem;
+}
+
+.jlp-field :is(textarea, select, input):hover {
+	border-color: var(--jup-ink-faint);
+}
+
+.jlp-field :is(textarea, select, input):focus-visible {
+	outline: none;
+	border-color: var(--jup-ring);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--jup-ring) 22%, transparent);
 }
 
 .jlp-choice {
 	display: flex;
 	align-items: flex-start;
-	gap: 0.45rem;
+	gap: 0.5rem;
 }
 
-.jlp-button {
-	padding: 0.4rem 0.9rem;
-	border: 1px solid var(--jup-brand-text);
-	border-radius: var(--jup-radius-sm);
-	color: var(--jup-brand-text);
-	font-size: 0.875rem;
-	font-weight: 600;
-}
-
-.jlp-button:disabled {
-	opacity: 0.55;
-	cursor: not-allowed;
-}
-
-.jlp-link[aria-pressed='true'] {
-	color: var(--jup-ink);
-	font-weight: 600;
-	text-decoration-thickness: 2px;
-}
-
-.jlp-field input[type='date'] {
-	padding: 0.4rem 0.55rem;
-	border: 1px solid var(--jup-line);
-	border-radius: var(--jup-radius-sm);
-	background: var(--jup-surface);
-	color: var(--jup-ink);
-	font: inherit;
-}
-
-.jlp-row-buttons input[type='text'] {
-	padding: 0.25rem 0.45rem;
-	border: 1px solid var(--jup-line);
-	border-radius: var(--jup-radius-sm);
-	background: var(--jup-surface);
-	color: var(--jup-ink);
-	font-size: 0.8125rem;
+@media (prefers-reduced-motion: reduce) {
+	.jlp-root * {
+		transition: none !important;
+	}
 }

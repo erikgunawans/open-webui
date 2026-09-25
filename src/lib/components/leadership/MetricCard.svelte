@@ -45,23 +45,38 @@
 		</p>
 	{/if}
 
-	{#if baseline}
-		<p class="jlp-meta">
-			{KIND[baseline.kind] ?? baseline.kind}:
-			{baseline.value === null
-				? $i18n.t('Unavailable')
-				: formatValue(baseline.value, baseline.unit)}
-		</p>
-	{/if}
-
-	{#if metric.variance !== null}
-		<p class="jlp-variance" class:jlp-negative={varianceNegative}>
-			{$i18n.t('Difference from budget')}: {formatVariance(metric.variance, primary.unit)}
-		</p>
+	{#if baseline || metric.variance !== null}
+		<!-- JUP: the comparison reads as label/value pairs; the variance is a pill whose arrow and
+		     sign carry the direction, so colour is never the only signal. -->
+		<div class="jlp-compare">
+			{#if baseline}
+				<span>
+					{KIND[baseline.kind] ?? baseline.kind}
+					<strong
+						>{baseline.value === null
+							? $i18n.t('Unavailable')
+							: formatValue(baseline.value, baseline.unit)}</strong
+					>
+				</span>
+			{/if}
+			{#if metric.variance !== null}
+				<span>
+					{$i18n.t('Difference from budget')}
+					<span class="jlp-variance" class:jlp-negative={varianceNegative}>
+						<svg viewBox="0 0 12 12" aria-hidden="true" fill="currentColor"
+							>{#if varianceNegative}<path d="M6 10 1.5 4h9z" />{:else}<path
+									d="M6 2l4.5 6h-9z"
+								/>{/if}</svg
+						>
+						{formatVariance(metric.variance, primary.unit)}
+					</span>
+				</span>
+			{/if}
+		</div>
 	{/if}
 
 	{#if metric.comparison_note}
-		<p class="jlp-meta">{metric.comparison_note}</p>
+		<p class="jlp-meta jlp-metric-note">{metric.comparison_note}</p>
 	{/if}
 
 	<div class="jlp-metric-foot">
@@ -87,7 +102,17 @@
 					type="button"
 					class="jlp-link"
 					aria-describedby="metric-{metric.id}"
-					on:click={() => dispatch('source', sourceId)}>{$i18n.t('Source')}</button
+					on:click={() => dispatch('source', sourceId)}
+					>{$i18n.t('Source')}<svg
+						viewBox="0 0 16 16"
+						width="12"
+						height="12"
+						aria-hidden="true"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.6"
+						><path d="M4 2.5h5.5L12 5v8.5H4z" /><path d="M6.5 8h3M6.5 10.5h3" /></svg
+					></button
 				>
 			{/each}
 		</span>

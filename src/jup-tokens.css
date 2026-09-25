@@ -73,15 +73,34 @@
 	--jup-text-on-brand: #ffffff; /* 3.23:1: button labels >=14px/500 only */
 	--jup-text-on-blue: #ffffff; /* 8.70:1 */
 
+	/* ── The inner layer (2026-09-26, "None-JUPe Inner Layer" proposal, tabs option B) ──
+	   Actions are Polynesian Blue: white on it is 8.70:1, where white on Pigment Green is 3.23:1.
+	   Green stays the brand's fill (the mark, the active marker, "approved"). */
+	--jup-action: #004999;
+	--jup-action-hover: #003d80;
+	--jup-on-action: #ffffff; /* 8.70:1 */
+	--jup-link-text: #004999; /* 8.70:1 on surface */
+	--jup-ring: #004999;
+	--jup-hover: #f1f4f6;
+	--jup-panel-ring: #dde2e6;
+	--jup-panel-shadow: 0 1px 2px rgba(1, 22, 39, 0.05), 0 8px 24px -12px rgba(1, 22, 39, 0.12);
+	--jup-seg-track: #eef1f3;
+	--jup-seg-on: #ffffff;
+	--jup-seg-shadow: 0 1px 2px rgba(1, 22, 39, 0.08), 0 0 0 1px rgba(1, 22, 39, 0.06);
+	--jup-seg-ink: #5b6d7e; /* 4.86:1 on the track */
+	--jup-chip-bg: #e6eaed;
+	--jup-chip-text: #35485c; /* 7.4:1 on chip */
+
 	/* elevation: flat and print-derived; shadows are a last resort (GSM 4.6) */
 	--jup-shadow: 0 1px 2px rgba(1, 22, 39, 0.06);
 	--jup-shadow-md: 0 2px 8px rgba(1, 22, 39, 0.08);
 	--jup-shadow-lg: 0 10px 30px rgba(1, 22, 39, 0.12);
 
-	/* geometry: square by default, curvature only on things you touch */
-	--jup-radius: 0px; /* structural: panels, cards */
-	--jup-radius-sm: 4px; /* controls */
-	--jup-radius-modal: 10px;
+	/* geometry: one shape language inside the panel. Square corners read as print on screen;
+	   Erik chose the rounded inner layer on 2026-09-26. */
+	--jup-radius: 12px; /* structural: cards, surfaces */
+	--jup-radius-sm: 8px; /* controls */
+	--jup-radius-modal: 14px;
 
 	/* type: Space Grotesk does all the work; Space Mono only for figures and code */
 	--jup-font-sans:
@@ -92,17 +111,18 @@
 }
 
 .dark {
-	--jup-paper: #011627; /* Rich Black */
-	--jup-surface: #0b2135; /* neutral-800 */
-	--jup-surface-2: #172c3f; /* white 5% over surface */
-	--jup-surface-3: #1c3348; /* neutral-700 */
+	/* The outer layer sinks below Rich Black, so the identity colour becomes the working panel. */
+	--jup-paper: #00101d;
+	--jup-surface: #011627; /* Rich Black */
+	--jup-surface-2: #0a2034;
+	--jup-surface-3: #122a40;
 
 	--jup-ink: #f0f1f1; /* Anti-flash White, 16.20:1 on paper */
-	--jup-ink-soft: #c2c7cb; /* white 76% over Rich Black, 9.61:1 on surface */
-	--jup-ink-faint: #8f98a0; /* white 56% over Rich Black, 5.59:1 on surface */
+	--jup-ink-soft: #c2c9cf; /* 10.96:1 on surface */
+	--jup-ink-faint: #95a2ae; /* 7.03:1 on surface, 6.35:1 on surface-2 */
 
-	--jup-line: #3c4d5d; /* white 20% over surface */
-	--jup-line-soft: #283c4d; /* white 12% over surface */
+	--jup-line: #2c4459;
+	--jup-line-soft: #1b3145;
 
 	--jup-brand: #00a550; /* the identity colour does not change in dark */
 	--jup-brand-deep: #16b168; /* green-400 */
@@ -125,6 +145,21 @@
 
 	--jup-text-on-brand: #011627; /* dark label on the fill in dark */
 	--jup-text-on-blue: #ffffff;
+
+	--jup-action: #2f72c4; /* 4.86:1 with white; 3.78:1 against the panel */
+	--jup-action-hover: #2a68b5; /* 5.61:1 with white */
+	--jup-on-action: #ffffff;
+	--jup-link-text: #8db4e2; /* 8.52:1 on surface */
+	--jup-ring: #85aad2;
+	--jup-hover: #0c2338;
+	--jup-panel-ring: #1b3145;
+	--jup-panel-shadow: 0 16px 40px -20px rgba(0, 0, 0, 0.7);
+	--jup-seg-track: #0a2034;
+	--jup-seg-on: #173049;
+	--jup-seg-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.5);
+	--jup-seg-ink: #95a2ae; /* 6.35:1 on the track */
+	--jup-chip-bg: #0f263b;
+	--jup-chip-text: #b6c0c9; /* 8.36:1 */
 
 	/* a shadow on near-black lifts nothing and only darkens what is around it */
 	--jup-shadow: none;

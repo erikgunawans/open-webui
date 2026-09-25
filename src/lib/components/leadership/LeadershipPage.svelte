@@ -234,6 +234,17 @@
 				: overview.data_mode}
 		</span>
 		<button type="button" class="jlp-button" on:click={() => (previewOpen = true)}>
+			<svg
+				viewBox="0 0 24 24"
+				aria-hidden="true"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linejoin="round"
+				><path
+					d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10l-4 3v-3H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"
+				/></svg
+			>
 			{$i18n.t('Discuss with the Assistant')}
 			<span class="jlp-meta">· {$i18n.t('Context preview')}</span>
 		</button>

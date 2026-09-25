@@ -46,7 +46,7 @@
 			</header>
 
 			{#if tabs.length > 0}
-				<nav class="jlp-tabs" aria-label={$i18n.t('Ruang Pimpinan views')}>
+				<nav class="jlp-tabs jup-seg" aria-label={$i18n.t('Ruang Pimpinan views')}>
 					{#each tabs as tab (tab.view)}
 						<a class="jlp-tab" href={tab.href} aria-current={active(tab.href) ? 'page' : undefined}
 							>{tab.label}</a

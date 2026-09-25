@@ -1,0 +1,121 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   The None-JUPe inner layer (2026-09-26): Erik's pick from the "None-JUPe Inner
+   Layer" proposal, tabs option B (segmented).
+
+   The frame is unchanged: the sidebar is the outer layer and #main-content is the
+   inset inner panel. This file restyles what sits inside the panel, through the
+   tokens in jup-tokens.css, without editing each vendor component. Routes and
+   components are vendor files that rebase quarterly (ADR-0007), so the vendor
+   surface here is one class, `jup-seg`, on each top tab bar.
+
+   Everything below is unlayered on purpose: Tailwind utilities live in
+   @layer utilities, and an unlayered rule outranks any layered one, so these win
+   without !important.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── The inner panel: a soft edge instead of a hard grey border ─────────── */
+#main-content {
+	border-color: transparent;
+	box-shadow:
+		0 0 0 1px var(--jup-panel-ring),
+		var(--jup-panel-shadow);
+}
+
+/* ── Segmented tabs (option B) ─────────────────────────────────────────────
+   Every vendor tab bar marks its inactive links `text-gray-300` (1.6:1 on white)
+   and leaves the active one without it; Workspace also sets aria-current. Either
+   signal selects the active segment, so a vendor bar needs only the `jup-seg` class. */
+.jup-seg {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	padding: 3px;
+	border-radius: 10px;
+	background: var(--jup-seg-track);
+	max-width: 100%;
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+
+.jup-seg > a,
+.jup-seg > button {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45rem;
+	min-width: fit-content;
+	padding: 0.375rem 0.75rem;
+	border-radius: 7px;
+	font-size: 0.84375rem;
+	font-weight: 500;
+	line-height: 1.25rem;
+	white-space: nowrap;
+	color: var(--jup-seg-ink);
+	transition:
+		color 150ms ease,
+		background-color 150ms ease,
+		box-shadow 150ms ease;
+}
+
+.jup-seg > :is(a, button):hover {
+	color: var(--jup-ink);
+}
+
+/* Our own bars (.jlp-tab) mark only the active tab, with aria-current, so they are excluded
+   from the vendor fallback. */
+.jup-seg > :is(a, button):is([aria-current='page'], :not(.text-gray-300, .jlp-tab)) {
+	background: var(--jup-seg-on);
+	color: var(--jup-ink);
+	box-shadow: var(--jup-seg-shadow);
+}
+
+.jup-seg > :is(a, button):focus-visible {
+	outline: 2px solid var(--jup-ring);
+	outline-offset: 1px;
+}
+
+/* The Workspace counts become chips. */
+.jup-seg > a > span + span {
+	opacity: 1;
+	font-family: var(--jup-font-mono);
+	font-size: 0.6875rem;
+	line-height: 1;
+	padding: 0.2rem 0.4rem;
+	border-radius: 999px;
+	background: var(--jup-chip-bg);
+	color: var(--jup-chip-text);
+	font-variant-numeric: tabular-nums;
+}
+
+/* ── Primary actions: Polynesian Blue, not black ───────────────────────────
+   The vendor's primary buttons inside the panel are black pills that flip to
+   white in dark. Blue carries the action in both themes at >=4.86:1 with white.
+   Scoped to the panel, so image viewers and overlays elsewhere keep their black. */
+#main-content :is(button, a).bg-black.text-white {
+	background-color: var(--jup-action);
+	color: var(--jup-on-action);
+}
+
+#main-content :is(button, a).bg-black.text-white:hover {
+	background-color: var(--jup-action-hover);
+}
+
+.dark #main-content :is(button, a).dark\:bg-white.dark\:text-black {
+	background-color: var(--jup-action);
+	color: var(--jup-on-action);
+}
+
+.dark #main-content :is(button, a).dark\:bg-white.dark\:text-black:hover {
+	background-color: var(--jup-action-hover);
+}
+
+/* ── One keyboard focus ring inside the panel ──────────────────────────── */
+#main-content :is(a, button, [role='button'], [role='tab'], summary):focus-visible {
+	outline: 2px solid var(--jup-ring);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.jup-seg > :is(a, button) {
+		transition: none;
+	}
+}

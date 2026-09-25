@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './jup-tokens.css';
+@import './jup-skin.css';
 
 @config '../tailwind.config.js';
 
