@@ -204,9 +204,10 @@ and re-apply the upstream body inside `applyDefaults`.
 
 ## The fork's routers are mounted — `backend/open_webui/main.py` (2026-09-24)
 
-**What:** two names in the `from open_webui.routers import (...)` block, `jup_leadership` and
-`jup_portfolio`, and their two `app.include_router(...)` lines, at `/api/v1/leadership` and
-`/api/v1/portfolio`. The router modules themselves are fork-owned files.
+**What:** three names in the `from open_webui.routers import (...)` block, `jup_kb_review`,
+`jup_leadership` and `jup_portfolio`, and their three `app.include_router(...)` lines, at
+`/api/v1/kb-review`, `/api/v1/leadership` and `/api/v1/portfolio`. The router modules themselves are
+fork-owned files. `jup_kb_review` was added 2026-09-25 (ADR-0015).
 
 **Why:** Portfolio (ADR-0004) and Ruang Pimpinan (P1, read-only) are served from their own routers
 so their rules stay out of vendor code; mounting them is the only edit to `main.py` they need.
@@ -218,7 +219,7 @@ the Portfolio page renders as a refused load and Ruang Pimpinan as unavailable.
 `--only-group dev`).
 
 **Conflict risk:** low to moderate. Upstream adds routers to the same import block and the same
-run of `include_router` lines, so a merge can drop a neighbour. Keep both lines.
+run of `include_router` lines, so a merge can drop a neighbour. Keep all three lines.
 
 ## The name carries no " (Open WebUI)" suffix — `backend/open_webui/env.py` (2026-09-23)
 
@@ -370,3 +371,23 @@ no name.
 
 **Conflict risk:** low. These are one-attribute edits. On a conflict, take the vendor's line and
 wrap the label again.
+
+## The knowledge-review entry in the sidebar — `src/lib/components/layout/Sidebar.svelte` (2026-09-25)
+
+**What:** two imports (`DocumentArrowUpIcon`, `kbReviewAccess`), two reactive lines (`showKbReview`,
+`kbReviewActive`) and two `{#if showKbReview}` blocks linking to `/kb-review`. One is in the collapsed
+rail and one in the expanded list, both right after Ruang Pimpinan. Each carries a translated
+`aria-label`, `aria-current` and a Tooltip. The Portfolio and Ruang Pimpinan entries beside it are
+the same kind of patch; this entry covers only the new one.
+
+**Why:** the queue (ADR-0015) needs an entry point for staff with the `jup.kb.submit` grant and for
+admins, who review. The entry is presentation only. The server re-checks the grant and the role on
+every request.
+
+**If dropped:** silent. `/kb-review` still works for anyone who types it, and nobody else finds it.
+
+**The test that catches it:** `tests/test_sidebar_kb_review_entry.py` (source read, runs under
+`--only-group dev`).
+
+**Conflict risk:** moderate. Upstream edits `Sidebar.svelte` often, in both of these regions. Keep
+both blocks and their imports.
