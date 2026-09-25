@@ -1,0 +1,18 @@
+{
+  "recorded_at": "2026-09-25T05:26:46Z",
+  "service": "ent-os",
+  "latest_ready": "ent-os-00030-nq9",
+  "traffic": [
+    {
+      "latestRevision": true,
+      "percent": 100,
+      "revisionName": "ent-os-00030-nq9"
+    }
+  ],
+  "image": "asia-southeast2-docker.pkg.dev/jup-ops/ent-os/ent-os:4fb47561b",
+  "build": "842e645d-8e6c-4898-bd98-ba0732e3ad06 SUCCESS 10m58s",
+  "env_change": "none (non-secret env identical to before-values)",
+  "errors_since_deploy": "none (severity>=ERROR on ent-os-00030-nq9)",
+  "verified_live": "Interceptor as Erik, fresh tab, cache-busted: /ruang-pimpinan/board → Open the register → role=dialog aria-modal=true aria-labelledby=jlp-register-title, name \"Follow-up register across meetings\", heading inside the dialog, focus on Close. Tab closed; Erik locale untouched.",
+  "rollback": "gcloud run services update-traffic ent-os --project=jup-ops --region=asia-southeast2 --to-revisions=ent-os-00029-hz6=100"
+}
