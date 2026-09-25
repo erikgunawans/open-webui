@@ -68,6 +68,10 @@ ENABLE_OLLAMA_API: "False"
 ENABLE_PIP_INSTALL_FRONTMATTER_REQUIREMENTS: "False"
 # MiniLM is baked into the image; the auto-update reached HuggingFace on every boot.
 RAG_EMBEDDING_MODEL_AUTO_UPDATE: "False"
+# Erik's call 2026-09-25. The admin-only "new version available" toast pointed at upstream Open
+# WebUI releases, which nobody here acts on (upstream moves by quarterly rebase, ADR-0007), and each
+# check called api.github.com from the server. Off, /api/version/updates answers current=latest.
+ENABLE_VERSION_UPDATE_CHECK: "False"
 # ADR-0012, the IAP login. This header is set by IAP itself and cannot be spoofed from outside,
 # because --ingress=internal-and-cloud-load-balancing above means there is no path to the service
 # that does not pass through the load balancer. LOOSENING THAT INGRESS MAKES THIS HEADER A LOGIN
