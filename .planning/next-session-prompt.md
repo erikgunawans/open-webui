@@ -1,3 +1,30 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-25-i18n)
+
+> Prepended by /wrap 2026-09-25 (checkpoint 2026-09-25-i18n). Supersedes p2g's anchor and its list; the p2d block's constraints (below) still hold, except the critique leftovers, which are closed.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-25-i18n).
+Anchor: `origin/main` at `84b694d5a` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-25-i18n`). Verify with `git log --oneline 84b694d5a..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live on **`ent-os-00029-hz6`** (image `5b86ea21c`; rollback `ent-os-00028-44m`), env unchanged from 00028: P2 records mode, BOD closure and publication off. New live: funnel `admitted`/`exempt`/`refused` audit lines carry `chat` (and `parent_chat` for subagents), and the sidebar + ordinary chat screen render in id-ID (348 keys). Before/after: `.planning/deploy-i18n-{before,after}-2026-09-25.json`. Tests 844 passed / 22 skipped; `--only-group dev` 546. Nothing is pending in code.
+
+**Do next, in order:**
+1. **After Mon 2026-09-28 09:00 WIB: verify A1's first run** through a fresh ops tab (guard `location.host` before every eval and navigate; `tab new` does NOT make the tab active, `tab switch` to it): `/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs` → `success` + chat id; then `gcloud logging read` the `jup.governance` lines around 02:00Z and **confirm the `admitted` line now carries `chat` equal to that run's chat id** (the first live proof of `264813589`). Close the tab. Run `gcloud builds list --limit=1` first; re-auth may be needed: `! gcloud auth login alesha-bot@axiara.ai`.
+2. **Erik's keyboard pass** on the leadership screens (Tab through register, action detail, forms; T9 reported Tab stuck on "Tutup"). Fix what it finds.
+3. **First real use of the records register** when Erik has a deck: import review (needs an `imports.review` grant, its own OK), then naming PICs with `actions.assign`. The first real evidence upload is also the GCS-hold check under the runtime account.
+4. Optional polish, only if Erik wants it: the 4 hardcoded English `aria-label`s (`chat/Navbar.svelte` "New Chat" ×2, "Controls"; `chat/MessageInput.svelte` "Available Tools", "Voice Input") → `$i18n.t`; fix "Delete"→"Hapus" and "Playground"→"Taman bermain"; the remaining 2,238 empty id-ID keys (Settings 269 first).
+5. Carried: CI Docker CUDA/Ollama variants; "Release to PyPI" fails on every push (vendor).
+
+**Constraints to honor:** as in the p2d block below, plus:
+- Production runs records mode: a seed or test never writes to the live DB. Every further grant (`imports.review`, `actions.submit`, `bod.review`, `snapshots.publish`) and any new env value is its own OK with before-values.
+- `deploy.sh` refuses a dirty tree: park a before-values file in the scratchpad during the build, commit it with the after-values.
+- Erik's browser stores `locale: en-US`; `?lang=id-ID` overwrites it. Record it before a language check and restore it after.
+- i18n: fill only EMPTY id-ID keys (`returnEmptyString: false` makes empty fall back to English); re-run `bun run i18n:parse` + `bun run format` and confirm the file is unchanged.
+- **Record content stays English under id-ID (Erik, option C)**; the blocker owner/next step/date is **Erik's and on hold** — no schema change until he lifts it.
+
+**Open items waiting on Erik:** BOD closure mode and quorum, and publication authority (before those features switch on); KPI definitions (RKA baseline-vs-draft); a decision model for "Decisions required"; BOD/PIC identities and who else gets which grant; lifting the hold on blocker owner/next step/date; agent-depth D-decisions (A4 search engine + egress, A5 per MCP server, V1 US processing) and the E2 VM budget.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-25-p2g)
 
 > Prepended by /wrap 2026-09-25 (checkpoint 2026-09-25-p2g). Supersedes p2d2's anchor and its list; p2d's constraints and open items (below) still hold.

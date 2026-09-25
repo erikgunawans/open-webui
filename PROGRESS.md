@@ -1,6 +1,27 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-25-p2d2 (latest) — P2 deployed: live on ent-os-00028-44m; Erik holds actions.assign
+## Checkpoint 2026-09-25-i18n (latest) — chat id on audit lines; sidebar + chat screen in id-ID; live on ent-os-00029-hz6
+
+- **Session:** `/next` (items 1–3 blocked: A1 is Mon 09-28, keyboard pass needs Erik, records register needs a deck) → carried chat-id fix validated, Erik: "OK to push" → "start the critique leftovers" → Erik settled the leftovers → "OK to push" → "ok to deploy" → "OK to push" → `/wrap`.
+- **Live:** **`ent-os-00029-hz6`** (image `5b86ea21c`), 100% traffic; env identical to before. Rollback `ent-os-00028-44m`. Before/after: `.planning/deploy-i18n-{before,after}-2026-09-25.json`.
+- **Commits (all pushed):** `264813589` (funnel audit lines carry `chat` and, for subagents, `parent_chat`; absent ids omitted), `0019b0adb` (96 empty id-ID sidebar keys filled), `5b86ea21c` (252 empty id-ID chat-path keys filled), `84b694d5a` (deploy records). CI: Python CI green on `264813589`; Frontend Build green on `264813589` and `5b86ea21c`; "Release to PyPI" red as always (vendor).
+- **Tests:** full suite 844 passed, 22 skipped; `--only-group dev` 546 passed; ruff clean.
+- **Verified live as Erik** (Interceptor, `?lang=id-ID`, then his `locale` restored to `en-US`): sidebar "Tutup Bilah Samping", "Catatan", "Folder", "Menu pengguna"; chat input "Obrolan Sementara", "Model terpilih", "Mode suara", "Integrasi". **Not yet seen live:** the chat id on an audit line (needs a turn; A1's run Monday gives one).
+
+### Decisions (Erik, 2026-09-25)
+
+- **Record content stays English under id-ID (option C).** Only UI chrome is translated; no `_id` fields in `~/jup/records`.
+- **Blocker owner / next step / date: owner is Erik, on hold.** No schema change until he lifts it.
+- Portfolio sort/filter/deep links were already shipped (`19c590898`, 09-24). The critique leftovers are closed.
+
+### Findings
+
+- id-ID has **2,238 empty vendor keys** left (Settings 269, admin/workspace). `returnEmptyString: false` makes them fall back to English. Only fill empty keys; parse leaves filled ones intact.
+- Four chat labels are **hardcoded English `aria-label`s** in vendor code (`Navbar.svelte` "New Chat", "Controls"; `MessageInput.svelte` "Available Tools", "Voice Input") — no translation can reach them.
+- Two existing id-ID values read badly: "Delete" → "Menghapus", "Playground" → "Taman bermain".
+- Erik's own browser stores `locale: en-US`, so he sees English; `DEFAULT_LOCALE=id-ID` covers users with no stored choice. `?lang=` writes localStorage — restore it after any check.
+
+## Checkpoint 2026-09-25-p2d2 — P2 deployed: live on ent-os-00028-44m; Erik holds actions.assign
 
 - **Session:** after the p2d wrap Erik ran `gcloud auth login`; `deploy.sh` rerun from a clean tree at `c5f47be29`.
 - **Live:** **`ent-os-00028-44m`** (image `c5f47be29`), 100% traffic. Rollback `ent-os-00027-lrc`. Only env change `+JUP_LEADERSHIP_ACTIONS_SOURCE=records`; BOD and publication policies unset by design. `jl0001`→`jl0002` ran on Cloud SQL at startup, no errors.
