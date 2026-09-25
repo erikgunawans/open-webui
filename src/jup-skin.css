@@ -108,6 +108,56 @@
 	background-color: var(--jup-action-hover);
 }
 
+/* ── The create button ─────────────────────────────────────────────────────
+   The shared SplitCreateButton ("Create" / "Buat") on every Workspace list carries `jup-primary`
+   on both of its shapes: a single button, or a button plus a menu chevron in one pill. */
+#main-content .jup-primary {
+	background-color: var(--jup-action);
+	color: var(--jup-on-action);
+	--tw-ring-color: transparent;
+	font-weight: 500;
+}
+
+#main-content button.jup-primary:hover,
+#main-content .jup-primary button:hover {
+	background-color: var(--jup-action-hover);
+}
+
+/* The chevron sits inside the menu's trigger, so its divider is found by class, not position. */
+#main-content .jup-primary .border-l {
+	border-left-color: color-mix(in srgb, var(--jup-on-action) 30%, transparent);
+}
+
+/* ── Workspace list rows ───────────────────────────────────────────────────
+   Models, Knowledge, Prompts, Skills and Tools all render a row as
+   `div.group.flex.min-h-8.rounded-xl[role=button]`. Rows get a hover fill and room to breathe
+   instead of an underline, and their meta text is lifted to a readable contrast. */
+#main-content div.group.min-h-8.rounded-xl[role='button'] {
+	padding: 0.5rem 0.75rem;
+	border-radius: 10px;
+	transition: background-color 150ms ease;
+}
+
+#main-content div.group.min-h-8.rounded-xl[role='button']:hover {
+	background-color: var(--jup-hover);
+}
+
+#main-content div.group.min-h-8.rounded-xl[role='button'] .group-hover\:underline {
+	text-decoration: none;
+	font-weight: 500;
+}
+
+#main-content
+	div.group.min-h-8.rounded-xl[role='button']
+	:is(.text-gray-400, .dark\:text-gray-600) {
+	color: var(--jup-ink-faint);
+}
+
+#main-content div.group.min-h-8.rounded-xl[role='button']:focus-visible {
+	outline: 2px solid var(--jup-ring);
+	outline-offset: 1px;
+}
+
 /* ── Search fields ───────────────────────────────────────────────────────
    Every Workspace list (Models, Knowledge, Prompts, Skills, Tools) builds its search the same
    way: an icon and a transparent `outline-hidden` input inside a `flex min-w-0 flex-1` row. The

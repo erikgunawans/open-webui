@@ -50,7 +50,7 @@
 
 {#if visibleActions.length === 1}
 	<button
-		class="focus-ring ml-1 rounded-lg bg-gray-50 px-2.5 py-1 text-xs text-gray-900 transition ring-1 ring-gray-200 hover:bg-gray-100 dark:bg-gray-850 dark:text-gray-100 dark:ring-gray-800 dark:hover:bg-gray-800"
+		class="jup-primary focus-ring ml-1 rounded-lg bg-gray-50 px-2.5 py-1 text-xs text-gray-900 transition ring-1 ring-gray-200 hover:bg-gray-100 dark:bg-gray-850 dark:text-gray-100 dark:ring-gray-800 dark:hover:bg-gray-800"
 		type="button"
 		on:click={() => {
 			runAction(primaryAction);
@@ -60,7 +60,7 @@
 	</button>
 {:else if visibleActions.length > 1}
 	<div
-		class="ml-1 flex overflow-hidden rounded-lg bg-gray-50 text-xs text-gray-900 transition ring-1 ring-gray-200 dark:bg-gray-850 dark:text-gray-100 dark:ring-gray-800"
+		class="jup-primary ml-1 flex overflow-hidden rounded-lg bg-gray-50 text-xs text-gray-900 transition ring-1 ring-gray-200 dark:bg-gray-850 dark:text-gray-100 dark:ring-gray-800"
 	>
 		<button
 			class="focus-ring px-2.5 py-1 transition hover:bg-gray-100 dark:hover:bg-gray-800"

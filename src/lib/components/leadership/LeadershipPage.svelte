@@ -168,6 +168,7 @@
 		'Ruang Pimpinan is not enabled on this server.': $i18n.t(
 			'Ruang Pimpinan is not enabled on this server.'
 		),
+		'No action is recorded for this view yet.': $i18n.t('No action is recorded for this view yet.'),
 		'No leadership dataset is configured on this server.': $i18n.t(
 			'No leadership dataset is configured on this server.'
 		),
@@ -386,7 +387,7 @@
 				{/if}
 			</p>
 			{#if overview.actions_note}
-				<p class="jlp-meta">{overview.actions_note}</p>
+				<p class="jlp-meta">{serverText[overview.actions_note] ?? overview.actions_note}</p>
 			{/if}
 			<ul class="jlp-mini-list">
 				{#each shortList(overview) as action (action.id)}
