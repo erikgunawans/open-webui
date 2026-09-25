@@ -1,7 +1,8 @@
 # JUP staff sign in with Entra through Identity Platform
 
-**Status: Proposed 2026-09-26.** The route (Entra via Identity Platform) is Erik's call, made
-2026-09-26. The shape below, and the order of steps, are waiting for his OK.
+**Status: Accepted 2026-09-26 — Erik Gunawan Supriatna, Director, Operation & Business
+Development.** He chose the route (Entra via Identity Platform), approved the two-backend shape,
+and decided that he also signs in through Entra.
 
 ADR-0012 made IAP the login. IAP authenticates Google identities only, and JUP staff sign in to
 Microsoft 365 (`jakarta-utilitas.com`, MX `mail.protection.outlook.com`). Serving the app at
@@ -63,9 +64,17 @@ Each production step is its own OK, with before-values recorded.
 Rollback at any point: remove the host rule, and `non-jupe.jup.co.id` falls back to the Google
 path on `ent-os-backend`.
 
-## Open for Erik
+## Erik signs in through Entra too (decided 2026-09-26)
 
-- Whether he also signs in through Entra on `non-jupe.jup.co.id`. That needs a JUP tenant account
-  for him. His app account is `erik@axiara.ai`, so a JUP address would create a **second** account
-  unless the address on the existing one is changed. Until this is settled, he uses
-  `ops.axiara.ai`, and `ops.axiara.ai` cannot be retired.
+He needs an account in JUP's tenant. His app account is `erik@axiara.ai`, and a first Entra sign-in
+under a JUP address would create a **second**, `pending` account with none of his chats, grants or
+admin role. So before his first Entra sign-in, the address on his existing account is changed to
+the JUP one, and the JUP address is added to `JUP_ADMIN_EMAILS`. Each of those is a production
+write, with its own OK and before-values. `ops.axiara.ai` can be retired only after his Entra
+sign-in works.
+
+## Progress
+
+- 2026-09-26: Identity Platform enabled and initialized on `jup-ops` (`identitytoolkit.googleapis.com`).
+  No providers are enabled. The auth domain is `jup-ops.firebaseapp.com`, which confirms the
+  redirect URI in the JUP IT request.
