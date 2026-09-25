@@ -27,6 +27,7 @@
 	import MessageInput from './MessageInput.svelte';
 	import FolderPlaceholder from './Placeholder/FolderPlaceholder.svelte';
 	import FolderTitle from './Placeholder/FolderTitle.svelte';
+	import NoneJupeMark from './Placeholder/NoneJupeMark.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -87,6 +88,20 @@
 
 	$: models = selectedModels.map((id) => $_models.find((m) => m.id === id));
 
+	// JUP: greet by the time of day, as a colleague at JUP would: "Selamat pagi" until 11, "siang"
+	// until 15, "sore" until 18, then "malam". The boundaries are the Indonesian ones, and each
+	// branch is a literal t() call so the i18n extractor sees every key.
+	const greeting = (name: string) => {
+		const hour = new Date().getHours();
+		if (hour >= 4 && hour < 11) return $i18n.t('Good morning, {{name}}', { name });
+		if (hour >= 11 && hour < 15) return $i18n.t('Good day, {{name}}', { name });
+		if (hour >= 15 && hour < 18) return $i18n.t('Good afternoon, {{name}}', { name });
+		return $i18n.t('Good evening, {{name}}', { name });
+	};
+	// Naming $i18n here makes the greeting follow a language switch; first name only, because the
+	// account holds the full legal name and a greeting is not a form.
+	$: greetingText = $i18n && greeting(($user?.name ?? '').split(' ')[0]);
+
 	// True when viewing a shared folder the current user doesn't own AND lacks write access
 	$: folderReadOnly =
 		$selectedFolder != null &&
@@ -125,40 +140,49 @@
 			{:else}
 				<div class="flex flex-row justify-center gap-2.5 @sm:gap-3 w-fit px-5 max-w-xl">
 					<div class="flex shrink-0 justify-center">
-						<div class="flex -space-x-4 mb-0.5" in:fade={{ duration: 100 }}>
-							{#each models as model, modelIdx}
-								<Tooltip
-									content={(models[modelIdx]?.info?.meta?.tags ?? [])
-										.map((tag) => tag.name.toUpperCase())
-										.join(', ')}
-									placement="top"
-								>
-									<button
-										aria-hidden={models.length <= 1}
-										tabindex={models.length <= 1 ? -1 : 0}
-										aria-label={$i18n.t('Get information on {{name}} in the UI', {
-											name: models[modelIdx]?.name
-										})}
-										on:click={() => {
-											selectedModelIdx = modelIdx;
-										}}
+						<!-- JUP: with one model the avatar is decorative (aria-hidden, untabbable), so the
+						     None-JUPe mark takes its place. Several models keep the vendor avatars, which
+						     are the control for choosing between them. -->
+						{#if models.length <= 1}
+							<div class="mb-0.5" in:fade={{ duration: 100 }}>
+								<NoneJupeMark className="size-9 @sm:size-10" />
+							</div>
+						{:else}
+							<div class="flex -space-x-4 mb-0.5" in:fade={{ duration: 100 }}>
+								{#each models as model, modelIdx}
+									<Tooltip
+										content={(models[modelIdx]?.info?.meta?.tags ?? [])
+											.map((tag) => tag.name.toUpperCase())
+											.join(', ')}
+										placement="top"
 									>
-										<img
-											src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}`}
-											class=" size-9 @sm:size-10 rounded-2xl"
-											aria-hidden="true"
-											draggable="false"
-											on:error={(e) => {
-												// LICENSE covers this Open WebUI fallback logo.
-												// Do not alter, remove, obscure, or replace it except as LICENSE permits:
-												// https://docs.openwebui.com/license.
-												e.currentTarget.src = '/favicon.png';
+										<button
+											aria-hidden={models.length <= 1}
+											tabindex={models.length <= 1 ? -1 : 0}
+											aria-label={$i18n.t('Get information on {{name}} in the UI', {
+												name: models[modelIdx]?.name
+											})}
+											on:click={() => {
+												selectedModelIdx = modelIdx;
 											}}
-										/>
-									</button>
-								</Tooltip>
-							{/each}
-						</div>
+										>
+											<img
+												src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}`}
+												class=" size-9 @sm:size-10 rounded-2xl"
+												aria-hidden="true"
+												draggable="false"
+												on:error={(e) => {
+													// LICENSE covers this Open WebUI fallback logo.
+													// Do not alter, remove, obscure, or replace it except as LICENSE permits:
+													// https://docs.openwebui.com/license.
+													e.currentTarget.src = '/favicon.png';
+												}}
+											/>
+										</button>
+									</Tooltip>
+								{/each}
+							</div>
+						{/if}
 					</div>
 
 					<!-- JUP: a greeting, not the model slug, and the page's heading. First name only:
@@ -167,7 +191,7 @@
 						class=" text-2xl @sm:text-2xl font-normal line-clamp-1 flex items-center"
 						in:fade={{ duration: 100 }}
 					>
-						{$i18n.t('Hello, {{name}}', { name: ($user?.name ?? '').split(' ')[0] })}
+						{greetingText}
 					</h1>
 				</div>
 
