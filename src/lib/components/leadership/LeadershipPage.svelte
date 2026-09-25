@@ -222,17 +222,19 @@
 	</div>
 {:else if overview}
 	<div class="jlp-context-bar">
-		<span class="jlp-context-label">{overview.context.label}</span>
-		<span class="jlp-meta">
-			{overview.context.scope_id} · {formatDateId(overview.context.period_start)} – {formatDateId(
-				overview.context.period_end
-			)}
-		</span>
-		<span class="jlp-badge">
-			{overview.data_mode === 'illustrative'
-				? $i18n.t('Illustrative · unverified · partial coverage')
-				: overview.data_mode}
-		</span>
+		<div class="jlp-context-main">
+			<span class="jlp-context-label">{overview.context.label}</span>
+			<span class="jlp-meta">
+				{overview.context.scope_id} · {formatDateId(overview.context.period_start)} – {formatDateId(
+					overview.context.period_end
+				)}
+			</span>
+			<span class="jlp-badge">
+				{overview.data_mode === 'illustrative'
+					? $i18n.t('Illustrative · unverified · partial coverage')
+					: overview.data_mode}
+			</span>
+		</div>
 		<button type="button" class="jlp-button" on:click={() => (previewOpen = true)}>
 			<svg
 				viewBox="0 0 24 24"

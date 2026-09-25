@@ -108,6 +108,33 @@
 	background-color: var(--jup-action-hover);
 }
 
+/* ── Search fields ───────────────────────────────────────────────────────
+   Every Workspace list (Models, Knowledge, Prompts, Skills, Tools) builds its search the same
+   way: an icon and a transparent `outline-hidden` input inside a `flex min-w-0 flex-1` row. The
+   row becomes a filled field with a focus ring; the vendor markup is untouched. */
+#main-content div.flex.min-w-0.flex-1:has(> input.outline-hidden.bg-transparent) {
+	align-items: center;
+	height: 2.25rem;
+	padding-inline: 0.25rem 0.5rem;
+	border-radius: 10px;
+	background: var(--jup-hover);
+	box-shadow: inset 0 0 0 1px transparent;
+	transition:
+		background-color 150ms ease,
+		box-shadow 150ms ease;
+}
+
+#main-content div.flex.min-w-0.flex-1:has(> input.outline-hidden.bg-transparent):focus-within {
+	background: var(--jup-surface);
+	box-shadow:
+		inset 0 0 0 1px var(--jup-ring),
+		0 0 0 3px color-mix(in srgb, var(--jup-ring) 18%, transparent);
+}
+
+#main-content div.flex.min-w-0.flex-1 > input.outline-hidden.bg-transparent::placeholder {
+	color: var(--jup-ink-faint);
+}
+
 /* ── One keyboard focus ring inside the panel ──────────────────────────── */
 #main-content :is(a, button, [role='button'], [role='tab'], summary):focus-visible {
 	outline: 2px solid var(--jup-ring);
