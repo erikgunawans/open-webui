@@ -104,3 +104,19 @@ The two IDs are not secret and can go by email.
 Nothing needs installing. Staff open `https://non-jupe.jup.co.id`, choose Microsoft, and sign in
 with their usual work account. On first sign-in the account waits for approval from the JUP
 administrator.
+
+## Received from JUP IT — 2026-09-26
+
+| Value | |
+|-------|---|
+| Directory (tenant) ID | `fc521bfb-40c2-4b87-95a7-65e0e888fdf8`. Verified: Microsoft's public discovery for `jakarta-utilitas.com` returns this tenant (issuer `https://login.microsoftonline.com/fc521bfb-40c2-4b87-95a7-65e0e888fdf8/v2.0`). |
+| Application (client) ID | `095f7f79-2430-4cff-8363-560bb063b3e1` |
+| Client secret | Received. **Never written to this repo.** It goes only into the Identity Platform OIDC provider configuration. |
+| Secret expiry date | **Not supplied.** Ask JUP IT. |
+
+The OIDC issuer for the Identity Platform provider is therefore
+`https://login.microsoftonline.com/fc521bfb-40c2-4b87-95a7-65e0e888fdf8/v2.0`.
+
+Not yet confirmed with JUP IT: that steps 4–6 were done (admin consent granted, the `email` optional
+claim, and whether assignment is required with Erik assigned). The first test sign-in will show the
+first two.

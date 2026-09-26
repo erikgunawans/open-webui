@@ -107,3 +107,16 @@ Kedua ID tersebut bukan rahasia dan boleh dikirim lewat email.
 Tidak ada yang perlu dipasang. Staf cukup membuka `https://non-jupe.jup.co.id`, memilih Microsoft,
 lalu masuk dengan akun kerja seperti biasa. Pada login pertama, akun akan menunggu persetujuan
 administrator JUP.
+
+## Diterima dari TI JUP — 2026-09-26
+
+| Nilai | |
+|-------|---|
+| Directory (tenant) ID | `fc521bfb-40c2-4b87-95a7-65e0e888fdf8`. Terverifikasi: *discovery* publik Microsoft untuk `jakarta-utilitas.com` mengembalikan tenant ini (issuer `https://login.microsoftonline.com/fc521bfb-40c2-4b87-95a7-65e0e888fdf8/v2.0`). |
+| Application (client) ID | `095f7f79-2430-4cff-8363-560bb063b3e1` |
+| Client secret | Sudah diterima. **Tidak pernah ditulis ke repo ini.** Nilainya hanya dimasukkan ke konfigurasi *OIDC provider* di Identity Platform. |
+| Tanggal kedaluwarsa *secret* | **Belum diberikan.** Mohon ditanyakan ke TI JUP. |
+
+Belum dikonfirmasi oleh TI JUP: apakah langkah 4–6 sudah dikerjakan (*admin consent*, klaim opsional
+`email`, dan apakah *assignment* diwajibkan dengan Erik sudah di-*assign*). Uji login pertama akan
+memperlihatkan dua hal yang pertama.
