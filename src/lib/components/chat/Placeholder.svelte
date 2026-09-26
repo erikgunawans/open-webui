@@ -28,6 +28,8 @@
 	import FolderPlaceholder from './Placeholder/FolderPlaceholder.svelte';
 	import FolderTitle from './Placeholder/FolderTitle.svelte';
 	import NoneJupeMark from './Placeholder/NoneJupeMark.svelte';
+	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
+	import { getKnowledgeById } from '$lib/apis/knowledge';
 
 	const i18n = getContext('i18n');
 
@@ -101,6 +103,54 @@
 	// Naming $i18n here makes the greeting follow a language switch; first name only, because the
 	// account holds the full legal name and a greeting is not a form.
 	$: greetingText = $i18n && greeting(($user?.name ?? '').split(' ')[0]);
+
+	// JUP: what the assistant knows, said before anything is typed. The topics mirror the files
+	// sync-kb.ts generates into "JUP Strategy KB" (~/jup/kb: strategy, portfolio, partners, gas,
+	// RUED). "Not connected" is the honest other half; update it when #23 attaches the decisions
+	// server. Each topic is a starter, so the line is something to do rather than something to read.
+	const JUP_KB_NAME = 'JUP Strategy KB';
+	$: jupKb = (models[selectedModelIdx]?.info?.meta?.knowledge ?? []).find(
+		(k) => k?.name === JUP_KB_NAME
+	);
+	$: knowledgeTopics = $i18n && [
+		{
+			label: $i18n.t('JUP strategy'),
+			prompt: $i18n.t("What is JUP's current strategic direction, and what are its priorities?")
+		},
+		{
+			label: $i18n.t('Project portfolio'),
+			prompt: $i18n.t(
+				"Summarise the status of JUP's project portfolio: gate, blockers, next steps."
+			)
+		},
+		{
+			label: $i18n.t('Partners'),
+			prompt: $i18n.t("Who are JUP's main partners, and what role does each play?")
+		},
+		{
+			label: $i18n.t('Gas & RUED'),
+			prompt: $i18n.t("What are the key points in JUP's gas and RUED notes?")
+		}
+	];
+
+	// The date comes from the collection itself, so it moves when sync-kb.ts runs. A user who
+	// cannot read the collection simply sees no date: better silent than wrong.
+	let kbUpdated = '';
+	let kbFetchedFor = '';
+	$: if (jupKb?.id && jupKb.id !== kbFetchedFor) {
+		kbFetchedFor = jupKb.id;
+		getKnowledgeById(localStorage.token, jupKb.id)
+			.then((kb) => {
+				kbUpdated = kb?.updated_at
+					? new Intl.DateTimeFormat($i18n.language, { day: 'numeric', month: 'short' }).format(
+							new Date(kb.updated_at * 1000)
+						)
+					: '';
+			})
+			.catch(() => {
+				kbUpdated = '';
+			});
+	}
 
 	// True when viewing a shared folder the current user doesn't own AND lacks write access
 	$: folderReadOnly =
@@ -195,14 +245,68 @@
 					</h1>
 				</div>
 
-				<!-- JUP: the one thing a new chat should say before anything is typed. It describes
-				     what the contract instructs (backend/jup/governance.py rules 1 and 2) rather than
-				     promising what a model will do, and states the audit ADR-0002 enforces. -->
-				<p class="mt-2 px-5 max-w-xl text-sm font-normal text-gray-600 dark:text-gray-400">
-					{$i18n.t(
-						'The assistant works under the JUP operating contract: it says what it does not know instead of inventing it, and never presents revenue as margin. Every request is logged.'
-					)}
-				</p>
+				{#if jupKb}
+					<!-- JUP: what it knows, as starters, then what it does not. -->
+					<div class="mt-3 px-5 max-w-xl flex flex-col items-center gap-1.5 text-sm font-normal">
+						<div class="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1.5">
+							<span class="text-gray-600 dark:text-gray-400">{$i18n.t('Knows:')}</span>
+							{#each knowledgeTopics as topic}
+								<button
+									type="button"
+									class="rounded-full border border-gray-200 dark:border-gray-700 px-2.5 py-1 text-[13px] leading-none text-gray-700 dark:text-gray-200 hover:bg-gray-50 hover:border-gray-300 dark:hover:bg-gray-850 transition-colors"
+									on:click={() => onSelect({ type: 'prompt', data: topic.prompt })}
+								>
+									{topic.label}
+								</button>
+							{/each}
+							{#if kbUpdated}
+								<span class="text-xs text-gray-600 dark:text-gray-400"
+									>· {$i18n.t('updated {{date}}', { date: kbUpdated })}</span
+								>
+							{/if}
+						</div>
+						<p class="text-xs text-gray-600 dark:text-gray-400">
+							{$i18n.t('Not connected yet: email, live finance, BOD decisions.')}
+						</p>
+					</div>
+				{/if}
+
+				<!-- JUP: the operating contract as a stance (backend/jup/governance.py rules 1 and 2),
+				     and the logging stated exactly: jup.governance records who, when, model and tools
+				     (argument size only, never content) in Cloud Logging's 30-day _Default bucket.
+				     ENABLE_ADMIN_CHAT_ACCESS is off (deploy.sh), which is what makes the history line
+				     complete. Change any of those and this copy is wrong. -->
+				<div class="mt-3 px-5 max-w-xl text-sm font-normal text-gray-600 dark:text-gray-400">
+					<p>
+						{$i18n.t("Honest about what it doesn't know, and never presents revenue as profit.")}
+					</p>
+					<details class="group mt-1 text-xs">
+						<summary
+							class="mx-auto w-fit cursor-pointer list-none inline-flex items-center gap-1 rounded-sm underline decoration-gray-300 dark:decoration-gray-600 underline-offset-4 hover:text-gray-800 dark:hover:text-gray-200 [&::-webkit-details-marker]:hidden"
+						>
+							{$i18n.t('What is logged?')}
+							<ChevronDown
+								className="size-3 transition-transform group-open:rotate-180"
+								strokeWidth="2.5"
+							/>
+						</summary>
+						<ul
+							class="mt-2 mx-auto w-fit max-w-md text-left list-disc ps-4 space-y-1 leading-relaxed"
+						>
+							<li>
+								{$i18n.t(
+									'Who asked, when, which model, and which tools were used. What you ask is not part of this record.'
+								)}
+							</li>
+							<li>{$i18n.t('This record is kept for 30 days for governance audit.')}</li>
+							<li>
+								{$i18n.t(
+									'Conversations are saved in your history. Temporary chats are not saved to history.'
+								)}
+							</li>
+						</ul>
+					</details>
+				</div>
 
 				<div class="flex mt-1 mb-2">
 					<div in:fade={{ duration: 100, delay: 50 }}>

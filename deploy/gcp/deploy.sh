@@ -89,6 +89,10 @@ WEBUI_AUTH_TRUSTED_EMAIL_HEADER: "X-Goog-Authenticated-User-Email"
 # DEFAULT_USER_ROLE stays "pending" above: being admitted by IAP and holding the admin role the
 # operating layer requires stay separable, which is what keeps the 403 path meaningful.
 JUP_ADMIN_EMAILS: "$ADMIN_EMAILS"
+# Admins cannot open other people's chats (Erik's call, 2026-09-26). The chat home tells every
+# user their conversations are saved in their own history and says nothing about admins reading
+# them; turning this back on makes that copy (Placeholder.svelte) incomplete, so change both.
+ENABLE_ADMIN_CHAT_ACCESS: "false"
 # Ruang Pimpinan, enabled 2026-09-24 with Erik's OK. The file is the ILLUSTRATIVE P1 sample
 # (tests/fixtures/leadership/illustrative-seed.json), outside the records/ tree that
 # sync-records.sh mirrors with delete, so a record sync never removes it. Access still needs a
