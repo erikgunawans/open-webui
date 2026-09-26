@@ -1,0 +1,10 @@
+{
+  "captured": "2026-09-26",
+  "url_map": {"name": "ent-os-lb", "defaultService": "ent-os-backend", "hostRules": null, "pathMatchers": null},
+  "backend_services": [{"name": "ent-os-backend", "iap": true, "neg": "ent-os-neg"}],
+  "negs": [{"name": "ent-os-neg", "region": "asia-southeast2", "type": "SERVERLESS", "cloudRun": "ent-os"}],
+  "iap_ent_os_backend": {"gcipSettings": null, "httpsResourceAccessor": ["user:erik@axiara.ai"]},
+  "identity_platform": {"authorizedDomains": ["jup-ops.firebaseapp.com", "jup-ops.web.app"], "providers": ["oidc.entra-jup (enabled)"]},
+  "cloud_run_services": ["ent-os"],
+  "live_revision": "ent-os-00043-wgr"
+}
