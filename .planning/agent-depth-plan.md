@@ -108,7 +108,7 @@ tool call writes one too. A capability that can't meet that isn't turned on.
   **Round 3 (accepted):** `search_web` is `read` by named exception; every vendor built-in gets an
   explicit class in the spec's table and an unlisted one is `external`; note writes, calendar writes
   and image generation are `external`, automation management is `write_own`. Recorded as the
-  2026-09-26 amendment to ADR-0013. Grilling closed; next is `/to-spec`.
+  2026-09-26 amendment to ADR-0013. Spec: issue #17 (`ready-for-agent`); next is `/to-tickets`.
 
 ## Track V — ChatGPT Live as a voice interface (ADR-0005, ADR-0006)
 
