@@ -1,3 +1,29 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-26-a5)
+
+> Prepended by /wrap 2026-09-26 (checkpoint 2026-09-26-a5). Supersedes cs's anchor and its list; the cs, nj, kbr, kbd, a1, i18n and p2d blocks' constraints (below) still hold.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-26-a5).
+Anchor: `origin/main` at `b1c2b365d` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-26-a5`). Verify with `git log --oneline b1c2b365d..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** still live on **`ent-os-00042-w6f`** (no deploy this session). **A4 web search is live** (proven on chat `2bd91910…`). **A5+E5 designed and ticketed:** spec #17, tickets #18–#24 with native blocked-by links; ADR-0013 amended 2026-09-26; glossary gained Risk Class, External Call, Decision. **Entra cutover started, paused:** tenant + client IDs received and recorded; the secret is being **rotated** (first one was exposed); `deploy/gcp/entra-provider.sh` is ready, not yet run. Tests 954 / 22 skipped; vitest 71.
+
+**Do next, in order:**
+1. **`/implement #18`** (A5+E5 1/7: Risk classes, with every `external` call refused). Early in it, put the built-in class table in front of Erik for review — it decides which tools pause for approval. **#19** (decisions server) has no blockers and can run in its own session in parallel. Order after: #20 → #21 → #22; #23 after #18+#19; #24 last.
+2. **Entra, when Erik says he has the rotated secret:** he runs `cd ~/ent-os-new-jup && deploy/gcp/entra-provider.sh` in **Terminal.app** (never `! `). Check the redacted record it writes to `.planning/entra-provider-after-<date>.json`, then remind him: JUP IT deletes the old secret; he deletes `~/Downloads/Entra Microsoft.txt`. Then ADR-0016 step 3 — NEG, `ent-os-backend-jup`, IAP external identities with the IAP-hosted page, host rule `non-jupe.jup.co.id` → it — each its own OK with before-values; the host rule is the only traffic-changing part and its removal is the rollback. Check whether `non-jupe.jup.co.id` must join Identity Platform's `authorizedDomains` (today: only `jup-ops.firebaseapp.com`, `jup-ops.web.app`). Then Erik's rename + `JUP_ADMIN_EMAILS` immediately before his first Entra sign-in (ADR-0016), then the five contributors.
+3. **Routine:** after Mon 2026-09-28 09:00 WIB, A1's run `success` (`/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs`).
+4. Optional UI: re-run `/impeccable critique` on the chat home; empty-history text on an account with no chats; Workspace/Ruang Pimpinan critiques; remaining 2,238 empty id-ID keys.
+5. Carried: CI Docker CUDA/Ollama variants; "Release to PyPI" fails on every push (vendor).
+
+**Constraints to honor:** as in the cs, nj, kbr, kbd, a1, i18n and p2d blocks below, plus:
+- **No secret in the repo, the chat, or a command line.** The Entra client secret only ever enters through `entra-provider.sh`'s hidden prompt in a real terminal. Never `cat` a file that may hold one; if Erik pastes one, stop and say so.
+- **Every production write is its own OK**: each deploy, the tool-server connection config (#23), the records-bucket sync (#19), any automation run (#20, a real write), each Entra step.
+- **Tickets are one session each:** `/clear` between them; work from the ticket body, not memory of this session.
+- A GCP config readout can include secrets (Identity Platform `signIn.hashConfig`): select fields explicitly, don't dump whole objects.
+
+**Open items waiting on Erik:** send the rotation message to JUP IT (drafted in the a5 session: new secret by phone/in person, then delete the old one, plus expiry date and confirmation of admin consent, the `email` claim and assignment); run `entra-provider.sh` with the new secret; review #18's built-in class table; when to retire `ops.axiara.ai`; V1's OpenAI org/key and voice document set; the E2 budget; whether to keep interceptor-bridge's Accessibility grant; BOD closure mode and quorum, publication authority; KPI definitions; a decision model for "Decisions required"; BOD/PIC identities and grants; the blocker owner/next step/date hold.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-26-cs)
 
 > Prepended by /wrap 2026-09-26 (checkpoint 2026-09-26-cs). Supersedes nj's anchor and its list; the nj, kbr, kbd, a1, i18n and p2d blocks' constraints (below) still hold.
