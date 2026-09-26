@@ -1,0 +1,11 @@
+{
+  "name": "projects/1001937491646/oauthIdpConfigs/oidc.entra-jup",
+  "clientId": "095f7f79-2430-4cff-8363-560bb063b3e1",
+  "issuer": "https://login.microsoftonline.com/fc521bfb-40c2-4b87-95a7-65e0e888fdf8/v2.0",
+  "displayName": "Microsoft (JUP)",
+  "enabled": true,
+  "clientSecret": "(set, redacted)",
+  "responseType": {
+    "code": true
+  }
+}
