@@ -50,6 +50,7 @@ def _call(**overrides):
         user_id='u1',
         chat_id='c1',
         mode='native',
+        approval='not_required',
     )
     fields.update(overrides)
     audit_tool_call(**fields)
@@ -193,3 +194,46 @@ def test_every_audit_call_site_passes_the_request_state():
     calls = re.findall(r'jup_governance\.audit_tool_call\((.*?)\n\s*\)', _source(), re.S)
     assert len(calls) == 4
     assert all('state=request.state' in call for call in calls), 'a call site cannot see the parent stamp'
+
+
+# --- the approval gate's fields (A5 + E5, ADR-0013) -----------------------------------------------
+
+
+def test_an_ungated_call_audits_as_not_required_with_no_wait(tmp_path, monkeypatch):
+    trail = _trail(tmp_path, monkeypatch)
+    _call()
+    [entry] = _entries(trail)
+    assert entry['approval'] == 'not_required'
+    assert entry['approval_wait_ms'] == 0
+    assert entry['outcome'] == 'ok'
+
+
+def test_a_refused_call_audits_as_rejected_and_refused_never_as_ok(tmp_path, monkeypatch):
+    """A refused tool did not run, so its outcome must not read as a success or a tool error."""
+    trail = _trail(tmp_path, monkeypatch)
+    _call(name='gate_probe', tool={'tool_id': 'gate_probe'}, approval='rejected', result='Refused by JUP')
+    [entry] = _entries(trail)
+    assert entry['approval'] == 'rejected'
+    assert entry['outcome'] == 'refused'
+    assert entry['approval_wait_ms'] == 0
+
+
+def test_a_refused_call_still_carries_no_argument_content(tmp_path, monkeypatch):
+    trail = _trail(tmp_path, monkeypatch)
+    _call(approval='rejected')
+    assert 'NPWP' not in trail.read_text() and 'rahasia' not in trail.read_text()
+
+
+def test_the_approval_is_required_at_every_call_site():
+    """No default: a call site that forgot the gate's answer must fail loudly, not audit a guess."""
+    with pytest.raises(TypeError):
+        audit_tool_call(
+            name='x', arguments='', tool=None, result=None, error=False, user_id=None, chat_id=None, mode='native'
+        )
+
+
+@pytest.mark.parametrize('mode', ['native', 'approved', 'default', 'code_interpreter'])
+def test_each_audit_call_site_records_the_gates_answer(mode: str):
+    calls = re.findall(r'jup_governance\.audit_tool_call\((.*?)\n\s*\)', _source(), re.S)
+    [call] = [c for c in calls if f"mode='{mode}'" in c]
+    assert 'approval=' in call

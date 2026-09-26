@@ -6,6 +6,9 @@
  * `exec`s, so each file here must stay a thin wrapper over a tested `jup.*` module (see
  * `tests/test_portfolio_tool.py`, which enforces that for `portfolio_status`).
  *
+ * Each file declares its Risk Class in its frontmatter (`risk_class: read`); the app copies
+ * frontmatter into the stored tool, and `jup.tool_policy` gates the tool by it (ADR-0013).
+ *
  * Tool authoring is admin-only on this deployment (`workspace.tools*` is false for users). New
  * tools get empty access grants, so they are admin-only; an update never sends `access_grants`,
  * which the route treats as "leave unchanged", so grants given in the UI survive a re-sync.
@@ -39,6 +42,11 @@ function load(file: string): Tool {
   }
   const id = file.replace(/\.py$/, "");
   if (!/^[a-z0-9_]+$/.test(id) || !fm.title) throw new Error(`${file}: bad id or missing title`);
+  // The Risk Class travels in the content: the app copies frontmatter into the stored tool's
+  // meta.manifest, which is where jup.tool_policy reads it. A tool without one would be gated as
+  // `external`, which is safe but is never what the author meant, so refuse to push it.
+  if (!["read", "write_own", "external"].includes(fm.risk_class ?? ""))
+    throw new Error(`${file}: risk_class must be read, write_own or external (ADR-0013)`);
   return { id, name: fm.title, description: fm.description ?? "", content };
 }
 

@@ -2,6 +2,7 @@
 title: JUP portfolio status
 author: JUP operating layer (ent-os-new-jup)
 version: 1.0.0
+risk_class: read
 description: Read-only. Current Gate, blockers, engagements and tier-labelled figures for JUP projects, computed from the gate-assessment records.
 """
 

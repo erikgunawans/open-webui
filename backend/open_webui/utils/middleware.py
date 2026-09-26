@@ -20,6 +20,7 @@ from aiocache import cached
 from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from jup import governance as jup_governance
+from jup import tool_policy as jup_tool_policy
 from open_webui.config import (
     CACHE_DIR,
     CODE_INTERPRETER_BLOCKED_MODULES,
@@ -1382,6 +1383,8 @@ async def chat_completion_tools_handler(
                 tool = None
                 tool_type = ''
                 direct_tool = False
+                # JUP: the approval gate decides before anything runs (ADR-0013; VENDOR-PATCHES.md).
+                jup_gate = jup_tool_policy.decide(tool_function_name, tools[tool_function_name])
 
                 try:
                     tool = tools[tool_function_name]
@@ -1392,7 +1395,9 @@ async def chat_completion_tools_handler(
                     allowed_params = spec.get('parameters', {}).get('properties', {}).keys()
                     tool_function_params = {k: v for k, v in tool_function_params.items() if k in allowed_params}
 
-                    if tool.get('direct', False):
+                    if not jup_gate.runs:
+                        tool_result = jup_gate.message
+                    elif tool.get('direct', False):
                         tool_result = await event_caller(
                             {
                                 'type': 'execute:tool',
@@ -1420,6 +1425,7 @@ async def chat_completion_tools_handler(
                     user_id=getattr(user, 'id', None),
                     chat_id=metadata.get('chat_id'),
                     mode='default',
+                    approval=jup_gate.approval,
                     state=request.state,
                 )
 
@@ -3188,6 +3194,12 @@ async def execute_tool_call_for_output(request, form_data, user, metadata, event
     if not tool:
         return {'tool_call_id': tool_call.get('id', ''), 'content': f'Error: Tool "{name}" not found.'}
 
+    # JUP: the approval gate decides before anything runs, the user's own approval included
+    # (ADR-0013; VENDOR-PATCHES.md). `jup_approval` is read by the audit line in the drain.
+    jup_gate = jup_tool_policy.decide(name, tool)
+    if not jup_gate.runs:
+        return {'tool_call_id': tool_call.get('id', ''), 'content': jup_gate.message, 'jup_approval': jup_gate.approval}
+
     spec = tool.get('spec', {})
     tool_type = tool.get('type', '')
     direct_tool = tool.get('direct', False)
@@ -3242,6 +3254,7 @@ async def execute_tool_call_for_output(request, form_data, user, metadata, event
     return {
         'tool_call_id': tool_call.get('id', ''),
         'content': tool_result_content(result),
+        'jup_approval': jup_gate.approval,
         **({'files': files} if files else {}),
         **({'embeds': embeds} if embeds else {}),
     }
@@ -3327,6 +3340,7 @@ async def drain_approved_tool_calls(request, form_data, user, model, metadata) -
             user_id=getattr(user, 'id', None),
             chat_id=chat_id,
             mode='approved',
+            approval=result.get('jup_approval', 'not_required'),
             state=request.state,
         )
         display_files = []
@@ -5691,6 +5705,8 @@ async def streaming_chat_response_handler(response, ctx):
                         tool_call.setdefault('function', {})['arguments'] = JSONCodec.dumps(params)
                         return params
 
+                    jup_gate_approvals = {}  # JUP: the gate's answer per call, for the audit line
+
                     async def execute_tool_call(tool_call):
                         name = tool_call.get('function', {}).get('name', '')
                         params = parse_tool_params(tool_call)
@@ -5704,6 +5720,11 @@ async def streaming_chat_response_handler(response, ctx):
                         direct_tool = tool.get('direct', False)
                         allowed_params = spec.get('parameters', {}).get('properties', {}).keys()
                         params = {key: value for key, value in params.items() if key in allowed_params}
+                        # JUP: the approval gate decides before anything runs (ADR-0013; VENDOR-PATCHES.md).
+                        jup_gate = jup_tool_policy.decide(name, tool)
+                        jup_gate_approvals[id(tool_call)] = jup_gate.approval
+                        if not jup_gate.runs:
+                            return params, jup_gate.message, tool, tool_type, direct_tool
                         try:
                             if direct_tool:
                                 result = await event_caller(
@@ -5760,6 +5781,7 @@ async def streaming_chat_response_handler(response, ctx):
                             user_id=getattr(user, 'id', None),
                             chat_id=metadata.get('chat_id'),
                             mode='native',
+                            approval=jup_gate_approvals.get(id(tool_call), 'not_required'),
                             state=request.state,
                         )
                         if tool_result is None:
@@ -6206,6 +6228,8 @@ async def streaming_chat_response_handler(response, ctx):
                             user_id=getattr(user, 'id', None),
                             chat_id=metadata.get('chat_id'),
                             mode='code_interpreter',
+                            # `execute_code`'s class is `read` (jup.tool_policy), so it is never gated.
+                            approval='not_required',
                             state=request.state,
                         )
 

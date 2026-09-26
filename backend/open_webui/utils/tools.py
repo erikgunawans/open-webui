@@ -356,6 +356,8 @@ async def get_tools(request: Request, tool_ids: list[str], user: UserModel, extr
                     'tool_id': tool_id,
                     'callable': callable,
                     'spec': spec,
+                    # JUP: the Risk Class the tool's source declares (jup.tool_policy; VENDOR-PATCHES.md).
+                    'risk_class': ((tool.meta.manifest if tool.meta else None) or {}).get('risk_class'),
                     # Misc info
                     'metadata': {
                         'file_handler': hasattr(module, 'file_handler') and module.file_handler,

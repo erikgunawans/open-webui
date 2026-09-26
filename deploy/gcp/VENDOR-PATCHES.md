@@ -391,3 +391,45 @@ every request.
 
 **Conflict risk:** moderate. Upstream edits `Sidebar.svelte` often, in both of these regions. Keep
 both blocks and their imports.
+
+## The approval gate decides before any tool runs — `backend/open_webui/utils/middleware.py` + `utils/tools.py` (2026-09-26)
+
+`jup_tool_policy.decide(name, tool)` is called at each of the three places the vendor runs a
+tool, before the tool's code or the browser's `execute:tool` event:
+
+- the native tool loop's `execute_tool_call`, after the tool entry is resolved. A refusal returns
+  the refusal text as the tool's result, and the gate's answer is kept in `jup_gate_approvals` for
+  that call's audit line;
+- `execute_tool_call_for_output`, which runs the calls a user approved in `ask` mode. The gate
+  still decides after the user has: a user's approval is not a Risk Class. The answer travels to
+  the drain's audit line as `jup_approval` in the returned dict;
+- the legacy prompt-based `tool_call_handler`, where the existing `if tool.get('direct')` becomes
+  an `elif` under `if not jup_gate.runs:`.
+
+Each `audit_tool_call` now passes `approval=` (required, no default) and the line gains `approval`
+and `approval_wait_ms`. A refused call audits as `outcome: refused`, `approval: rejected`. The
+legacy code-interpreter block passes `approval='not_required'`: it is `execute_code`'s capability,
+classed `read`, and is not a tool dispatch.
+
+In `utils/tools.py:get_tools`, the DB tool's entry gains `'risk_class'`, read from
+`tool.meta.manifest`. The vendor already copies a tool's frontmatter into `meta.manifest` on
+create and update, so a native tool declares its class in its own source (`risk_class: read`) and
+`deploy/gcp/sync-tools.ts` carries it by pushing the content. All policy is in `jup/tool_policy.py`.
+
+**Why:** A5 + E5 ticket 1/7 (#18), ADR-0013. Every tool gets a Risk Class and, until the approval
+card exists, every `external` call is refused, in `ask` and `full` mode alike.
+
+**Deploy order:** the live `portfolio_status` row predates `risk_class`, so until
+`sync-tools.ts` re-pushes it the gate reads it as `external` and refuses it. Run the sync straight
+after the deploy that carries this patch.
+
+**If dropped:** silent. Every tool runs ungated, `gate_probe` included, and nothing looks wrong.
+
+**The test that catches it:** `tests/test_jup_tool_gate_presence.py` (each gate sits before the
+code that runs the tool, and there are exactly three), plus
+`test_each_audit_call_site_records_the_gates_answer` in `tests/test_jup_tool_call_audit.py`.
+Removing any one gate fails at least two tests.
+
+**Conflict risk:** moderate, for the same reason as the audit line: the tool loop changes upstream
+often. Re-apply the gate after the tool entry and its params are resolved and before the
+`direct_tool` branch.

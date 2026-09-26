@@ -377,6 +377,10 @@ def refuse_passthrough(*, user_id: str | None = None, route: str = '', model: An
     return GovernanceRefusal(reason)
 
 
+#: Approval values under which the tool did not run.
+REFUSED_APPROVALS = frozenset({'rejected', 'timed_out', 'rejected_unattended'})
+
+
 def audit_tool_call(
     *,
     name: str,
@@ -387,6 +391,8 @@ def audit_tool_call(
     user_id: str | None,
     chat_id: str | None,
     mode: str,
+    approval: str,
+    approval_wait_ms: int = 0,
     state: Any = None,
 ) -> None:
     """Append one `tool_call` entry for one tool invocation. Never raises.
@@ -403,7 +409,13 @@ def audit_tool_call(
     tool and a `None` result for that), `not_found` when it named a tool it was not offered, and
     otherwise `error`
     or `ok` per the vendor's own error test, which the caller passes in as `error` so this package
-    does not re-derive — and drift from — the vendor's definition of a failed tool.
+    does not re-derive — and drift from — the vendor's definition of a failed tool. A call the
+    approval gate refused (`jup.tool_policy`) never ran, so its outcome is `refused`, not `ok`.
+
+    **`approval` is the gate's answer and has no default** (A5 + E5, ADR-0013): `not_required`
+    for a call that was never gated, `rejected` for a refusal. A call site that forgot to pass it
+    fails loudly instead of auditing a guess. `approval_wait_ms` is how long the call waited for a
+    person; nothing waits yet, so it is 0 until the approval card exists.
     """
     try:
         if isinstance(arguments, str):
@@ -414,6 +426,8 @@ def audit_tool_call(
             size = len(json.dumps(arguments, default=str, ensure_ascii=False).encode('utf-8'))
         if not tool:
             outcome = 'unparsed' if result is None else 'not_found'
+        elif approval in REFUSED_APPROVALS:
+            outcome = 'refused'
         else:
             outcome = 'error' if error else 'ok'
         parent = getattr(state, PARENT_CHAT_STATE_ATTR, None) if state is not None else None
@@ -426,6 +440,8 @@ def audit_tool_call(
             tool_id=(tool or {}).get('tool_id') or None,
             outcome=outcome,
             arg_bytes=size,
+            approval=approval,
+            approval_wait_ms=approval_wait_ms,
             **({'parent_chat': parent} if parent else {}),
         )
     except Exception:
