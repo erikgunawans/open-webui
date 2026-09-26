@@ -1,3 +1,34 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-26-e3c)
+
+> Prepended by /wrap 2026-09-26 (checkpoint 2026-09-26-e3c). Supersedes g20's anchor and its list; the g20, g18, a5, cs, nj, kbr, kbd, a1, i18n and p2d blocks' constraints (below) still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-26-e3c).
+Anchor: `origin/main` at `b64dc64f6` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-26-e3c`). Verify with `git log --oneline b64dc64f6..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** **Entra is live.** `non-jupe.jup.co.id` → `ent-os-backend-jup` (IAP external identities, provider `oidc.entra-jup`), sign-in page = self-deployed `iap-gcip-hosted-ui-ent-os-backend-jup`. Erik = `erik@jakarta-utilitas.com` (his original account `beda5418…`, admin). `ops.axiara.ai` 302-redirects to non-jupe. Live app `ent-os-00046-xw2` (image `174759f40`: chat-home capability starters + "Apa yang dicatat?", `ENABLE_ADMIN_CHAT_ACCESS=false`); `b64dc64f6` (JUP_ADMIN_EMAILS = `erik@jakarta-utilitas.com` only) was **building at wrap**. #20 closed. Tests 1132 / 22 skipped; vitest 71.
+
+**Do next, in order:**
+1. **Confirm the `b64dc64f6` deploy landed:** `gcloud run services describe ent-os …` → new revision serving, `JUP_ADMIN_EMAILS=erik@jakarta-utilitas.com`, `iap-enabled` empty on BOTH Cloud Run services, `ent-os` IAM still has the IAP agent as `run.invoker`. If the build failed, rerun `deploy/gcp/deploy.sh` (its own OK).
+2. **Delete the stray pending account `erik@axiara.ai` (`cacba26c…`)** once Interceptor reconnects (it said "no extensions connected" at wrap): guard `location.host`, check email + role `pending` + id prefix before `DELETE /api/v1/users/{id}`. Erik already approved it.
+3. **Ask Erik:** set the five contributors (`tito.suroso`, `indra`, `asrori`, `ade.iman`, `puji` @jakarta-utilitas.com) and `bungaran` to `pending` until he approves each? Under external identities IAP admits the whole JUP tenant; `pending` is the only gate and these accounts are already `user`. Then ADR-0016 step 5 (approval, "Kontributor Pengetahuan" group).
+4. **`/implement #21`** (approve/reject) in its own session; raise there that timers and background-subagent completions wake the parent chat as path `chat`. Then #22; #23 (also update the home's "Belum terhubung: … keputusan BOD" line in `Placeholder.svelte` when the decisions server is attached); #24.
+5. Chat-home critique leftovers: `$impeccable shape` (role-aware starters + leadership path on the home), `$impeccable adapt` (30px/24px controls → 44px hit areas; 9px "ASISTEN AI" tagline).
+6. **#18's two open live checks** (can fold into #24).
+7. **Routine:** after Mon 2026-09-28 09:00 WIB, A1's run `success` (`/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs`).
+8. Carried: 2,238 empty id-ID keys; CI Docker CUDA/Ollama variants; vendor "Release to PyPI" red.
+
+**Constraints to honor:** as in the g20 block and those below it, plus (g20's "re-add the placeholder" is DONE and no longer applies; the placeholder host `entra-setup.invalid` is gone):
+- **Never leave a Cloud Console tab open.** Outage #3 came from an IAP Console tab left open (cause unresolved). After touching either Cloud Run service or anything IAP, check `iap-enabled` on BOTH `ent-os` and `iap-gcip-hosted-ui-ent-os-backend-jup`, and `ent-os`'s invoker binding, then prove from a signed-in browser (`fetch('/api/config')` → 200). `--no-iap` always empties Cloud Run IAM: re-add `service-1001937491646@gcp-sa-iap.iam.gserviceaccount.com` → `roles/run.invoker` on `ent-os` right after.
+- The sign-in page must stay public WITHOUT an allUsers binding (`invoker-iam-disabled=true`, no IAP, no IAM bindings); its config lives in the `UI_CONFIG` env (not in the repo; provider label "Microsoft" because the validator rejects parentheses). `authDomain` = the page's own host; that `/__/auth/handler` URL must stay a redirect URI on the Entra app "None-Jupe".
+- `ops.axiara.ai` is retired (URL-map matcher `ops-retired`); don't route it back to the app while `erik@axiara.ai` is not an account: the Google path would recreate one.
+- Chat-home copy in `Placeholder.svelte` states facts (KB topics, not-connected list, 30-day Cloud Logging, no admin chat access). Change any of those and update the copy.
+- Clicking a home topic/suggestion SUBMITS a real chat (vendor `onSelect`), so don't click them in verification.
+- zsh: quote URLs containing `?`, and don't use `--include=*.x` in grep; `vitest` needs `run` or it hangs in watch mode.
+
+**Open items waiting on Erik:** the contributors-to-`pending` question (item 3); delete test chats `fd654d19…` (#20) and `781ca6eb…` (topic-click test), plus older `c24ad828…`, `dd81ec19…`, `10fdb3fb…`, if wanted; check the Interceptor extension is connected; sign out/in hygiene from g20; delete `~/Downloads/Entra Microsoft.txt`; delete old client secrets on the None-Jupe app; V1's OpenAI org/key and voice document set; the E2 budget; interceptor-bridge Accessibility grant; BOD closure mode and quorum, publication authority; KPI definitions; the "Decisions required" model; BOD/PIC grants; the blocker owner/next step/date hold.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-26-g20)
 
 > Prepended by /wrap 2026-09-26 (checkpoint 2026-09-26-g20). Supersedes g18's anchor and its list; the g18, a5, cs, nj, kbr, kbd, a1, i18n and p2d blocks' constraints (below) still hold.

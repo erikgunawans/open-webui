@@ -91,3 +91,17 @@ sign-in works.
   rotate it before cutover. `deploy/gcp/entra-provider.sh` creates provider `oidc.entra-jup` from a
   secret pasted into a real terminal (and replaces only the secret on later rotations). Before-values:
   `.planning/entra-before-2026-09-26.json` (no providers).
+- 2026-09-26: **Step 3b done, with a deviation.** The org policy `iam.allowedPolicyMemberDomains`
+  blocks `allUsers`, so the Console's "create a sign-in page for me" cannot grant public access and
+  rolls itself back. The sign-in page is instead self-deployed as
+  `iap-gcip-hosted-ui-ent-os-backend-jup` (Google's `gcr.io/gcip-iap/authui`, `--no-invoker-iam-check`,
+  own service account with only `roles/identitytoolkit.viewer`, config in `UI_CONFIG`, admin panel
+  off) and attached with "Use an existing hosted sign-in page". The planned `allUsers` IAP accessor
+  grant was dropped: the same policy blocks it, and IAP enforces no IAM under external identities.
+  JUP IT's app registration is named **None-Jupe**; the hosted page's `/__/auth/handler` is a
+  registered redirect URI; admin consent is granted; the client secret was replaced.
+- 2026-09-26: **Step 3c done.** `non-jupe.jup.co.id` routes to `ent-os-backend-jup`. Erik's account
+  was renamed to `erik@jakarta-utilitas.com` immediately before his first Entra sign-in, which matched
+  it (no signup). `ops.axiara.ai` now 302-redirects to `non-jupe.jup.co.id`, and `erik@axiara.ai` is
+  off `JUP_ADMIN_EMAILS`. Step 4's header check is satisfied by Erik's sign-in; the five contributors
+  already hold `user` accounts that Erik created, so for them `pending` is not a gate.
