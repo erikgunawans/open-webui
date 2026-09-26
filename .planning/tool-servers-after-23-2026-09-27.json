@@ -1,0 +1,20 @@
+{
+  "captured": "2026-09-26T23:41:00Z",
+  "source": "POST then GET /api/v1/configs/tool_servers on non-jupe.jup.co.id (ent-os-00050-gqw), as erik@jakarta-utilitas.com, with Erik's OK",
+  "TOOL_SERVER_CONNECTIONS": [
+    {
+      "url": "http://127.0.0.1:8765/mcp",
+      "path": "",
+      "type": "mcp",
+      "auth_type": "none",
+      "headers": null,
+      "key": "",
+      "config": { "enable": true, "access_grants": [], "jup_risk_class": "read" },
+      "info": {
+        "id": "decisions",
+        "name": "Register Keputusan JUP",
+        "description": "Keputusan (D-number) dan item terbuka dari DECISIONS.md, hanya baca"
+      }
+    }
+  ]
+}
