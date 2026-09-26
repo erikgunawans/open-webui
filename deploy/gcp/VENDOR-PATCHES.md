@@ -276,7 +276,9 @@ the site's result is known, and before any `continue` that skips a call.
 
 **What:** `run_reserved` sets `child_request.state.jup_parent_chat_id = parent_chat_id` on the
 subagent's synthetic request. It's one line, marked `# JUP:`. All four `audit_tool_call` sites in
-`middleware.py` pass `state=request.state`. Together they give a subagent's `tool_call` lines a
+`middleware.py` pass `state=request.state`. (The fifth site, `mode='approval'` in
+`utils/tool_approval.py` since #21, has no request state: it audits a person's reject or a timeout,
+never a subagent's call.) Together they give a subagent's `tool_call` lines a
 `parent_chat` field naming the chat that delegated them.
 
 **Why:** A2 went live with a gap. A subagent runs in its own chat, and its audit lines carried
@@ -502,3 +504,58 @@ Nothing restarts the server if it dies, either; the same symptom, and the contai
 (`test_start_sh_starts_it_in_the_background_before_the_app`).
 
 **Conflict risk:** low. `start.sh` changes rarely; keep the line above the final `exec`.
+
+## An attended External Call pauses for the asking user — `backend/open_webui/utils/middleware.py` + `utils/tool_approval.py` (2026-09-26)
+
+Seven inserts, each under a `JUP` comment (the new imports in `tool_approval.py` serve inserts 5–6), that route an `external` call in a chat through the
+vendor's own pause-and-resume machinery whatever the chat's `tool_approval_mode`. The rules live in
+`backend/jup/approval.py` and `jup.tool_policy.must_pause` / `preapprove_ungated`; the inserts only
+call them.
+
+1. **The native loop's pause** (`streaming_chat_response_handler`, where the vendor paused only on
+   `tool_approval_mode == 'ask'`): the condition is `jup_must_pause`, true when any call in the batch
+   `must_pause` (every attended `external` call, plus every call in `ask` as before). In `full` mode
+   `preapprove_ungated` marks the batch's ungated calls approved, so only the gated ones wait. This
+   is the forced-pause patch.
+2. **`pause_for_tool_approval`**: an approved call is never given the card (`approved is not True`),
+   and the call that is given it is armed (`jup_approval.arm`): its 10-minute clock starts when it
+   is shown. After the upsert, `arm_jup_approval_timeout` schedules the server-side timeout.
+3. **`drain_approved_tool_calls`**: both re-pause conditions use `must_pause` instead of the vendor's
+   `ask`-only test, and each approved call carries `jup_approval.verified(...)` (keyed with
+   `WEBUI_SECRET_KEY`, imported from `open_webui.env`) into `execute_tool_call_for_output`, which
+   passes it to `decide(..., approval=)`. The drain's audit line gains `approved_by` and
+   `approval_wait_ms`.
+4. **`resolve_tool_call_output`** (`utils/tool_approval.py`): only the chat's owner resolves a call.
+   The vendor also let any admin resolve any chat's call, for every tool.
+5. **Same function**: a gated call (`jup_approval.is_gated`) is approved or rejected by
+   `jup_approval.resolve` before the vendor's branches. Approve signs the approval to exactly that
+   call and user; reject, and any click after the deadline (`timed_out`), append a refusal for the
+   model and write the audit line (`_jup_record_refusal`). A second decision is a 409.
+6. **`arm_jup_approval_timeout` / `_jup_time_out`** (new, same file): after 10 minutes an unanswered
+   armed call is refused as `timed_out`, audited, and the turn is resumed through
+   `app.state.CHAT_COMPLETION_HANDLER` so the model is told, as the resolve route does after a reject.
+7. **`src/lib/components/chat/Chat.svelte`, `handleToolApprovalModeChange`**: switching a chat to
+   `full` auto-approves its pending card; a call carrying `jup_gate` is skipped, so changing the
+   preference never approves an External Call.
+
+**Why:** A5 + E5 ticket 3/7 (#21), ADR-0013 §2–§3 and §5: an attended External Call waits for the
+user whose turn produced it, one approval covers one call, and the decision is in the audit line.
+
+**If dropped:** without (1) or (3) no card appears in `full` mode and every attended External Call is
+refused as `rejected` (safe, but nothing external ever runs). Without the signature check in (3) an
+approved call is still refused: `decide` runs an `external` call only with a verified approval.
+Without (4) an admin can approve a call in someone else's chat. Without (6) a call left open in a
+closed tab stays pending until someone next clicks it (the click is then a timeout, never an
+approval, because `resolve` enforces the deadline).
+
+**Known limit:** the timer is an in-process `asyncio` task. An instance restart inside the 10
+minutes loses it, and the call then times out on its next resolve instead. With throttled CPU it can
+also fire late, and `approval_wait_ms` records the actual wait.
+
+**The test that catches it:** the `#21` tests at the end of
+`tests/test_jup_tool_gate_presence.py`; the rules in `tests/test_jup_approval.py`; the route and the
+timer against an in-memory chat store in `tests/test_jup_approval_resolve.py` (skipped without the
+runtime tree).
+
+**Conflict risk:** moderate. The pause and drain conditions are upstream's approval flow and move
+with it; re-apply each JUP condition where the vendor tests `tool_approval_mode == 'ask'`.

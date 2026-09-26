@@ -392,6 +392,7 @@ def audit_tool_call(
     chat_id: str | None,
     mode: str,
     approval: str,
+    approved_by: str | None = None,
     approval_wait_ms: int = 0,
     state: Any = None,
 ) -> None:
@@ -414,8 +415,9 @@ def audit_tool_call(
 
     **`approval` is the gate's answer and has no default** (A5 + E5, ADR-0013): `not_required`
     for a call that was never gated, `rejected` for a refusal. A call site that forgot to pass it
-    fails loudly instead of auditing a guess. `approval_wait_ms` is how long the call waited for a
-    person; nothing waits yet, so it is 0 until the approval card exists.
+    fails loudly instead of auditing a guess. An attended External Call (`jup.approval`) is
+    `approved`, `rejected` or `timed_out`; `approved_by` is the user who decided (`None` for a
+    timeout and for every call no person decided), and `approval_wait_ms` how long the card waited.
     """
     try:
         if isinstance(arguments, str):
@@ -441,6 +443,7 @@ def audit_tool_call(
             outcome=outcome,
             arg_bytes=size,
             approval=approval,
+            approved_by=approved_by,
             approval_wait_ms=approval_wait_ms,
             **({'parent_chat': parent} if parent else {}),
         )

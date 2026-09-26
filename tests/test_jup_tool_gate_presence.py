@@ -48,7 +48,7 @@ def test_the_native_loop_hands_the_gates_answer_to_the_audit_line():
 def test_a_users_own_approval_does_not_get_past_the_gate():
     """`ask` mode approves through this executor; the gate still decides after the user has."""
     body = _between(_middleware(), 'async def execute_tool_call_for_output(', 'async def drain_approved_tool_calls(')
-    gate = body.index('jup_gate = jup_tool_policy.decide(name, tool, path=')
+    gate = body.index('jup_gate = jup_tool_policy.decide(\n')
     early_return = body.index("'content': jup_gate.message", gate)
     assert early_return < body.index('await function(**params)')
     assert early_return < body.index("'type': 'execute:tool'")
@@ -115,3 +115,98 @@ def test_automations_still_send_their_id_so_the_path_can_see_them():
     assert "'automation_id': automation_id," in main
     runner = (VENDOR / 'automations.py').read_text(encoding='utf-8')
     assert runner.count("'automation_id': automation.id,") >= 2
+
+
+# --- #21: an attended External Call waits for the asking user ---------------------------------------
+
+
+def _tool_approval() -> str:
+    return (VENDOR / 'tool_approval.py').read_text(encoding='utf-8')
+
+
+def test_the_native_loop_pauses_for_a_gated_call_whatever_the_mode():
+    """The forced-pause patch: without it, `full` mode runs straight into the refusal and no card ever
+    shows. The vendor paused only on `tool_approval_mode == 'ask'`."""
+    body = _between(
+        _middleware(),
+        "tool_approval_mode = metadata.get('params', {}).get('tool_approval_mode', 'full')",
+        'tools = metadata.get(',
+    )
+    assert 'jup_must_pause = any(' in body
+    assert 'jup_tool_policy.must_pause(' in body
+    condition = body[body.index('if (\n') : body.index('await pause_for_tool_approval(')]
+    assert 'and jup_must_pause' in condition
+    assert "and tool_approval_mode == 'ask'" not in condition, 'the vendor-only condition came back'
+    assert 'jup_tool_policy.preapprove_ungated(' in condition
+
+
+def test_the_drain_re_pauses_gated_calls_in_full_mode_too():
+    body = _between(_middleware(), 'async def drain_approved_tool_calls(', 'async def pause_for_tool_approval(')
+    assert body.count('jup_tool_policy.must_pause(') == 2
+    assert "get('tool_approval_mode', 'full') == 'ask' and any(" not in body, 'the vendor-only re-pause came back'
+
+
+def test_the_drain_runs_a_gated_call_only_on_a_verified_approval_and_audits_who():
+    body = _between(_middleware(), 'async def drain_approved_tool_calls(', 'async def pause_for_tool_approval(')
+    verify = body.index("'jup_approval': jup_approval.verified(")
+    assert verify < body.index('result = await execute_tool_call_for_output(')
+    assert 'secret=WEBUI_SECRET_KEY' in body
+    assert "approved_by=result.get('jup_approved_by')" in body
+    assert "approval_wait_ms=result.get('jup_approval_wait_ms', 0)" in body
+    executor = _between(
+        _middleware(), 'async def execute_tool_call_for_output(', 'async def drain_approved_tool_calls('
+    )
+    assert "approval=tool_call.get('jup_approval')" in executor
+    assert "'jup_approved_by': jup_gate.approved_by" in executor
+
+
+def test_the_card_is_never_shown_for_a_preapproved_call_and_a_gated_card_is_armed():
+    body = _between(_middleware(), 'async def pause_for_tool_approval(', 'def get_response_data(')
+    assert "and item.get('approved') is not True" in body
+    armed = body.index('jup_approval.arm(')
+    assert body.index("item['status'] = 'pending'") < armed
+    assert body.index('await Chats.upsert_message_to_chat_by_id_and_message_id(') < body.index(
+        'arm_jup_approval_timeout(chat_id, message_id, call_id)'
+    ), 'the timer must read the stored, armed call'
+
+
+def test_only_the_chats_owner_resolves_a_call():
+    body = _between(
+        _tool_approval(),
+        'async def resolve_tool_call_output(',
+        'message = await Chats.get_message_by_id_and_message_id',
+    )
+    assert 'if not chat or chat.user_id != user.id:' in body
+    assert "user.role != 'admin'" not in body, "the vendor's admin override came back"
+
+
+def test_a_gated_call_is_decided_by_jup_approval_before_the_vendors_branches():
+    body = _between(
+        _tool_approval(),
+        'async def resolve_tool_call_output(',
+        'await Chats.upsert_message_to_chat_by_id_and_message_id(',
+    )
+    gated = body.index('if jup_approval.is_gated(function_call)')
+    assert gated < body.index("elif form_data.action == 'approve':")
+    assert 'jup_approval.resolve(' in body[gated:]
+    assert '_jup_record_refusal(' in body[gated:]
+
+
+def test_the_timeout_timer_is_scheduled_and_resumes_the_turn():
+    source = _tool_approval()
+    timer = _between(source, 'async def _jup_time_out(', 'async def build_tool_approval_resume_payload(')
+    assert 'jup_approval.time_out(' in timer
+    assert '_jup_record_refusal(' in timer
+    assert 'CHAT_COMPLETION_HANDLER(request, payload, user=user)' in timer
+
+
+def test_the_timer_the_middleware_imports_still_exists():
+    assert 'def arm_jup_approval_timeout(' in _tool_approval()
+    assert 'from open_webui.utils.tool_approval import arm_jup_approval_timeout' in _middleware()
+
+
+def test_switching_a_chat_to_full_never_approves_a_gated_call():
+    """The vendor's mode switch posts `approve` for the pending card; that must not be a gated one."""
+    chat = (VENDOR.parent.parent.parent / 'src/lib/components/chat/Chat.svelte').read_text(encoding='utf-8')
+    body = _between(chat, "if (tool_approval_mode === 'full') {", "'approve'")
+    assert '!item?.jup_gate &&' in body

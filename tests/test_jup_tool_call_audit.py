@@ -248,3 +248,36 @@ def test_each_audit_call_site_records_the_gates_answer(mode: str):
     calls = re.findall(r'jup_governance\.audit_tool_call\((.*?)\n\s*\)', _source(), re.S)
     [call] = [c for c in calls if f"mode='{mode}'" in c]
     assert 'approval=' in call
+
+
+# --- the three attended outcomes (A5 + E5 #21) -----------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ('approval', 'approved_by', 'outcome'),
+    [('approved', 'u1', 'ok'), ('rejected', 'u1', 'refused'), ('timed_out', None, 'refused')],
+)
+def test_each_attended_outcome_records_who_decided_and_the_wait(tmp_path, monkeypatch, approval, approved_by, outcome):
+    trail = _trail(tmp_path, monkeypatch)
+    _call(
+        name='gate_probe',
+        tool={'tool_id': 'gate_probe'},
+        mode='approval' if approval != 'approved' else 'approved',
+        approval=approval,
+        approved_by=approved_by,
+        approval_wait_ms=42_000,
+        result='echo' if approval == 'approved' else 'Refused by JUP',
+    )
+    [entry] = _entries(trail)
+    assert entry['approval'] == approval
+    assert entry['approved_by'] == approved_by
+    assert entry['approval_wait_ms'] == 42_000
+    assert entry['outcome'] == outcome
+    assert 'NPWP' not in trail.read_text() and 'rahasia' not in trail.read_text()
+
+
+def test_an_ungated_call_has_no_decider(tmp_path, monkeypatch):
+    trail = _trail(tmp_path, monkeypatch)
+    _call()
+    [entry] = _entries(trail)
+    assert entry['approved_by'] is None

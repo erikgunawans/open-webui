@@ -20,6 +20,7 @@ from aiocache import cached
 from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from jup import governance as jup_governance
+from jup import approval as jup_approval
 from jup import tool_policy as jup_tool_policy
 from open_webui.config import (
     CACHE_DIR,
@@ -42,6 +43,7 @@ from open_webui.env import (
     ENABLE_RESPONSES_API_STATEFUL,
     GLOBAL_LOG_LEVEL,
     RAG_SYSTEM_CONTEXT,
+    WEBUI_SECRET_KEY,  # JUP: signs an approval to exactly the call shown (jup.approval)
 )
 from open_webui.events import EVENTS, publish_event
 from open_webui.models.access_grants import AccessGrants
@@ -128,6 +130,7 @@ from open_webui.utils.payload import apply_params_to_form_data, apply_system_pro
 from open_webui.utils.plugin import load_function_module_by_id
 from open_webui.utils.response import merge_usage, normalize_usage
 from open_webui.utils.sanitize import sanitize_code
+from open_webui.utils.tool_approval import arm_jup_approval_timeout  # JUP: the server-side timeout
 from open_webui.utils.task import (
     get_task_model_id,
     rag_template,
@@ -3203,7 +3206,9 @@ async def execute_tool_call_for_output(request, form_data, user, metadata, event
 
     # JUP: the approval gate decides before anything runs, the user's own approval included
     # (ADR-0013; VENDOR-PATCHES.md). `jup_approval` is read by the audit line in the drain.
-    jup_gate = jup_tool_policy.decide(name, tool, path=jup_tool_policy.path_of(metadata, request.state))
+    jup_gate = jup_tool_policy.decide(
+        name, tool, path=jup_tool_policy.path_of(metadata, request.state), approval=tool_call.get('jup_approval')
+    )
     if not jup_gate.runs:
         return {'tool_call_id': tool_call.get('id', ''), 'content': jup_gate.message, 'jup_approval': jup_gate.approval}
 
@@ -3262,6 +3267,8 @@ async def execute_tool_call_for_output(request, form_data, user, metadata, event
         'tool_call_id': tool_call.get('id', ''),
         'content': tool_result_content(result),
         'jup_approval': jup_gate.approval,
+        'jup_approved_by': jup_gate.approved_by,
+        'jup_approval_wait_ms': jup_gate.approval_wait_ms,
         **({'files': files} if files else {}),
         **({'embeds': embeds} if embeds else {}),
     }
@@ -3292,10 +3299,16 @@ async def drain_approved_tool_calls(request, form_data, user, model, metadata) -
         and item.get('approved') is True
         and item.get('call_id') not in result_call_ids
     ]
+    # JUP: the gated calls still waiting re-pause in `full` mode too (ADR-0013 §2; VENDOR-PATCHES.md).
+    jup_mode = metadata.get('params', {}).get('tool_approval_mode', 'full')
+    jup_path = jup_tool_policy.path_of(metadata, request.state)
+    jup_tools = metadata.get('tools', {})
     if not approved_calls:
-        if metadata.get('params', {}).get('tool_approval_mode', 'full') == 'ask' and any(
+        if any(
             item.get('type') == 'function_call'
-            and item.get('name') != 'ask_user'
+            and jup_tool_policy.must_pause(
+                item.get('name', ''), jup_tools.get(item.get('name', '')), mode=jup_mode, path=jup_path
+            )
             and (item.get('call_id') or item.get('id'))
             and item.get('status') == 'queued'
             and item.get('approved') is not True
@@ -3325,6 +3338,14 @@ async def drain_approved_tool_calls(request, form_data, user, model, metadata) -
                 'name': item.get('name', ''),
                 'arguments': item.get('arguments', '{}'),
             },
+            # JUP: the asking user's signed approval of exactly this call, or None (jup.approval).
+            'jup_approval': jup_approval.verified(
+                item,
+                chat_id=chat_id,
+                message_id=message_id,
+                user_id=getattr(user, 'id', None),
+                secret=WEBUI_SECRET_KEY,
+            ),
         }
         result = await execute_tool_call_for_output(
             request,
@@ -3348,6 +3369,8 @@ async def drain_approved_tool_calls(request, form_data, user, model, metadata) -
             chat_id=chat_id,
             mode='approved',
             approval=result.get('jup_approval', 'not_required'),
+            approved_by=result.get('jup_approved_by'),
+            approval_wait_ms=result.get('jup_approval_wait_ms', 0),
             state=request.state,
         )
         display_files = []
@@ -3374,9 +3397,11 @@ async def drain_approved_tool_calls(request, form_data, user, model, metadata) -
         result_call_ids = {
             item.get('call_id') for item in output if item.get('type') == 'function_call_output' and item.get('call_id')
         }
-        if metadata.get('params', {}).get('tool_approval_mode', 'full') == 'ask' and any(
+        if any(
             item.get('type') == 'function_call'
-            and item.get('name') != 'ask_user'
+            and jup_tool_policy.must_pause(
+                item.get('name', ''), jup_tools.get(item.get('name', '')), mode=jup_mode, path=jup_path
+            )
             and (item.get('call_id') or item.get('id'))
             and item.get('status') == 'queued'
             and item.get('approved') is not True
@@ -3484,6 +3509,7 @@ async def pause_for_tool_approval(chat_id: str, message_id: str, output: list[di
         item.get('call_id') for item in output if item.get('type') == 'function_call_output' and item.get('call_id')
     }
     has_pending_approval = False
+    jup_armed = []  # JUP: gated calls whose card is shown now; their 10-minute clock starts here
     for item in output:
         if item.get('type') == 'function_call' and not item.get('call_id') and item.get('id'):
             item['call_id'] = item['id']
@@ -3493,10 +3519,16 @@ async def pause_for_tool_approval(chat_id: str, message_id: str, output: list[di
             and item.get('call_id')
             and item.get('call_id') not in result_call_ids
             and item.get('status') != 'rejected'
+            # JUP: a call already approved (or pre-approved in `full`) waits queued, never gets the card.
+            and item.get('approved') is not True
         ):
             if not has_pending_approval:
                 item['status'] = 'pending'
                 has_pending_approval = True
+                if jup_approval.arm(
+                    item, (metadata.get('tools') or {}).get(item.get('name', '')), now_ms=int(time.time() * 1000)
+                ):
+                    jup_armed.append(item['call_id'])
             elif item.get('status') == 'in_progress':
                 item['status'] = 'queued'
 
@@ -3522,6 +3554,9 @@ async def pause_for_tool_approval(chat_id: str, message_id: str, output: list[di
         },
         touch=False,
     )
+    # JUP: the timeout is enforced server-side, so a closed tab still ends in `timed_out` (ADR-0013 §3).
+    for call_id in jup_armed:
+        arm_jup_approval_timeout(chat_id, message_id, call_id)
 
 
 def get_response_data(response):
@@ -5661,12 +5696,32 @@ async def streaming_chat_response_handler(response, ctx):
                             )
 
                     tool_approval_mode = metadata.get('params', {}).get('tool_approval_mode', 'full')
+                    # JUP: an attended External Call pauses for its card whatever the mode; in `full`
+                    # only the gated calls wait (ADR-0013 §2; VENDOR-PATCHES.md). Where the chat
+                    # cannot pause (unsaved), the gate at dispatch refuses the call instead.
+                    jup_path = jup_tool_policy.path_of(metadata, request.state)
+                    jup_must_pause = any(
+                        jup_tool_policy.must_pause(
+                            tc.get('function', {}).get('name', ''),
+                            metadata.get('tools', {}).get(tc.get('function', {}).get('name', '')),
+                            mode=tool_approval_mode,
+                            path=jup_path,
+                        )
+                        for tc in response_tool_calls
+                    )
                     if (
                         response_tool_calls
-                        and tool_approval_mode == 'ask'
+                        and jup_must_pause
                         and is_saved_chat_id(metadata.get('chat_id'))
                         and metadata.get('message_id')
                     ):
+                        if tool_approval_mode != 'ask':
+                            jup_tool_policy.preapprove_ungated(
+                                full_output(),
+                                [tc.get('id', '') for tc in response_tool_calls],
+                                metadata.get('tools', {}),
+                                path=jup_path,
+                            )
                         await pause_for_tool_approval(
                             metadata['chat_id'],
                             metadata['message_id'],

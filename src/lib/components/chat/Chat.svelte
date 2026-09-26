@@ -460,6 +460,8 @@
 					return (
 						item?.type === 'function_call' &&
 						item?.name !== 'ask_user' &&
+						// JUP: switching to full never approves a gated External Call (ADR-0013 §2)
+						!item?.jup_gate &&
 						(item?.status === 'pending' || item?.status === 'requires_approval') &&
 						callId &&
 						!resultCallIds.has(callId)

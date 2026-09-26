@@ -18,9 +18,10 @@ tool dispatch stay one call each and every rule is tested here rather than insid
 
 MCP server classes (the per-server class and per-tool override) arrive with A5 + E5 ticket 6/7.
 
-**What happens to an `external` call.** Until the approval card exists (ticket 3/7), it is
-refused, whatever the chat's `tool_approval_mode`: refusing is the safe first state of the gate.
-The model is told the call was refused and why, so it can say so instead of retrying or hanging.
+**What happens to an `external` call** in a chat with a person present: it pauses for that person
+through the vendor's approval card, whatever the chat's `tool_approval_mode` (`must_pause`), and
+runs only with a verified approval (`jup.approval`, ticket 3/7). Without one it is refused as
+`rejected`, and the model is told why, so it can say so instead of retrying or hanging.
 
 **Where nobody is present to approve** (ADR-0013 §4, ticket 2/7): an automation run, a channel
 chat and a subagent are unattended **paths**. There an `external` call is refused as
@@ -135,6 +136,8 @@ class Ruling:
     risk_class: str
     approval: str
     message: str | None = None
+    approved_by: str | None = None
+    approval_wait_ms: int = 0
 
 
 def classify(tool: Any) -> str:
@@ -171,11 +174,12 @@ def path_of(metadata: Any, state: Any = None) -> str:
     return CHAT
 
 
-def decide(name: str, tool: Any, *, path: str) -> Ruling:
+def decide(name: str, tool: Any, *, path: str, approval: Any = None) -> Ruling:
     """Whether the call to `name` runs on `path`. `name` is only used to word the refusal.
 
     `path` is required so that no dispatch site can forget it and be taken for an attended chat.
-    An unknown path is treated as unattended.
+    An unknown path is treated as unattended. `approval` is a `jup.approval.Approval` that
+    `jup.approval.verified` returned for this very call; only an attended chat can use one.
     """
     risk_class = classify(tool)
     if risk_class != EXTERNAL:
@@ -184,7 +188,45 @@ def decide(name: str, tool: Any, *, path: str) -> Ruling:
         return Ruling(
             runs=False, risk_class=risk_class, approval='rejected_unattended', message=_unattended_refusal(name, path)
         )
+    if approval is not None:
+        return Ruling(
+            runs=True,
+            risk_class=risk_class,
+            approval='approved',
+            approved_by=approval.approved_by,
+            approval_wait_ms=approval.wait_ms,
+        )
     return Ruling(runs=False, risk_class=risk_class, approval='rejected', message=_refusal(name))
+
+
+def must_pause(name: str, tool: Any, *, mode: Any, path: str) -> bool:
+    """Whether a call waits for a card: every attended `external` call, whatever `mode` says.
+
+    `mode` is the chat's `tool_approval_mode`. In `ask` the vendor pauses every call except
+    `ask_user`, and that preference is kept for ungated tools; it can add cards, never remove one.
+    """
+    if path == CHAT and classify(tool) == EXTERNAL:
+        return True
+    return mode == 'ask' and name != 'ask_user'
+
+
+def preapprove_ungated(output: list, call_ids: Any, tools: dict, *, path: str) -> None:
+    """In `full` mode, let this batch's ungated calls through while its gated ones wait.
+
+    The vendor resumes a paused message by running the calls marked approved, so an ungated call in
+    the same batch is marked approved (it would have run anyway in `full`) and runs alongside the
+    gated ones once they are decided. Only the items of this batch (`call_ids`) are touched.
+    """
+    call_ids = set(call_ids)
+    for item in output:
+        if (
+            isinstance(item, dict)
+            and item.get('type') == 'function_call'
+            and (item.get('call_id') or item.get('id')) in call_ids
+            and not must_pause(item.get('name', ''), tools.get(item.get('name', '')), mode='full', path=path)
+        ):
+            item['status'] = 'queued'
+            item['approved'] = True
 
 
 def offered_tools(tools: dict, path: str) -> dict:
@@ -199,9 +241,10 @@ def _refusal(name: str) -> str:
     # misstate a policy refusal as a failure, and invite a retry by another route.
     return (
         f"Refused by JUP's approval gate: `{name}` is an External Call (risk class `external`), "
-        "meaning it can act outside the user's own space, and External Calls need an approval step "
-        'that is not available yet. The tool did not run. Tell the user plainly that this action was '
-        'refused by policy; do not attempt it another way.'
+        "meaning it can act outside the user's own space, and it runs only after the user approves it "
+        'on the approval card, and no approval came with this call (the card cannot be shown in a '
+        'temporary chat or in prompt-based tool calling). The tool did not run. Tell the user '
+        'plainly that this action was refused by policy; do not attempt it another way.'
     )
 
 
@@ -236,6 +279,8 @@ __all__ = [
     'Ruling',
     'classify',
     'decide',
+    'must_pause',
     'offered_tools',
     'path_of',
+    'preapprove_ungated',
 ]

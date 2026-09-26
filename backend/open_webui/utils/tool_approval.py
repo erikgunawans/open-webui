@@ -1,13 +1,23 @@
+import asyncio
+import logging
+import time
 from typing import Any, Literal
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.datastructures import Headers
 
+from jup import approval as jup_approval
+from jup import governance as jup_governance
 from open_webui.constants import ERROR_MESSAGES
+from open_webui.env import WEBUI_SECRET_KEY
 from open_webui.models.chats import Chats
+from open_webui.models.users import Users
 from open_webui.socket.main import get_event_emitter
 from open_webui.utils.json_codec import JSONCodec
+
+log = logging.getLogger(__name__)
 
 
 class ResolveToolCallForm(BaseModel):
@@ -25,7 +35,9 @@ async def resolve_tool_call_output(
     db: AsyncSession | None = None,
 ) -> dict:
     chat = await Chats.get_chat_by_id(chat_id, db=db)
-    if not chat or (chat.user_id != user.id and user.role != 'admin'):
+    # JUP: only the user whose turn produced the call decides it; an admin cannot approve for them
+    # (ADR-0013 §3; VENDOR-PATCHES.md). The vendor also let an admin resolve any chat's calls.
+    if not chat or chat.user_id != user.id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
@@ -57,7 +69,23 @@ async def resolve_tool_call_output(
     ) or function_call.get('status') not in {'pending', 'queued', 'requires_approval'}:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Tool call has already been resolved.')
 
-    if form_data.action == 'approve':
+    if jup_approval.is_gated(function_call) and form_data.action in ('approve', 'reject'):
+        # JUP: a gated External Call is decided by jup.approval: signed on approve, refused on
+        # reject, and `timed_out` past its 10 minutes whatever was clicked (VENDOR-PATCHES.md).
+        try:
+            resolution = jup_approval.resolve(
+                function_call,
+                form_data.action,
+                chat_id=chat_id,
+                message_id=message_id,
+                user_id=user.id,
+                now_ms=int(time.time() * 1000),
+                secret=WEBUI_SECRET_KEY,
+            )
+        except jup_approval.AlreadyResolved:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Tool call has already been resolved.')
+        _jup_record_refusal(output, function_call, resolution, chat_id=chat_id, user_id=chat.user_id)
+    elif form_data.action == 'approve':
         if tool_name == 'ask_user':
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='ask_user requires an answer or deny.')
         function_call['status'] = 'queued'
@@ -126,6 +154,116 @@ async def resolve_tool_call_output(
         for item in output
     )
     return {'chat': chat, 'message': message, 'output': output, 'paused': paused}
+
+
+def _jup_record_refusal(output: list, function_call: dict, resolution, *, chat_id: str, user_id: str) -> None:
+    """Give the model a refused gated call's reason, and write the decision to the audit line.
+
+    An approval is audited where the call runs (the drain), with its outcome; a refusal never runs,
+    so it is audited here, where it is decided. Nothing is written for an approval.
+    """
+    if resolution.message is None:
+        return
+    call_id = function_call.get('call_id')
+    output.append(
+        {
+            'type': 'function_call_output',
+            'id': f'fco_{call_id}',
+            'call_id': call_id,
+            'output': [{'type': 'input_text', 'text': resolution.message}],
+            'status': 'rejected',
+        }
+    )
+    jup_governance.audit_tool_call(
+        name=function_call.get('name', ''),
+        arguments=function_call.get('arguments'),
+        tool={'tool_id': resolution.tool_id},
+        result=resolution.message,
+        error=False,
+        user_id=user_id,
+        chat_id=chat_id,
+        mode='approval',
+        approval=resolution.approval,
+        approved_by=resolution.approved_by,
+        approval_wait_ms=resolution.wait_ms,
+    )
+
+
+#: Pending timeout tasks, held so they are not garbage-collected before they fire.
+_jup_timeouts: set[asyncio.Task] = set()
+
+
+def arm_jup_approval_timeout(chat_id: str, message_id: str, call_id: str) -> None:
+    """JUP: refuse a shown gated call as `timed_out` once its 10 minutes pass, tab open or not.
+
+    Scheduled on this instance when the card is shown. Nothing is lost if it never fires (an
+    instance restart): the deadline is also enforced when anyone next resolves the call, and an
+    approval cannot be signed after it (`jup.approval.resolve`). It does nothing if the call was
+    decided meanwhile, on this instance or another, because it re-reads the stored message.
+    """
+    try:
+        task = asyncio.get_running_loop().create_task(_jup_time_out(chat_id, message_id, call_id))
+    except RuntimeError:
+        log.warning('jup: no event loop to time out tool call %s; it times out on its next resolve', call_id)
+        return
+    _jup_timeouts.add(task)
+    task.add_done_callback(_jup_timeouts.discard)
+
+
+async def _jup_time_out(chat_id: str, message_id: str, call_id: str) -> None:
+    try:
+        await asyncio.sleep(jup_approval.TIMEOUT_MS / 1000 + 1)
+        chat = await Chats.get_chat_by_id(chat_id)
+        message = await Chats.get_message_by_id_and_message_id(chat_id, message_id)
+        output = message.get('output') if message else None
+        if not chat or not isinstance(output, list):
+            return
+        if any(item.get('type') == 'function_call_output' and item.get('call_id') == call_id for item in output):
+            return
+        function_call = next(
+            (item for item in output if item.get('type') == 'function_call' and item.get('call_id') == call_id), None
+        )
+        resolution = jup_approval.time_out(function_call, now_ms=int(time.time() * 1000))
+        if resolution is None:
+            return
+        _jup_record_refusal(output, function_call, resolution, chat_id=chat_id, user_id=chat.user_id)
+        await Chats.upsert_message_to_chat_by_id_and_message_id(
+            chat_id, message_id, {'done': False, 'output': output}, touch=False
+        )
+        event_emitter = await get_event_emitter(
+            {'user_id': chat.user_id, 'chat_id': chat_id, 'message_id': message_id}, update_db=False
+        )
+        if event_emitter:
+            await event_emitter({'type': 'chat:completion', 'data': {'output': output}})
+
+        # Resume the turn so the model is told, as the resolve route does after a reject.
+        user = await Users.get_user_by_id(chat.user_id)
+        if not user:
+            return
+        from open_webui.main import app  # deferred: main imports this module
+
+        payload = await build_tool_approval_resume_payload(chat_id, message_id)
+        request = Request(
+            {
+                'type': 'http',
+                'asgi': {'version': '3.0', 'spec_version': '2.0'},
+                'method': 'POST',
+                'path': f'/api/v1/chats/{chat_id}/messages/{message_id}/resolve',
+                'query_string': b'',
+                'headers': Headers({}).raw,
+                'client': ('127.0.0.1', 0),
+                'server': ('127.0.0.1', 80),
+                'scheme': 'http',
+                'app': app,
+            }
+        )
+        request.state.token = None
+        request.state.enable_api_keys = False
+        await app.state.CHAT_COMPLETION_HANDLER(request, payload, user=user)
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        log.exception('jup: could not time out tool call %s in chat %s', call_id, chat_id)
 
 
 async def build_tool_approval_resume_payload(chat_id: str, message_id: str, chat=None) -> dict:
