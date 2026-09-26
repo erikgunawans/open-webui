@@ -1,6 +1,19 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-26-cs (latest) — Settings nav, agent-depth decisions D19–D21, web search on, chat-home critique fixes; live on ent-os-00042-w6f
+## Checkpoint 2026-09-26-a5 (latest) — A4 proven live; Entra request renamed + click-by-click; A5+E5 grilled, spec #17, tickets #18–#24
+
+- **Session:** `/next` (A4 proof) → Entra request update → `/ask-matt` → `/grill-with-docs` A5+E5 → `/to-spec` → `/to-tickets`.
+- **Branch:** main. No code or deploy change; still live on `ent-os-00042-w6f`.
+- **Done:**
+  - **A4 live** (`9f4f5cb1e`): Erik's chat `2bd91910…` logged `tool_call search_web ok` between two `admitted` turns (contract attached); answer cited 3 web sources. Ledger A4 → `live`.
+  - **Entra request** (`c573fce42`): `deploy/gcp/entra-request-jup-it{,.id}.md` name the app **None-JUPe** and give JUP IT six click-by-click Entra steps (registration, IDs, secret Value, Graph openid/email/profile + admin consent, `email` optional claim, assignment). Not sent — Erik sends it.
+  - **A5+E5 grilled** (`298f952ff`): first MCP server = the decisions register (Decisions + open items; `search_decisions`, `get_decision`), localhost in the container, reads `/srv/jup/DECISIONS.md` from the records mount, admin-only, class `read`; full E5 gate proven with a permanent admin-only `gate_probe`. Correction on record: `DECISIONS.md` is already in the Strategy KB, so the server adds exact lookup, not reach. **ADR-0013 amended 2026-09-26:** `search_web` `read` by named exception; every vendor built-in in an explicit table, unlisted = `external`; note/calendar writes and image gen `external`, automation management `write_own`. Glossary: **Risk Class**, **External Call**, **Decision**.
+  - **Spec #17** (`ready-for-agent`); **tickets #18–#24** with native blocked-by links: #18 classes+refuse-all → #20 unattended → #21 approve/reject → #22 card; #19 decisions server ∥; #23 attach (#18,#19); #24 live acceptance (#22,#23).
+- **Files changed:** 5 (`.planning/agent-depth-plan.md`, `CONTEXT.md`, `docs/adr/0013-*.md`, both Entra request files).
+- **Tests:** 954 / 22 skipped; vitest 71 (cached — no code changed).
+- **Next:** `/clear` then `/implement #18` (includes Erik's review of the built-in class table); #19 in parallel. Entra cutover when JUP IT replies. A1 routine check after Mon 2026-09-28 09:00 WIB.
+
+## Checkpoint 2026-09-26-cs — Settings nav, agent-depth decisions D19–D21, web search on, chat-home critique fixes; live on ent-os-00042-w6f
 
 - **Session:** `/next` (items 1–4 blocked) → item 5 Settings nav → `/agent-depth` → Erik's decisions → Brave web search → `/impeccable critique` chat home → all fixes → deploy.
 - **Settings/Admin nav (`b8beb454b`, live 00041-pg2):** `#settings-tabs-container` on jup-skin: inactive ink-soft (was 2.9:1), headings ink-faint (was 2:1), active = track fill + 2px action-blue edge on desktop; Save blue in the Settings pane (`#settings-tabs-container ~ *`); group headings through a literal-call map; 18 id-ID nav labels filled.
