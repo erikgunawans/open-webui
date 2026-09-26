@@ -61,3 +61,20 @@ _Avoid_: partnership, relationship, deal, opportunity, lead
 The rung an engagement occupies — No contact, Contacted, In discussion, Written intent (LOI/MoU), or
 Executed (KSO/PKS). Each rung requires an artefact to stand on.
 _Avoid_: Initiate, Follow-up, Strengthen, Live, pipeline stage, temperature
+
+**Risk Class**:
+What a tool is allowed to touch — `read` (reads only), `write_own` (writes inside the calling user's
+own data), or `external` (any effect outside the user's own space). A tool with no declared class is
+`external`.
+_Avoid_: permission, scope, trust level, safety rating
+
+**External Call**:
+One invocation of an `external` tool. It runs only after the user whose turn produced it approves
+that exact call; with nobody present to approve, it is refused.
+_Avoid_: risky action, write, side effect, dangerous call
+
+**Decision**:
+A numbered, dated entry in JUP's decisions register (D20) stating what was decided, its status, the
+reasoning, and its named non-coverage. A reversed or superseded Decision stays in the register with
+that status.
+_Avoid_: D-row, D-decision, ruling, resolution, approval

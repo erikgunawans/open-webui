@@ -102,3 +102,27 @@ by default and this line must be revisited.
 - Tool metadata gains a `risk_class` field. `tools/*.py` and `skills/` stay the source of truth
   for the DB rows, so the class is declared in the file, not in the DB.
 - The ADR for E7 must decide channel-reply approval before channels get any `external` tool.
+
+## Amendment 2026-09-26 — web search, and the vendor built-ins
+
+**Accepted 2026-09-26 — Erik Gunawan Supriatna**, in the A5 + E5 grilling session.
+
+When this ADR was written, only five tools were classified. The vendor ships about forty built-in
+tools, and web search went live the same day as this amendment (A4, D19). Under §1 every one of them
+would have become `external` the day the gate went live.
+
+1. **`search_web` is `read`, as a named exception.** Strictly it is outbound network, which §1 calls
+   `external`. It is not gated because only the query text leaves, D19 already decided that egress,
+   the per-chat toggle is the user's deliberate opt-in, and the results come back into the governed
+   typed-chat path. A card on every search would end A4. `fetch_url` stays `external`: it reaches any
+   URL the model picks.
+2. **Every vendor built-in is classified in an explicit table**, kept in the A5 + E5 spec and
+   reviewed by an admin. A built-in that is not in the table is `external`, so one that arrives in a
+   vendor upgrade is gated until someone classifies it. The quarterly rebase (ADR-0007) is where new
+   ones surface.
+3. **A tool that can touch shared data counts as touching it**, because a class is fixed per tool.
+   Note writes (`write_note`, `replace_note_content`) and calendar writes are `external`: they can
+   edit a note or a calendar someone else shares. Automation management is `write_own`: it touches
+   only the user's own automations, and anything `external` inside those runs is already refused
+   under §4. Image generation and editing are `external`: the prompt goes to an image provider
+   outside the model funnel.

@@ -89,6 +89,26 @@ tool call writes one too. A capability that can't meet that isn't turned on.
   but they are egress. D20 (2026-09-26) is a standing rule: JUP-hosted, read-only servers with no
   outbound calls are pre-approved and the first server must be one; every third-party server needs
   its own D-decision and waits for E5.
+  **Grilled 2026-09-26 (Erik accepted all four recommendations):** (1) the first server's purpose
+  is the plumbing, proving the MCP path and ADR-0013's classes on the harmless case, not new data;
+  (2) it serves the decisions register (the D-rows in `~/jup/DECISIONS.md`); (3) E5 ships in full
+  with it, as ordered tickets: classes and refuse-by-default first, then the approval card, proven
+  with a test-only `external` tool; (4) it runs inside the ent-os container as a second process on
+  localhost, and moves out when a server of a different trust level arrives.
+  **Round 2 (accepted):** correction first: `DECISIONS.md` is already in the Strategy KB
+  (`sync-kb.ts:70-82`), so the server adds exact, status-true lookup, not new reach; kept anyway
+  for the plumbing. (5) admin only: no access grants on the connection, which Open WebUI already
+  enforces; (6) it serves the Decisions and the open-items table, reversed or superseded rows as
+  written with their status; (7) two tools, `search_decisions(query)` and `get_decision(id)`;
+  (8) a permanent admin-only `gate_probe` tool, classed `external`, that only echoes, proves the
+  approval card live and stays as a regression check; (10) the decisions register stays the first
+  server; (11) it reads `/srv/jup/DECISIONS.md`, added to the read-only GCS mount by
+  `sync-records.sh`, with no database access. Engineering defaults, not decisions: streamable HTTP
+  bound to 127.0.0.1 and started in `start.sh`; MCP audit lines get `tool_id=mcp:<server_id>`.
+  **Round 3 (accepted):** `search_web` is `read` by named exception; every vendor built-in gets an
+  explicit class in the spec's table and an unlisted one is `external`; note writes, calendar writes
+  and image generation are `external`, automation management is `write_own`. Recorded as the
+  2026-09-26 amendment to ADR-0013. Grilling closed; next is `/to-spec`.
 
 ## Track V — ChatGPT Live as a voice interface (ADR-0005, ADR-0006)
 
