@@ -72,6 +72,10 @@
 	let webUploadEnabled = true;
 	$: webUploadEnabled = $user?.role === 'admin' || ($user?.permissions?.chat?.web_upload ?? true);
 	$: toolPermissionsEnabled = $config?.features?.enable_tool_permissions ?? false;
+	// JUP (#22, ADR-0013 §2): `full` never skips the approval gate, so it must not say it does.
+	$: jupFullAccessDescription = $i18n.t(
+		'Run tools without asking for approval, except External Calls, which always ask.'
+	);
 
 	$: if (!fileUploadEnabled && files.length > 0) {
 		files = [];
@@ -561,7 +565,12 @@
 
 					<div class="mt-1 space-y-1">
 						{#each toolApprovalModes as mode}
-							<Tooltip content={$i18n.t(mode.description)} className="w-full">
+							<Tooltip
+								content={mode.value === 'full'
+									? jupFullAccessDescription
+									: $i18n.t(mode.description)}
+								className="w-full"
+							>
 								<button
 									class="flex gap-2 w-full items-center h-[1.6875rem] px-2 text-[0.8125rem] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl"
 									on:click={() => {

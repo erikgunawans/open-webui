@@ -31,6 +31,7 @@
 			duration?: string;
 			embeds?: string;
 			arguments?: string;
+			risk_class?: string; // JUP: set on a gated call (#22)
 		};
 	}> = [];
 
@@ -99,6 +100,11 @@
 	$: pendingToolTokens = tokens.filter(
 		(t) => t?.attributes?.type === 'tool_calls' && t?.attributes?.status === 'pending'
 	);
+	// JUP (#22): a gated call is decided on its own card, where its arguments and Risk Class show,
+	// so the group opens to it and offers no shortcut Allow/Deny for it (ADR-0013 §3).
+	$: hasGatedPending = pendingToolTokens.some((t) => !!t?.attributes?.risk_class);
+	$: if (hasGatedPending) open = true;
+
 	$: hasActiveToolCalls = tokens.some(
 		(t) =>
 			t?.attributes?.type === 'tool_calls' &&
@@ -231,7 +237,7 @@
 					{/if}
 				</div>
 
-				{#if resolvable && pendingToolTokens.length === 1 && pendingToolTokens[0]?.attributes?.name !== 'ask_user'}
+				{#if resolvable && pendingToolTokens.length === 1 && pendingToolTokens[0]?.attributes?.name !== 'ask_user' && !hasGatedPending}
 					{@const pendingCallId = pendingToolTokens[0]?.attributes?.id ?? ''}
 					<span class="flex gap-1 shrink-0">
 						<button
@@ -265,7 +271,7 @@
 		</div>
 	</div>
 
-	{#if !open && resolvable && pendingToolTokens.length > 1}
+	{#if !open && resolvable && pendingToolTokens.length > 1 && !hasGatedPending}
 		<div class="mt-1 space-y-0.5">
 			{#each pendingToolTokens as token}
 				{@const pendingCallId = token?.attributes?.id ?? ''}

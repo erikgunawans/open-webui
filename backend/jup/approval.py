@@ -76,9 +76,11 @@ def arm(item: dict, tool: Any, *, now_ms: int) -> bool:
     Only an `external` call is armed. Arming is idempotent: the vendor re-pauses a message after
     each drained call, and a re-pause must not give the call a fresh ten minutes.
     """
-    if is_gated(item) or classify(tool) != EXTERNAL:
+    risk_class = classify(tool)
+    if is_gated(item) or risk_class != EXTERNAL:
         return False
-    item[GATE_KEY] = {'paused_at': int(now_ms), 'tool_id': (tool or {}).get('tool_id')}
+    # `risk_class` is what the card labels (#22); only `external` calls are armed today.
+    item[GATE_KEY] = {'paused_at': int(now_ms), 'tool_id': (tool or {}).get('tool_id'), 'risk_class': risk_class}
     return True
 
 

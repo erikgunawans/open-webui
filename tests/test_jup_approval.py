@@ -107,6 +107,11 @@ def test_arming_marks_an_external_call_with_when_it_was_shown_and_its_tool():
     assert item[approval.GATE_KEY]['tool_id'] == 'gate_probe'
 
 
+def test_arming_records_the_risk_class_the_card_labels():
+    """#22: the card shows the class; it reads it from the armed call, not from the browser."""
+    assert armed()[approval.GATE_KEY]['risk_class'] == 'external'
+
+
 def test_an_ungated_call_is_never_armed():
     item = call('portfolio_status')
     assert not approval.arm(item, PORTFOLIO, now_ms=T0)

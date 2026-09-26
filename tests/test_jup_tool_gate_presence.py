@@ -210,3 +210,51 @@ def test_switching_a_chat_to_full_never_approves_a_gated_call():
     chat = (VENDOR.parent.parent.parent / 'src/lib/components/chat/Chat.svelte').read_text(encoding='utf-8')
     body = _between(chat, "if (tool_approval_mode === 'full') {", "'approve'")
     assert '!item?.jup_gate &&' in body
+
+
+# --- #22: the approval card as ADR-0013 describes it ------------------------------------------------
+
+SRC = VENDOR.parent.parent.parent / 'src'
+
+
+def _src(path: str) -> str:
+    return (SRC / path).read_text(encoding='utf-8')
+
+
+def test_the_armed_calls_class_reaches_the_card():
+    source = _src('lib/components/chat/Messages/structuredOutput.ts')
+    assert "import { gateRiskClass } from '$lib/gate/card';" in source
+    body = _between(source, 'function buildToolCallToken(', 'function buildReasoningToken(')
+    assert 'risk_class: gateRiskClass(item)' in body
+
+
+def test_a_gated_card_masks_secrets_labels_its_class_and_opens():
+    source = _src('lib/components/common/ToolCallDisplay.svelte')
+    assert "import { maskedArguments } from '$lib/gate/card';" in source
+    assert '$: shownArgs = riskClass ? maskedArguments(args) : args;' in source
+    assert '$: parsedArgs = parseArguments(shownArgs);' in source
+    assert re.search(r'formatJSONString\(\s*shownArgs\s*\)', source), 'the raw-text view must show the masked text'
+    assert not re.search(r'formatJSONString\(\s*args\s*\)', source)
+    assert '$: if (riskClass && needsApproval) open = true;' in source
+    assert 'class="jup-risk-label shrink-0"' in source
+    assert '.jup-risk-label {' in _src('jup-skin.css')
+
+
+def test_the_group_offers_no_shortcut_allow_for_a_gated_call():
+    """The collapsed group's Allow/Deny approve without showing the arguments."""
+    source = _src('lib/components/chat/Messages/Markdown/ConsecutiveDetailsGroup.svelte')
+    assert '$: if (hasGatedPending) open = true;' in source
+    assert source.count('&& !hasGatedPending}') == 2
+
+
+def test_a_gated_calls_echoed_result_is_masked_too():
+    source = _src('lib/components/common/ToolCallDisplay.svelte')
+    assert '$: parsedResult = parseJSONString(riskClass ? maskedArguments(result) : result);' in source
+
+
+def test_full_access_no_longer_claims_to_skip_every_approval():
+    source = _src('lib/components/chat/MessageInput/InputMenu.svelte')
+    assert "'Run tools without asking for approval, except External Calls, which always ask.'" in source
+    assert re.search(
+        r"mode\.value === 'full'\s*\?\s*jupFullAccessDescription\s*:\s*\$i18n\.t\(mode\.description\)", source
+    )

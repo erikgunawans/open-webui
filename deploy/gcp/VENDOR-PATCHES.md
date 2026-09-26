@@ -559,3 +559,44 @@ runtime tree).
 
 **Conflict risk:** moderate. The pause and drain conditions are upstream's approval flow and move
 with it; re-apply each JUP condition where the vendor tests `tool_approval_mode == 'ask'`.
+
+## The approval card shows the class and masks secrets — three vendor Svelte/TS files (2026-09-27)
+
+The rules live in `src/lib/gate/card.ts` (`maskedArguments`, `gateRiskClass`, tested in
+`card.test.ts`); `backend/jup/approval.py` records `risk_class` on the armed call. The vendor
+inserts, each under a `JUP` comment:
+
+1. **`src/lib/components/chat/Messages/structuredOutput.ts`**: `buildToolCallToken` adds
+   `risk_class: gateRiskClass(item)` to the tool-call attributes ('' for an ungated call).
+2. **`src/lib/components/common/ToolCallDisplay.svelte`**: for a call with a `risk_class`, the
+   Input section shows `maskedArguments(args)` (secret-looking values masked, the rest in full), the
+   Output section masks the result the same way (`gate_probe` echoes its token), a
+   `jup-risk-label` chip names the class, and a pending card opens itself so the arguments are on
+   screen when the user decides.
+3. **`src/lib/components/chat/Messages/Markdown/ConsecutiveDetailsGroup.svelte`**: when a pending
+   call is gated, the group opens and its collapsed-header Allow/Deny shortcuts are hidden (they
+   approve without showing the arguments); the decision is made on the call's own card.
+4. **`src/lib/components/chat/MessageInput/InputMenu.svelte`**: the "Full access" tooltip read
+   "Run tools without asking for approval.", which is false for External Calls since #21; it is now
+   a literal `$i18n.t` (`jupFullAccessDescription`) saying External Calls always ask. The vendor's
+   mode descriptions go through a non-literal `$i18n.t(mode.description)` the extractor cannot see.
+
+Styling is one rule, `.jup-risk-label`, in `src/jup-skin.css` (the defer pair: 5.66:1 light,
+6.81:1 dark). New strings are literal `$i18n.t` calls with id-ID translations.
+
+**Why:** A5 + E5 ticket 4/7 (#22), ADR-0013 §3: the user sees the full call, secrets masked, and the
+class that made it stop. The vendor card never offered "allow for this chat" or "always allow";
+the one standing choice, switching the chat to `full`, stopped approving gated calls in #21.
+
+**If dropped:** the gate still holds (the server decides), but the user approves blind: without (2)
+the arguments stay collapsed and unmasked with no label; without (3) the group header's Allow runs
+the call with no arguments on screen. Losing (1) silently disables all of (2) and (3).
+
+Masking (`card.ts`): a key that names a secret (`token`, `password`, `api_key`, `session_id`…) and,
+inside any text, a credential shape (`Bearer …`, `sk-…`, a JWT…) or a `secret_key=value` pair. Words
+that are ordinary alone (`key`, `auth`, `session`, `pin`) stay visible.
+
+**The test that catches it:** the `#22` tests at the end of `tests/test_jup_tool_gate_presence.py`.
+
+**Conflict risk:** moderate. `ToolCallDisplay.svelte` and the group change upstream with the tool UI;
+re-apply the three conditions where the vendor decides what a pending card shows.

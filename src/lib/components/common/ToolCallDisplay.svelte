@@ -19,6 +19,8 @@
 	import Image from './Image.svelte';
 	import FullHeightIframe from './FullHeightIframe.svelte';
 	import { settings } from '$lib/stores';
+	// JUP: the approval card's masking (#22; VENDOR-PATCHES.md)
+	import { maskedArguments } from '$lib/gate/card';
 
 	export let id: string = '';
 	export let attributes: {
@@ -31,6 +33,7 @@
 		embeds?: string;
 		done?: string;
 		status?: string;
+		risk_class?: string; // JUP: set on a gated call (#22)
 	} = {};
 
 	export let open = false;
@@ -155,8 +158,17 @@
 	$: isActive = isPreparing || isExecuting;
 	$: isError = attributes?.status === 'failed' || (isDone && isToolResultError(result));
 
-	$: parsedArgs = parseArguments(args);
-	$: parsedResult = parseJSONString(result);
+	// JUP (#22, ADR-0013 §3): a gated call opens on its card with its arguments in full, secrets
+	// masked, and its Risk Class labelled. Display only; the call runs with what the model sent.
+	$: riskClass = attributes?.risk_class ?? '';
+	$: if (riskClass && needsApproval) open = true;
+	$: shownArgs = riskClass ? maskedArguments(args) : args;
+	// Only `external` calls are armed (jup.approval), so a labelled call is an External Call.
+	$: riskClassText = $i18n.t('External Call');
+
+	$: parsedArgs = parseArguments(shownArgs);
+	// JUP (#22): a gated call's echoed result is masked the same way as its arguments.
+	$: parsedResult = parseJSONString(riskClass ? maskedArguments(result) : result);
 
 	const toggleOpen = () => {
 		open = !open;
@@ -251,6 +263,14 @@
 					</span>
 				</div>
 
+				<!-- JUP: a gated call's Risk Class label (#22; VENDOR-PATCHES.md) -->
+				{#if riskClass}
+					<span
+						class="jup-risk-label shrink-0"
+						title={$i18n.t('Risk Class: {{CLASS}}', { CLASS: riskClassText })}>{riskClassText}</span
+					>
+				{/if}
+
 				{#if needsApproval && !isAskUser}
 					<span class="flex gap-1 shrink-0">
 						<button
@@ -311,10 +331,11 @@
 									{/each}
 								</div>
 							{:else}
+								<!-- JUP: shownArgs, the masked text for a gated call (#22) -->
 								<div class="tool-call-body w-full max-w-none!">
 									<pre
 										class="text-xs text-gray-600 dark:text-gray-300 whitespace-pre font-mono bg-gray-50 dark:bg-gray-900 rounded-lg p-2 overflow-x-auto">{formatJSONString(
-											args
+											shownArgs
 										)}</pre>
 								</div>
 							{/if}

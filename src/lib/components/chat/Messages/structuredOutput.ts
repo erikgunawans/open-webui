@@ -1,3 +1,6 @@
+// JUP: the approval card's Risk Class (#22; VENDOR-PATCHES.md)
+import { gateRiskClass } from '$lib/gate/card';
+
 export type OutputContentPart = {
 	type?: string;
 	text?: unknown;
@@ -39,6 +42,8 @@ export type OutputDetailToken = {
 		embeds?: string;
 		output?: string;
 		status?: string;
+		// JUP: the Risk Class of a call the approval gate armed; '' when ungated (#22)
+		risk_class?: string;
 	};
 };
 
@@ -230,7 +235,9 @@ function buildToolCallToken(item: OutputItem, toolOutputByCallId: Record<string,
 			status,
 			arguments: stringifyAttribute(item.arguments ?? ''),
 			files: stringifyAttribute(resultItem?.files),
-			embeds: stringifyAttribute(resultItem?.embeds)
+			embeds: stringifyAttribute(resultItem?.embeds),
+			// JUP: the card labels a gated call's Risk Class and masks its secrets (#22)
+			risk_class: gateRiskClass(item)
 		}
 	};
 }

@@ -338,3 +338,17 @@
 		transition: none;
 	}
 }
+
+/* ── The approval card's Risk Class label (#22, ADR-0013 §3) ────────────────
+   One class on the vendor tool-call card, `jup-risk-label`. Caution amber from the
+   defer pair: 5.66:1 light, 6.81:1 dark (jup-tokens.css). */
+.jup-risk-label {
+	font-size: 0.6875rem;
+	line-height: 1.25rem;
+	font-weight: 500;
+	padding: 0 0.5rem;
+	border-radius: var(--jup-radius-sm);
+	background: var(--jup-defer-bg);
+	color: var(--jup-defer-text);
+	white-space: nowrap;
+}
