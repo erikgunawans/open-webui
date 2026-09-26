@@ -1,0 +1,4 @@
+{"captured":"2026-09-26 before Entra 3c cutover","erik_real":{"id":"beda5418-f6b7-4ef8-898d-1ff41b52a264","email":"erik@axiara.ai","role":"admin"},
+"erik_duplicate_deleted":{"id":"94399f94-c4e3-4c40-b29f-fe34933dd071","email":"erik@jakarta-utilitas.com","role":"admin","created":"2026-09-25T13:04:19Z","last_active":"2026-09-25T13:04:19Z"},
+"demoted_admin_to_user":[{"id":"44130dbd-e6d6-4896-83e3-503f4307c125","email":"tito.suroso@jakarta-utilitas.com"},{"id":"6246fe87-d690-47a7-b5b6-4c0e76f81967","email":"indra@jakarta-utilitas.com"},{"id":"b7b2807f-018e-4c2e-b2f5-6d7abf6c3fde","email":"asrori@jakarta-utilitas.com"},{"id":"168e7b30-3e6b-4708-9503-283f18e694f1","email":"bungaran@jakarta-utilitas.com"}],
+"unchanged_users":["ade.iman@jakarta-utilitas.com","puji@jakarta-utilitas.com"]}
