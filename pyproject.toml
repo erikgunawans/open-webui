@@ -219,6 +219,7 @@ dev = [
     "pytest-asyncio>=1.0.0",
     "ruff>=0.15.5",
     "PyYAML>=6.0", # `--only-group dev` skips the project, so the suite needs yaml on its own
+    "mcp==1.27.2", # the decisions MCP server's end-to-end test (tests/test_jup_decisions_mcp.py); same pin as the runtime
 ]
 
 [tool.pytest.ini_options]

@@ -10,6 +10,9 @@ JUP_TREE="${JUP_TREE:-$HOME/jup}"
 BUCKET="${BUCKET:-gs://jup-ops-records}"
 PROJECT="${PROJECT:-jup-ops}"
 DIRS="records deliverables SOURCES"
+# Single files at the tree's root. DECISIONS.md is read by the decisions-register MCP server
+# (backend/jup_mcp/decisions.py) from /srv/jup/DECISIONS.md on the same read-only mount.
+FILES="DECISIONS.md"
 MANIFEST_OBJECT="$BUCKET/.sync-manifest.json"
 
 # Filesystem junk that must never reach the bucket, and must never be compared.
@@ -36,10 +39,11 @@ case "${1:-}" in
 esac
 
 [ -d "$JUP_TREE/records" ] || { echo "no records/ under $JUP_TREE" >&2; exit 1; }
+for file in $FILES; do [ -f "$JUP_TREE/$file" ] || { echo "no $file under $JUP_TREE" >&2; exit 1; }; done
 
 local_head() { git -C "$JUP_TREE" rev-parse --short HEAD; }
 
-dirty() { git -C "$JUP_TREE" status --porcelain $DIRS | grep -q .; }
+dirty() { git -C "$JUP_TREE" status --porcelain $DIRS $FILES | grep -q .; }
 
 # --------------------------------------------------------------------------- check
 # Read-only. Exits 1 when the bucket disagrees with the local tree, so it can gate a
@@ -75,8 +79,16 @@ if [ "$MODE" = check ]; then
     fi
   done
 
+  for file in $FILES; do
+    # A byte comparison: rsync is directory-shaped, and one file needs no more than this.
+    if ! gcloud storage cat "$BUCKET/$file" --project="$PROJECT" 2>/dev/null | cmp -s - "$JUP_TREE/$file"; then
+      echo "DRIFT: $file differs from the bucket (or is missing there)"
+      status=1
+    fi
+  done
+
   if [ "$status" -eq 0 ]; then
-    echo "in sync: the bucket matches $JUP_TREE for $DIRS"
+    echo "in sync: the bucket matches $JUP_TREE for $DIRS $FILES"
   else
     echo "" >&2
     echo "the dashboard is serving something other than the local tree." >&2
@@ -89,8 +101,8 @@ fi
 # Refuse to publish a tree that disagrees with its own repo. A dashboard built from
 # uncommitted edits has no author, no date and no diff behind it.
 if dirty; then
-  echo "refusing to sync: uncommitted changes under records/, deliverables/ or SOURCES/" >&2
-  git -C "$JUP_TREE" status --short $DIRS >&2
+  echo "refusing to sync: uncommitted changes under records/, deliverables/, SOURCES/ or in $FILES" >&2
+  git -C "$JUP_TREE" status --short $DIRS $FILES >&2
   exit 1
 fi
 
@@ -104,6 +116,10 @@ for dir in $DIRS; do
     --project="$PROJECT"
 done
 
+for file in $FILES; do
+  gcloud storage cp "$JUP_TREE/$file" "$BUCKET/$file" --project="$PROJECT"
+done
+
 # Stamp what was published, so --check can name the deployed commit rather than only
 # saying "differs". Written last: a manifest for a sync that failed would lie.
 python3 -c "
@@ -112,6 +128,7 @@ print(json.dumps({
     'commit': '$HEAD_SHA',
     'synced_at': datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
     'dirs': '$DIRS'.split(),
+    'files': '$FILES'.split(),
 }))" | gcloud storage cp - "$MANIFEST_OBJECT" --project="$PROJECT"
 
 echo "synced."

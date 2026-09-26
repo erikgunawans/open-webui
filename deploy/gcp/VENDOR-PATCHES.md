@@ -433,3 +433,22 @@ Removing any one gate fails at least two tests.
 **Conflict risk:** moderate, for the same reason as the audit line: the tool loop changes upstream
 often. Re-apply the gate after the tool entry and its params are resolved and before the
 `direct_tool` branch.
+
+## The decisions-register MCP server starts with the app — `backend/start.sh` (2026-09-26)
+
+One line before `Launch uvicorn`: `"$(command -v python3 || command -v python)" -m jup_mcp.decisions &`,
+under a `JUP` comment block. It starts the read-only decisions-register MCP server
+(`backend/jup_mcp/decisions.py`) in the background. The server binds to 127.0.0.1 in code, with no
+host setting, and reads `/srv/jup/DECISIONS.md` from the read-only records mount on every call
+(`JUP_DECISIONS_FILE` and `JUP_DECISIONS_MCP_PORT`, default 8765, override that for tests).
+
+**Why:** A5 + E5 ticket 5/7 (#19), D20's pre-approved class: JUP-hosted, read-only, no outbound
+calls. It is not attached to the app until ticket 6/7 registers the tool-server connection.
+
+**If dropped:** the app still boots, and the decisions tools fail once the connection is registered.
+Nothing restarts the server if it dies, either; the same symptom, and the container restart fixes it.
+
+**The test that catches it:** `tests/test_jup_decisions_mcp.py`
+(`test_start_sh_starts_it_in_the_background_before_the_app`).
+
+**Conflict risk:** low. `start.sh` changes rarely; keep the line above the final `exec`.

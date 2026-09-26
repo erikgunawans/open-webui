@@ -94,6 +94,12 @@ if [[ -n "${SPACE_ID:-}" ]]; then
   export WEBUI_URL="${SPACE_HOST}"
 fi
 
+# ── JUP decisions register (MCP, localhost only) ─────────────────────────────
+# JUP (A5, D20): the read-only decisions-register MCP server, bound to 127.0.0.1 in code. Started
+# before the app, which reaches it as a tool server. See deploy/gcp/VENDOR-PATCHES.md.
+
+"$(command -v python3 || command -v python)" -m jup_mcp.decisions &
+
 # ── Launch uvicorn ───────────────────────────────────────────────────────────
 
 PYTHON_CMD=$(command -v python3 || command -v python)
