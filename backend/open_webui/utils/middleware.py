@@ -2381,6 +2381,8 @@ async def connect_mcp_server(
         function_name_filter_list = function_name_filter_list.split(',')
 
     tool_specs = await client.list_tool_specs()
+    # JUP: the connection's Risk Class settings travel with the client to the tool entries (#23).
+    client.jup_connection_config = mcp_server_connection.get('config') or {}
     if function_name_filter_list:
         tool_specs = [spec for spec in tool_specs if is_string_allowed(spec['name'], function_name_filter_list)]
 
@@ -2923,6 +2925,10 @@ async def process_chat_payload(request, form_data, user, metadata, model):
                                 'type': 'mcp',
                                 'client': client,
                                 'direct': False,
+                                # JUP: `tool_id` mcp:<server_id> and the admin-set Risk Class (#23).
+                                **jup_tool_policy.mcp_tool_fields(
+                                    server_id, tool_spec['name'], getattr(client, 'jup_connection_config', None)
+                                ),
                             }
                     except Exception as e:
                         log.debug(e)

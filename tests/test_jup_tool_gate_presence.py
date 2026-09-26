@@ -258,3 +258,19 @@ def test_full_access_no_longer_claims_to_skip_every_approval():
     assert re.search(
         r"mode\.value === 'full'\s*\?\s*jupFullAccessDescription\s*:\s*\$i18n\.t\(mode\.description\)", source
     )
+
+
+# --- #23: an MCP server's class and audit id ---------------------------------------------------------
+
+
+def test_an_mcp_tool_entry_carries_its_audit_id_and_admin_set_class():
+    """Without this an MCP tool has no `tool_id`: it audits as nothing and is gated as `external`."""
+    source = _middleware()
+    connect = _between(source, 'async def connect_mcp_server(', 'async def process_chat_payload(')
+    assert "client.jup_connection_config = mcp_server_connection.get('config') or {}" in connect
+    loop = _between(source, "if tool_id.startswith('server:mcp:'):", 'elif ENABLE_PLUGINS:')
+    assert re.search(
+        r"\*\*jup_tool_policy\.mcp_tool_fields\(\s*server_id,\s*tool_spec\['name'\],\s*"
+        r"getattr\(client, 'jup_connection_config', None\)\s*\)",
+        loop,
+    )

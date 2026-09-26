@@ -600,3 +600,31 @@ that are ordinary alone (`key`, `auth`, `session`, `pin`) stay visible.
 
 **Conflict risk:** moderate. `ToolCallDisplay.svelte` and the group change upstream with the tool UI;
 re-apply the three conditions where the vendor decides what a pending card shows.
+
+## An MCP tool carries its server's audit id and admin-set Risk Class — `backend/open_webui/utils/middleware.py` (2026-09-27)
+
+Two inserts, each under a `JUP` comment:
+
+1. **`connect_mcp_server`**: after listing the tool specs,
+   `client.jup_connection_config = mcp_server_connection.get('config') or {}`, so the connection's
+   settings reach the loop that builds the tool entries.
+2. **The MCP loop in `process_chat_payload`**: each MCP tool entry gains
+   `**jup_tool_policy.mcp_tool_fields(server_id, tool_spec['name'], …)`: `tool_id` `mcp:<server_id>`
+   and `risk_class`, resolved from `config.jup_tool_risk_classes[<tool>]`, then
+   `config.jup_risk_class`, else `external` (`backend/jup/tool_policy.py`).
+
+**Why:** A5 + E5 ticket 6/7 (#23), ADR-0013 §1: an MCP server gets one class for all its tools, set by
+an admin, overridable per tool, `external` when unset. The vendor's MCP entries had no `tool_id`, so
+the gate treated every MCP tool as `external` and the audit line named no server.
+
+**Where the class is set:** on the connection in `/api/v1/configs/tool_servers` (admin-only); the
+vendor keeps unknown keys in `config`. Editing the connection in the admin UI may drop them, so
+re-check `jup_risk_class` after any UI edit of a JUP-classified server.
+
+**If dropped:** every MCP tool is gated as `external` again (a card for every decisions lookup) and
+its audit line has no `tool_id`. Safe, but noisy and untraceable.
+
+**The test that catches it:** `test_an_mcp_tool_entry_carries_its_audit_id_and_admin_set_class` in
+`tests/test_jup_tool_gate_presence.py`; the resolution in `tests/test_jup_mcp_risk_class.py`.
+
+**Conflict risk:** low to moderate: the MCP loop moves upstream. Re-apply inside the tool entry dict.

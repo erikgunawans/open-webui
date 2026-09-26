@@ -16,7 +16,11 @@ tool dispatch stay one call each and every rule is tested here rather than insid
 3. Anything else is `external`: an unlisted built-in, an undeclared or misdeclared native tool, a
    tool server, a terminal. A tool nobody classified is gated, never waved through.
 
-MCP server classes (the per-server class and per-tool override) arrive with A5 + E5 ticket 6/7.
+**An MCP server's class** (ticket 6/7, #23) is set by an admin on its tool-server connection:
+`config.jup_risk_class` for all its tools, `config.jup_tool_risk_classes` to override one tool.
+The vendor's MCP loop adds `mcp_tool_fields` to each MCP tool entry, so the entry carries
+`tool_id` `mcp:<server_id>` (what the audit line names) and the resolved class. Connections are
+admin-only to write (`/api/v1/configs/tool_servers`), which is why that class is trusted.
 
 **What happens to an `external` call** in a chat with a person present: it pauses for that person
 through the vendor's approval card, whatever the chat's `tool_approval_mode` (`must_pause`), and
@@ -116,6 +120,7 @@ BUILTIN_CLASSES: dict[str, str] = {
 }
 
 _BUILTIN_PREFIX = 'builtin:'
+_MCP_PREFIX = 'mcp:'
 
 #: The paths a tool call can arrive on. Only `CHAT` has a person present who could approve.
 CHAT = 'chat'
@@ -149,11 +154,40 @@ def classify(tool: Any) -> str:
         return EXTERNAL
     if tool_id.startswith(_BUILTIN_PREFIX):
         return BUILTIN_CLASSES.get(tool_id[len(_BUILTIN_PREFIX) :], EXTERNAL)
+    if tool_id.startswith(_MCP_PREFIX) and len(tool_id) > len(_MCP_PREFIX):
+        # Resolved from the admin's connection config by `mcp_tool_fields`.
+        declared = tool.get('risk_class')
+        return declared if declared in RISK_CLASSES else EXTERNAL
     if ':' in tool_id:
-        # `server:…` (OpenAPI and MCP) and `terminal:…`. Their classes are not declared yet.
+        # `server:…` (OpenAPI) and `terminal:…`. Their classes are not declared yet.
         return EXTERNAL
     declared = tool.get('risk_class')
     return declared if declared in RISK_CLASSES else EXTERNAL
+
+
+def mcp_tool_fields(server_id: str, tool_name: str, connection_config: Any) -> dict:
+    """The JUP fields of one MCP tool entry: its audit `tool_id` and its Risk Class.
+
+    The class is the connection's per-tool override, else the server's class, else `external`. An
+    override that is not a Risk Class means `external`, never the server's class: a mistyped gate
+    must not run ungated. Override keys are the server's own tool names (`get_decision`), not the
+    `<server_id>_` names the model sees, as in the vendor's `function_name_filter_list`. `mcp:<id>` differs from
+    the vendor's own `server:mcp:<id>` (the id a chat selects) on purpose: it is what the audit
+    line names, and the prefix `classify` trusts.
+    """
+    config = connection_config if isinstance(connection_config, dict) else {}
+    overrides = config.get('jup_tool_risk_classes', {})
+    if not isinstance(overrides, dict):
+        # A malformed override table could be hiding any tool's gate: gate them all.
+        risk_class = EXTERNAL
+    elif tool_name in overrides:
+        # An override that is present but not a Risk Class was meant to say something; the safe
+        # reading is `external`, never the server's (possibly `read`) class.
+        risk_class = overrides[tool_name] if overrides[tool_name] in RISK_CLASSES else EXTERNAL
+    else:
+        server_class = config.get('jup_risk_class')
+        risk_class = server_class if server_class in RISK_CLASSES else EXTERNAL
+    return {'tool_id': f'{_MCP_PREFIX}{server_id}', 'risk_class': risk_class}
 
 
 def path_of(metadata: Any, state: Any = None) -> str:
@@ -279,6 +313,7 @@ __all__ = [
     'Ruling',
     'classify',
     'decide',
+    'mcp_tool_fields',
     'must_pause',
     'offered_tools',
     'path_of',
