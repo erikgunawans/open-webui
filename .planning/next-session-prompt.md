@@ -1,3 +1,31 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-26-g20)
+
+> Prepended by /wrap 2026-09-26 (checkpoint 2026-09-26-g20). Supersedes g18's anchor and its list; the g18, a5, cs, nj, kbr, kbd, a1, i18n and p2d blocks' constraints (below) still hold.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-26-g20).
+Anchor: `origin/main` at `751b9324d` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-26-g20`). Verify with `git log --oneline 751b9324d..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live on **`ent-os-00044-wxv`** (image `751b9324d`; rollback `ent-os-00043-wgr`). **#20 code done and deployed** (unattended paths refuse `external` as `rejected_unattended`; subagents not offered `external` tools); its live check is not done, so #20 stays open. A 1 h IAP outage (Cloud Run's own IAP switched on from the Console at 08:29Z) was fixed with `--no-iap`. **The 3b placeholder host rule was removed** during diagnosis: URL map = default `ent-os-backend`, no host rules. Tests 1132 / 22 skipped.
+
+**Do next, in order:**
+1. **#20 live acceptance, when Erik OKs the plan** (asked at wrap, no answer yet): temp workspace model "Uji gate #20" on base `xiaomi/mimo-v2.6-pro-ultraspeed` with `meta.toolIds: ["gate_probe"]`, no access grants → an **inactive** automation on it with prompt "Panggil tool gate_probe dengan text='uji #20'" → one `POST /api/v1/automations/{id}/run` (real chat) → check the run's chat shows the refusal and `gcloud logging read` the `jup.governance` line says `approval: rejected_unattended` → delete automation and model → tick #20's boxes and close it. Why a model: `utils/automations.py:_resolve_model_defaults` gives a run only the model's default tools.
+2. **Finish ADR-0016 3b:** first **re-add the placeholder** (`gcloud compute url-maps add-path-matcher ent-os-lb --path-matcher-name=entra-jup --default-service=ent-os-backend-jup --new-hosts=entra-setup.invalid --global`, its own OK). Then Erik's Console step (IAP page as alesha-bot `authuser=1`: tick **only `ent-os-backend-jup`** — never the `ent-os` Cloud Run row → "Use external identities" Start → Microsoft (JUP) only → "Let IAP create a sign-in page for me" → Save). Then verify from gcloud as in g18 item 1, **plus `run.googleapis.com/iap-enabled` on `ent-os` is still empty**, then the `allUsers` → `iap.httpsResourceAccessor` grant on `ent-os-backend-jup` only.
+3. **3c (its own OK)** and step 4, as in g18 item 2.
+4. **`/implement #21`** (approve/reject) in its own session; raise there that timers and background-subagent completions wake the parent chat as path `chat` (no one present), so a card could wait to the 10-min timeout. Then #22; #23; #24.
+5. **#18's two open live checks** (can fold into #24).
+6. **Routine:** after Mon 2026-09-28 09:00 WIB, A1's run `success` (`/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs`).
+7. Carried: optional UI critiques and 2,238 empty id-ID keys; CI Docker CUDA/Ollama variants; vendor "Release to PyPI" red.
+
+**Constraints to honor:** as in the g18 block and those below it, plus:
+- **After any IAP Console step, check `gcloud run services describe ent-os --region=asia-southeast2 --project=jup-ops --format='value(metadata.annotations."run.googleapis.com/iap-enabled")'` is empty.** A signed-in 500 with no Cloud Run request logs → read the `run.googleapis.com` admin audit log first. Anonymous curl only proves the unauthenticated leg (memory `cloud-run-iap-toggle-breaks-lb-iap`).
+- **Never print cookies:** `interceptor cookies` output is `host/ name=value`, not JSON, so a JSON-shaped redaction does not match. Print names only (`awk '{split($2,a,"="); print a[1]}'`).
+- A fresh `interceptor tab new` to the app works only when IAP works; an "error page" frame on every eval means IAP/LB, not Interceptor.
+- `decide()` now requires `path=`; any new dispatch site must pass `jup_tool_policy.path_of(metadata, request.state)`.
+
+**Open items waiting on Erik:** OK for the #20 live-check plan (item 1); OK to re-add the placeholder host rule and then the 3b Console step; consider signing out and back in to the app (your app session token appeared in this session's transcript; the IAP cookie was already replaced); tell JUP IT to delete the old exposed secret; delete `~/Downloads/Entra Microsoft.txt`; delete test chats `c24ad828…`, `dd81ec19…`, `10fdb3fb…` if wanted; OK for 3c and the account rename; when to retire `ops.axiara.ai`; V1's OpenAI org/key and voice document set; the E2 budget; interceptor-bridge Accessibility grant; BOD closure mode and quorum, publication authority; KPI definitions; the "Decisions required" model; BOD/PIC identities and grants; the blocker owner/next step/date hold.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-26-g18)
 
 > Prepended by /wrap 2026-09-26 (checkpoint 2026-09-26-g18). Supersedes a5's anchor and its list; the a5, cs, nj, kbr, kbd, a1, i18n and p2d blocks' constraints (below) still hold.
