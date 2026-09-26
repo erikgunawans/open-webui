@@ -1,3 +1,32 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-27-g23)
+
+> Prepended by /wrap 2026-09-27 (checkpoint 2026-09-27-g23). Supersedes e3c's anchor and its list; the e3c, g20, g18, a5, cs, nj, kbr, kbd, a1, i18n and p2d blocks' constraints (below) still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-27-g23).
+Anchor: `origin/main` at `75e268d68` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-27-g23`). Verify with `git log --oneline 75e268d68..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live on **`ent-os-00050-gqw`** (image `a945e5765`; rollback `ent-os-00049-zrl`). A5+E5 #21 (approve/reject/timeout), #22 (card: masking, class label) and #23 (decisions MCP attached for admins, `tool_id mcp:decisions`) are built, deployed, proven live and **closed**. Only **#24** (live acceptance) remains of spec #17. Tests: backend 1212 / 22 skipped; vitest 139.
+
+**Do next, in order:**
+1. **`/implement #24`** (A5+E5 7/7 live acceptance). Most of it was exercised in #20–#23 (see those issues' closing comments for chat ids and audit lines); fold in #18's two open live checks (`ask`-mode refusal; web/KB search still `not_required` after the gate). Anything that writes live (models, automations, config) gets Erik's OK first.
+2. **Ask Erik** how to word the home line "Belum terhubung: email, keuangan live, keputusan BOD." (`Placeholder.svelte`): the D-register is now connected for admins only, and it holds his D-decisions rather than strictly BOD decisions.
+3. **Gate follow-ups (raise, don't build unasked):** timer / background-subagent wakes arrive as path `chat`, so an `external` call there gets a card nobody sees and times out (fails closed); the approval timeout is an in-process asyncio task (restart loses it, throttled CPU may delay it); "View Result from {{NAME}}" is empty in id-ID.
+4. ADR-0016 step 5 when Erik is ready: approve the six `pending` contributors (`tito.suroso`, `indra`, `asrori`, `ade.iman`, `puji`, `bungaran`) into "Kontributor Pengetahuan".
+5. Chat-home critique leftovers: `$impeccable shape` (role-aware starters), `$impeccable adapt` (44px hit areas, 9px tagline).
+6. **Routine:** after Mon 2026-09-28 09:00 WIB, A1's run `success` (`/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs`).
+7. Carried: 2,238 empty id-ID keys; CI Docker CUDA/Ollama variants; vendor "Release to PyPI" red.
+
+**Constraints to honor:** as in the e3c block and those below it, plus:
+- **Before any deploy:** `df -h /` (swap holds ~16 GB here; the #22 deploy died on ENOSPC at 151 MB free) and a harmless `gcloud builds list --limit=1` (re-auth kills deploys; Erik runs `! gcloud auth login alesha-bot@axiara.ai`). `$CLAUDE_JOB_DIR` may be empty; use the session scratchpad or `/tmp` for logs.
+- **The `decisions` tool-server connection carries `config.jup_risk_class: read`.** Editing it in the admin UI (AddToolServerModal) drops that key and every lookup becomes `external` (a card). `POST /api/v1/configs/tool_servers` replaces the whole list: re-send every connection, save before-values first.
+- **The approval gate's rules live in `backend/jup/approval.py`, `backend/jup/tool_policy.py` and `src/lib/gate/card.ts`**; every vendor insert has a presence test in `tests/test_jup_tool_gate_presence.py` and a `VENDOR-PATCHES.md` entry. Keep both in step with any change.
+- Local `bun run build` needs `NODE_OPTIONS=--max-old-space-size=8192` (OOMs otherwise); the security hook blocks `rm -rf build`, use `git clean -fdX -- build`.
+- Live checks: open a managed tab with `interceptor tab new`, guard `location.host` in every eval, `?tools=<id>&q=<prompt>` starts a real chat; read results via `/api/v1/chats/<id>` rather than rendered text (`innerText` can come back empty on the card).
+
+**Open items waiting on Erik:** home-line wording (item 2); approving the pending contributors (item 4); delete test chats if wanted — `e2ee24fd…`, `deb89026…`, `b2cee687…` (#21), `219b6ffb…` (#22), `48a8ccea…` (#23), plus e3c's `fd654d19…`, `781ca6eb…`, `c24ad828…`, `dd81ec19…`, `10fdb3fb…`; everything still listed in e3c's open items (Entra secrets hygiene, V1 voice set, E2 budget, BOD closure/quorum, KPI definitions, "Decisions required" model, BOD/PIC grants, blocker hold).
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-26-e3c)
 
 > Prepended by /wrap 2026-09-26 (checkpoint 2026-09-26-e3c). Supersedes g20's anchor and its list; the g20, g18, a5, cs, nj, kbr, kbd, a1, i18n and p2d blocks' constraints (below) still hold unless noted.
