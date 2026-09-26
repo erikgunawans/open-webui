@@ -1,3 +1,31 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-26-g18)
+
+> Prepended by /wrap 2026-09-26 (checkpoint 2026-09-26-g18). Supersedes a5's anchor and its list; the a5, cs, nj, kbr, kbd, a1, i18n and p2d blocks' constraints (below) still hold.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-26-g18).
+Anchor: `origin/main` at `f1d972b76` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-26-g18`). Verify with `git log --oneline f1d972b76..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live on **`ent-os-00043-wgr`** (image `123feebda`; rollback `ent-os-00042-w6f`). **#18 live:** every tool has a Risk Class (`backend/jup/tool_policy.py`), every `external` call is refused, audit lines carry `approval`; proven live (`gate_probe` refused → `approval: rejected`; `portfolio_status` → `not_required`). #18 left open for two live checks. **#19 live and closed:** decisions MCP server on 127.0.0.1:8765 inside the container, reachable from the app, not attached. **Entra:** `oidc.entra-jup` created with the rotated secret; ADR-0016 **3a done** (`ent-os-neg-jup`, `ent-os-backend-jup`); **3b partial** (IAP on the new backend, no accessors; placeholder host rule `entra-setup.invalid` → `ent-os-backend-jup`, no traffic). Tests 1087 / 22 skipped.
+
+**Do next, in order:**
+1. **Finish ADR-0016 3b.** Ask Erik whether he did the Console step (IAP page as alesha-bot, `authuser=1`: tick `ent-os-backend-jup` → "Use external identities" Start → Microsoft (JUP) only → "Let IAP create a sign-in page for me" → Save). Then verify from gcloud, selecting fields only: `gcloud iap settings get --resource-type=backend-services --service=ent-os-backend-jup` (gcipSettings: tenantIds `_1001937491646`, loginPageUri), the new hosted-page Cloud Run service, Identity Platform `authorizedDomains`, and that `ent-os-backend` is unchanged (no gcipSettings, accessor still only `erik@axiara.ai`). Then the approved grant: `gcloud iap web add-iam-policy-binding --resource-type=backend-services --service=ent-os-backend-jup --member=allUsers --role=roles/iap.httpsResourceAccessor` (new backend ONLY). Curl `non-jupe` and `ops` stay 302 to Google.
+2. **3c (its own OK):** swap the placeholder host for `non-jupe.jup.co.id` (the traffic change; rollback = remove the rule). Before it: Erik's account rename to `erik@jakarta-utilitas.com` + `JUP_ADMIN_EMAILS` (deploy.sh heredoc, a redeploy), and switch `deploy/gcp/lib/in-tab.ts` HOST to `ops.axiara.ai` for the window. Then step 4 (one JUP sign-in, check header/account/`pending`).
+3. **`/implement #20`** (unattended paths fail closed) in its own session; then #21 → #22; #23 (attach decisions server, `mcp:<server_id>` tool_id; also closes the "MCP tools have no tool_id so the gate refuses them" gap). #24 last.
+4. **#18's two open live checks** (can fold into #24): `gate_probe` refused in an `ask`-mode chat; web search and KB search still run after the gate (audit `not_required`).
+5. **Routine:** after Mon 2026-09-28 09:00 WIB, A1's run `success` (`/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs`).
+6. Carried: optional UI critiques and 2,238 empty id-ID keys; CI Docker CUDA/Ollama variants; vendor "Release to PyPI" red.
+
+**Constraints to honor:** as in the a5 block and those below it, plus:
+- **The Cloud Console is not drivable by Interceptor** (resource table absent from the a11y tree, Trusted Types blocks eval, `macos screenshot` captures whatever Chrome window is in front, once Erik's personal page). Console-only steps go to Erik as a numbered click list; verify after from gcloud. Never click by screen coordinates in Console.
+- `erik@axiara.ai` in the Console lacks rights on jup-ops; the owner session is `authuser=1` (alesha-bot).
+- A tool docstring must not say who may call it: the model refuses on its own and the gate is never reached (memory `tool-docstring-must-not-gate-on-identity`).
+- `deploy.sh` dying on gcloud re-auth after a SUCCESS build: roll the built image with `gcloud run services update ent-os --image=…:<sha>` only if `deploy.sh`/Dockerfile are unchanged since the live revision.
+- The live `portfolio_status` and `gate_probe` rows now carry `risk_class`; any new `tools/*.py` needs one or `sync-tools.ts` refuses it.
+
+**Open items waiting on Erik:** the 3b Console step (above); tell JUP IT to delete the old exposed secret; delete `~/Downloads/Entra Microsoft.txt`; delete test chats `c24ad828…`, `dd81ec19…`, `10fdb3fb…` if wanted; OK for 3c and the account rename; when to retire `ops.axiara.ai`; V1's OpenAI org/key and voice document set; the E2 budget; interceptor-bridge Accessibility grant; BOD closure mode and quorum, publication authority; KPI definitions; the "Decisions required" model; BOD/PIC identities and grants; the blocker owner/next step/date hold.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-26-a5)
 
 > Prepended by /wrap 2026-09-26 (checkpoint 2026-09-26-a5). Supersedes cs's anchor and its list; the cs, nj, kbr, kbd, a1, i18n and p2d blocks' constraints (below) still hold.
