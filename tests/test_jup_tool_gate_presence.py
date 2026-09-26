@@ -33,7 +33,7 @@ def test_there_is_one_gate_per_tool_execution_site():
 
 def test_the_native_loop_refuses_before_it_runs_the_tool():
     body = _between(_middleware(), 'async def execute_tool_call(tool_call):', 'delegate_calls = [')
-    gate = body.index('jup_tool_policy.decide(name, tool)')
+    gate = body.index('jup_tool_policy.decide(\n')
     refusal = body.index('if not jup_gate.runs:', gate)
     assert refusal < body.index('return params, jup_gate.message', refusal) < body.index('await function(**params)')
     assert refusal < body.index("'type': 'execute:tool'")
@@ -48,7 +48,7 @@ def test_the_native_loop_hands_the_gates_answer_to_the_audit_line():
 def test_a_users_own_approval_does_not_get_past_the_gate():
     """`ask` mode approves through this executor; the gate still decides after the user has."""
     body = _between(_middleware(), 'async def execute_tool_call_for_output(', 'async def drain_approved_tool_calls(')
-    gate = body.index('jup_gate = jup_tool_policy.decide(name, tool)')
+    gate = body.index('jup_gate = jup_tool_policy.decide(name, tool, path=')
     early_return = body.index("'content': jup_gate.message", gate)
     assert early_return < body.index('await function(**params)')
     assert early_return < body.index("'type': 'execute:tool'")
@@ -62,7 +62,7 @@ def test_the_approval_drain_audits_the_gates_answer():
 
 def test_the_prompt_based_handler_refuses_before_it_runs_the_tool():
     body = _between(_middleware(), 'async def tool_call_handler(tool_call):', 'jup_governance.audit_tool_call(')
-    gate = body.index('jup_gate = jup_tool_policy.decide(tool_function_name, tools[tool_function_name])')
+    gate = body.index('jup_gate = jup_tool_policy.decide(\n')
     refusal = body.index('if not jup_gate.runs:', gate)
     assert refusal < body.index('tool_result = jup_gate.message', refusal) < body.index('elif tool.get(')
     assert refusal < body.index('await tool_function(**tool_function_params)')
@@ -71,3 +71,47 @@ def test_the_prompt_based_handler_refuses_before_it_runs_the_tool():
 def test_the_stored_tools_declared_class_reaches_the_tool_entry():
     body = _between(TOOLS_PY.read_text(encoding='utf-8'), 'async def get_tools(', 'async def get_builtin_tools(')
     assert "'risk_class': ((tool.meta.manifest if tool.meta else None) or {}).get('risk_class')" in body
+
+
+# --- #20: unattended paths fail closed ------------------------------------------------------------
+
+PATH_ARG = 'path=jup_tool_policy.path_of(metadata, request.state)'
+
+
+def test_every_gate_is_told_the_path_the_call_arrived_on():
+    """The unattended override: without the path, an automation's forced `full` mode would pass as
+    an attended chat. `decide` takes `path` as a required keyword, so a site that drops it raises;
+    this test says which site and why."""
+    source = _middleware()
+    assert source.count(PATH_ARG) == 3
+    for start, end in [
+        ('async def tool_call_handler(tool_call):', 'jup_governance.audit_tool_call('),
+        ('async def execute_tool_call_for_output(', 'async def drain_approved_tool_calls('),
+        ('async def execute_tool_call(tool_call):', 'delegate_calls = ['),
+    ]:
+        body = _between(source, start, end)
+        gate = body.index('jup_tool_policy.decide(')
+        assert PATH_ARG in body[gate : body.index('if not jup_gate.runs:', gate)], start
+
+
+def test_a_subagent_is_filtered_before_its_tools_are_offered():
+    body = _between(_middleware(), 'async def process_chat_payload(', 'file_context_enabled =')
+    filtered = body.index(f'tools_dict = jup_tool_policy.offered_tools(tools_dict, {PATH_ARG[5:]})')
+    assert body.index('builtin_tools = await get_builtin_tools(') < filtered
+    assert filtered < body.index("metadata['tools'] = tools_dict")
+    assert filtered < body.index("form_data['tools'] = [")
+
+
+def test_the_subagent_request_still_carries_the_mark_the_path_reads():
+    source = (VENDOR / 'subagents.py').read_text(encoding='utf-8')
+    assert 'child_request.state.jup_parent_chat_id = parent_chat_id' in source
+
+
+def test_automations_still_send_their_id_so_the_path_can_see_them():
+    """`path_of` finds an automation by `metadata['automation_id']`, which main.py fills from the
+    form the automation runner sends."""
+    main = (VENDOR.parent / 'main.py').read_text(encoding='utf-8')
+    assert "automation_id = form_data.pop('automation_id', None)" in main
+    assert "'automation_id': automation_id," in main
+    runner = (VENDOR / 'automations.py').read_text(encoding='utf-8')
+    assert runner.count("'automation_id': automation.id,") >= 2

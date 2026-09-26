@@ -21,10 +21,19 @@ MCP server classes (the per-server class and per-tool override) arrive with A5 +
 **What happens to an `external` call.** Until the approval card exists (ticket 3/7), it is
 refused, whatever the chat's `tool_approval_mode`: refusing is the safe first state of the gate.
 The model is told the call was refused and why, so it can say so instead of retrying or hanging.
+
+**Where nobody is present to approve** (ADR-0013 §4, ticket 2/7): an automation run, a channel
+chat and a subagent are unattended **paths**. There an `external` call is refused as
+`rejected_unattended`, and stays refused once the card exists, because there is no one to show it
+to. The vendor forces automations and channels to `full` mode; that is why the gate never reads
+`tool_approval_mode` at all. A subagent is not even offered `external` tools (`offered_tools`).
 """
 
 from dataclasses import dataclass
 from typing import Any
+
+# The attribute `utils/subagents.py` stamps on a subagent's request; it is what marks the path.
+from jup.governance import PARENT_CHAT_STATE_ATTR
 
 READ = 'read'
 WRITE_OWN = 'write_own'
@@ -100,17 +109,27 @@ BUILTIN_CLASSES: dict[str, str] = {
     'delete_calendar_event': EXTERNAL,
     # the user's own webhook
     'notify': READ,
-    # a subagent's own tools are filtered separately (ticket 2/7)
+    # a subagent's own tools are filtered separately (`offered_tools`)
     'delegate_task': READ,
     'timer': READ,
 }
 
 _BUILTIN_PREFIX = 'builtin:'
 
+#: The paths a tool call can arrive on. Only `CHAT` has a person present who could approve.
+CHAT = 'chat'
+AUTOMATION = 'automation'
+CHANNEL = 'channel'
+SUBAGENT = 'subagent'
+UNATTENDED = frozenset({AUTOMATION, CHANNEL, SUBAGENT})
+
 
 @dataclass(frozen=True)
 class Ruling:
-    """The gate's answer for one call (not a register Decision, which is `jup.decisions.Decision`). `approval` is the value the audit line records."""
+    """The gate's answer for one call (not a register Decision, which is `jup.decisions.Decision`).
+
+    `approval` is the value the audit line records.
+    """
 
     runs: bool
     risk_class: str
@@ -134,12 +153,45 @@ def classify(tool: Any) -> str:
     return declared if declared in RISK_CLASSES else EXTERNAL
 
 
-def decide(name: str, tool: Any) -> Ruling:
-    """Whether the call to `name` runs. `name` is only used to word the refusal."""
+def path_of(metadata: Any, state: Any = None) -> str:
+    """The path a request's tool calls arrive on, from the vendor's chat `metadata` and request state.
+
+    An automation is checked first: a channel automation is both, and either is unattended. The
+    chat's `tool_approval_mode` is deliberately not read: the vendor sets it to `full` on exactly
+    the paths where nobody can approve.
+    """
+    metadata = metadata if isinstance(metadata, dict) else {}
+    if metadata.get('automation_id'):
+        return AUTOMATION
+    chat_id = metadata.get('chat_id')
+    if isinstance(chat_id, str) and chat_id.startswith('channel:'):
+        return CHANNEL
+    if state is not None and getattr(state, PARENT_CHAT_STATE_ATTR, None):
+        return SUBAGENT
+    return CHAT
+
+
+def decide(name: str, tool: Any, *, path: str) -> Ruling:
+    """Whether the call to `name` runs on `path`. `name` is only used to word the refusal.
+
+    `path` is required so that no dispatch site can forget it and be taken for an attended chat.
+    An unknown path is treated as unattended.
+    """
     risk_class = classify(tool)
     if risk_class != EXTERNAL:
         return Ruling(runs=True, risk_class=risk_class, approval='not_required')
+    if path != CHAT:
+        return Ruling(
+            runs=False, risk_class=risk_class, approval='rejected_unattended', message=_unattended_refusal(name, path)
+        )
     return Ruling(runs=False, risk_class=risk_class, approval='rejected', message=_refusal(name))
+
+
+def offered_tools(tools: dict, path: str) -> dict:
+    """The tools a model on `path` may be offered: a subagent gets no `external` tool at all."""
+    if path != SUBAGENT:
+        return tools
+    return {name: tool for name, tool in tools.items() if classify(tool) != EXTERNAL}
 
 
 def _refusal(name: str) -> str:
@@ -153,4 +205,37 @@ def _refusal(name: str) -> str:
     )
 
 
-__all__ = ['BUILTIN_CLASSES', 'EXTERNAL', 'READ', 'RISK_CLASSES', 'WRITE_OWN', 'Ruling', 'classify', 'decide']
+_WHERE = {
+    AUTOMATION: 'an automation run',
+    CHANNEL: 'a channel conversation',
+    SUBAGENT: 'a subagent task',
+}
+
+
+def _unattended_refusal(name: str, path: str) -> str:
+    where = _WHERE.get(path, 'an unattended conversation')
+    return (
+        f"Refused by JUP's approval gate: `{name}` is an External Call (risk class `external`), "
+        f'and this is {where}, where nobody is present to approve it (reason: `rejected_unattended`). '
+        'The tool did not run. State plainly in your reply that this step was refused by policy '
+        'because it needs a person to approve it; do not attempt it another way.'
+    )
+
+
+__all__ = [
+    'AUTOMATION',
+    'BUILTIN_CLASSES',
+    'CHANNEL',
+    'CHAT',
+    'EXTERNAL',
+    'READ',
+    'RISK_CLASSES',
+    'SUBAGENT',
+    'UNATTENDED',
+    'WRITE_OWN',
+    'Ruling',
+    'classify',
+    'decide',
+    'offered_tools',
+    'path_of',
+]

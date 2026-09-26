@@ -7,7 +7,13 @@ The dispatch inserts that consult it are guarded separately in `test_jup_tool_ga
 
 import pytest
 
-from jup.tool_policy import BUILTIN_CLASSES, EXTERNAL, READ, WRITE_OWN, classify, decide
+from jup import tool_policy
+from jup.tool_policy import BUILTIN_CLASSES, CHAT, EXTERNAL, READ, WRITE_OWN, classify
+
+
+def decide(name: str, tool) -> tool_policy.Ruling:
+    """A call in an attended chat; the unattended paths are tested in `test_jup_unattended_paths.py`."""
+    return tool_policy.decide(name, tool, path=CHAT)
 
 
 def builtin(name: str) -> dict:

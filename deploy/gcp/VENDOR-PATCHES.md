@@ -434,6 +434,56 @@ Removing any one gate fails at least two tests.
 often. Re-apply the gate after the tool entry and its params are resolved and before the
 `direct_tool` branch.
 
+## Unattended paths fail closed: every gate is told the path — `backend/open_webui/utils/middleware.py` (2026-09-26)
+
+Each of the three `jup_tool_policy.decide(...)` calls above now passes
+`path=jup_tool_policy.path_of(metadata, request.state)`, and `decide` takes `path` as a required
+keyword. `path_of` reads `metadata['automation_id']` (an automation run), a `channel:` chat id (a
+channel chat) and the `jup_parent_chat_id` stamp `utils/subagents.py` puts on a child request (a
+subagent); anything else is an attended chat. On an unattended path an `external` call is refused
+as `rejected_unattended`, and the model is told why, so the reason reaches the run's chat.
+
+This is the override of the vendor rule in `main.py` that forces `tool_approval_mode = 'full'` for
+automations and channels. That rule is left as it is, for ungated tools; the gate never reads
+`tool_approval_mode`, so `full` cannot let an `external` call through.
+
+**Why:** A5 + E5 ticket 2/7 (#20), ADR-0013 §4. Where nobody is present to approve, an External
+Call fails closed. Once the approval card exists (#21), attended chats get the card; these paths
+stay refused.
+
+**If dropped:** silent until #21. Today an attended refusal and an unattended one both refuse, so
+losing the path only mislabels the audit line (`rejected` instead of `rejected_unattended`). After
+#21 it would put an approval card in front of nobody, and the automation would hang to the timeout.
+
+**The test that catches it:** `test_every_gate_is_told_the_path_the_call_arrived_on` and the two
+tests after it in `tests/test_jup_tool_gate_presence.py` (the stamp in `subagents.py`, the
+`automation_id` main.py puts in metadata); `decide` raises `TypeError` at a site that drops `path`.
+
+**Conflict risk:** low beyond the gate entry above; it rides on the same three lines.
+
+## A subagent is never offered an `external` tool — `backend/open_webui/utils/middleware.py` (2026-09-26)
+
+In `process_chat_payload`, after the built-in tools are merged into `tools_dict` and before
+`metadata['tools']` and `form_data['tools']` are built from it:
+`tools_dict = jup_tool_policy.offered_tools(tools_dict, jup_tool_policy.path_of(metadata, request.state))`.
+On a subagent's request it drops every tool whose Risk Class is `external`; every other path is
+unchanged (automations and channels are offered everything and refused at the call, so the refusal
+shows in the run's chat).
+
+**Why:** A5 + E5 ticket 2/7 (#20), ADR-0013 §4: delegation stays read-and-reason. The gate would
+refuse the call anyway (`rejected_unattended`); not offering the tool means the subagent never
+plans around it.
+
+**If dropped:** the subagent is offered `external` tools again and each call is refused at the
+gate. Safe, but it wastes the subagent's iterations and fails nothing visible.
+
+**The test that catches it:** `test_a_subagent_is_filtered_before_its_tools_are_offered` in
+`tests/test_jup_tool_gate_presence.py`; the filter itself is tested in
+`tests/test_jup_unattended_paths.py`.
+
+**Conflict risk:** moderate: tool assembly in `process_chat_payload` changes upstream. Re-apply
+after the last merge into `tools_dict` and before anything reads it.
+
 ## The decisions-register MCP server starts with the app — `backend/start.sh` (2026-09-26)
 
 One line after `PYTHON_CMD` is set, before the final `exec`: `"$PYTHON_CMD" -m jup_mcp.decisions &`,

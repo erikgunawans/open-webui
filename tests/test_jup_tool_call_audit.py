@@ -218,9 +218,20 @@ def test_a_refused_call_audits_as_rejected_and_refused_never_as_ok(tmp_path, mon
     assert entry['approval_wait_ms'] == 0
 
 
-def test_a_refused_call_still_carries_no_argument_content(tmp_path, monkeypatch):
+def test_an_unattended_refusal_audits_its_own_reason(tmp_path, monkeypatch):
+    """#20: an automation's refused call says `rejected_unattended`, so the trail tells an unattended
+    refusal apart from a person's rejection."""
     trail = _trail(tmp_path, monkeypatch)
-    _call(approval='rejected')
+    _call(name='gate_probe', tool={'tool_id': 'gate_probe'}, approval='rejected_unattended', result='Refused by JUP')
+    [entry] = _entries(trail)
+    assert entry['approval'] == 'rejected_unattended'
+    assert entry['outcome'] == 'refused'
+
+
+@pytest.mark.parametrize('approval', ['rejected', 'rejected_unattended'])
+def test_a_refused_call_still_carries_no_argument_content(tmp_path, monkeypatch, approval):
+    trail = _trail(tmp_path, monkeypatch)
+    _call(approval=approval)
     assert 'NPWP' not in trail.read_text() and 'rahasia' not in trail.read_text()
 
 

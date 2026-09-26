@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from jup.gate_probe import REFUSAL, gate_probe
-from jup.tool_policy import EXTERNAL, READ, RISK_CLASSES, classify, decide
+from jup.tool_policy import CHAT, EXTERNAL, READ, RISK_CLASSES, classify, decide
 
 TOOLS_DIR = Path(__file__).resolve().parent.parent / 'tools'
 
@@ -63,7 +63,7 @@ def test_the_probe_as_stored_is_refused_by_the_gate():
     """The entry `get_tools` builds from the stored probe: the declared class is what gates it."""
     entry = {'tool_id': 'gate_probe', 'risk_class': _frontmatter(TOOLS_DIR / 'gate_probe.py')['risk_class']}
     assert classify(entry) == EXTERNAL
-    assert decide('gate_probe', entry).approval == 'rejected'
+    assert decide('gate_probe', entry, path=CHAT).approval == 'rejected'
 
 
 def test_the_stored_probe_holds_no_logic_of_its_own():

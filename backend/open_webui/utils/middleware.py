@@ -1384,7 +1384,11 @@ async def chat_completion_tools_handler(
                 tool_type = ''
                 direct_tool = False
                 # JUP: the approval gate decides before anything runs (ADR-0013; VENDOR-PATCHES.md).
-                jup_gate = jup_tool_policy.decide(tool_function_name, tools[tool_function_name])
+                jup_gate = jup_tool_policy.decide(
+                    tool_function_name,
+                    tools[tool_function_name],
+                    path=jup_tool_policy.path_of(metadata, request.state),
+                )
 
                 try:
                     tool = tools[tool_function_name]
@@ -3040,6 +3044,9 @@ async def process_chat_payload(request, form_data, user, metadata, model):
                 if name not in tools_dict:
                     tools_dict[name] = tool_dict
 
+        # JUP: a subagent is never offered an `external` tool (ADR-0013 §4; VENDOR-PATCHES.md).
+        tools_dict = jup_tool_policy.offered_tools(tools_dict, jup_tool_policy.path_of(metadata, request.state))
+
         if tools_dict:
             # Always store resolved tools in metadata so downstream consumers
             # (e.g. pipe functions) can access all tools including MCP and builtins.
@@ -3196,7 +3203,7 @@ async def execute_tool_call_for_output(request, form_data, user, metadata, event
 
     # JUP: the approval gate decides before anything runs, the user's own approval included
     # (ADR-0013; VENDOR-PATCHES.md). `jup_approval` is read by the audit line in the drain.
-    jup_gate = jup_tool_policy.decide(name, tool)
+    jup_gate = jup_tool_policy.decide(name, tool, path=jup_tool_policy.path_of(metadata, request.state))
     if not jup_gate.runs:
         return {'tool_call_id': tool_call.get('id', ''), 'content': jup_gate.message, 'jup_approval': jup_gate.approval}
 
@@ -5721,7 +5728,9 @@ async def streaming_chat_response_handler(response, ctx):
                         allowed_params = spec.get('parameters', {}).get('properties', {}).keys()
                         params = {key: value for key, value in params.items() if key in allowed_params}
                         # JUP: the approval gate decides before anything runs (ADR-0013; VENDOR-PATCHES.md).
-                        jup_gate = jup_tool_policy.decide(name, tool)
+                        jup_gate = jup_tool_policy.decide(
+                            name, tool, path=jup_tool_policy.path_of(metadata, request.state)
+                        )
                         jup_gate_approvals[id(tool_call)] = jup_gate.approval
                         if not jup_gate.runs:
                             return params, jup_gate.message, tool, tool_type, direct_tool
