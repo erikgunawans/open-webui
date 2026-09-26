@@ -109,8 +109,8 @@ _BUILTIN_PREFIX = 'builtin:'
 
 
 @dataclass(frozen=True)
-class Decision:
-    """The gate's answer for one call. `approval` is the value the audit line records."""
+class Ruling:
+    """The gate's answer for one call (not a register Decision, which is `jup.decisions.Decision`). `approval` is the value the audit line records."""
 
     runs: bool
     risk_class: str
@@ -134,12 +134,12 @@ def classify(tool: Any) -> str:
     return declared if declared in RISK_CLASSES else EXTERNAL
 
 
-def decide(name: str, tool: Any) -> Decision:
+def decide(name: str, tool: Any) -> Ruling:
     """Whether the call to `name` runs. `name` is only used to word the refusal."""
     risk_class = classify(tool)
     if risk_class != EXTERNAL:
-        return Decision(runs=True, risk_class=risk_class, approval='not_required')
-    return Decision(runs=False, risk_class=risk_class, approval='rejected', message=_refusal(name))
+        return Ruling(runs=True, risk_class=risk_class, approval='not_required')
+    return Ruling(runs=False, risk_class=risk_class, approval='rejected', message=_refusal(name))
 
 
 def _refusal(name: str) -> str:
@@ -153,4 +153,4 @@ def _refusal(name: str) -> str:
     )
 
 
-__all__ = ['BUILTIN_CLASSES', 'EXTERNAL', 'READ', 'RISK_CLASSES', 'WRITE_OWN', 'Decision', 'classify', 'decide']
+__all__ = ['BUILTIN_CLASSES', 'EXTERNAL', 'READ', 'RISK_CLASSES', 'WRITE_OWN', 'Ruling', 'classify', 'decide']

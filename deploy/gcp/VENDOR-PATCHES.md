@@ -436,8 +436,8 @@ often. Re-apply the gate after the tool entry and its params are resolved and be
 
 ## The decisions-register MCP server starts with the app — `backend/start.sh` (2026-09-26)
 
-One line before `Launch uvicorn`: `"$(command -v python3 || command -v python)" -m jup_mcp.decisions &`,
-under a `JUP` comment block. It starts the read-only decisions-register MCP server
+One line after `PYTHON_CMD` is set, before the final `exec`: `"$PYTHON_CMD" -m jup_mcp.decisions &`,
+under a `JUP` comment. It starts the read-only decisions-register MCP server
 (`backend/jup_mcp/decisions.py`) in the background. The server binds to 127.0.0.1 in code, with no
 host setting, and reads `/srv/jup/DECISIONS.md` from the read-only records mount on every call
 (`JUP_DECISIONS_FILE` and `JUP_DECISIONS_MCP_PORT`, default 8765, override that for tests).

@@ -72,8 +72,9 @@ class Register:
 
     def search(self, query: str) -> list[Decision]:
         """Decisions ranked by how many query words they hold, then by where they hold them."""
-        if _normalise_number(query) and self.get(query):
-            return [self.get(query)]
+        exact = self.get(query) if _normalise_number(query) else None
+        if exact:
+            return [exact]
         words = _words(query)
         scored = []
         for order, d in enumerate(self.decisions):
@@ -200,7 +201,9 @@ def _plain(cell: str) -> str:
 
 def _decision(cells: list[str], n: int, path: Path) -> Decision:
     if len(cells) != len(_DECISION_HEADER):
-        raise DecisionsError(f'{path}: row {n} of the decisions table has {len(cells)} cells, expected 5')
+        raise DecisionsError(
+            f'{path}: row {n} of the decisions table has {len(cells)} cells, expected {len(_DECISION_HEADER)}'
+        )
     number, decision, status, why, date = cells
     if not _NUMBER.match(number):
         raise DecisionsError(f'{path}: row {n} of the decisions table has no decision number (got {number!r})')
@@ -223,7 +226,9 @@ def _split_why(why: str) -> tuple[str, str]:
 
 def _open_item(cells: list[str], n: int, path: Path) -> OpenItem:
     if len(cells) != len(_OPEN_ITEM_HEADER):
-        raise DecisionsError(f'{path}: row {n} of the open-items table has {len(cells)} cells, expected 3')
+        raise DecisionsError(
+            f'{path}: row {n} of the open-items table has {len(cells)} cells, expected {len(_OPEN_ITEM_HEADER)}'
+        )
     return OpenItem(*cells)
 
 
