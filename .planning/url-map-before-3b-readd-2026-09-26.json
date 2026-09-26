@@ -1,0 +1,9 @@
+{
+  "creationTimestamp": "2026-09-18T21:20:36.518-07:00",
+  "defaultService": "https://www.googleapis.com/compute/v1/projects/jup-ops/global/backendServices/ent-os-backend",
+  "fingerprint": "3AprItSRa7M=",
+  "id": "8437322763336921980",
+  "kind": "compute#urlMap",
+  "name": "ent-os-lb",
+  "selfLink": "https://www.googleapis.com/compute/v1/projects/jup-ops/global/urlMaps/ent-os-lb"
+}

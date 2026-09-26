@@ -21,7 +21,9 @@ SERVICE="${SERVICE:-ent-os}"
 INSTANCE="${INSTANCE:-jup-ops-db}"
 # Who holds `admin`, per ADR-0012. Overridable here rather than hardcoded below because the admin
 # set is the one value on this service that changes for reasons unrelated to a code change.
-ADMIN_EMAILS="${JUP_ADMIN_EMAILS:-erik@axiara.ai}"
+# erik@jakarta-utilitas.com added 2026-09-26 for his Entra cutover (ADR-0016, step 3c); erik@axiara.ai
+# comes off only once his Entra sign-in works and ops.axiara.ai is no longer his way in.
+ADMIN_EMAILS="${JUP_ADMIN_EMAILS:-erik@axiara.ai,erik@jakarta-utilitas.com}"
 REPO="asia-southeast2-docker.pkg.dev/$PROJECT/ent-os/ent-os"
 SHA="$(git rev-parse --short HEAD)"
 
