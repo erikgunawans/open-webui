@@ -85,3 +85,9 @@ sign-in works.
 - 2026-09-26: Identity Platform enabled and initialized on `jup-ops` (`identitytoolkit.googleapis.com`).
   No providers are enabled. The auth domain is `jup-ops.firebaseapp.com`, which confirms the
   redirect URI in the JUP IT request.
+- 2026-09-26: JUP IT sent tenant ID `fc521bfb-40c2-4b87-95a7-65e0e888fdf8` (verified as
+  `jakarta-utilitas.com` by public discovery) and client ID `095f7f79-2430-4cff-8363-560bb063b3e1`.
+  The first secret arrived in a plain-text file and passed through a Claude session, so Erik chose to
+  rotate it before cutover. `deploy/gcp/entra-provider.sh` creates provider `oidc.entra-jup` from a
+  secret pasted into a real terminal (and replaces only the secret on later rotations). Before-values:
+  `.planning/entra-before-2026-09-26.json` (no providers).

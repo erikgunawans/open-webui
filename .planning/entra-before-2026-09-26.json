@@ -1,0 +1,9 @@
+{
+  "captured": "2026-09-26",
+  "project": "jup-ops",
+  "oauthIdpConfigs": {},
+  "defaultSupportedIdpConfigs": {},
+  "authorizedDomains": ["jup-ops.firebaseapp.com", "jup-ops.web.app"],
+  "multiTenant": {},
+  "note": "Before ADR-0016 step 2 (OIDC provider). signIn.hashConfig omitted on purpose."
+}
