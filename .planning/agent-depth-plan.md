@@ -35,13 +35,13 @@ design. The sandbox work for terminal and browser is needed on either path.
 | A3  | Code interpreter for staff (Pyodide, in-browser)        | live    | code execution                     | —                                            |
 | E1  | Tool-call audit: one audit line per tool invocation     | live    | the audit trail for every tool     | —                                            |
 | A4  | Web search (Brave, D19); URL fetch stays gated          | live    | web search                         | —                                            |
-| A5  | MCP tool servers                                        | ready   | MCP                                | first server from D20 class; ships with E5   |
+| A5  | MCP tool servers                                        | live    | MCP                                | —                                            |
 | V1  | ChatGPT Live voice — backend delegation endpoint        | ready   | voice (holaOS has none)            | OpenAI key (D21: ZDR not a gate)             |
 | V2  | ChatGPT Live voice — call UI and voice KB scope         | planned | voice                              | V1                                           |
 | E2  | Sandbox host: private VM, gVisor containers, egress proxy | parked  | the fence for E3 and E4            | Erik deferred 2026-09-26; reopens it         |
 | E3  | Terminal via Open Terminal in the sandbox, admin-only   | planned | terminal, files                    | E1, E2, E5                                   |
 | E4  | Browser automation via Playwright MCP in the sandbox    | planned | browser                            | A5, E2, E5                                   |
-| E5  | Approval step for risky tool calls (ADR-0013)           | ready   | long autonomous runs               | ships with first of E3/E4/A5                 |
+| E5  | Approval step for risky tool calls (ADR-0013)           | live    | long autonomous runs               | —                                            |
 | E6  | Skill proposals: agent drafts, admin approves, sync     | planned | self-improving skills              | E1                                           |
 | E7  | Messaging gateway (Telegram first, then WhatsApp)       | planned | chat channels                      | ADR-0012 amendment, D-decision per channel   |
 | I1  | Integrations via MCP (Google Workspace first)           | planned | integrations                       | A5, E5 live, D-decision each (D20)           |
@@ -108,7 +108,16 @@ tool call writes one too. A capability that can't meet that isn't turned on.
   **Round 3 (accepted):** `search_web` is `read` by named exception; every vendor built-in gets an
   explicit class in the spec's table and an unlisted one is `external`; note writes, calendar writes
   and image generation are `external`, automation management is `write_own`. Recorded as the
-  2026-09-26 amendment to ADR-0013. Spec: issue #17 (`ready-for-agent`); next is `/to-tickets`.
+  2026-09-26 amendment to ADR-0013. Spec: issue #17, tickets #18–#24.
+  **Live 2026-09-27 (A5 and E5, #24):** all five of spec #17's live checks passed on
+  `ent-os-00050-gqw` (image `a945e5765`), each backed by its `jup.governance` line. `gate_probe`
+  paused on a card labelled Panggilan Eksternal with `password=••••••` and `token ••••••`; approve
+  → `approved`, approved_by Erik, 16.6 s; reject → `rejected`, 3.0 s; tab closed → `timed_out`,
+  approved_by None, 601 s. An inactive automation on a temp model → `rejected_unattended`.
+  "apa isi D20?" → `decisions_get_decision`, `tool_id mcp:decisions`, `not_required`. Web search →
+  `builtin:search_web ok`, `not_required`, no card; the same turn's `fetch_url` got a card as
+  intended. KB search (`query_knowledge_files`, `search_knowledge_files`, `view_knowledge_file`)
+  → `not_required`, no card. Test model, automation and chats deleted.
 
 ## Track V — ChatGPT Live as a voice interface (ADR-0005, ADR-0006)
 
@@ -157,7 +166,8 @@ surface, because we see the whole answer before a word is spoken.
   pause for the user's explicit confirmation before they run. The decision is recorded in the E1
   audit line. Decided 2026-09-24 in ADR-0013: three risk classes (`read`, `write_own`, `external`),
   unclassified means `external`, the asking user approves each call, 10-minute timeout, and every
-  unattended path (automations, subagents, channels) fails closed. Ships with the first of E3/E4/A5.
+  unattended path (automations, subagents, channels) fails closed. Shipped with A5: live
+  2026-09-27 on `ent-os-00050-gqw` (evidence under A5).
 - **E6 Skill proposals.** A `propose_skill` tool lets the agent draft a skill from a repeated
   task into a review queue. An admin approves it into `skills/`, and `sync-skills.ts` publishes it.
   This is the self-improvement Hermes has, with a human gate that Hermes lacks.
