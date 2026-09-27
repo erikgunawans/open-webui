@@ -1,3 +1,34 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-28-v28)
+
+> Prepended by /wrap 2026-09-28 (checkpoint 2026-09-28-v28). Supersedes v26's anchor and its "do next"; the v25 and older blocks' constraints (below) still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-28-v28).
+Anchor: `origin/main` at `4b4d9c014` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-28-v28`). Verify with `git log --oneline 4b4d9c014..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** voice #26, #27, #28 built and pushed **dark** (nothing deployed; live still `ent-os-00050-gqw`, rollback `ent-os-00049-zrl`). Voice turns are forced onto `asisten-jup-suara` and held to the 8 named files; OpenAI STT needs the grant; OpenAI TTS reads only a **sealed** assistant answer from the caller's own voice chat, by `{chat_id, message_id, part}`. Backend 1446 / 22 skipped; vitest 142. Check `4b4d9c014`'s Frontend Build finished green (it was running at wrap).
+
+**Do next, in order:**
+1. **`/implement #29`** (call UI). What the server now expects from it:
+   - start a call with `POST /api/v1/voice/calls` (after `POST /api/v1/voice/acknowledge` {version}); gate the UI on `GET /api/v1/voice/capabilities`;
+   - transcribe with `POST /api/v1/audio/transcriptions?chat_id=<voice chat>` so `voice_stt` names the chat;
+   - speak an answer with `GET /api/v1/voice/speech/parts?chat_id&message_id` then `POST /api/v1/audio/speech` `{chat_id, message_id, part}` per part — never `input` (refused 400). An answer is readable only after its turn finishes (the seal is written in `publish_chat_finished_event`); 409 `voice_tts_not_ready`/`voice_tts_unsealed` otherwise;
+   - `CallOverlay.svelte` today calls `synthesizeOpenAISpeech(token, voice, content)` with free text — that path must go.
+2. Then #30 (go live, each step its own OK: deploy, `JUP_VOICE_ENABLED`, `bun deploy/gcp/sync-voice-model.ts` (DB write), audio engine config via admin API with before-values, `--set-secrets openai-live-key` + `secretAccessor`, grant Erik `jup.voice.call`), then #31 (live acceptance).
+3. **Ask Erik** (carried): home-line wording "Belum terhubung: email, keuangan live, keputusan BOD." (`Placeholder.svelte`).
+4. **Raise, don't build** (carried): gate follow-ups from g23 and #24's findings (see v25 block below).
+5. **Routine:** after Mon 2026-09-28 09:00 WIB, A1's run `success` (`/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs`) — due now.
+6. ADR-0016 step 5 when Erik is ready (six `pending` contributors); chat-home critique leftovers; 2,238 empty id-ID keys; CI Docker/PyPI red.
+
+**Constraints to honor** (new, plus everything in the blocks below):
+- Decide "is this a voice chat" only via `jup.voice.is_voice_chat(...)`, voice turns via `jup.voice_turn.is_voice_turn(metadata)`, readable answers via `jup.voice.answer_sealed(...)` — never raw meta.
+- Fork data on a chat message goes in `message.meta`, merged over a fresh read: the `chat_message` table drops unknown top-level keys and the getter reads it first.
+- Every vendor insert has a presence test (`tests/test_jup_voice_turn_presence.py`, `tests/test_jup_voice_audio_presence.py`) and a `deploy/gcp/VENDOR-PATCHES.md` entry; keep both in step. `speech_cached` mirrors the vendor's cache-name formula (pinned by a presence test).
+- The voice model sync is a DB write: dry-run freely (read-only, via Erik's tab), real run only in #30 with Erik's OK. Open a managed tab (`interceptor tab new https://non-jupe.jup.co.id/`); the active tab is often `localhost:3000`.
+
+**Open items waiting on Erik:** read ADR-0017 and OK the dated D16 note; US$20 budget limit + 50% alert on the key's OpenAI project; pick the TTS voice from 3 Indonesian samples (#30); home-line wording; approving the pending contributors; old test chats; everything listed in the older blocks' open items.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-27-v26)
 
 > Prepended by /wrap 2026-09-27 (checkpoint 2026-09-27-v26). Supersedes v25's anchor and its item 1 only; everything else in the v25 block below still holds.
