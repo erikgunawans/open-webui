@@ -1,3 +1,31 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-27-v25)
+
+> Prepended by /wrap 2026-09-27 (checkpoint 2026-09-27-v25). Supersedes g23's anchor and its list; the g23, e3c, g20, g18, a5, cs, nj, kbr, kbd, a1, i18n and p2d blocks' constraints (below) still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-27-v25).
+Anchor: `origin/main` at `a88f805d8` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-27-v25`). Verify with `git log --oneline a88f805d8..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live on **`ent-os-00050-gqw`** (image `a945e5765`; rollback `ent-os-00049-zrl`), unchanged this session. **Spec #17 done:** A5 and E5 `live` in the ledger (12 live), #24 acceptance passed. **Voice redesigned:** ADR-0017 (chained STT → governed turn → TTS by message id) supersedes ADR-0005; spec **#25**, tickets **#26–#31**. OpenAI key in Secret Manager `openai-live-key`, not yet wired. Tests: backend 1212 / 22 skipped; vitest 139.
+
+**Do next, in order:**
+1. **`/implement #26`** (voice switch `JUP_VOICE_ENABLED`, `jup` grant, acknowledge route + `voice_ack`, start-call route creating a server-marked voice chat). Ships dark. Then #27 and #28 (independent), then #29, then #30 (go live: each step its own OK), then #31.
+2. **Ask Erik** how to word the home line "Belum terhubung: email, keuangan live, keputusan BOD." (`Placeholder.svelte`): the D-register is connected for admins only and holds his D-decisions, not strictly BOD ones.
+3. **Raise, don't build:** gate follow-ups from g23 (timer/background-subagent wakes are path `chat` → a card nobody sees; in-process timeout timer; "View Result from {{NAME}}" empty in id-ID) plus #24's findings (`mode: approved` on a non-gated call in a gated batch; the model repeats tool-result secrets in prose).
+4. ADR-0016 step 5 when Erik is ready: approve the six `pending` contributors (`tito.suroso`, `indra`, `asrori`, `ade.iman`, `puji`, `bungaran`).
+5. **Routine:** after Mon 2026-09-28 09:00 WIB, A1's run `success` (`/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs`).
+6. Chat-home critique leftovers (`$impeccable shape`, `$impeccable adapt`); 2,238 empty id-ID keys; CI Docker CUDA/Ollama variants; vendor "Release to PyPI" red.
+
+**Constraints to honor:** as in the g23 block and those below it, plus:
+- **Voice boundary order (#25):** no audio engine is switched to OpenAI until #26–#29's server boundary is deployed. Audio engines are global DB config (`audio.stt.*`/`audio.tts.*`), set via the admin config API with before-values saved, never env (persistent config is DB-seeded).
+- The voice scope is the 8 named files in the plan's Track V; adding one needs a date and Erik's name (ADR-0006). `view_knowledge_file` passes on admin role today, so it can open any file by id; #27 must close that for voice turns.
+- The secret `openai-live-key` is used for transcription and TTS only (the name dates from GPT-Live). Wiring it needs `--set-secrets` in `deploy.sh` plus `secretAccessor` for the default compute SA on that one secret (its own OK).
+- A temp model needs `GET /api/models?refresh=true` before an automation `/run` uses it.
+- Live chat checks: a hidden (background) tab doesn't render cards; `interceptor tab switch` + `osascript ... activate` before waiting on a card.
+
+**Open items waiting on Erik:** read ADR-0017, then OK the dated D16 note in `~/jup/DECISIONS.md`; set a US$20 monthly budget limit + 50% alert on the key's OpenAI project; pick the TTS voice from 3 Indonesian samples (#30); home-line wording (item 2); approving the pending contributors (item 4); delete old test chats if wanted (`e2ee24fd…`, `deb89026…`, `b2cee687…`, `219b6ffb…`, `48a8ccea…`, `fd654d19…`, `781ca6eb…`, `c24ad828…`, `dd81ec19…`, `10fdb3fb…`); everything still listed in e3c's open items (Entra secrets hygiene, E2 budget, BOD closure/quorum, KPI definitions, "Decisions required" model, BOD/PIC grants, blocker hold).
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-27-g23)
 
 > Prepended by /wrap 2026-09-27 (checkpoint 2026-09-27-g23). Supersedes e3c's anchor and its list; the e3c, g20, g18, a5, cs, nj, kbr, kbd, a1, i18n and p2d blocks' constraints (below) still hold unless noted.
