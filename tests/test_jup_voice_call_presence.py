@@ -67,7 +67,7 @@ def test_the_overlay_reads_only_the_sealed_answer_with_openai_speech():
     queued = finished.index('await queueSealedAnswer(id, signal)')
     assert queued < finished.index('finishedMessages[id] = true;')
     assert 'synthesizeAnswerPart(localStorage.token, chatId, id, part)' in source
-    assert "speaksSealedAnswers($config?.audio?.tts?.engine)" in source
+    assert 'speaksSealedAnswers($config?.audio?.tts?.engine)' in source
 
 
 def test_every_call_shows_the_reminder():
@@ -91,4 +91,6 @@ def test_an_interrupt_or_hang_up_stops_the_sealed_parts():
     fetches = _between(source, 'const queueSealedAnswer = async (id, signal)', 'const monitorAndPlayAudio')
     assert 'if (signal.aborted) return;' in fetches
     finished = _between(source, 'const chatFinishHandler = async', 'const toggleMute')
-    assert finished.index('const signal = audioAbortController.signal;') < finished.index('await queueSealedAnswer(id, signal)')
+    assert finished.index('const signal = audioAbortController.signal;') < finished.index(
+        'await queueSealedAnswer(id, signal)'
+    )
