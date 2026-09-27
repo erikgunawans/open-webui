@@ -36,7 +36,7 @@ design. The sandbox work for terminal and browser is needed on either path.
 | E1  | Tool-call audit: one audit line per tool invocation     | live    | the audit trail for every tool     | —                                            |
 | A4  | Web search (Brave, D19); URL fetch stays gated          | live    | web search                         | —                                            |
 | A5  | MCP tool servers                                        | live    | MCP                                | —                                            |
-| V1  | ChatGPT Live voice — backend delegation endpoint        | ready   | voice (holaOS has none)            | OpenAI key (D21: ZDR not a gate)             |
+| V1  | ChatGPT Live voice — backend delegation endpoint        | ready   | voice (holaOS has none)            | —                                            |
 | V2  | ChatGPT Live voice — call UI and voice KB scope         | planned | voice                              | V1                                           |
 | E2  | Sandbox host: private VM, gVisor containers, egress proxy | parked  | the fence for E3 and E4            | Erik deferred 2026-09-26; reopens it         |
 | E3  | Terminal via Open Terminal in the sandbox, admin-only   | planned | terminal, files                    | E1, E2, E5                                   |
@@ -137,6 +137,8 @@ surface, because we see the whole answer before a word is spoken.
     runs.
   - Voice retrieval is limited **by construction** to a named Strategy KB subset (ADR-0006). Nothing
     outside that set can be reached.
+- **Key in place 2026-09-27:** Secret Manager `openai-live-key` (jup-ops, v1), accepted by OpenAI
+  (`/v1/models` 200, `gpt-live-1` listed). Not yet wired into `deploy.sh` or readable by the app.
 - **Decided:** D16 (2026-09-19) accepts US processing; D21 (2026-09-26, Erik's final answer)
   removes ZDR as a precondition, so OpenAI's default retention of up to 30 days applies until ZDR
   is approved on the org. People briefed by voice must be told both facts.
