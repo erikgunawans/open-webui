@@ -36,8 +36,8 @@ design. The sandbox work for terminal and browser is needed on either path.
 | E1  | Tool-call audit: one audit line per tool invocation     | live    | the audit trail for every tool     | —                                            |
 | A4  | Web search (Brave, D19); URL fetch stays gated          | live    | web search                         | —                                            |
 | A5  | MCP tool servers                                        | live    | MCP                                | —                                            |
-| V1  | Voice boundary on the server (ADR-0017)                 | ready   | voice (holaOS has none)            | —                                            |
-| V2  | Voice call UI, disclosure and voice chats               | planned | voice                              | V1                                           |
+| V1  | Voice boundary on the server (ADR-0017)                 | in-progress | voice (holaOS has none)        | #30: grant + audio config, then #31 live     |
+| V2  | Voice call UI, disclosure and voice chats               | in-progress | voice                          | V1; built (#29), live check in #31           |
 | E2  | Sandbox host: private VM, gVisor containers, egress proxy | parked  | the fence for E3 and E4            | Erik deferred 2026-09-26; reopens it         |
 | E3  | Terminal via Open Terminal in the sandbox, admin-only   | planned | terminal, files                    | E1, E2, E5                                   |
 | E4  | Browser automation via Playwright MCP in the sandbox    | planned | browser                            | A5, E2, E5                                   |
