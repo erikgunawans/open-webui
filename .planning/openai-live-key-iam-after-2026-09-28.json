@@ -1,0 +1,13 @@
+Updated IAM policy for secret [openai-live-key].
+{
+  "bindings": [
+    {
+      "members": [
+        "serviceAccount:1001937491646-compute@developer.gserviceaccount.com"
+      ],
+      "role": "roles/secretmanager.secretAccessor"
+    }
+  ],
+  "etag": "BwZcfy7Ktls=",
+  "version": 1
+}
