@@ -14,6 +14,10 @@ inserts in `routers/audio.py` call (`deploy/gcp/VENDOR-PATCHES.md`).
   the chat API is not read. The server drops the tool and reasoning blocks and sends that, so what
   is heard is the stored governed answer (ADR-0017). A long answer is read in parts. Every
   request writes `voice_tts`.
+- **The key.** OpenAI's key lives in Secret Manager (`openai-live-key`, ADR-0017) and reaches the
+  service as `JUP_VOICE_OPENAI_API_KEY`. The vendor's own key rows are seeded into the app DB on
+  first boot and then win over any env var, so the key is swapped in at the two call sites
+  instead, and only for `https://api.openai.com` (#30).
 """
 
 from __future__ import annotations
@@ -21,6 +25,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from typing import Any
+from urllib.parse import urlsplit
 
 from jup.voice import Refusal, access_refusal
 
@@ -28,6 +33,26 @@ from jup.voice import Refusal, access_refusal
 SPEECH_PART_LIMIT = 4000
 
 OPENAI = 'openai'
+
+#: The env var the service gets from Secret Manager (`deploy/gcp/deploy.sh`).
+OPENAI_KEY_ENV = 'JUP_VOICE_OPENAI_API_KEY'
+
+
+def openai_api_key(configured: str | None, base_url: str | None, *, secret: str | None) -> str | None:
+    """The key to send with an OpenAI audio request: the secret, but only to OpenAI itself.
+
+    An admin can point the vendor's base URL anywhere; the secret never follows it there.
+    """
+    if not secret:
+        return configured
+    try:
+        parts = urlsplit(base_url or '')
+    except ValueError:
+        return configured
+    if parts.scheme == 'https' and parts.netloc == 'api.openai.com':
+        return secret
+    return configured
+
 
 _DETAILS = re.compile(r'<details\b[^>]*>.*?</details>', re.DOTALL | re.IGNORECASE)
 _SENTENCE_END = re.compile(r'(?<=[.!?…])\s+')

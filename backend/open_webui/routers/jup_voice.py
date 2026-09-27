@@ -29,6 +29,7 @@ import copy
 import hashlib
 import json
 import logging
+import os
 import time
 import uuid
 from collections.abc import Callable, Coroutine
@@ -484,6 +485,11 @@ async def get_speech_parts(
     """How many parts `POST /api/v1/audio/speech` will read this answer in (0 to parts - 1)."""
     count = await speech_part_count(chat_id, message_id, user, store=store, secret=secret, permissions=permissions)
     return {'parts': count}
+
+
+def openai_api_key(configured: Any, base_url: Any) -> Any:
+    """The key `routers/audio.py` sends to OpenAI: the Secret Manager one when set (#30)."""
+    return voice_audio.openai_api_key(configured, base_url, secret=os.environ.get(voice_audio.OPENAI_KEY_ENV))
 
 
 def refuse_speech_passthrough(user: Any) -> None:

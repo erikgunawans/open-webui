@@ -295,6 +295,15 @@ look before it joins `KNOWLEDGE_TOOLS`.
 - `openai.py`, the first line of the `/audio/speech` proxy: `jup_voice.refuse_speech_passthrough(user)`.
   That route forwards free text to any api.openai.com chat connection. Nothing in the app calls
   it, so it is closed.
+- `audio.py`, `_tts_openai` and `_transcribe_openai`, right after the key and base URL are read:
+  `api_key = jup_voice.openai_api_key(api_key, api_base_url)` (#30).
+  - The key lives in Secret Manager (`openai-live-key`), reaching the service as
+    `JUP_VOICE_OPENAI_API_KEY` (`deploy.sh`).
+  - The vendor's own key rows were seeded into the app DB on first boot, and a DB row always wins
+    over an env var, so the key is swapped in at the call instead. It never lands in the DB, in
+    Admin Settings or in the config export.
+  - It is used only when the base URL is exactly `https://api.openai.com…`. An admin who points
+    the base URL elsewhere gets the saved key, never the secret.
 - `ResponseMessage.svelte`, `speak`: `readAloudUsesBrowser($config.audio.tts.engine)`
   (`src/lib/voice/readAloud.ts`) replaces `$config.audio.tts.engine === ''`. With OpenAI as the
   engine, read-aloud on a typed answer uses the browser's own voice.
@@ -309,7 +318,7 @@ speech, or any text, to OpenAI.
 under `--only-group dev`). The rules are tested in `tests/test_jup_voice_audio.py`, the seam in
 `tests/test_jup_voice_audio_endpoint.py`, and the helper in `src/lib/voice/readAloud.test.ts`.
 
-**Conflict risk:** moderate. `transcribe`, `speech` and the two finish paths change upstream now
+**Conflict risk:** moderate. `transcribe`, `speech`, the two OpenAI handlers' key reads and the two finish paths change upstream now
 and then. Keep the admit before any conversion, the audit after the gather, the body swap before
 the cache hash, and the seal after the finished answer is saved. An outlet filter that rewrites
 the saved answer after the seal would make it unreadable by voice; none is configured.

@@ -107,3 +107,14 @@ def test_every_insert_has_a_vendor_patches_entry():
     ):
         assert needle in patches, needle
     assert 'test_jup_voice_audio_presence.py' in patches
+
+
+def test_both_openai_audio_calls_take_the_secret_key_after_reading_the_saved_one():
+    """The saved key rows win over env vars, so the Secret Manager key is swapped in here (#30)."""
+    source = AUDIO_PY.read_text(encoding='utf-8')
+    swap = 'api_key = jup_voice.openai_api_key(api_key, api_base_url)'
+    assert source.count(swap) == 2
+    tts = _between(source, 'async def _tts_openai(', 'headers = {')
+    assert tts.index("api_base_url = await Config.get('audio.tts.openai.api_base_url')") < tts.index(swap)
+    stt = _between(source, 'async def _transcribe_openai(', "headers = {'Authorization'")
+    assert stt.index("api_base_url = await Config.get('audio.stt.openai.api_base_url')") < stt.index(swap)

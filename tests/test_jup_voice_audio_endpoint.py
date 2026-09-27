@@ -375,3 +375,11 @@ def voice_turn_key() -> str:
     from jup import voice_turn
 
     return voice_turn.METADATA_KEY
+
+
+def test_the_seam_reads_the_secret_key_from_the_environment(jup_voice, monkeypatch) -> None:
+    monkeypatch.setenv('JUP_VOICE_OPENAI_API_KEY', 'sk-secret')
+    assert jup_voice.openai_api_key('', 'https://api.openai.com/v1') == 'sk-secret'
+    assert jup_voice.openai_api_key('sk-db', 'https://openrouter.ai/api/v1') == 'sk-db'
+    monkeypatch.delenv('JUP_VOICE_OPENAI_API_KEY')
+    assert jup_voice.openai_api_key('sk-db', 'https://api.openai.com/v1') == 'sk-db'

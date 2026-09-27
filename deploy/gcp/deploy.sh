@@ -106,6 +106,10 @@ JUP_LEADERSHIP_SAMPLE_FILE: "/srv/jup/leadership/illustrative-seed.json"
 # (503, every snapshot a draft) until the company decides individual/collective closure and
 # publication authority. Evidence files go to jup-ops-data under a temporary hold (proven 09-25).
 JUP_LEADERSHIP_ACTIONS_SOURCE: "records"
+# Voice (ADR-0017, D16/D21/D22), switched on 2026-09-28 with Erik's OK (#30). The switch alone
+# gives no one a call: it also needs the jup.voice.call group grant (Erik only at launch, D22).
+# Remove this line to switch voice off (the D22 decommission list has the rest).
+JUP_VOICE_ENABLED: "true"
 EOF
 
 echo "==> deploying to Cloud Run"
@@ -119,7 +123,7 @@ gcloud run deploy "$SERVICE" \
   --network=default --subnet=default --vpc-egress=private-ranges-only \
   --add-volume="name=jup,type=cloud-storage,bucket=jup-ops-records,readonly=true" \
   --add-volume-mount="volume=jup,mount-path=/srv/jup" \
-  --set-secrets="WEBUI_SECRET_KEY=webui-secret-key:latest,DATABASE_URL=database-url:latest" \
+  --set-secrets="WEBUI_SECRET_KEY=webui-secret-key:latest,DATABASE_URL=database-url:latest,JUP_VOICE_OPENAI_API_KEY=openai-live-key:latest" \
   --env-vars-file="$ENVFILE"
 
 rm -f "$ENVFILE"

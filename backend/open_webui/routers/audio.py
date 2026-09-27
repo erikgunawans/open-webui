@@ -368,6 +368,8 @@ async def _tts_openai(request, payload, file_path, file_body_path, user):
     payload = {**payload, **(await Config.get('audio.tts.openai.params') or {})}
     api_key = await Config.get('audio.tts.openai.api_key')
     api_base_url = await Config.get('audio.tts.openai.api_base_url')
+    # JUP: the key from Secret Manager, only to api.openai.com (#30; VENDOR-PATCHES.md).
+    api_key = jup_voice.openai_api_key(api_key, api_base_url)
 
     headers = {
         'Content-Type': 'application/json',
@@ -653,6 +655,8 @@ async def _transcribe_openai(request, file_path, filename, languages, file_dir, 
         session = await get_session()
         api_key = await Config.get('audio.stt.openai.api_key')
         api_base_url = await Config.get('audio.stt.openai.api_base_url')
+        # JUP: the key from Secret Manager, only to api.openai.com (#30; VENDOR-PATCHES.md).
+        api_key = jup_voice.openai_api_key(api_key, api_base_url)
         request_format = (await Config.get('audio.stt.openai.api_request_format') or 'multipart').lower()
 
         headers = {'Authorization': f'Bearer {api_key}'}

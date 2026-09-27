@@ -159,3 +159,42 @@ def test_an_answer_the_assistant_did_not_write_is_not_read() -> None:
 def test_a_part_past_the_end_is_refused() -> None:
     assert voice_audio.part_refusal(0, 1) is None
     assert voice_audio.part_refusal(1, 1) is voice_audio.NO_SUCH_PART
+
+
+# --- The OpenAI key (#30) ---------------------------------------------------------------
+# The key lives in Secret Manager and reaches the service as an env var; the app DB holds
+# only the (empty) vendor key rows, which would otherwise win over any env var.
+
+
+def test_the_secret_key_is_used_for_openai() -> None:
+    assert voice_audio.openai_api_key('', 'https://api.openai.com/v1', secret='sk-secret') == 'sk-secret'
+
+
+def test_the_secret_key_wins_over_a_key_saved_in_the_app() -> None:
+    assert voice_audio.openai_api_key('sk-db', 'https://api.openai.com/v1', secret='sk-secret') == 'sk-secret'
+
+
+def test_without_the_secret_the_saved_key_stays() -> None:
+    assert voice_audio.openai_api_key('sk-db', 'https://api.openai.com/v1', secret='') == 'sk-db'
+    assert voice_audio.openai_api_key('sk-db', 'https://api.openai.com/v1', secret=None) == 'sk-db'
+
+
+@pytest.mark.parametrize(
+    'base_url',
+    [
+        'https://openrouter.ai/api/v1',
+        'http://api.openai.com/v1',
+        'https://api.openai.com.evil.example/v1',
+        'https://evil.example/api.openai.com/v1',
+        'https://user@api.openai.com.evil.example/v1',
+        '',
+        None,
+    ],
+)
+def test_the_secret_key_never_goes_anywhere_but_openai(base_url) -> None:
+    assert voice_audio.openai_api_key('sk-db', base_url, secret='sk-secret') == 'sk-db'
+
+
+def test_openai_with_or_without_a_trailing_slash_or_path_is_openai() -> None:
+    for base_url in ('https://api.openai.com', 'https://api.openai.com/', 'https://api.openai.com/v1/'):
+        assert voice_audio.openai_api_key('', base_url, secret='sk-secret') == 'sk-secret'
