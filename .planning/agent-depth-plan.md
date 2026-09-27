@@ -129,8 +129,8 @@ is the governed answer, word for word. Spec: issue #25.
 
 - **V1 Server boundary.**
   - Flag `JUP_VOICE_ENABLED` and a per-user grant; Erik only at first.
-  - A start-call route checks flag, grant (`chat.call` enforced server-side) and the disclosure
-    acknowledgement, and alone creates voice chats.
+  - A start-call route checks flag, grant (`jup.voice.call`; the vendor `chat.call` is UI-only and
+    defaults on) and the disclosure acknowledgement, and alone creates voice chats.
   - Every turn in a voice chat runs on "Asisten JUP — Suara": the named document set (ADR-0006) as
     file-level knowledge, tools limited to scoped KB retrieval and `portfolio_status`,
     `view_knowledge_file` unable to reach files outside the set.

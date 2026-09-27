@@ -204,13 +204,15 @@ and re-apply the upstream body inside `applyDefaults`.
 
 ## The fork's routers are mounted — `backend/open_webui/main.py` (2026-09-24)
 
-**What:** three names in the `from open_webui.routers import (...)` block, `jup_kb_review`,
-`jup_leadership` and `jup_portfolio`, and their three `app.include_router(...)` lines, at
-`/api/v1/kb-review`, `/api/v1/leadership` and `/api/v1/portfolio`. The router modules themselves are
-fork-owned files. `jup_kb_review` was added 2026-09-25 (ADR-0015).
+**What:** four names in the `from open_webui.routers import (...)` block, `jup_kb_review`,
+`jup_leadership`, `jup_portfolio` and `jup_voice`, and their four `app.include_router(...)` lines, at
+`/api/v1/kb-review`, `/api/v1/leadership`, `/api/v1/portfolio` and `/api/v1/voice`. The router
+modules themselves are fork-owned files. `jup_kb_review` was added 2026-09-25 (ADR-0015),
+`jup_voice` 2026-09-27 (ADR-0017, #26).
 
-**Why:** Portfolio (ADR-0004) and Ruang Pimpinan (P1, read-only) are served from their own routers
-so their rules stay out of vendor code; mounting them is the only edit to `main.py` they need.
+**Why:** Portfolio (ADR-0004), Ruang Pimpinan (P1), the KB review queue (ADR-0015) and voice calls
+(ADR-0017) are served from their own routers so their rules stay out of vendor code; mounting them
+is the only edit to `main.py` they need.
 
 **If dropped:** silent. The app boots and the pages load, and the section's API answers 404, which
 the Portfolio page renders as a refused load and Ruang Pimpinan as unavailable.
@@ -219,7 +221,7 @@ the Portfolio page renders as a refused load and Ruang Pimpinan as unavailable.
 `--only-group dev`).
 
 **Conflict risk:** low to moderate. Upstream adds routers to the same import block and the same
-run of `include_router` lines, so a merge can drop a neighbour. Keep all three lines.
+run of `include_router` lines, so a merge can drop a neighbour. Keep all four lines.
 
 ## The name carries no " (Open WebUI)" suffix — `backend/open_webui/env.py` (2026-09-23)
 

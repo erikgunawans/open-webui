@@ -30,9 +30,12 @@ Voice is three steps, each on our server:
 
 The boundary is enforced on the server:
 
-- A start-call route checks the voice flag, the user's grant (`chat.call`, which until now was
-  enforced only in the UI) and that the voice disclosure was acknowledged. Only it creates voice
-  chats.
+- A start-call route checks the voice flag, the user's grant and that the voice disclosure was
+  acknowledged. Only it creates voice chats. The grant is a `jup.voice.call` group permission, not
+  the vendor's `chat.call`, which defaults to on for everyone and was only ever a UI switch; the
+  vendor call mode is closed by refusing OpenAI speech without the grant and hiding the button.
+  The acknowledgement and the voice-chat mark are signed with a key derived from the server
+  secret, because the places they live (`user.info`, `chat.meta`) are client-writable.
 - Every turn in a voice chat runs on the model "Asisten JUP — Suara", whatever the browser asks
   for. Its knowledge is the named document set (ADR-0006), listed file by file, and its only tools
   are scoped KB retrieval and `portfolio_status`. `view_knowledge_file`, which lets an admin open
@@ -40,7 +43,8 @@ The boundary is enforced on the server:
 - OpenAI speech-to-text is refused to anyone without the voice grant. Outside voice chats,
   read-aloud uses the browser's own voice, so a typed answer drawn from the whole KB never reaches
   OpenAI.
-- Audit lines `voice_ack`, `voice_stt` and `voice_tts` record sizes, never content.
+- Audit lines `voice_ack`, `voice_call` (started or refused), `voice_stt` and `voice_tts` record
+  sizes and outcomes, never content.
 
 ## Consequences
 
