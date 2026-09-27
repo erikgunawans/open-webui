@@ -424,3 +424,95 @@
 	line-height: 1.25rem;
 	color: var(--jup-ink-soft);
 }
+
+/* ── Sidebar rhythm and type (2026-09-28) ─────────────────────────────────
+   The vendor rows were 13px on 32px, 4px from the panel edge, with every interval the same, so
+   the groups ran together. Rows: 14px on 36px (44px on touch), 8px from the edge, 2px apart
+   inside a group; the groups (actions, destinations, sections) separate by 10-14px. Section
+   labels step down by weight, not size, and align with the row icons (8 + 10 = 18px). */
+#sidebar div.px-1.flex.justify-center {
+	padding: 1px 0.5rem;
+}
+
+#sidebar div.px-1.flex.justify-center :is(a, button).grow.rounded-xl {
+	min-height: 2.25rem;
+	padding: 0.5rem 0.625rem;
+	column-gap: 0.75rem;
+}
+
+#sidebar div.px-1.flex.justify-center :is(a, button).grow.rounded-xl > * {
+	margin-inline: 0;
+}
+
+#sidebar div.px-1.flex.justify-center :is(a, button).grow.rounded-xl > div:first-child {
+	width: 1.125rem;
+	height: 1.125rem;
+}
+
+#sidebar div.px-1.flex.justify-center :is(a, button).grow.rounded-xl > div:first-child svg {
+	width: 1.125rem;
+	height: 1.125rem;
+}
+
+#sidebar div.px-1.flex.justify-center :is(a, button).grow.rounded-xl .text-\[0\.8125rem\] {
+	font-size: 0.875rem;
+	line-height: 1.25rem;
+}
+
+/* Actions above, destinations below: the hairline gets room on both sides. */
+#sidebar div:has(> #sidebar-search-button) {
+	margin-bottom: 0.625rem;
+	padding-bottom: 0.625rem;
+}
+
+/* Section headings (Folder, Obrolan): more room above than below, aligned with the icons. */
+#sidebar div.flex.items-center.justify-between.h-6.w-full.shrink-0 {
+	height: 2rem;
+	margin-top: 0.625rem;
+	padding-left: 1.125rem;
+	padding-right: 0.5rem;
+}
+
+#sidebar div.flex.items-center.justify-between.h-6.w-full.shrink-0 > button.text-xs {
+	font-size: 0.8125rem;
+	line-height: 1.25rem;
+	font-weight: 600;
+	color: var(--jup-ink-soft);
+}
+
+#sidebar div.flex.items-center.justify-between.h-6.w-full.shrink-0 > button.text-xs:hover {
+	color: var(--jup-ink);
+}
+
+/* Chats and folders under the sections: the same 14px, one step quieter in colour. */
+#sidebar #sidebar-chat-item,
+#sidebar #sidebar-chat-item input {
+	font-size: 0.875rem;
+	line-height: 1.25rem;
+}
+
+#sidebar #sidebar-chat-item {
+	padding: 0.4375rem 0.625rem;
+}
+
+#sidebar .jup-sidebar-empty {
+	font-size: 0.8125rem;
+	padding-inline: 1.125rem;
+}
+
+/* The account row at the foot, on the same 8px inset as the rows above. */
+#sidebar div.sticky.bottom-0.px-1 {
+	padding-inline: 0.5rem;
+}
+
+#sidebar .sticky.bottom-0 > * > * > button.rounded-xl,
+#sidebar .sticky.bottom-0 button.rounded-xl.w-full {
+	font-size: 0.875rem;
+	padding: 0.5rem 0.625rem;
+}
+
+@media (pointer: coarse) {
+	#sidebar div.px-1.flex.justify-center :is(a, button).grow.rounded-xl {
+		min-height: 2.75rem;
+	}
+}
