@@ -36,8 +36,8 @@ design. The sandbox work for terminal and browser is needed on either path.
 | E1  | Tool-call audit: one audit line per tool invocation     | live    | the audit trail for every tool     | —                                            |
 | A4  | Web search (Brave, D19); URL fetch stays gated          | live    | web search                         | —                                            |
 | A5  | MCP tool servers                                        | live    | MCP                                | —                                            |
-| V1  | ChatGPT Live voice — backend delegation endpoint        | ready   | voice (holaOS has none)            | —                                            |
-| V2  | ChatGPT Live voice — call UI and voice KB scope         | planned | voice                              | V1                                           |
+| V1  | Voice boundary on the server (ADR-0017)                 | ready   | voice (holaOS has none)            | —                                            |
+| V2  | Voice call UI, disclosure and voice chats               | planned | voice                              | V1                                           |
 | E2  | Sandbox host: private VM, gVisor containers, egress proxy | parked  | the fence for E3 and E4            | Erik deferred 2026-09-26; reopens it         |
 | E3  | Terminal via Open Terminal in the sandbox, admin-only   | planned | terminal, files                    | E1, E2, E5                                   |
 | E4  | Browser automation via Playwright MCP in the sandbox    | planned | browser                            | A5, E2, E5                                   |
@@ -119,32 +119,43 @@ tool call writes one too. A capability that can't meet that isn't turned on.
   intended. KB search (`query_knowledge_files`, `search_knowledge_files`, `view_knowledge_file`)
   → `not_required`, no card. Test model, automation and chats deleted.
 
-## Track V — ChatGPT Live as a voice interface (ADR-0005, ADR-0006)
+## Track V — voice (ADR-0017, ADR-0006)
 
-Already decided, never built. GPT-Live runs in **client delegation** mode. The Live session only
-hears and speaks. Every substantive turn is handed to our backend, which runs the same governed
-pipeline as typed chat, and Live speaks the answer we return. That makes voice the more governable
-surface, because we see the whole answer before a word is spoken.
+**Redesigned 2026-09-27 (V1 grilling, Erik accepted every recommendation):** ADR-0017 supersedes
+ADR-0005. GPT-Live paraphrases what we hand it and decides for itself when to delegate, so voice is
+a chained pipeline instead: OpenAI `gpt-4o-transcribe` → the normal governed chat turn in a chat
+marked `voice` → OpenAI `gpt-4o-mini-tts` reading our stored answer by message id. Everything heard
+is the governed answer, word for word. Spec: issue #25.
 
-- **V1 Backend.**
-  - A server route mints a short-lived Live session. The OpenAI key stays server-side, on a ZDR
-    organisation.
-  - A delegation route takes the user's utterance and runs `generate_chat_completion` as that
-    user. The audit record is built from these pipeline turns, not from Live's transcript.
-  - Server-side enforcement of `chat.call`, which is UI-only today.
-- **V2 UI and scope.**
-  - A call mode in the chat that holds the floor with `session.thinking.append` while the pipeline
-    runs.
-  - Voice retrieval is limited **by construction** to a named Strategy KB subset (ADR-0006). Nothing
-    outside that set can be reached.
+- **V1 Server boundary.**
+  - Flag `JUP_VOICE_ENABLED` and a per-user grant; Erik only at first.
+  - A start-call route checks flag, grant (`chat.call` enforced server-side) and the disclosure
+    acknowledgement, and alone creates voice chats.
+  - Every turn in a voice chat runs on "Asisten JUP — Suara": the named document set (ADR-0006) as
+    file-level knowledge, tools limited to scoped KB retrieval and `portfolio_status`,
+    `view_knowledge_file` unable to reach files outside the set.
+  - OpenAI TTS by message id from the user's own voice chat only; OpenAI STT refused without the
+    grant; read-aloud elsewhere falls back to the browser's voice.
+  - Audit lines `voice_ack`, `voice_stt`, `voice_tts` (sizes, never content).
+- **V2 Call UI.**
+  - The disclosure (Indonesian first): OpenAI processes speech in the US and may keep it up to 30
+    days; the words also pass through OpenRouter/Xiaomi (D17); voice answers only from the named
+    documents; whatever is *said* is sent regardless. Acknowledged once (`voice_ack`), one line on
+    every call.
+  - The vendor call overlay starts calls through the start-call route and plays TTS by message id.
+  - Each call is a normal chat, marked as voice.
+- **Named voice document set (dated 2026-09-27, named by Erik):** `kb/strategy`, `kb/gas`,
+  `kb/portfolio`, `kb/rued`, `kb/governance`, `kb/faq`, `records/projects/gas-spbg-reactivation`,
+  `records/gate-assessments/gas-spbg-reactivation-g1`. Out: `kb/partners`, the SKK Migas/PGN
+  engagement record, `DECISIONS.md`, `records/README`.
 - **Key in place 2026-09-27:** Secret Manager `openai-live-key` (jup-ops, v1), accepted by OpenAI
-  (`/v1/models` 200, `gpt-live-1` listed). Not yet wired into `deploy.sh` or readable by the app.
+  (`/v1/models` 200). Not yet wired into `deploy.sh` or readable by the app; used only for
+  transcription and speech (ADR-0017).
 - **Decided:** D16 (2026-09-19) accepts US processing; D21 (2026-09-26, Erik's final answer)
   removes ZDR as a precondition, so OpenAI's default retention of up to 30 days applies until ZDR
   is approved on the org. People briefed by voice must be told both facts.
-- **Verify at build time, not now:** the exact GPT-Live session and delegation API. The ADRs name
-  `gpt-live-1`, `/v1/live/sessions` and `session.thinking.append`. Re-read OpenAI's docs before
-  writing code.
+- **Your steps:** pick the TTS voice from 3 Indonesian samples; a US$20 monthly budget limit with a
+  50% alert on the key's OpenAI project.
 
 ## Track E — enhance the Asisten JUP harness
 
@@ -189,7 +200,8 @@ touching staff or records, and its model calls go through our funnel with no fal
 
 1. **A5, V1:** decided 2026-09-26 (D20, D21); A4 (D19) is live. What remains is a per-change OK for
    each key, config write and deploy.
-2. **V2:** the named voice KB set (D16), each addition dated and named.
+2. **V2:** the named voice set was named 2026-09-27 (8 files, Track V); each addition is dated and
+   named. Also the TTS voice and the OpenAI budget limit.
 3. **E2:** deferred 2026-09-26; a VM budget when Erik reopens it. E3 and E4 wait on it.
 4. **E7:** the ADR-0012 amendment for one machine identity.
 5. **E7/I1:** one D-decision per new egress (channel, integration); third-party MCP only after E5 (D20).

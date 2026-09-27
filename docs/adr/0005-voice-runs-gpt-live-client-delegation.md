@@ -1,5 +1,8 @@
 # Voice runs GPT-Live in client delegation mode
 
+**Superseded 2026-09-27 by ADR-0017** (voice is a chained pipeline that speaks our exact answer):
+GPT-Live paraphrases delegated answers and decides for itself when to delegate.
+
 The voice interface uses OpenAI **GPT-Live** (`gpt-live-1`) in **client delegation** mode: the Live
 session is a conversational shell that hears and speaks, and every substantive turn is handed to our
 backend, which runs the same governed completion pipeline as the typed chat (ADR-0002).
