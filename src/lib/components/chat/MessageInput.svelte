@@ -18,6 +18,8 @@
 	import { createPicker, getAuthToken } from '$lib/utils/google-drive-picker';
 	import { pickAndDownloadFile } from '$lib/utils/onedrive-file-picker';
 	import { KokoroWorker } from '$lib/workers/KokoroWorker';
+	import { callButton } from '$lib/voice/call';
+	import { runVoiceCall, voiceCapabilities } from '$lib/voice/session';
 
 	const dispatch = createEventDispatcher();
 
@@ -2615,7 +2617,7 @@
 											{/if}
 										{/if}
 
-										{#if !embedded && prompt === '' && files.length === 0 && ($_user?.role === 'admin' || ($_user?.permissions?.chat?.call ?? true))}
+										{#if !embedded && prompt === '' && files.length === 0 && callButton($voiceCapabilities) !== 'hidden'}
 											<div class=" flex items-center">
 												<!-- {$i18n.t('Call')} -->
 												<Tooltip content={$i18n.t('Voice mode')}>
@@ -2663,8 +2665,15 @@
 																	}
 																}
 
-																showCallOverlay.set(true);
-																showControls.set(true);
+																// JUP: a call is a new voice chat from the start-call route, after the
+																// disclosure (#29; VENDOR-PATCHES.md). Its page opens the overlay.
+																let started = null;
+																try {
+																	started = await runVoiceCall(localStorage.token);
+																} catch (error) {
+																	toast.error(error?.message ?? `${error}`);
+																}
+																if (started) await goto(`/c/${started.chat_id}`);
 															} catch (err) {
 																// If the user denies the permission or an error occurs, show an error message
 																toast.error(

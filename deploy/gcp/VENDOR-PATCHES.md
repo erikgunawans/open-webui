@@ -313,7 +313,54 @@ under `--only-group dev`). The rules are tested in `tests/test_jup_voice_audio.p
 and then. Keep the admit before any conversion, the audit after the gather, the body swap before
 the cache hash, and the seal after the finished answer is saved. An outlet filter that rewrites
 the saved answer after the seal would make it unreadable by voice; none is configured.
-`CallOverlay.svelte` still sends free text; the call UI (#29) moves it to message ids.
+`CallOverlay.svelte` reads answers by message id since #29 (the entry below).
+
+## The call UI starts voice chats through the route — `src/lib/components/chat/MessageInput.svelte`, `src/lib/components/chat/Chat.svelte`, `src/lib/components/chat/MessageInput/CallOverlay.svelte`, `src/lib/apis/audio/index.ts` (2026-09-28)
+
+**What:** the rules are in `src/lib/voice/call.ts` (button state, call flow, disclosure text and
+its version, the wait for the seal), the stores and flow in `src/lib/voice/session.ts`, the
+routes in `src/lib/apis/voice/index.ts`, and the disclosure in
+`src/lib/components/jup/VoiceDisclosure.svelte` (#29, ADR-0017).
+- `MessageInput.svelte`, the voice button:
+  - The condition is `callButton($voiceCapabilities) !== 'hidden'`, replacing the vendor
+    `chat.call` check. Without the voice switch or the `jup.voice.call` grant there is no button.
+  - Its click keeps the vendor microphone checks, then runs `runVoiceCall`: the disclosure if not
+    yet acknowledged, `POST /voice/acknowledge`, `POST /voice/calls`, and `goto('/c/<chat_id>')`.
+    It never opens the overlay on the chat at hand.
+- `Chat.svelte`:
+  - `onMount` reads the capabilities, and `<VoiceDisclosure />` sits beside `#audioElement`.
+  - `?call=true` and the desktop call shortcut call `startVoiceCall()` (the same flow) in place
+    of `openCallOverlay()`.
+  - `navigateHandler` opens the overlay only on the chat `pendingVoiceCall` names, that is, the one
+    the route just made.
+- `CallOverlay.svelte`:
+  - `transcribeAudio(…, chatId)` sends `?chat_id=` (`apis/audio/index.ts` gains that parameter),
+    so `voice_stt` names the chat.
+  - With OpenAI speech (`speaksSealedAnswers`), the streamed sentences are ignored. On
+    `chat:finish` it waits for the seal (`sealedAnswerParts`, which retries `voice_tts_not_ready`
+    and `voice_tts_unsealed` 10 × 500 ms), queues `<message id>#<part>` keys and fetches each part
+    from `POST /audio/speech` `{chat_id, message_id, part}`. Parts play through the vendor loop.
+    Any other engine keeps the vendor path.
+  - A reminder line (`jup-voice-reminder`) shows above the status text on every call.
+  - The call is tied to the chat it opened on: if `chatId` changes, the overlay closes, so speech
+    never goes into a chat the disclosure does not cover.
+  - With sealed speech, `stopAllAudio` aborts the turn's controller, and the part fetches check
+    that signal. An interrupt, a hang-up or the next turn stops the rest of the answer and its
+    billed requests.
+
+**Why:** only the start-call route makes voice chats, after the disclosure (D16(e), D17, D21), and
+OpenAI reads only the governed answer it stored (ADR-0017).
+
+**If dropped:** silent. The button returns for everyone, and a call runs in whatever chat is open.
+Its speech is then refused (free text) or read in the wrong chat.
+
+**The test that catches it:** `tests/test_jup_voice_call_presence.py` (a source read). The rules
+are tested in `src/lib/voice/call.test.ts`.
+
+**Conflict risk:** moderate. The voice button's handler and the overlay's `chat` and `chat:finish`
+handlers change upstream now and then. Keep the route in the click, the early return in the
+sentence handler, and the queueing before `finishedMessages[id] = true`, or the play loop ends
+before the parts arrive.
 
 ## The name carries no " (Open WebUI)" suffix — `backend/open_webui/env.py` (2026-09-23)
 

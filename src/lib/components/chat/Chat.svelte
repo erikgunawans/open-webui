@@ -109,6 +109,8 @@
 	import MessageInput from '$lib/components/chat/MessageInput.svelte';
 	import Messages from '$lib/components/chat/Messages.svelte';
 	import Navbar from '$lib/components/chat/Navbar.svelte';
+	import VoiceDisclosure from '$lib/components/jup/VoiceDisclosure.svelte';
+	import { pendingVoiceCall, refreshVoiceCapabilities, runVoiceCall } from '$lib/voice/session';
 	import ChatControls from './ChatControls.svelte';
 	import EventConfirmDialog from '../common/ConfirmDialog.svelte';
 	import DeleteConfirmDialog from '../common/ConfirmDialog.svelte';
@@ -852,6 +854,12 @@
 			}
 
 			messageInput?.focus({ preventScroll: true });
+
+			// JUP: the start-call route just made this voice chat; open its call (#29).
+			if (chatIdProp && get(pendingVoiceCall) === chatIdProp) {
+				pendingVoiceCall.set(null);
+				openCallOverlay();
+			}
 		} else if (!embedded) {
 			await goto('/');
 		} else {
@@ -1542,6 +1550,8 @@
 	onMount(() => {
 		loading = true;
 		console.log('mounted');
+		// JUP: the call button shows only with the voice switch and grant (#29; VENDOR-PATCHES.md).
+		refreshVoiceCapabilities(localStorage.token);
 		window.addEventListener('message', onMessageHandler);
 		$socket?.on('events', chatEventHandler);
 		$socket?.on('connect', handleSocketConnect);
@@ -2000,6 +2010,16 @@
 		}, 0);
 	};
 
+	// JUP: `?call=true` and the desktop call shortcut start a call through the start-call route,
+	// never the overlay on the chat at hand (#29; VENDOR-PATCHES.md).
+	const startVoiceCall = async () => {
+		const started = await runVoiceCall(localStorage.token).catch((error) => {
+			toast.error(error?.message ?? `${error}`);
+			return null;
+		});
+		if (started) await goto(`/c/${started.chat_id}`);
+	};
+
 	const initNewChat = async () => {
 		console.log('initNewChat');
 		resetWebSearchConfirmation();
@@ -2189,7 +2209,7 @@
 		}
 
 		if ($page.url.searchParams.get('call') === 'true') {
-			openCallOverlay();
+			startVoiceCall();
 		}
 
 		// Consume one-shot desktop event (e.g. Spotlight query, call shortcut)
@@ -2198,7 +2218,7 @@
 			desktopEvent.set(null);
 
 			if (event.type === 'call') {
-				openCallOverlay();
+				startVoiceCall();
 			} else if (event.type === 'query') {
 				const query = event.data?.query;
 				const eventFiles = event.data?.files;
@@ -4157,6 +4177,7 @@
 </svelte:head>
 
 <audio id="audioElement" style="display: none;"></audio>
+<VoiceDisclosure />
 
 {#if getChatVariablesForm(selectedModelIds, chatVariables, $models).conflicts.length > 0}
 	<Modal bind:show={showChatVariablesModal} size="md">

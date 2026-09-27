@@ -64,7 +64,13 @@ export const updateAudioConfig = async (token: string, payload: OpenAIConfigForm
 	return res;
 };
 
-export const transcribeAudio = async (token: string, file: File, language?: string) => {
+export const transcribeAudio = async (
+	token: string,
+	file: File,
+	language?: string,
+	// JUP: the caller's voice chat, so `voice_stt` names it (#29; VENDOR-PATCHES.md).
+	chatId?: string
+) => {
 	const data = new FormData();
 	data.append('file', file);
 	if (language) {
@@ -72,7 +78,8 @@ export const transcribeAudio = async (token: string, file: File, language?: stri
 	}
 
 	let error = null;
-	const res = await fetch(`${AUDIO_API_BASE_URL}/transcriptions`, {
+	const query = chatId ? `?${new URLSearchParams({ chat_id: chatId })}` : '';
+	const res = await fetch(`${AUDIO_API_BASE_URL}/transcriptions${query}`, {
 		method: 'POST',
 		headers: {
 			Accept: 'application/json',

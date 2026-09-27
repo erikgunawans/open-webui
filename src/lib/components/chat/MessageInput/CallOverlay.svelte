@@ -7,6 +7,8 @@
 	import { blobToFile } from '$lib/utils';
 	import { generateEmoji } from '$lib/apis';
 	import { synthesizeOpenAISpeech, transcribeAudio } from '$lib/apis/audio';
+	import { getAnswerSpeechParts, synthesizeAnswerPart } from '$lib/apis/voice';
+	import { sealedAnswerParts, speaksSealedAnswers } from '$lib/voice/call';
 
 	import { toast } from 'svelte-sonner';
 
@@ -167,7 +169,9 @@
 		const res = await transcribeAudio(
 			localStorage.token,
 			file,
-			$settings?.audio?.stt?.language
+			$settings?.audio?.stt?.language,
+			// JUP: names this voice chat in `voice_stt` (#29; VENDOR-PATCHES.md).
+			chatId
 		).catch((error) => {
 			toast.error(`${error}`);
 			return null;
@@ -477,6 +481,8 @@
 	const stopAllAudio = async () => {
 		assistantSpeaking = false;
 		interrupted = true;
+		// JUP: a sealed answer is queued whole, so an interrupt ends the turn, not one part (#29).
+		if (sealedSpeech()) audioAbortController.abort();
 
 		if (chatStreaming) {
 			stopResponse();
@@ -557,6 +563,44 @@
 
 	let messages = {};
 
+	// JUP (#29; VENDOR-PATCHES.md): with OpenAI speech the server reads only the answer it stored
+	// and sealed, by message id and part, never the sentences streamed here. So nothing is spoken
+	// until the turn finishes; the parts then queue in order, keyed `<message id>#<part>`, and
+	// play through the same loop as before.
+	const sealedSpeech = () => speaksSealedAnswers($config?.audio?.tts?.engine);
+
+	// A call belongs to the voice chat it opened on. Moving to another chat ends it rather than
+	// sending speech into a chat the disclosure does not cover.
+	const callChatId = chatId;
+	$: if (callChatId && chatId !== callChatId) showCallOverlay.set(false);
+
+	// `signal` is the turn's: an interrupt, a hang-up or the next turn aborts it, and then nothing
+	// more is fetched (each part is a billed OpenAI request and a `voice_tts` line).
+	const queueSealedAnswer = async (id, signal) => {
+		let count = 0;
+		try {
+			count = await sealedAnswerParts(() => getAnswerSpeechParts(localStorage.token, chatId, id));
+		} catch (error) {
+			if (!signal.aborted) toast.error(error?.message ?? `${error}`);
+		}
+		const keys = signal.aborted ? [] : Array.from({ length: count }, (_, part) => `${id}#${part}`);
+		messages[id] = [...keys];
+
+		return async () => {
+			for (const [part, key] of keys.entries()) {
+				if (signal.aborted) return;
+				try {
+					const blob = await synthesizeAnswerPart(localStorage.token, chatId, id, part);
+					audioCache.set(key, new Audio(URL.createObjectURL(blob)));
+				} catch (error) {
+					toast.error(error?.message ?? `${error}`);
+					messages[id] = (messages[id] ?? []).filter((k) => audioCache.has(k));
+					return;
+				}
+			}
+		};
+	};
+
 	const monitorAndPlayAudio = async (id, signal) => {
 		while (!signal.aborted) {
 			if (messages[id] && messages[id].length > 0) {
@@ -631,6 +675,7 @@
 
 	const chatEventHandler = async (e) => {
 		const { id, content } = e.detail;
+		if (sealedSpeech()) return; // JUP: read after the turn, by message id (#29).
 		// "id" here is message id
 		// if "id" is not the same as "currentMessageId" then do not process
 		// "content" here is a sentence from the assistant,
@@ -658,7 +703,13 @@
 	const chatFinishHandler = async (e) => {
 		const { id, content } = e.detail;
 		// "content" here is the entire message from the assistant
+		const signal = audioAbortController.signal;
+		const fetchSealedParts =
+			sealedSpeech() && currentMessageId === id && !signal.aborted
+				? await queueSealedAnswer(id, signal)
+				: null;
 		finishedMessages[id] = true;
+		fetchSealedParts?.();
 
 		chatStreaming = false;
 	};
@@ -973,6 +1024,12 @@
 		</div>
 
 		<div class="flex flex-col items-center gap-4 pb-4 w-full">
+			<!-- JUP: the disclosure's reminder, on every call (#29; VENDOR-PATCHES.md). -->
+			<p class="jup-voice-reminder z-10">
+				{$i18n.t(
+					'Everything you say is sent to OpenAI in the US. Do not speak figures that are not public.'
+				)}
+			</p>
 			<button
 				type="button"
 				class="z-10"

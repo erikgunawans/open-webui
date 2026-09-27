@@ -352,3 +352,75 @@
 	color: var(--jup-defer-text);
 	white-space: nowrap;
 }
+
+/* ── The voice disclosure and call reminder (#29, ADR-0017) ────────────────
+   Our own markup, so our own classes. Indonesian first; the English below it is quieter. */
+.jup-voice-disclosure {
+	padding: 1.25rem 1.5rem;
+	color: var(--jup-ink);
+	font-size: 0.875rem;
+	line-height: 1.5;
+}
+
+.jup-voice-disclosure h2 {
+	font-size: 1.0625rem;
+	font-weight: 600;
+	margin-bottom: 0.75rem;
+}
+
+.jup-voice-disclosure p + p {
+	margin-top: 0.5rem;
+}
+
+.jup-voice-disclosure-en {
+	margin-top: 1rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--jup-line-soft);
+	color: var(--jup-ink-soft);
+}
+
+.jup-voice-disclosure-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	margin-top: 1.25rem;
+}
+
+.jup-voice-disclosure-actions button {
+	min-height: 44px;
+	padding: 0 1rem;
+	border-radius: 9999px;
+	font-weight: 500;
+}
+
+.jup-voice-accept {
+	background-color: var(--jup-action);
+	color: var(--jup-on-action);
+}
+
+.jup-voice-accept:hover {
+	background-color: var(--jup-action-hover);
+}
+
+.jup-voice-decline {
+	color: var(--jup-ink-soft);
+}
+
+.jup-voice-decline:hover {
+	color: var(--jup-ink);
+}
+
+.jup-voice-disclosure-actions button:focus-visible {
+	outline: 2px solid var(--jup-ring);
+	outline-offset: 2px;
+}
+
+.jup-voice-reminder {
+	max-width: 32rem;
+	margin: 0 auto;
+	padding: 0 1rem;
+	text-align: center;
+	font-size: 0.75rem;
+	line-height: 1.25rem;
+	color: var(--jup-ink-soft);
+}
