@@ -1,3 +1,14 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-27-v26)
+
+> Prepended by /wrap 2026-09-27 (checkpoint 2026-09-27-v26). Supersedes v25's anchor and its item 1 only; everything else in the v25 block below still holds.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-27-v26).
+Anchor: `origin/main` at `c93ac127e` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-27-v26`). Verify with `git log --oneline c93ac127e..origin/main`; any other commit in that range is a parallel push.
+
+**#26 done** (dark). **Do next:** `/implement #27` (voice turns forced onto `asisten-jup-suara`, 8-file scope, `view_knowledge_file` closed) or `/implement #28` (STT gate, TTS by message id, `voice_stt`/`voice_tts`); they are independent. Then #29 → #30 → #31. For both: decide "is this a voice chat" only through `jup.voice.is_voice_chat(meta, chat_id=…, user_id=<the chat owner>, secret=jup_voice.voice_secret())`, never the raw `meta['jup_voice']`; the grant is `jup.voice.may_call(permissions)` on `jup.voice.call`, not `chat.call`.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-27-v25)
 
 > Prepended by /wrap 2026-09-27 (checkpoint 2026-09-27-v25). Supersedes g23's anchor and its list; the g23, e3c, g20, g18, a5, cs, nj, kbr, kbd, a1, i18n and p2d blocks' constraints (below) still hold unless noted.

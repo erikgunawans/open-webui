@@ -1,6 +1,19 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-27-v25 (latest) — spec #17 done (A5+E5 live, #24 passed); V1 key in; voice redesigned as ADR-0017, spec #25 + tickets #26–#31
+## Checkpoint 2026-09-27-v26 (latest) — #26 voice switch, grant, acknowledgement and start-call route (dark)
+
+- **Session:** continued after the v25 wrap: `/implement #26` → TDD → `/code-review` (standards + spec) → fixes → commit `c93ac127e` → #26 closed. No deploy.
+- **Branch:** `main`.
+- **Done:**
+  - `backend/jup/voice.py` (stdlib rules) + `routers/jup_voice.py` at `/api/v1/voice`: `GET /capabilities`, `POST /acknowledge` {version}, `POST /calls` → {chat_id, model `asisten-jup-suara`}. Mounted in `main.py` (registration test + VENDOR-PATCHES entry updated).
+  - Grant `jup.voice.call` (exact boolean, admins included). The vendor `chat.call` defaults on and was UI-only, so it is not the gate: ADR-0017, the plan, #25 and #26 corrected (the review caught ADR-0017 naming `chat.call`).
+  - Acknowledgement (`user.info.jup_voice_ack`) and voice mark (`chat.meta.jup_voice`) HMAC-signed with a voice-only key derived from `WEBUI_SECRET_KEY` (both places client-writable; import/fork give fresh ids, so a copied mark fails). #27/#28 must use `voice.is_voice_chat(meta, chat_id=…, user_id=<owner>, secret=voice_secret())`.
+  - Audit: `voice_ack` {user, version}; `voice_call` {user, outcome started | refusal code, chat}. Refusals return `{code, message}`; no secret → 503 `voice_misconfigured`.
+- **Files changed:** 9 (2 new modules, 2 new test files, main.py, registration test, VENDOR-PATCHES, ADR-0017, plan).
+- **Tests:** backend 1275 passed / 22 skipped (was 1212); voice rules 40, endpoint 21; vitest 139 (unchanged).
+- **Next:** `/implement #27` (voice model + scope) or `#28` (audio boundary); independent. Then #29, #30 (go live, OKs), #31.
+
+## Checkpoint 2026-09-27-v25 — spec #17 done (A5+E5 live, #24 passed); V1 key in; voice redesigned as ADR-0017, spec #25 + tickets #26–#31
 
 - **Session:** `/implement #24` → live acceptance on `ent-os-00050-gqw` → ledger A5/E5 `live` → `/agent-depth` → V1 key stored by Erik → `/grilling` V1 (4 rounds, every recommendation accepted) → ADR-0017 + spec #25 + tickets → `/wrap`. No deploy, no code change.
 - **#24 (`96f12044c`):** all five checks passed on `ent-os-00050-gqw`, each with its `jup.governance` line. Card: Panggilan Eksternal, `password=••••••`, `token ••••••`, one Izinkan, masked output. Approve `approved` (approved_by Erik, 16.6 s); reject `rejected` (3.0 s); tab closed `timed_out` (no approver, 601 s). Automation on temp model `uji-gate-24` → `rejected_unattended`. "apa isi D20?" → `mcp:decisions`, `not_required`. Web search `builtin:search_web` and KB search (`query/search/view_knowledge_file`) `not_required`, no card; the same turn's `fetch_url` got a card as intended. #18's two open live checks folded in (ask mode not testable live: `ENABLE_TOOL_PERMISSIONS` off). Automation, model and 8 chats deleted; #17, #18, #24 closed.
