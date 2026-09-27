@@ -1,0 +1,9 @@
+{
+  "_comment": "TTS voice Erik chose 2026-09-28 (sample nova-fresh-3). #30 step 5 writes this through the admin audio config: TTS engine openai, model and voice below, and audio.tts.openai.params = {instructions}. Its own OK; save before-values first.",
+  "engine": "openai",
+  "model": "gpt-4o-mini-tts",
+  "voice": "nova",
+  "openai_params": {
+    "instructions": "Voice: a young Indonesian woman, native Jakarta accent. Read numbers the Indonesian way (Rp 63,3 miliar = \"enam puluh tiga koma tiga miliar rupiah\"). Age: mid-twenties. Tone: fresh, sparkling and radiant, warm with high energy, expressive intonation that rises with good news and settles calmly on the caveat at the end. Pace: lively but clear."
+  }
+}
