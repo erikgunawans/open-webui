@@ -56,6 +56,7 @@ from open_webui.models.notes import Notes
 from open_webui.models.oauth_sessions import OAuthSessions
 from open_webui.models.users import UserModel, Users
 from open_webui.retrieval.utils import get_sources_from_items
+from open_webui.routers import jup_voice  # JUP: seals a finished voice answer (#28)
 from open_webui.routers.images import (
     CreateImageForm,
     EditImageForm,
@@ -205,6 +206,7 @@ async def publish_chat_finished_event(
     chat_id = metadata.get('chat_id')
     if getattr(request.state, 'internal', False) is True or not is_saved_chat_id(chat_id):
         return
+    await jup_voice.seal_answer(metadata)  # JUP: OpenAI speech reads only this sealed answer (#28; VENDOR-PATCHES.md)
 
     content = content or get_output_text(output)
     webui_url = await Config.get('webui.url')

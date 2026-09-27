@@ -26,6 +26,7 @@ from fastapi import (
     status,
 )
 from fastapi.responses import FileResponse
+from open_webui.routers import jup_voice  # JUP: the audio boundary (#28)
 from open_webui.config import (
     CACHE_DIR,
     ELEVENLABS_API_BASE_URL,
@@ -570,7 +571,8 @@ async def speech(request: Request, user=Depends(get_verified_user)):
             detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
         )
 
-    body = await request.body()
+    # JUP: OpenAI reads a stored voice-chat answer by message id, never free text (#28; VENDOR-PATCHES.md).
+    body = await jup_voice.speech_body(request, user, engine)
     name = hashlib.sha256(
         body + str(engine).encode('utf-8') + str(await Config.get('audio.tts.model')).encode('utf-8')
     ).hexdigest()
@@ -1078,6 +1080,8 @@ async def _transcribe_mistral(request, file_path, filename, metadata, file_dir, 
 
 async def transcribe(request: Request, file_path: str, metadata: Optional[dict] = None, user=None):
     log.info('transcribe: %s %s', file_path, metadata)
+    # JUP: OpenAI speech-to-text needs the voice grant, on every path (#28; VENDOR-PATCHES.md).
+    jup_stt = await jup_voice.stt_admit(request, user, file_path, metadata)
 
     if BYPASS_PYDUB_PREPROCESSING:
         log.info('Bypassing pydub preprocessing (BYPASS_PYDUB_PREPROCESSING=true)')
@@ -1127,6 +1131,7 @@ async def transcribe(request: Request, file_path: str, metadata: Optional[dict] 
                 except Exception:
                     pass
 
+    jup_voice.stt_audit(jup_stt, results)  # JUP: voice_stt, never the transcript (#28)
     return {
         'text': ' '.join([result['text'] for result in results]),
     }

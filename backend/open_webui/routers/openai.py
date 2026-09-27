@@ -19,6 +19,7 @@ from fastapi.responses import (
     StreamingResponse,
 )
 from jup import governance as jup_governance
+from open_webui.routers import jup_voice  # JUP: the audio boundary (#28)
 from open_webui.config import (
     CACHE_DIR,
 )
@@ -602,6 +603,7 @@ async def update_config(request: Request, form_data: OpenAIConfigForm, user=Depe
 
 @router.post('/audio/speech')
 async def speech(request: Request, user=Depends(get_verified_user)):
+    jup_voice.refuse_speech_passthrough(user)  # JUP: OpenAI speech only by message id (#28; VENDOR-PATCHES.md)
     if user.role != 'admin' and not await has_permission(user.id, 'chat.tts', await Config.get('user.permissions')):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

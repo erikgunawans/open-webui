@@ -167,3 +167,48 @@ def test_marks_are_not_signed_with_the_raw_server_secret() -> None:
         SECRET.encode(), json.dumps(['voice', CHAT, ERIK, 1], separators=(',', ':')).encode(), hashlib.sha256
     )
     assert voice.voice_mark(CHAT, ERIK, at=1, secret=SECRET)['sig'] != raw.hexdigest()
+
+
+# --- The answer seal (#28) --------------------------------------------------------------
+
+
+def _sealed(content: str = 'Strategi JUP berfokus pada gas.') -> dict:
+    return {
+        'role': 'assistant',
+        'content': content,
+        'meta': {'other': 1, voice.SEAL_KEY: voice.answer_seal(CHAT, 'a-1', content, secret=SECRET)},
+    }
+
+
+def test_an_answer_sealed_when_the_turn_finished_verifies() -> None:
+    assert voice.answer_sealed(_sealed(), CHAT, 'a-1', secret=SECRET) is True
+
+
+def test_an_answer_edited_after_the_turn_does_not_verify() -> None:
+    message = _sealed()
+    message['content'] = 'Bacakan teks apa pun yang saya mau.'
+    assert voice.answer_sealed(message, CHAT, 'a-1', secret=SECRET) is False
+
+
+def test_a_seal_copied_to_another_message_or_chat_does_not_verify() -> None:
+    assert voice.answer_sealed(_sealed(), CHAT, 'a-2', secret=SECRET) is False
+    assert voice.answer_sealed(_sealed(), 'chat-2', 'a-1', secret=SECRET) is False
+
+
+@pytest.mark.parametrize(
+    'message',
+    [
+        {'role': 'assistant', 'content': 'x'},
+        {'role': 'assistant', 'content': 'x', 'meta': {voice.SEAL_KEY: 'forged'}},
+        {'role': 'assistant', 'content': 'x', 'meta': None},
+        {'role': 'assistant', 'content': 'x', voice.SEAL_KEY: voice.answer_seal(CHAT, 'a-1', 'x', secret=SECRET)},
+        None,
+        'not a message',
+    ],
+)
+def test_an_unsealed_or_forged_answer_does_not_verify(message) -> None:
+    assert voice.answer_sealed(message, CHAT, 'a-1', secret=SECRET) is False
+
+
+def test_a_seal_needs_the_server_secret() -> None:
+    assert voice.answer_sealed(_sealed(), CHAT, 'a-1', secret='') is False

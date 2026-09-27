@@ -262,6 +262,59 @@ blocks in `process_chat_payload` change upstream. Keep the entry insert before a
 before `inlet_filter_tools` is appended. A new builtin that takes a file or knowledge id needs a
 look before it joins `KNOWLEDGE_TOOLS`.
 
+## The audio endpoints are the edge of the voice boundary — `backend/open_webui/routers/audio.py`, `backend/open_webui/routers/openai.py`, `backend/open_webui/utils/middleware.py`, `src/lib/components/chat/Messages/ResponseMessage.svelte` (2026-09-28)
+
+**What:** the rules are in `backend/jup/voice_audio.py`, the seam in `routers/jup_voice.py`
+(#28, ADR-0017). There is one line per insert, plus an import in each router.
+- `audio.py`, the first line of `transcribe`: `jup_stt = await jup_voice.stt_admit(request, user, file_path, metadata)`.
+  - With the OpenAI engine it refuses a caller without the voice switch and the `jup.voice.call`
+    grant, before any audio is converted or sent.
+  - It sits in `transcribe`, so it covers both the transcription route and audio file uploads
+    (`routers/files.py`).
+  - Just before the return, `jup_voice.stt_audit(jup_stt, results)` writes `voice_stt`: user,
+    chat (only the caller's own voice chat, from `?chat_id=`), provider, seconds, language. It
+    never writes the transcript. Other engines are not gated here, but are audited.
+- `middleware.py`, `publish_chat_finished_event`, after its own early return:
+  `await jup_voice.seal_answer(metadata)`.
+  - Both finish paths save the answer and then call this, so on a voice turn it reads the saved
+    answer back and seals it.
+  - The seal is `message.meta.jup_voice_seal`: a signature over the chat, the message and a hash
+    of the content, made with the voice-only key.
+  - It lives in `meta` because the `chat_message` table keeps only its own columns.
+- `audio.py`, `speech`: `body = await jup_voice.speech_body(request, user, engine)` replaces
+  `await request.body()`.
+  - With the OpenAI engine the body must name `{chat_id, message_id, part}` of an assistant
+    answer in the caller's own voice chat whose seal still verifies. The server builds `{input}`
+    from that answer, with tool and reasoning blocks removed, in parts of at most 4000 characters.
+  - Refused: free text, someone else's message, a non-voice message, and an answer edited or
+    added through the chat API (`voice_tts_unsealed`).
+  - Every request writes `voice_tts`, refusals included: chars, part and parts, and `cached`
+    when the vendor's speech cache will answer it instead of OpenAI. It never writes the text.
+    `speech_cached` mirrors the vendor's cache name, and a presence test pins that formula.
+  - `GET /api/v1/voice/speech/parts` gives the call UI the part count.
+- `openai.py`, the first line of the `/audio/speech` proxy: `jup_voice.refuse_speech_passthrough(user)`.
+  That route forwards free text to any api.openai.com chat connection. Nothing in the app calls
+  it, so it is closed.
+- `ResponseMessage.svelte`, `speak`: `readAloudUsesBrowser($config.audio.tts.engine)`
+  (`src/lib/voice/readAloud.ts`) replaces `$config.audio.tts.engine === ''`. With OpenAI as the
+  engine, read-aloud on a typed answer uses the browser's own voice.
+
+**Why:** only people with the voice grant send speech to OpenAI (D16, D21), and OpenAI reads only
+the stored governed answer of a voice call (ADR-0017).
+
+**If dropped:** silent. Transcription and read-aloud keep working, but they send any user's
+speech, or any text, to OpenAI.
+
+**The test that catches it:** `tests/test_jup_voice_audio_presence.py` (a source read that runs
+under `--only-group dev`). The rules are tested in `tests/test_jup_voice_audio.py`, the seam in
+`tests/test_jup_voice_audio_endpoint.py`, and the helper in `src/lib/voice/readAloud.test.ts`.
+
+**Conflict risk:** moderate. `transcribe`, `speech` and the two finish paths change upstream now
+and then. Keep the admit before any conversion, the audit after the gather, the body swap before
+the cache hash, and the seal after the finished answer is saved. An outlet filter that rewrites
+the saved answer after the seal would make it unreadable by voice; none is configured.
+`CallOverlay.svelte` still sends free text; the call UI (#29) moves it to message ids.
+
 ## The name carries no " (Open WebUI)" suffix — `backend/open_webui/env.py` (2026-09-23)
 
 **What:** the two lines that append `' (Open WebUI)'` to any custom `WEBUI_NAME` are replaced by a

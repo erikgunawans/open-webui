@@ -10,6 +10,10 @@ Two marks live in places a client can write, so both are signed with the server 
 - The voice mark sits in `chat.meta`, which chat import copies from the client. It is signed over
   the chat id and the owner, and an imported chat always gets a fresh id, so a copied mark fails.
 
+A third mark seals each answer a voice turn wrote (#28). A chat's owner can edit a stored message
+or add one through the chat API, so OpenAI speech reads an answer only when its content still
+matches the seal written, server-side, as the turn finished.
+
 Only the start-call route creates voice chats; everything that treats a chat as voice asks
 `is_voice_chat`, never the raw meta.
 """
@@ -36,6 +40,9 @@ DEFAULT_PERMISSIONS: dict[str, Any] = {'jup': {'voice': {'call': False}}}
 
 ACK_KEY = 'jup_voice_ack'
 CHAT_KEY = 'jup_voice'
+#: In `message.meta` of an answer a voice turn wrote: a seal over the chat, the message and its
+#: content. `meta`, because the vendor's `chat_message` table keeps only its own columns.
+SEAL_KEY = 'jup_voice_seal'
 
 
 @dataclass(frozen=True)
@@ -129,3 +136,20 @@ def is_voice_chat(meta: Any, *, chat_id: str, user_id: str, secret: str) -> bool
     if not isinstance(mark, dict) or mark.get('user_id') != user_id:
         return False
     return _matches(mark.get('sig'), secret, 'voice', chat_id, user_id, mark.get('at'))
+
+
+def _digest(content: Any) -> str:
+    return hashlib.sha256(str(content or '').encode('utf-8')).hexdigest()
+
+
+def answer_seal(chat_id: str, message_id: str, content: str, *, secret: str) -> str:
+    """The seal stored under `message['meta'][SEAL_KEY]` when a voice turn finishes (#28)."""
+    return _sign(secret, 'answer', chat_id, message_id, _digest(content))
+
+
+def answer_sealed(message: Any, chat_id: str, message_id: str, *, secret: str) -> bool:
+    """True only when `message` still holds the content its voice turn wrote."""
+    meta = message.get('meta') if isinstance(message, dict) else None
+    if not isinstance(meta, dict):
+        return False
+    return _matches(meta.get(SEAL_KEY), secret, 'answer', chat_id, message_id, _digest(message.get('content')))
