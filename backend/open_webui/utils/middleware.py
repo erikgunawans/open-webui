@@ -22,6 +22,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from jup import governance as jup_governance
 from jup import approval as jup_approval
 from jup import tool_policy as jup_tool_policy
+from jup import voice_turn as jup_voice_turn
 from open_webui.config import (
     CACHE_DIR,
     CODE_INTERPRETER_BLOCKED_MODULES,
@@ -2582,6 +2583,7 @@ async def process_chat_payload(request, form_data, user, metadata, model):
     # Fallback: use folder_id from metadata (temporary chats have no DB record)
     if not folder_id:
         folder_id = metadata.get('folder_id', None)
+    folder_id = jup_voice_turn.folder_for(metadata, folder_id)  # JUP: no folder knowledge in voice (#27)
 
     if folder_id and user:
         folder = await Folders.get_folder_by_id(folder_id)
@@ -2762,6 +2764,7 @@ async def process_chat_payload(request, form_data, user, metadata, model):
         | set(model.get('info', {}).get('meta', {}).get('skillIds', []))
         | mentioned_skill_ids
     )
+    skill_ids = jup_voice_turn.skills_for(metadata, skill_ids)  # JUP: no skills in a voice turn (#27)
     available_skills = []
     view_skill_ids = []
     chat = None
@@ -3055,6 +3058,9 @@ async def process_chat_payload(request, form_data, user, metadata, model):
 
         # JUP: a subagent is never offered an `external` tool (ADR-0013 §4; VENDOR-PATCHES.md).
         tools_dict = jup_tool_policy.offered_tools(tools_dict, jup_tool_policy.path_of(metadata, request.state))
+        # JUP: a voice turn is offered the voice tools only, file ids held to its set (#27; VENDOR-PATCHES.md).
+        tools_dict = jup_voice_turn.tools_for(metadata, tools_dict, model)
+        inlet_filter_tools = jup_voice_turn.filter_tools_for(metadata, inlet_filter_tools)
 
         if tools_dict:
             # Always store resolved tools in metadata so downstream consumers

@@ -223,6 +223,45 @@ the Portfolio page renders as a refused load and Ruang Pimpinan as unavailable.
 **Conflict risk:** low to moderate. Upstream adds routers to the same import block and the same
 run of `include_router` lines, so a merge can drop a neighbour. Keep all four lines.
 
+## A voice turn is held to the voice model, tools and documents — `backend/open_webui/main.py`, `backend/open_webui/utils/middleware.py` (2026-09-27)
+
+**What:** the rules are in `backend/jup/voice_turn.py` (#27, ADR-0006, ADR-0017); the vendor side
+is one line per insert.
+- `main.py`, first line of `chat_completion`: `jup_voice_turn = await jup_voice.enforce_voice_turn(form_data, user)`.
+  In a chat carrying a genuine voice mark (`jup.voice.is_voice_chat`, checked against the chat's
+  owner) it rewrites the request onto `asisten-jup-suara` with tool ids `portfolio_status`. It
+  drops other models, direct connections, tool servers, caller `tools`, terminals, skills,
+  filters, files, folder, `automation_id` and every feature but `voice`, and forces native tool
+  calling. It writes a `voice_turn` audit line naming what it changed. One key in the
+  server-built `metadata`: `jup_voice.VOICE_TURN_KEY: jup_voice_turn`.
+- `utils/middleware.py`, four hooks that return their input unchanged unless `metadata` marks a
+  voice turn:
+  - after the folder-id fallback, `folder_for`. A voice chat moved into a folder gets neither the
+    folder's knowledge nor its system prompt.
+  - after `skill_ids` is assembled, `skills_for`. A `<$skill|label>` mention in the text would
+    otherwise put the skill's full content in the prompt.
+  - right after the subagent `offered_tools` line, `tools_for`. It keeps `portfolio_status` and
+    the six scoped retrieval builtins, and wraps the builtins so that any `knowledge_id(s)`, or a
+    `file_id` outside the model's `{type:'file'}` knowledge, is refused before vendor code runs.
+    `view_file`, `view_knowledge_file` and `grep_knowledge_files` otherwise pass any file id on
+    admin role.
+  - the line after it, `filter_tools_for`. It drops tools an inlet filter added.
+
+**Why:** voice answers only from the eight named documents (ADR-0006), whatever the browser sends.
+
+**If dropped:** silent. Voice turns still answer, but from Asisten JUP's whole KB, with web search
+and anything else the request asks for.
+
+**The test that catches it:** `tests/test_jup_voice_turn_presence.py` (a source read that runs
+under `--only-group dev`). The rules are tested in `tests/test_jup_voice_turn.py` and the entry
+seam in `tests/test_jup_voice_turn_entry.py`.
+
+**Conflict risk:** moderate. The head of `chat_completion` and the skill and tool-resolution
+blocks in `process_chat_payload` change upstream. Keep the entry insert before anything reads
+`model`, `model_item` or `tool_servers`. Keep the tool hook after the builtin tools are merged, and
+before `inlet_filter_tools` is appended. A new builtin that takes a file or knowledge id needs a
+look before it joins `KNOWLEDGE_TOOLS`.
+
 ## The name carries no " (Open WebUI)" suffix — `backend/open_webui/env.py` (2026-09-23)
 
 **What:** the two lines that append `' (Open WebUI)'` to any custom `WEBUI_NAME` are replaced by a

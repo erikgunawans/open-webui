@@ -1119,6 +1119,10 @@ async def chat_completion(
     form_data: dict,
     user=Depends(get_verified_user),
 ):
+    # JUP: a voice chat's turn runs on the voice model with the voice tools only, whatever the
+    # browser sent (#27; VENDOR-PATCHES.md). First, so nothing below reads the unforced request.
+    jup_voice_turn = await jup_voice.enforce_voice_turn(form_data, user)
+
     if not request.app.state.MODELS:
         await get_all_models(request, user=user)
 
@@ -1290,6 +1294,7 @@ async def chat_completion(
             'chat_variables': chat_variables,
             'model': model,
             'direct': model_item.get('direct', False),
+            jup_voice.VOICE_TURN_KEY: jup_voice_turn,  # JUP: read by the voice hooks in middleware (#27)
             'params': {
                 'stream_delta_chunk_size': stream_delta_chunk_size,
                 'reasoning_tags': reasoning_tags,

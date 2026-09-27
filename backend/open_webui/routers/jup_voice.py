@@ -10,7 +10,12 @@ voice chat (ADR-0017, spec #25).
   attempt writes a `voice_call` audit line, refusals included. The vendor's `chat.call` is not the
   grant: it defaults to on and was only a UI switch (ADR-0017).
 
-The rules live in `jup.voice`; this module only reads and writes the vendor tables.
+- **A turn in a voice chat** (#27): `main.py`'s completion entry calls `enforce_voice_turn`, which
+  forces the request onto the voice model and tools (`jup.voice_turn`) and writes a `voice_turn`
+  audit line naming what it changed.
+
+The rules live in `jup.voice` and `jup.voice_turn`; this module only reads and writes the vendor
+tables.
 """
 
 from __future__ import annotations
@@ -29,14 +34,18 @@ from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
 from pydantic import BaseModel
 
-from jup import voice
+from jup import voice, voice_turn
 from jup.governance import audit
 from open_webui.utils.access_control import get_permissions
 from open_webui.utils.auth import get_verified_user
+from open_webui.utils.chat_id import is_saved_chat_id
 
 log = logging.getLogger(__name__)
 
 NO_STORE = {'Cache-Control': 'private, no-store'}
+
+#: `main.py` marks a voice turn in its `metadata` under this key (`jup.voice_turn`).
+VOICE_TURN_KEY = voice_turn.METADATA_KEY
 
 # Indonesian first, like the rest of the app. Renamed by the user as they like.
 CALL_TITLE = 'Panggilan suara'
@@ -93,6 +102,11 @@ class VoiceStore:
         if user is None:
             raise _refuse(voice.Refusal(404, 'voice_user_missing', 'User not found.'))
         await Users.update_user_by_id(user_id, {'info': {**(user.info or {}), key: value}})
+
+    async def get_chat(self, chat_id: str) -> Any:
+        from open_webui.models.chats import Chats
+
+        return await Chats.get_chat_by_id(chat_id)
 
     async def create_chat(self, chat_id: str, user_id: str, title: str, models: list[str], meta: dict) -> None:
         from open_webui.models.chats import ChatForm, Chats
@@ -188,3 +202,27 @@ async def start_call(
     await store.create_chat(chat_id, user.id, CALL_TITLE, [voice.VOICE_MODEL_ID], {voice.CHAT_KEY: mark})
     audit('voice_call', user=user.id, outcome='started', chat=chat_id)
     return {'chat_id': chat_id, 'model': voice.VOICE_MODEL_ID}
+
+
+async def enforce_voice_turn(
+    form_data: dict, user: Any, *, store: VoiceStore | None = None, secret: str | None = None
+) -> bool:
+    """Force a completion request in a voice chat onto the voice model and tools, in place.
+
+    Called first thing in `main.py`'s `chat_completion`, before the model is resolved. A chat is a
+    voice chat only by its signed mark, checked against the chat's owner, so an admin writing in
+    someone's voice chat is held to the same scope. Returns whether the turn is a voice turn, which
+    the caller marks in the server-built `metadata` for the tool offer and the folder skip.
+    """
+    chat_id = form_data.get('chat_id')
+    if not isinstance(chat_id, str) or not is_saved_chat_id(chat_id):
+        return False
+    chat = await (store or voice_store()).get_chat(chat_id)
+    if chat is None:
+        return False
+    secret = voice_secret() if secret is None else secret
+    if not voice.is_voice_chat(chat.meta, chat_id=chat.id, user_id=chat.user_id, secret=secret):
+        return False
+    changed = voice_turn.rewrite(form_data)
+    audit('voice_turn', user=user.id, chat=chat_id, changed=changed)
+    return True
