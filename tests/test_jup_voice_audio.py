@@ -208,3 +208,46 @@ def test_the_secret_key_is_trimmed_of_the_newlines_a_pasted_secret_carries() -> 
 
 def test_a_secret_of_only_whitespace_counts_as_no_secret() -> None:
     assert voice_audio.openai_api_key('sk-db', 'https://api.openai.com/v1', secret='\n\n') == 'sk-db'
+
+
+# --- Google speech (#32, D23) -------------------------------------------------------------
+
+
+@pytest.mark.parametrize('engine', ['openai', 'google'])
+def test_the_engines_that_read_only_sealed_answers(engine) -> None:
+    assert voice_audio.reads_sealed_answers(engine) is True
+
+
+@pytest.mark.parametrize('engine', ['', None, 'transformers', 'elevenlabs', 'azure', 'mistral', 'Google'])
+def test_every_other_engine_reads_what_the_vendor_always_read(engine) -> None:
+    assert voice_audio.reads_sealed_answers(engine) is False
+
+
+def test_google_speaks_with_kore_by_default() -> None:
+    assert voice_audio.GOOGLE_VOICE == 'id-ID-Chirp3-HD-Kore'
+    for configured in ('', None, 'nova', 'alloy', 'id-ID', 'Kore'):
+        assert voice_audio.google_voice(configured) == 'id-ID-Chirp3-HD-Kore'
+
+
+def test_google_speaks_with_the_configured_google_voice() -> None:
+    assert voice_audio.google_voice('id-ID-Chirp3-HD-Puck') == 'id-ID-Chirp3-HD-Puck'
+    assert voice_audio.google_voice(' en-US-Chirp3-HD-Charon ') == 'en-US-Chirp3-HD-Charon'
+
+
+def test_the_google_request_names_the_voice_its_language_and_mp3() -> None:
+    assert voice_audio.google_speech_request('Selamat pagi, Pak.', 'id-ID-Chirp3-HD-Kore') == {
+        'input': {'text': 'Selamat pagi, Pak.'},
+        'voice': {'languageCode': 'id-ID', 'name': 'id-ID-Chirp3-HD-Kore'},
+        'audioConfig': {'audioEncoding': 'MP3'},
+    }
+
+
+def test_google_speech_goes_to_google_only() -> None:
+    assert voice_audio.GOOGLE_SPEECH_URL == 'https://texttospeech.googleapis.com/v1/text:synthesize'
+
+
+def test_a_speech_part_fits_googles_request_limit() -> None:
+    """Google takes at most 5000 bytes of text; a part is 4000 characters, so multibyte text is cut."""
+    text = 'é' * 4000
+    for part in voice_audio.speech_parts(text):
+        assert len(part.encode('utf-8')) <= voice_audio.GOOGLE_TEXT_BYTES

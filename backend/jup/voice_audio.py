@@ -13,7 +13,8 @@ inserts in `routers/audio.py` call (`deploy/gcp/VENDOR-PATCHES.md`).
   as its voice turn finished (`jup.voice.answer_sealed`), so an answer edited or added through
   the chat API is not read. The server drops the tool and reasoning blocks and sends that, so what
   is heard is the stored governed answer (ADR-0017). A long answer is read in parts. Every
-  request writes `voice_tts`.
+  request writes `voice_tts`. Google Cloud Text-to-Speech (`google`, #32, D23) reads under the
+  same rules: it too is sent only sealed answers (`SEALED_ENGINES`).
 - **The key.** OpenAI's key lives in Secret Manager (`openai-live-key`, ADR-0017) and reaches the
   service as `JUP_VOICE_OPENAI_API_KEY`. The vendor's own key rows are seeded into the app DB on
   first boot and then win over any env var, so the key is swapped in at the two call sites
@@ -29,10 +30,21 @@ from urllib.parse import urlsplit
 
 from jup.voice import Refusal, access_refusal
 
-#: OpenAI's `/audio/speech` takes at most 4096 characters; parts stay well under it.
+#: OpenAI's `/audio/speech` takes at most 4096 characters and Google's `text:synthesize` 5000
+#: bytes; a part is at most this many UTF-8 bytes, under both.
 SPEECH_PART_LIMIT = 4000
 
 OPENAI = 'openai'
+#: Google Cloud Text-to-Speech (#32, D23). The vendor has no such engine; `jup_voice.tts_google` is it.
+GOOGLE = 'google'
+#: The engines that read only a sealed voice-call answer, by message id, never free text.
+SEALED_ENGINES = frozenset({OPENAI, GOOGLE})
+
+#: D23: the call speaks with Chirp3-HD Kore.
+GOOGLE_VOICE = 'id-ID-Chirp3-HD-Kore'
+GOOGLE_SPEECH_URL = 'https://texttospeech.googleapis.com/v1/text:synthesize'
+GOOGLE_TEXT_BYTES = 5000
+_GOOGLE_VOICE_NAME = re.compile(r'^([a-z]{2,3}-[A-Z]{2})-[A-Za-z0-9-]+$')
 
 #: The env var the service gets from Secret Manager (`deploy/gcp/deploy.sh`).
 OPENAI_KEY_ENV = 'JUP_VOICE_OPENAI_API_KEY'
@@ -133,6 +145,32 @@ def answer_refusal(*, own_chat: bool, voice_chat: bool, message: Any, sealed: bo
     return refusal
 
 
+def reads_sealed_answers(engine: Any) -> bool:
+    """Whether this TTS engine sends text out, and so reads only sealed answers (`SEALED_ENGINES`)."""
+    return engine in SEALED_ENGINES
+
+
+def google_voice(configured: Any) -> str:
+    """The Google voice to speak with: the configured one when it names a Google voice, else Kore.
+
+    The vendor's voice row still holds the OpenAI voice until the config switch, so anything that
+    is not a `<lang>-<REGION>-<name>` voice name falls back to D23's voice.
+    """
+    name = configured.strip() if isinstance(configured, str) else ''
+    return name if _GOOGLE_VOICE_NAME.match(name) else GOOGLE_VOICE
+
+
+def google_speech_request(text: str, voice_name: str) -> dict:
+    """The `text:synthesize` body for one part: the voice, its language, and MP3 like the cache."""
+    match = _GOOGLE_VOICE_NAME.match(voice_name)
+    language = match.group(1) if match else GOOGLE_VOICE[:5]
+    return {
+        'input': {'text': text},
+        'voice': {'languageCode': language, 'name': voice_name},
+        'audioConfig': {'audioEncoding': 'MP3'},
+    }
+
+
 def part_refusal(part: int, count: int) -> Refusal | None:
     return NO_SUCH_PART if part >= count else None
 
@@ -142,20 +180,30 @@ def speakable_text(content: str) -> str:
     return _DETAILS.sub('', content or '').strip()
 
 
+def _size(text: str) -> int:
+    return len(text.encode('utf-8'))
+
+
+def _head(text: str, limit: int) -> str:
+    """The longest start of `text` that is at most `limit` UTF-8 bytes, never half a character."""
+    return text.encode('utf-8')[:limit].decode('utf-8', errors='ignore')
+
+
 def speech_parts(text: str, limit: int = SPEECH_PART_LIMIT) -> list[str]:
-    """`text` split into parts of at most `limit` characters, at sentence ends where it can be."""
+    """`text` split into parts of at most `limit` UTF-8 bytes, at sentence ends where it can be."""
     parts: list[str] = []
     current = ''
     for sentence in _SENTENCE_END.split(text.strip()):
-        while len(sentence) > limit:
+        while _size(sentence) > limit:
             if current:
                 parts.append(current)
                 current = ''
-            parts.append(sentence[:limit])
-            sentence = sentence[limit:]
+            head = _head(sentence, limit)
+            parts.append(head)
+            sentence = sentence[len(head) :]
         if not current:
             current = sentence
-        elif len(current) + 1 + len(sentence) <= limit:
+        elif _size(current) + 1 + _size(sentence) <= limit:
             current = f'{current} {sentence}'
         else:
             parts.append(current)

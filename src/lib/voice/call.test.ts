@@ -160,6 +160,10 @@ describe('which answers are read by message id (#29)', () => {
 		expect(speaksSealedAnswers('openai')).toBe(true);
 	});
 
+	it('with Google (#32, D23), too', () => {
+		expect(speaksSealedAnswers('google')).toBe(true);
+	});
+
 	it('leaves the browser voice and any other engine as the vendor had them', () => {
 		for (const engine of ['', undefined, null, 'browser-kokoro', 'transformers', 'elevenlabs']) {
 			expect(speaksSealedAnswers(engine)).toBe(false);

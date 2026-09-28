@@ -8,6 +8,10 @@ describe('read-aloud on a typed answer (#28)', () => {
 		expect(readAloudUsesBrowser('openai')).toBe(true);
 	});
 
+	it('uses the browser voice when Google is the TTS engine (#32)', () => {
+		expect(readAloudUsesBrowser('google')).toBe(true);
+	});
+
 	it('uses the browser voice when no engine is set, as the vendor always did', () => {
 		expect(readAloudUsesBrowser('')).toBe(true);
 		expect(readAloudUsesBrowser(undefined)).toBe(true);

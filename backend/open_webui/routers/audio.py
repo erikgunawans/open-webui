@@ -555,6 +555,8 @@ _TTS_ENGINES = {
     'azure': _tts_azure,
     'transformers': _tts_transformers,
     'mistral': _tts_mistral,
+    # JUP: Google Chirp3-HD reads the sealed voice-call answer (#32, D23; VENDOR-PATCHES.md).
+    'google': jup_voice.tts_google,
 }
 
 

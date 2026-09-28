@@ -2,8 +2,8 @@
  * The voice call a director starts (#29, ADR-0017).
  *
  * A call is a new voice chat made by `POST /api/v1/voice/calls`, and only after the disclosure
- * below was acknowledged. With OpenAI as the TTS engine the server reads only the answer it
- * stored and sealed, by `{chat_id, message_id, part}`; the streamed sentences are never sent.
+ * below was acknowledged. With OpenAI or Google as the TTS engine the server reads only the answer
+ * it stored and sealed, by `{chat_id, message_id, part}`; the streamed sentences are never sent.
  */
 
 /** The server's `voice.DISCLOSURE_VERSION`. Bump both whenever the text below changes. */
@@ -76,7 +76,7 @@ export const opensWithGreeting = (
 
 /** Whether the call reads the sealed answer by message id rather than the streamed sentences. */
 export const speaksSealedAnswers = (engine: string | null | undefined): boolean =>
-	engine === 'openai';
+	engine === 'openai' || engine === 'google';
 
 /** The seal is written when the turn finishes on the server, which can trail the browser's finish. */
 const NOT_SEALED_YET = new Set(['voice_tts_not_ready', 'voice_tts_unsealed']);

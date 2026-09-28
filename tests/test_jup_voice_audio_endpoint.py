@@ -383,3 +383,78 @@ def test_the_seam_reads_the_secret_key_from_the_environment(jup_voice, monkeypat
     assert jup_voice.openai_api_key('sk-db', 'https://openrouter.ai/api/v1') == 'sk-db'
     monkeypatch.delenv('JUP_VOICE_OPENAI_API_KEY')
     assert jup_voice.openai_api_key('sk-db', 'https://api.openai.com/v1') == 'sk-db'
+
+
+# --- Google speech (#32, D23) -------------------------------------------------------------
+
+
+def test_google_reads_the_sealed_answer_like_openai(jup_voice, store, caplog) -> None:
+    body = _speech(jup_voice, store, {'chat_id': VOICE_CHAT, 'message_id': ANSWER}, engine='google')
+    assert json.loads(body) == {'input': ANSWER_TEXT}
+    assert [line['outcome'] for line in _lines(caplog, 'voice_tts')] == ['read']
+
+
+def test_google_refuses_free_text(jup_voice, store, caplog) -> None:
+    from fastapi import HTTPException
+
+    with pytest.raises(HTTPException) as error:
+        _speech(jup_voice, store, {'input': 'baca ini'}, engine='google')
+    assert _status(error) == (400, 'voice_tts_message_required')
+    assert _lines(caplog, 'voice_tts')[0]['outcome'] == 'voice_tts_message_required'
+
+
+def test_google_is_refused_without_the_grant(jup_voice, store) -> None:
+    from fastapi import HTTPException
+
+    with pytest.raises(HTTPException) as error:
+        _speech(jup_voice, store, {'chat_id': VOICE_CHAT, 'message_id': ANSWER}, engine='google', permissions={})
+    assert _status(error) == (403, 'voice_not_granted')
+
+
+def _google(jup_voice, monkeypatch, tmp_path, *, voice_row, audio=b'ID3-mp3', fail=None):
+    sent: list[dict] = []
+
+    async def _synthesize(body):
+        sent.append(body)
+        if fail is not None:
+            raise fail
+        return audio
+
+    async def _config(key):
+        return {'audio.tts.voice': voice_row}[key]
+
+    monkeypatch.setattr(jup_voice, '_google_synthesize', _synthesize)
+    monkeypatch.setattr(jup_voice, '_vendor_config', _config)
+    file_path, body_path = tmp_path / 'speech.mp3', tmp_path / 'speech.json'
+    response = asyncio.run(
+        jup_voice.tts_google(SimpleNamespace(), {'input': ANSWER_TEXT}, file_path, body_path, _user())
+    )
+    return response, sent, file_path, body_path
+
+
+def test_google_speaks_the_part_with_kore_and_caches_it(jup_voice, monkeypatch, tmp_path) -> None:
+    response, sent, file_path, body_path = _google(jup_voice, monkeypatch, tmp_path, voice_row='nova')
+    assert sent == [
+        {
+            'input': {'text': ANSWER_TEXT},
+            'voice': {'languageCode': 'id-ID', 'name': 'id-ID-Chirp3-HD-Kore'},
+            'audioConfig': {'audioEncoding': 'MP3'},
+        }
+    ]
+    assert file_path.read_bytes() == b'ID3-mp3'
+    assert json.loads(body_path.read_text()) == {'input': ANSWER_TEXT, 'voice': 'id-ID-Chirp3-HD-Kore'}
+    assert str(response.path) == str(file_path)
+
+
+def test_google_speaks_with_the_configured_google_voice(jup_voice, monkeypatch, tmp_path) -> None:
+    _, sent, _, _ = _google(jup_voice, monkeypatch, tmp_path, voice_row='id-ID-Chirp3-HD-Puck')
+    assert sent[0]['voice'] == {'languageCode': 'id-ID', 'name': 'id-ID-Chirp3-HD-Puck'}
+
+
+def test_a_google_failure_is_an_http_error_and_caches_nothing(jup_voice, monkeypatch, tmp_path) -> None:
+    from fastapi import HTTPException
+
+    with pytest.raises(HTTPException) as error:
+        _google(jup_voice, monkeypatch, tmp_path, voice_row='nova', fail=RuntimeError('permission denied'))
+    assert error.value.status_code == 500
+    assert not (tmp_path / 'speech.mp3').exists()

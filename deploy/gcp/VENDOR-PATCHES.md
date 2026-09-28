@@ -292,6 +292,13 @@ look before it joins `KNOWLEDGE_TOOLS`.
     when the vendor's speech cache will answer it instead of OpenAI. It never writes the text.
     `speech_cached` mirrors the vendor's cache name, and a presence test pins that formula.
   - `GET /api/v1/voice/speech/parts` gives the call UI the part count.
+  - The same holds for the `google` engine (#32, D23): `jup_voice.reads_sealed_answers` names
+    both engines, and a part is at most 4000 UTF-8 bytes, under Google's 5000-byte limit.
+- `audio.py`, `_TTS_ENGINES`: `'google': jup_voice.tts_google` (#32, D23). The vendor has no
+  Google engine. The handler sends the sealed part to Cloud Text-to-Speech `text:synthesize`
+  with the service's own identity (Cloud Run's service account, no key), in the voice-row voice
+  when it names a Google voice, else `id-ID-Chirp3-HD-Kore`, and writes the vendor's speech
+  cache. If dropped, the `google` engine is refused as unsupported (loud, not a leak).
 - `openai.py`, the first line of the `/audio/speech` proxy: `jup_voice.refuse_speech_passthrough(user)`.
   That route forwards free text to any api.openai.com chat connection. Nothing in the app calls
   it, so it is closed.
@@ -305,8 +312,8 @@ look before it joins `KNOWLEDGE_TOOLS`.
   - It is used only when the base URL is exactly `https://api.openai.com…`. An admin who points
     the base URL elsewhere gets the saved key, never the secret.
 - `ResponseMessage.svelte`, `speak`: `readAloudUsesBrowser($config.audio.tts.engine)`
-  (`src/lib/voice/readAloud.ts`) replaces `$config.audio.tts.engine === ''`. With OpenAI as the
-  engine, read-aloud on a typed answer uses the browser's own voice.
+  (`src/lib/voice/readAloud.ts`) replaces `$config.audio.tts.engine === ''`. With OpenAI or Google
+  as the engine, read-aloud on a typed answer uses the browser's own voice.
 
 **Why:** only people with the voice grant send speech to OpenAI (D16, D21), and OpenAI reads only
 the stored governed answer of a voice call (ADR-0017).

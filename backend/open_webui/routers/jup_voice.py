@@ -12,8 +12,9 @@ voice chat (ADR-0017, spec #25).
 
 - **The audio boundary** (#28): `routers/audio.py`'s `transcribe` calls `stt_admit` first and
   `stt_audit` last (OpenAI speech-to-text needs the grant; `voice_stt`), and `speech` takes its body
-  from `speech_body` (OpenAI reads a stored assistant answer from the caller's own voice chat, never
-  free text; `voice_tts`). `GET /speech/parts` tells the call UI how many parts an answer has.
+  from `speech_body` (OpenAI or Google reads a stored assistant answer from the caller's own voice
+  chat, never free text; `voice_tts`). `GET /speech/parts` tells the call UI how many parts an
+  answer has. `tts_google` is the `google` engine the vendor lacks (#32, D23).
 - **A turn in a voice chat** (#27): `main.py`'s completion entry calls `enforce_voice_turn`, which
   forces the request onto the voice model and tools (`jup.voice_turn`) and writes a `voice_turn`
   audit line naming what it changed.
@@ -25,6 +26,7 @@ tables.
 from __future__ import annotations
 
 import asyncio
+import base64
 import copy
 import hashlib
 import json
@@ -39,7 +41,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.routing import APIRoute
 from pydantic import BaseModel
 
@@ -48,6 +50,7 @@ from jup.governance import audit
 from open_webui.utils.access_control import get_permissions
 from open_webui.utils.auth import get_verified_user
 from open_webui.utils.chat_id import is_saved_chat_id
+from open_webui.utils.session_pool import get_session
 
 log = logging.getLogger(__name__)
 
@@ -395,7 +398,7 @@ async def _answer_parts(
 
 
 async def speech_cached(body: bytes, engine: str) -> bool:
-    """Whether `routers/audio.py:speech` will answer this body from its cache, not from OpenAI.
+    """Whether `routers/audio.py:speech` will answer this body from its cache, not from the engine.
 
     Mirrors the vendor's cache name; `tests/test_jup_voice_audio_presence.py` pins that formula.
     """
@@ -415,14 +418,14 @@ async def speech_body(
     secret: str | None = None,
     permissions: dict | None = None,
 ) -> bytes:
-    """The body `routers/audio.py:speech` sends on. With OpenAI, built here from a stored answer.
+    """The body `routers/audio.py:speech` sends on. With OpenAI or Google, built here from a stored answer.
 
-    The request names `{chat_id, message_id, part}`; free text is refused. Every OpenAI request
+    The request names `{chat_id, message_id, part}`; free text is refused. Every such request
     writes `voice_tts` (sizes, never the text), refusals included; `cached` says whether the
-    vendor will answer it from its cache rather than from OpenAI.
+    vendor will answer it from its cache rather than from the engine.
     """
     body = await request.body()
-    if engine != voice_audio.OPENAI:
+    if not voice_audio.reads_sealed_answers(engine):
         return body
     store, secret = _defaults(store, secret)
     chat_id = message_id = None
@@ -485,6 +488,61 @@ async def get_speech_parts(
     """How many parts `POST /api/v1/audio/speech` will read this answer in (0 to parts - 1)."""
     count = await speech_part_count(chat_id, message_id, user, store=store, secret=secret, permissions=permissions)
     return {'parts': count}
+
+
+_GOOGLE_SCOPES = ('https://www.googleapis.com/auth/cloud-platform',)
+_google_credentials: Any = None
+
+
+def _google_token_sync() -> str:
+    """An access token for the service's own identity (Cloud Run's service account; no key)."""
+    global _google_credentials
+    import google.auth
+    import google.auth.transport.requests
+
+    if _google_credentials is None:
+        _google_credentials, _ = google.auth.default(scopes=list(_GOOGLE_SCOPES))
+    if not _google_credentials.valid:
+        _google_credentials.refresh(google.auth.transport.requests.Request())
+    return _google_credentials.token
+
+
+async def _google_synthesize(body: dict) -> bytes:
+    """The MP3 Google Cloud Text-to-Speech makes for one `text:synthesize` body."""
+    from open_webui.env import AIOHTTP_CLIENT_SESSION_SSL
+
+    token = await asyncio.to_thread(_google_token_sync)
+    session = await get_session()
+    async with session.post(
+        voice_audio.GOOGLE_SPEECH_URL,
+        json=body,
+        headers={'Authorization': f'Bearer {token}'},
+        ssl=AIOHTTP_CLIENT_SESSION_SSL,
+    ) as response:
+        if response.status >= 400:
+            raise HTTPException(status_code=response.status, detail=f'Google speech: {await response.text()}')
+        return base64.b64decode((await response.json())['audioContent'])
+
+
+async def tts_google(request: Any, payload: dict, file_path: Any, file_body_path: Any, user: Any) -> FileResponse:
+    """`routers/audio.py`'s handler for the `google` engine: one sealed part, spoken by Chirp3-HD (#32, D23).
+
+    `payload` is what `speech_body` built from the sealed answer, so it is never free text. The
+    voice comes from the vendor's voice row when it names a Google voice, else Kore.
+    """
+    from open_webui.routers.audio import _write_tts_cache
+
+    voice_name = voice_audio.google_voice(await _vendor_config('audio.tts.voice'))
+    body = voice_audio.google_speech_request(str(payload.get('input', '')), voice_name)
+    try:
+        audio_bytes = await _google_synthesize(body)
+    except HTTPException:
+        raise
+    except Exception as error:
+        log.exception(error)
+        raise HTTPException(status_code=500, detail='Google speech failed.') from error
+    await _write_tts_cache(file_path, audio_bytes, file_body_path, {**payload, 'voice': voice_name})
+    return FileResponse(file_path)
 
 
 def openai_api_key(configured: Any, base_url: Any) -> Any:

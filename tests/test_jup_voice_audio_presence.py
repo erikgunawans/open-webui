@@ -118,3 +118,12 @@ def test_both_openai_audio_calls_take_the_secret_key_after_reading_the_saved_one
     assert tts.index("api_base_url = await Config.get('audio.tts.openai.api_base_url')") < tts.index(swap)
     stt = _between(source, 'async def _transcribe_openai(', "headers = {'Authorization'")
     assert stt.index("api_base_url = await Config.get('audio.stt.openai.api_base_url')") < stt.index(swap)
+
+
+def test_the_google_engine_is_registered_and_reads_only_sealed_answers():
+    """#32: without the insert, `google` is an unsupported engine; without the seal check, free text goes to Google."""
+    source = AUDIO_PY.read_text(encoding='utf-8')
+    engines = _between(source, '_TTS_ENGINES = {', '\n}')
+    assert "'google': jup_voice.tts_google," in engines
+    ours = JUP_VOICE_PY.read_text(encoding='utf-8')
+    assert 'if not voice_audio.reads_sealed_answers(engine):\n        return body' in ours
