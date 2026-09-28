@@ -72,3 +72,11 @@ The first live call showed auto-detection failing on short utterances: a 2-3 sec
 as Japanese, and the answer followed the language it was given. Transcription now requests Bahasa
 Indonesia (`WHISPER_LANGUAGE=id` in `deploy/gcp/deploy.sh`, Erik's call). English terms inside
 Indonesian speech still transcribe; a whole question spoken in English is the case this trades away.
+
+## Amendments 2026-09-28: the speaking voice and a second mode
+
+- **D23:** speech moves from OpenAI `gpt-4o-mini-tts` to Google Cloud Text-to-Speech
+  (`id-ID-Chirp3-HD-Kore`), chosen by ear. Same boundary: only the saved, sealed answer is read, by
+  message id. Not yet built.
+- **ADR-0018 / D24:** GPT-Live is added as an opt-in second call mode. This ADR stays the default
+  call, and "every word heard is the governed answer" holds in it alone.

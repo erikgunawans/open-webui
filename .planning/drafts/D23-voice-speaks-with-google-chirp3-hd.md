@@ -1,6 +1,6 @@
 # DRAFT — D23 (for `~/jup/DECISIONS.md`, after Erik signs)
 
-> Status of this draft: **awaiting Erik's sign-off.** Nothing below is in force until it is committed
+> Status of this draft: **SIGNED by Erik 2026-09-28 (D23/D24 in ~/jup 3d09c24).** Nothing below is in force until it is committed
 > to `~/jup/DECISIONS.md`. Chosen by ear 2026-09-28 from an 8-voice comparison (`google-chirp3hd-Kore`).
 
 | # | Decision | Status | Why | Date |

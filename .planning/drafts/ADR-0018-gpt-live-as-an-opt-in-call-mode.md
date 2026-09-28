@@ -1,6 +1,6 @@
 # DRAFT — ADR-0018: GPT-Live is an opt-in second call mode, beside the governed call
 
-> Status of this draft: **awaiting Erik's sign-off**, together with D24 below. Until then ADR-0017
+> Status of this draft: **SIGNED by Erik 2026-09-28 (D23/D24 in ~/jup 3d09c24)**, together with D24 below. Until then ADR-0017
 > stands unamended and nothing is built.
 
 ## Context
