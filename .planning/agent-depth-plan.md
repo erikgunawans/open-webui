@@ -47,9 +47,9 @@ design. The sandbox work for terminal and browser is needed on either path.
 | E6  | Skill proposals: agent drafts, admin approves, sync     | planned | self-improving skills              | E1                                           |
 | E7  | Messaging gateway (Telegram first, then WhatsApp)       | planned | chat channels                      | ADR-0012 amendment, D-decision per channel   |
 | I1  | Integrations via MCP (Notion first)                     | ready   | integrations                       | D25 signed; #39 (#40-#42); token from Erik   |
-| O1  | Office output: Word documents (.docx) in the JUP template | planned | docs (holaOS: `doc-coauthoring` skill + bash) | E1, E5 live; Erik: template, who gets it     |
+| O1  | Office output: Word documents (.docx) in the JUP template | ready   | docs (holaOS: `doc-coauthoring` skill + bash) | all staff + JUP Template 2.0 (Erik 09-29)    |
 | O2  | Office output: spreadsheets (.xlsx)                      | planned | sheets (holaOS: `xlsx` skill + bash) | O1 (shared file path)                        |
-| O3  | Office output: slide decks (.pptx) in the JUP template   | planned | slides (holaOS: `pptx` skill + bash) | O1; Erik: master deck                        |
+| O3  | Office output: slide decks (.pptx) in the JUP template   | planned | slides (holaOS: `pptx` skill + bash) | O1; deck = JUP Template v1.5-r2              |
 | X1  | Hermes as an admin-only lab runtime                     | parked  | runtime experiments                | Erik reopens it                              |
 
 ## Where the gap is (holaOS `a6b58be` vs Asisten JUP `254da9640`)
@@ -217,6 +217,30 @@ there is no code sandbox to build and no new egress, hence no D-decision under D
   analysis stays in A3 (Pyodide, browser-side, already has openpyxl).
 - **O3 Slides.** `create_presentation` → .pptx on a JUP master deck: title, section, bullets,
   table and one chart layout. Verify it opens in PowerPoint and Keynote with the master's layouts.
+- **Erik's decisions (2026-09-29):** office output is for **all staff**; the templates are
+  **JUP Template Dokumen 2.0** (17 Word templates, 17 Sept 2026) and **Presentasi v1.5-r2**, from
+  `~/NEW-JUP/deliverables/JUP-Enterprise-Document-Templates-2026-09-17/` (zip of the whole set beside it).
+  Copies go into the repo (DOCX ~1.8 MB + PPTX 2.4 MB; the DOTX/POTX duplicates and the PDF are not needed).
+- **What the templates impose** (read 2026-09-29):
+  - Word: A4, Space Grotesk 12 pt (Space Mono for code, OFL), standard style ids (`Heading1-9`,
+    `ListBullet`, `ListNumber`, `TableGrid`, `Quote`, `Caption`), metadata and footer in 32
+    content controls per template plus `[bracketed]` fields. O1 fills the metadata controls and
+    replaces the body with the model's sections in those styles; header/footer stay the template's.
+    The model picks one of the 17 types (memo keputusan, notulen, SOP, …); the catalogue
+    `Daftar-Induk-Template.csv` gives each type's code, group and owner.
+  - **Classification and status** (`Panduan-Klasifikasi-Dokumen-JUP.md`): PUBLIK / INTERNAL /
+    TERBATAS / RAHASIA in the footer, default INTERNAL. A generated file is always status **Draf**
+    (the template says status follows proof of approval, which a model does not have); its
+    classification is never below what its sources require: anything from contract cards with
+    money terms or full text, or from Daftar Perkara, is at least TERBATAS. Enforced in code.
+  - Slides: 30 layouts on 2 masters, every field a numbered placeholder with a custom prompt (chart
+    placeholders included), so O3 fills by placeholder idx. O3 offers the working layouts 01–20
+    (covers, agenda, executive summary, section, text, two columns, four KPI, comparison and trend
+    charts, financial table, portfolio, project profile, schedule, process, risks, options,
+    decision, follow-up, closing); 21–24 are brand-guide pages and 25–30 speaker/team pages, left out.
+  - Spreadsheets: the set has no Excel template, so O2 uses the same fonts and the brand tokens.
+- **Access:** all staff via a grant on the tools at go-live (a DB write, its own OK); the content
+  still comes only from what the caller may see (contract/perkara access matrix).
 - **Later, not in O1–O3:** editing an uploaded file in place (read → new version), Google
   Docs/Sheets/Slides output (that is I1-style egress and needs its own D-decision).
 - **Governance kept:** each call goes through the gate and the E1 audit; content comes only from
@@ -239,5 +263,4 @@ touching staff or records, and its model calls go through our funnel with no fal
 3. **E2:** deferred 2026-09-26; a VM budget when Erik reopens it. E3 and E4 wait on it.
 4. **E7:** the ADR-0012 amendment for one machine identity.
 5. **E7/I1:** one D-decision per new egress (channel, integration); third-party MCP only after E5 (D20).
-6. **O1–O3:** who gets office output first (Erik only, admins, or all staff), the JUP document
-   template and the master slide deck (from the GSM 2023 brand or an existing JUP deck).
+6. **O1–O3:** decided 2026-09-29: all staff; JUP Template Dokumen 2.0 + Presentasi v1.5-r2.
