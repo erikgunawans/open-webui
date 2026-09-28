@@ -43,6 +43,9 @@ def openai_api_key(configured: str | None, base_url: str | None, *, secret: str 
 
     An admin can point the vendor's base URL anywhere; the secret never follows it there.
     """
+    # A pasted secret carries trailing newlines (openai-live-key had two), and aiohttp refuses
+    # them in a header as a header-injection attempt.
+    secret = (secret or '').strip()
     if not secret:
         return configured
     try:

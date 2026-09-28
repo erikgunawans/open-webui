@@ -198,3 +198,13 @@ def test_the_secret_key_never_goes_anywhere_but_openai(base_url) -> None:
 def test_openai_with_or_without_a_trailing_slash_or_path_is_openai() -> None:
     for base_url in ('https://api.openai.com', 'https://api.openai.com/', 'https://api.openai.com/v1/'):
         assert voice_audio.openai_api_key('', base_url, secret='sk-secret') == 'sk-secret'
+
+
+def test_the_secret_key_is_trimmed_of_the_newlines_a_pasted_secret_carries() -> None:
+    """`openai-live-key` was stored with two trailing newlines; aiohttp refuses them in a header."""
+    assert voice_audio.openai_api_key('', 'https://api.openai.com/v1', secret='sk-secret\n\n') == 'sk-secret'
+    assert voice_audio.openai_api_key('', 'https://api.openai.com/v1', secret='  sk-secret\r\n') == 'sk-secret'
+
+
+def test_a_secret_of_only_whitespace_counts_as_no_secret() -> None:
+    assert voice_audio.openai_api_key('sk-db', 'https://api.openai.com/v1', secret='\n\n') == 'sk-db'
