@@ -252,13 +252,13 @@ async def run_sideband(relay: LiveRelay, key: str, *, store: Any, connect: Calla
     On the way out it closes the session, lets pending answers finish, and writes the record, so a
     browser that goes away still leaves the call audited.
     """
-    from open_webui.utils.session_pool import get_session
-
     url = ATTACH_URL.format(session_id=relay.session_id)
     headers = {'Authorization': f'Bearer {key}'}
     ws = None
     try:
         if connect is None:
+            from open_webui.utils.session_pool import get_session
+
             session = await get_session()
             ws = await session.ws_connect(url, headers=headers, heartbeat=20)
         else:

@@ -1,8 +1,8 @@
 """#36: the GPT-Live relay — delegations answered with the governed answer, speech recorded.
 
 The sideband, the governed turn and the store are faked; the real ledger, commentary parts, voice
-seal and audit lines run. `open_webui.routers.jup_voice_live` imports only `jup` and the standard
-library at module level, so this runs under `--only-group dev`.
+seal and audit lines run. `open_webui/routers/jup_voice_live.py` imports only `jup` and the standard
+library at module level; it is loaded by path, so this runs under `--only-group dev`.
 """
 
 import asyncio
@@ -13,7 +13,24 @@ from types import SimpleNamespace
 import pytest
 
 from jup import voice
-from open_webui.routers import jup_voice_live
+
+
+def _load_relay_module():
+    """By file path: importing the `open_webui` package runs its `__init__`, which needs the vendor
+    runtime (typer and more) that CI's `--only-group dev` job does not install."""
+    import importlib.util
+    import sys
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parent.parent / 'backend' / 'open_webui' / 'routers' / 'jup_voice_live.py'
+    spec = importlib.util.spec_from_file_location('jup_voice_live_under_test', path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+jup_voice_live = _load_relay_module()
 
 SECRET = 'test-secret'
 ERIK = 'user-erik'
