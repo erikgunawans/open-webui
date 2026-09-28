@@ -12,9 +12,15 @@
   - `asia-southeast2` (Jakarta): no Document AI endpoint (404).
 - No processor created yet.
 
+## Drafting model (live probe, 2026-09-29)
+- Vertex AI (`aiplatform.googleapis.com`) enabled on jup-ops with Erik's OK (before: not enabled).
+- One-word probe (no JUP data) to each regional endpoint:
+  - `asia-southeast1`: **`gemini-2.5-flash` 200** (only one that answers); `gemini-3-pro-preview`, `gemini-3-flash-preview`,
+    `gemini-2.5-pro`, `gemini-2.5-flash-lite`, `gemini-2.0-flash-001` 404 (not served there).
+  - `asia-southeast2` (Jakarta): every model 400 "Precondition check failed" — no Gemini in Jakarta.
+- So the in-region drafting model is **`gemini-2.5-flash` in `asia-southeast1`**, unless its card quality on the pilot
+  is not good enough (then the choice goes back to Erik).
+
 ## Open
-- Drafting model: Vertex AI (`aiplatform.googleapis.com`) is NOT enabled on jup-ops; enabling it is its own OK.
-  Third-hand: Gemini 2.5 Flash has in-region ML processing in `asia-southeast1`, not Jakarta — confirm with a
-  live Vertex call after enablement. "In region" therefore means Singapore, same as OCR.
 - OCR and drafting in Singapore are both transfers under UU 27/2022 Pasal 56; Legal to confirm the
   equal-protection basis (Singapore PDPA).
