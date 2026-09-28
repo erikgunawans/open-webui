@@ -46,7 +46,7 @@ design. The sandbox work for terminal and browser is needed on either path.
 | E5  | Approval step for risky tool calls (ADR-0013)           | live    | long autonomous runs               | —                                            |
 | E6  | Skill proposals: agent drafts, admin approves, sync     | planned | self-improving skills              | E1                                           |
 | E7  | Messaging gateway (Telegram first, then WhatsApp)       | planned | chat channels                      | ADR-0012 amendment, D-decision per channel   |
-| I1  | Integrations via MCP (Notion first)                     | planned | integrations                       | A5, E5 live, D-decision each (D20)           |
+| I1  | Integrations via MCP (Notion first)                     | ready   | integrations                       | D25 signed; #39 (#40-#42); token from Erik   |
 | X1  | Hermes as an admin-only lab runtime                     | parked  | runtime experiments                | Erik reopens it                              |
 
 ## Where the gap is (holaOS `a6b58be` vs Asisten JUP `254da9640`)
