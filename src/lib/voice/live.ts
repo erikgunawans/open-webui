@@ -46,3 +46,26 @@ export const liveMode = (
 		? 'ready'
 		: 'disclose';
 };
+
+export type LiveStreamEvent =
+	| { type: 'session'; session_id: string; sdp: string }
+	| { type: 'ping' }
+	| { type: 'ended' };
+
+/** The server's call-long stream (#36) as events, one JSON object per line, split across any chunks. */
+export async function* ndjsonEvents(
+	chunks: AsyncIterable<string>
+): AsyncGenerator<LiveStreamEvent> {
+	let buffer = '';
+	for await (const chunk of chunks) {
+		buffer += chunk;
+		let newline = buffer.indexOf('\n');
+		while (newline >= 0) {
+			const line = buffer.slice(0, newline).trim();
+			buffer = buffer.slice(newline + 1);
+			if (line) yield JSON.parse(line) as LiveStreamEvent;
+			newline = buffer.indexOf('\n');
+		}
+	}
+	if (buffer.trim()) yield JSON.parse(buffer) as LiveStreamEvent;
+}

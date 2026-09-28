@@ -1,5 +1,6 @@
 import { AUDIO_API_BASE_URL, WEBUI_API_BASE_URL } from '$lib/constants';
 import type { StartedCall, VoiceCapabilities } from '$lib/voice/call';
+import { ndjsonEvents } from '$lib/voice/live';
 
 // The voice routes (#26, #28). A refusal throws its `{code, message}` so the caller can branch on it.
 
@@ -38,18 +39,50 @@ export const acknowledgeVoiceLive = async (token: string, version: string): Prom
 	});
 };
 
-/** Sends the WebRTC offer; the server mints the GPT-Live session and returns only its answer (#35). */
+/**
+ * Sends the WebRTC offer; the server mints the GPT-Live session (#35) and holds this request open
+ * for the whole call while it relays governed answers (#36). Resolves with the SDP answer once the
+ * first line arrives; `ended` settles when the server closes the call, and `hangUp` ends it.
+ */
 export const startLiveSession = async (
 	token: string,
 	chatId: string,
 	sdp: string
-): Promise<{ session_id: string; sdp: string }> =>
-	(
-		await request(token, `${WEBUI_API_BASE_URL}/voice/live/sessions`, {
-			method: 'POST',
-			body: JSON.stringify({ chat_id: chatId, sdp })
-		})
-	).json();
+): Promise<{ session_id: string; sdp: string; ended: Promise<void>; hangUp: () => void }> => {
+	const controller = new AbortController();
+	const res = await request(token, `${WEBUI_API_BASE_URL}/voice/live/sessions`, {
+		method: 'POST',
+		body: JSON.stringify({ chat_id: chatId, sdp }),
+		signal: controller.signal
+	});
+	const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader();
+	const chunks = (async function* () {
+		for (;;) {
+			const { value, done } = await reader.read();
+			if (done) return;
+			yield value;
+		}
+	})();
+	const events = ndjsonEvents(chunks);
+	const first = await events.next();
+	if (first.done || first.value.type !== 'session') {
+		controller.abort();
+		throw { code: 'voice_live_upstream', message: 'GPT-Live did not start the session.' };
+	}
+	const ended = (async () => {
+		try {
+			for await (const event of events) if (event.type === 'ended') return;
+		} catch {
+			// Hanging up aborts the stream; that is an ending too.
+		}
+	})();
+	return {
+		session_id: first.value.session_id,
+		sdp: first.value.sdp,
+		ended,
+		hangUp: () => controller.abort()
+	};
+};
 
 export const startVoiceCall = async (token: string): Promise<StartedCall> =>
 	(await request(token, `${WEBUI_API_BASE_URL}/voice/calls`, { method: 'POST' })).json();

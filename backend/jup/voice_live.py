@@ -8,6 +8,9 @@ Standard library only, so the rules run under `--only-group dev`. The HTTP seam 
   credential of any kind reaches the browser.
 - **The config** is fixed here: `gpt-live-1`, client delegation (our governed pipeline is the
   backend; no OpenAI-hosted backend model), `store: false`, and the instructions below.
+- **The ledger** (#36) rebuilds each question from the caller's transcript, because a client
+  delegation carries an id and a time but no text, and records what GPT-Live then said against the
+  governed answer it was given, or as `self_answered` when no delegation followed the caller.
 - **The instructions** are a request, not a guarantee (ADR-0018): GPT-Live decides when to
   delegate and paraphrases what it relays. They are written in Indonesian because the model speaks
   the language of its prompt, and they keep the three delegation labels OpenAI's guide prescribes.
@@ -18,6 +21,7 @@ from __future__ import annotations
 from typing import Any
 
 from jup.voice import Refusal
+from jup.voice_audio import speakable_text, speech_parts
 
 LIVE_URL = 'https://api.openai.com/v1/live/sessions'
 LIVE_MODEL = 'gpt-live-1'
@@ -99,3 +103,75 @@ def session_answer(body: Any) -> tuple[str, str] | Refusal:
     if not isinstance(session_id, str) or not session_id or not isinstance(sdp, str) or not sdp:
         return UPSTREAM
     return session_id, sdp
+
+
+#: `session.commentary.append` takes at most 500 tokens; 1500 UTF-8 bytes stays well under that.
+COMMENTARY_BYTES = 1500
+
+
+def commentary_parts(answer: str) -> list[str]:
+    """The governed answer as heard, tool and reasoning blocks removed, in appendable parts."""
+    return speech_parts(speakable_text(answer), limit=COMMENTARY_BYTES)
+
+
+class LiveLedger:
+    """One live session's transcript, on the session timeline (milliseconds from its start).
+
+    Fragments are placed by their timing, not by arrival, because GPT-Live delivers them unevenly.
+    Pure state; the relay feeds it and writes what `turns` returns.
+    """
+
+    def __init__(self) -> None:
+        self._heard: list[tuple[int, int, str]] = []
+        self._said: list[tuple[int, int, str]] = []
+        self._delegations: list[tuple[int, str]] = []
+        self._answers: dict[str, str] = {}
+        self._cut = 0
+
+    def heard(self, start_ms: int, end_ms: int, text: str) -> None:
+        """A fragment of the caller's speech (`session.input_transcript.delta`)."""
+        self._heard.append((int(start_ms), int(end_ms), text))
+
+    def said(self, start_ms: int, end_ms: int, text: str) -> None:
+        """A fragment of GPT-Live's speech (`session.output_transcript.delta`)."""
+        self._said.append((int(start_ms), int(end_ms), text))
+
+    def question(self, delegation_id: str, until_ms: int) -> str:
+        """What the caller said since the previous question, up to this delegation."""
+        until_ms = int(until_ms)
+        fragments = sorted(f for f in self._heard if self._cut <= f[0] < until_ms)
+        self._delegations.append((until_ms, delegation_id))
+        self._cut = max(self._cut, until_ms)
+        return ''.join(text for _, _, text in fragments).strip()
+
+    def relayed(self, delegation_id: str, message_id: str) -> None:
+        """The governed answer `message_id` was handed to GPT-Live for this delegation."""
+        self._answers[delegation_id] = message_id
+
+    def _anchor(self, start_ms: int) -> tuple[str, Any]:
+        """The latest caller fragment or delegation before `start_ms`: what this speech answers."""
+        last_heard = max((f[0] for f in self._heard if f[0] < start_ms), default=None)
+        last_delegation = max((d for d in self._delegations if d[0] <= start_ms), default=None)
+        if last_delegation is not None and (last_heard is None or last_delegation[0] >= last_heard):
+            return ('delegation', last_delegation[1])
+        return ('heard', last_heard)
+
+    def turns(self) -> list[dict[str, Any]]:
+        """GPT-Live's speech grouped into turns, each `relayed`, `pending` or `self_answered`."""
+        turns: list[dict[str, Any]] = []
+        anchor_of_last: tuple[str, Any] | None = None
+        for start_ms, _, text in sorted(self._said):
+            anchor = self._anchor(start_ms)
+            if turns and anchor == anchor_of_last:
+                turns[-1]['spoken'] += text
+                continue
+            anchor_of_last = anchor
+            if anchor[0] == 'delegation':
+                message_id = self._answers.get(anchor[1])
+                kind = 'relayed' if message_id else 'pending'
+                turns.append({'kind': kind, 'delegation': anchor[1], 'message_id': message_id, 'spoken': text})
+            else:
+                turns.append({'kind': 'self_answered', 'delegation': None, 'message_id': None, 'spoken': text})
+        for turn in turns:
+            turn['spoken'] = turn['spoken'].strip()
+        return turns

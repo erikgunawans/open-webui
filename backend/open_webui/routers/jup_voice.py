@@ -46,7 +46,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.routing import APIRoute
 from pydantic import BaseModel
 
@@ -138,6 +138,22 @@ class VoiceStore:
         message = await Chats.get_message_by_id_and_message_id(chat_id, message_id) or {}
         meta = {**(message.get('meta') or {}), key: value}
         await Chats.upsert_message_to_chat_by_id_and_message_id(chat_id, message_id, {'meta': meta}, touch=False)
+
+    async def append_chat_meta_items(self, chat_id: str, key: str, items: list) -> None:
+        """Appends to a list in `chat.meta[key]`, under a row lock (GPT-Live's unrelayed speech, #36)."""
+        from open_webui.internal.db import get_async_db_context
+        from open_webui.models.chats import Chat
+        from sqlalchemy.orm.attributes import flag_modified
+
+        async with get_async_db_context() as session:
+            chat = await session.get(Chat, chat_id, with_for_update=session.bind.dialect.name == 'postgresql')
+            if chat is None:
+                return
+            meta = dict(chat.meta or {})
+            meta[key] = [*(meta.get(key) or []), *items]
+            chat.meta = meta
+            flag_modified(chat, 'meta')
+            await session.commit()
 
     async def create_chat(self, chat_id: str, user_id: str, title: str, models: list[str], meta: dict) -> None:
         from open_webui.models.chats import ChatForm, Chats
@@ -280,11 +296,12 @@ async def _live_create(body: dict, key: str) -> tuple[int, Any]:
 @router.post('/live/sessions')
 async def start_live_session(
     form: LiveSessionForm,
+    request: Request,
     user=Depends(get_verified_user),
     permissions: dict[str, Any] = Depends(voice_permissions),
     store: VoiceStore = Depends(voice_store),
     secret: str = Depends(voice_secret),
-) -> dict[str, str]:
+) -> StreamingResponse:
     """Mints a GPT-Live session for the caller's own voice call and returns only the SDP answer (#35).
 
     The browser sends its WebRTC offer; our server posts it with the fixed config
@@ -323,7 +340,52 @@ async def start_live_session(
         raise _refuse(answer)
     session_id, sdp = answer
     audit('voice_live', user=user.id, chat=chat_id, outcome='started', session=session_id)
-    return {'session_id': session_id, 'sdp': sdp}
+    relay = _live_relay(
+        app=request.app, user=user, chat_id=chat_id, session_id=session_id, key=key, store=store, secret=secret
+    )
+    return StreamingResponse(_live_stream(session_id, sdp, relay), media_type='application/x-ndjson')
+
+
+#: How often the open call stream says it is alive, well inside any proxy's idle timeout.
+LIVE_PING_SECONDS = 15.0
+
+
+async def _live_relay(**kwargs: Any) -> None:
+    """The sideband for one session, answering its delegations until the call ends (#36)."""
+    from open_webui.routers import jup_voice_live
+
+    app, user, store, secret = kwargs['app'], kwargs['user'], kwargs['store'], kwargs['secret']
+    chat_id = kwargs['chat_id']
+
+    async def ask(question: str) -> tuple[str, str]:
+        return await jup_voice_live.live_turn(app, user, chat_id, question, store=store, secret=secret)
+
+    relay = jup_voice_live.LiveRelay(session_id=kwargs['session_id'], user_id=user.id, chat_id=chat_id, ask=ask)
+    await jup_voice_live.run_sideband(relay, kwargs['key'], store=store)
+
+
+async def _live_stream(session_id: str, sdp: str, relay: Any):
+    """The call-long response: the SDP answer, pings while the relay runs, then `ended`.
+
+    Holding this request open is what keeps Cloud Run's CPU allocated for the sideband (ADR-0018,
+    Option A). When the browser goes away the generator is cancelled, which cancels the relay; the
+    relay still closes the session and writes its record.
+    """
+    yield json.dumps({'type': 'session', 'session_id': session_id, 'sdp': sdp}) + '\n'
+    task = asyncio.ensure_future(relay)
+    try:
+        while not task.done():
+            done, _ = await asyncio.wait({task}, timeout=LIVE_PING_SECONDS)
+            if not done:
+                yield json.dumps({'type': 'ping'}) + '\n'
+        yield json.dumps({'type': 'ended'}) + '\n'
+    finally:
+        if not task.done():
+            task.cancel()
+            try:
+                await task
+            except (asyncio.CancelledError, Exception):
+                pass
 
 
 @router.post('/calls')

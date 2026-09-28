@@ -117,10 +117,13 @@ WHISPER_LANGUAGE: "id"
 EOF
 
 echo "==> deploying to Cloud Run"
+# --timeout=3600: a GPT-Live call is one request held open for the whole call, so Cloud Run keeps CPU
+# allocated for its sideband without always-on CPU billing (ADR-0018, Option A, Erik 2026-09-28).
+# A call is therefore capped at an hour. It was 600.
 gcloud run deploy "$SERVICE" \
   --project="$PROJECT" --region="$REGION" \
   --image="$REPO:$SHA" \
-  --port=8080 --cpu=2 --memory=4Gi --timeout=600 \
+  --port=8080 --cpu=2 --memory=4Gi --timeout=3600 \
   --min-instances=1 --max-instances=4 \
   --no-allow-unauthenticated \
   --ingress=internal-and-cloud-load-balancing \

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { LIVE_DISCLOSURE, LIVE_DISCLOSURE_VERSION, liveMode } from './live';
+import { LIVE_DISCLOSURE, LIVE_DISCLOSURE_VERSION, liveMode, ndjsonEvents } from './live';
 import { DISCLOSURE } from './call';
 
 const live = (
@@ -67,5 +67,39 @@ describe('the GPT-Live disclosure text (ADR-0018)', () => {
 	it('is its own text, not the governed call disclosure', () => {
 		expect(LIVE_DISCLOSURE.en).not.toEqual(DISCLOSURE.en);
 		expect(LIVE_DISCLOSURE.id.length).toBe(LIVE_DISCLOSURE.en.length);
+	});
+});
+
+describe('the call-long stream (#36)', () => {
+	const from = async function* (chunks: string[]) {
+		for (const chunk of chunks) yield chunk;
+	};
+	const all = async (chunks: string[]) => {
+		const out = [];
+		for await (const event of ndjsonEvents(from(chunks))) out.push(event);
+		return out;
+	};
+
+	it('yields one event per line, however the chunks fall', async () => {
+		expect(
+			await all([
+				'{"type":"sess',
+				'ion","session_id":"live_1","sdp":"v=0"}\n{"type":"pi',
+				'ng"}\n',
+				'{"type":"ended"}\n'
+			])
+		).toEqual([
+			{ type: 'session', session_id: 'live_1', sdp: 'v=0' },
+			{ type: 'ping' },
+			{ type: 'ended' }
+		]);
+	});
+
+	it('keeps a final line with no newline', async () => {
+		expect(await all(['{"type":"ended"}'])).toEqual([{ type: 'ended' }]);
+	});
+
+	it('skips blank lines', async () => {
+		expect(await all(['\n\n{"type":"ping"}\n\n'])).toEqual([{ type: 'ping' }]);
 	});
 });

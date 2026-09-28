@@ -9,7 +9,9 @@ Needs the vendor runtime, so it skips under CI's `--only-group dev` job, like th
 tests. A skip here is not a pass. The rules are covered without a server in test_jup_voice.py.
 """
 
+import asyncio
 import importlib.util
+import json
 from collections.abc import Iterator
 from dataclasses import dataclass
 from types import SimpleNamespace
@@ -457,6 +459,13 @@ def openai_live(monkeypatch: pytest.MonkeyPatch):
         return fake.reply
 
     monkeypatch.setattr(jup_voice, '_live_create', _create)
+
+    async def _relay(**kwargs):
+        fake.relayed.append(kwargs)
+
+    fake.relayed = []
+    monkeypatch.setattr(jup_voice, '_live_relay', _relay)
+    monkeypatch.setattr(jup_voice, 'LIVE_PING_SECONDS', 0.01)
     return fake
 
 
@@ -484,11 +493,45 @@ def test_the_server_mints_the_session_and_returns_only_the_answer(client, direct
     chat_id = _live_ready(client, directory)
     response = _mint(client, chat_id)
     assert response.status_code == 200
-    assert response.json() == {'session_id': 'live_123', 'sdp': ANSWER}
+    assert response.headers['content-type'].startswith('application/x-ndjson')
+    lines = [json.loads(line) for line in response.text.splitlines() if line]
+    assert lines[0] == {'type': 'session', 'session_id': 'live_123', 'sdp': ANSWER}
+    assert lines[-1] == {'type': 'ended'}
     assert openai_live.sent == [(voice_live.session_request(OFFER), 'sk-live')]
     assert _live_lines(caplog) == [
         {'event': 'voice_live', 'user': ERIK, 'chat': chat_id, 'outcome': 'started', 'session': 'live_123'}
     ]
+
+
+def test_the_relay_runs_inside_the_same_request_for_the_whole_call(client, directory, openai_live) -> None:
+    """Option A (#36): the stream stays open while the relay runs, so CPU stays allocated on Cloud Run."""
+    chat_id = _live_ready(client, directory)
+    _mint(client, chat_id)
+    assert len(openai_live.relayed) == 1
+    relayed = openai_live.relayed[0]
+    assert relayed['session_id'] == 'live_123' and relayed['chat_id'] == chat_id and relayed['key'] == 'sk-live'
+    assert relayed['user'].id == ERIK
+
+
+def test_the_stream_pings_while_the_call_runs(client, directory, openai_live, monkeypatch) -> None:
+    from open_webui.routers import jup_voice
+
+    async def _slow(**kwargs):
+        await asyncio.sleep(0.05)
+
+    monkeypatch.setattr(jup_voice, '_live_relay', _slow)
+    chat_id = _live_ready(client, directory)
+    lines = [json.loads(line) for line in _mint(client, chat_id).text.splitlines() if line]
+    assert {'type': 'ping'} in lines[1:-1]
+
+
+def test_a_refused_start_never_starts_a_relay(client, directory, openai_live) -> None:
+    directory.grant(ERIK)
+    _as(client, 'admin')
+    assert _ack(client).status_code == 200
+    chat_id = client.post(f'{BASE}/calls').json()['chat_id']
+    assert _mint(client, chat_id).status_code == 403
+    assert openai_live.relayed == []
 
 
 def test_live_needs_the_live_grant(client, directory, openai_live, caplog) -> None:
