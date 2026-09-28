@@ -47,3 +47,31 @@ chooses per call**, with its own grant, disclosure and audit:
 
 Paraphrase drift, self-answered turns, and OpenAI's session retention are **accepted, not
 prevented**. The transcript comparison detects drift after the fact; it does not stop it being heard.
+
+## Amendment 2026-09-28 — after the API check
+
+**Accepted 2026-09-28 — Erik Gunawan Supriatna.** The check is in
+`.planning/gpt-live-api-check-2026-09-28.md` (#33). GPT-Live is `gpt-live-1` on `POST /v1/live/sessions`.
+There is still no verbatim mode: `session.commentary.append` "is trained to paraphrase the text", so
+the trade above stands. Three parts of the decision change:
+
+- **Item 3, the session.** Our server mints it by posting the browser's SDP offer with the session
+  config to `/v1/live/sessions` and returning the answer. No credential of any kind reaches the
+  browser. The config is fixed at start: `gpt-live-1`, `delegation: {type: "client"}`, our
+  instructions, and `store: false`.
+- **Item 3, the tool.** There is no `ask_jup` tool. With client delegation, GPT-Live raises
+  `session.delegation.created`, which carries an id but no question. Our server takes the question
+  from the caller's input transcript, runs it through the governed pipeline in the voice chat on
+  "Asisten JUP — Suara" (same eight documents, contract and `voice_turn` scope), seals the answer,
+  and returns it with `session.commentary.append` under that delegation id. Responses delegation is
+  not used: it would put another OpenAI-hosted model between GPT-Live and the pipeline.
+- **Item 5, the audit transcript.** It comes from a server sideband WebSocket attached to the session,
+  which receives both transcripts and every delegation event, not from the browser. So the browser
+  cannot under-report what was said. Each spoken turn is recorded against the sealed answer it
+  relayed, or flagged `self_answered`.
+
+Still to prove before launch: Indonesian speech quality (GPT-Live has no Indonesian voice; language is
+set by the prompt), whether the org has Zero Data Retention (without it, OpenAI keeps session data 30
+days for abuse monitoring, as the disclosure says), and a long-lived sideband socket on Cloud Run.
+Checking speech before playback, and playing the governed answer as our own clip, stay possible later
+additions, not part of this decision.
