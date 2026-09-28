@@ -106,3 +106,14 @@ def test_a_new_call_opens_with_the_greeting_line_once_its_listeners_are_in_place
     )
     chat = _read(CHAT_SVELTE)
     assert 'voiceCallOpening.set(chatIdProp);' in chat
+
+
+def test_a_gpt_live_call_opens_our_panel_not_the_vendor_overlay():
+    """#37: dropped, a live call would open the vendor overlay, which speaks with the governed engine."""
+    source = _read(CHAT_SVELTE)
+    for mount in ('<VoiceModeChoice />', '<LiveDisclosure />', '<LiveCallPanel />'):
+        assert mount in source
+    loaded = _between(source, 'const navigateHandler = async', 'const initEmbeddedDraft')
+    live = loaded.index("if (get(pendingCallMode) === 'live') {")
+    assert loaded.index('get(pendingVoiceCall) === chatIdProp') < live
+    assert live < loaded.index('liveCallChat.set(chatIdProp);') < loaded.index('openCallOverlay();')

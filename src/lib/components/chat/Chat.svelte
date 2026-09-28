@@ -110,7 +110,12 @@
 	import Messages from '$lib/components/chat/Messages.svelte';
 	import Navbar from '$lib/components/chat/Navbar.svelte';
 	import VoiceDisclosure from '$lib/components/jup/VoiceDisclosure.svelte';
+	import VoiceModeChoice from '$lib/components/jup/VoiceModeChoice.svelte';
+	import LiveDisclosure from '$lib/components/jup/LiveDisclosure.svelte';
+	import LiveCallPanel from '$lib/components/jup/LiveCallPanel.svelte';
 	import {
+		liveCallChat,
+		pendingCallMode,
 		pendingVoiceCall,
 		refreshVoiceCapabilities,
 		runVoiceCall,
@@ -860,11 +865,17 @@
 
 			messageInput?.focus({ preventScroll: true });
 
-			// JUP: the start-call route just made this voice chat; open its call (#29).
+			// JUP: the start-call route just made this voice chat; open its call (#29). A GPT-Live
+			// call opens our own panel instead of the vendor overlay (#37, ADR-0018).
 			if (chatIdProp && get(pendingVoiceCall) === chatIdProp) {
 				pendingVoiceCall.set(null);
-				voiceCallOpening.set(chatIdProp);
-				openCallOverlay();
+				if (get(pendingCallMode) === 'live') {
+					pendingCallMode.set('governed');
+					liveCallChat.set(chatIdProp);
+				} else {
+					voiceCallOpening.set(chatIdProp);
+					openCallOverlay();
+				}
 			}
 		} else if (!embedded) {
 			await goto('/');
@@ -4184,6 +4195,9 @@
 
 <audio id="audioElement" style="display: none;"></audio>
 <VoiceDisclosure />
+<VoiceModeChoice />
+<LiveDisclosure />
+<LiveCallPanel />
 
 {#if getChatVariablesForm(selectedModelIds, chatVariables, $models).conflicts.length > 0}
 	<Modal bind:show={showChatVariablesModal} size="md">

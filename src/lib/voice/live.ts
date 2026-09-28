@@ -69,3 +69,66 @@ export async function* ndjsonEvents(
 	}
 	if (buffer.trim()) yield JSON.parse(buffer) as LiveStreamEvent;
 }
+
+export type CallMode = 'governed' | 'live';
+
+export type ModeSteps = {
+	/** Shows the mode choice; the chosen mode, or `null` when the caller backs out. */
+	choose: () => Promise<CallMode | null>;
+	/** Shows the GPT-Live disclosure; true when accepted. */
+	discloseLive: () => Promise<boolean>;
+	acknowledgeLive: (version: string) => Promise<void>;
+};
+
+/**
+ * Which call to start (#37). Without the live grant nothing is asked: the governed call, as before.
+ * Choosing GPT-Live needs its own disclosure acknowledged first; backing out of either starts nothing.
+ */
+export const chooseCallMode = async (
+	capabilities: { enabled: boolean; live?: LiveCapabilities } | null | undefined,
+	steps: ModeSteps
+): Promise<CallMode | null> => {
+	const live = liveMode(capabilities);
+	if (live === 'hidden') return 'governed';
+	const mode = await steps.choose();
+	if (mode !== 'live') return mode;
+	if (live === 'disclose') {
+		if (!(await steps.discloseLive())) return null;
+		await steps.acknowledgeLive(LIVE_DISCLOSURE_VERSION);
+	}
+	return 'live';
+};
+
+/** Sent on the data channel once the session starts: GPT-Live opens the call in Indonesian. */
+export const LIVE_GREETING =
+	'Sapa penelepon sekarang dalam bahasa Indonesia. Perkenalkan diri Anda sebagai Asisten JUP, lalu tanyakan apa yang bisa Anda bantu. Setelah itu berhenti dan dengarkan.';
+
+export const greetingEvent = () => ({
+	type: 'session.instructions.append',
+	event_id: 'jup_greeting',
+	delegation_id: null,
+	content: LIVE_GREETING
+});
+
+export type Caption = { who: 'caller' | 'assistant'; text: string; start: number };
+
+/**
+ * Captions from the data channel's transcript deltas, for display only (the server keeps the record).
+ * Consecutive fragments from the same speaker join one caption; the last `keep` captions are kept.
+ */
+export const addCaption = (captions: Caption[], event: unknown, keep = 6): Caption[] => {
+	const e = event as { type?: string; delta?: unknown; start_ms?: unknown };
+	const who: Caption['who'] | null =
+		e?.type === 'session.input_transcript.delta'
+			? 'caller'
+			: e?.type === 'session.output_transcript.delta'
+				? 'assistant'
+				: null;
+	if (!who || typeof e.delta !== 'string' || !e.delta) return captions;
+	const last = captions[captions.length - 1];
+	const next =
+		last && last.who === who
+			? [...captions.slice(0, -1), { ...last, text: last.text + e.delta }]
+			: [...captions, { who, text: e.delta, start: Number(e.start_ms) || 0 }];
+	return next.slice(-keep);
+};

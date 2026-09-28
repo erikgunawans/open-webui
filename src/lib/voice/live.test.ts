@@ -1,6 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { LIVE_DISCLOSURE, LIVE_DISCLOSURE_VERSION, liveMode, ndjsonEvents } from './live';
+import {
+	LIVE_DISCLOSURE,
+	LIVE_DISCLOSURE_VERSION,
+	addCaption,
+	chooseCallMode,
+	greetingEvent,
+	liveMode,
+	ndjsonEvents
+} from './live';
 import { DISCLOSURE } from './call';
 
 const live = (
@@ -101,5 +109,96 @@ describe('the call-long stream (#36)', () => {
 
 	it('skips blank lines', async () => {
 		expect(await all(['\n\n{"type":"ping"}\n\n'])).toEqual([{ type: 'ping' }]);
+	});
+});
+
+describe('choosing the call mode (#37)', () => {
+	const steps = (
+		over: Partial<Record<'choose' | 'discloseLive' | 'acknowledgeLive', unknown>> = {}
+	) => ({
+		choose: vi.fn(async () => 'live' as const),
+		discloseLive: vi.fn(async () => true),
+		acknowledgeLive: vi.fn(async () => {}),
+		...over
+	});
+
+	it('asks nothing without the live grant: the governed call, as before', async () => {
+		const s = steps();
+		expect(await chooseCallMode(live({ granted: false }), s as never)).toBe('governed');
+		expect(s.choose).not.toHaveBeenCalled();
+	});
+
+	it('the caller may still choose the governed call', async () => {
+		const s = steps({ choose: vi.fn(async () => 'governed' as const) });
+		expect(await chooseCallMode(live(), s as never)).toBe('governed');
+		expect(s.discloseLive).not.toHaveBeenCalled();
+	});
+
+	it('GPT-Live, already acknowledged, starts without the disclosure', async () => {
+		const s = steps();
+		expect(await chooseCallMode(live(), s as never)).toBe('live');
+		expect(s.discloseLive).not.toHaveBeenCalled();
+	});
+
+	it('GPT-Live, not yet acknowledged, shows its disclosure and acknowledges this version', async () => {
+		const s = steps();
+		expect(await chooseCallMode(live({ acknowledged: false }), s as never)).toBe('live');
+		expect(s.acknowledgeLive).toHaveBeenCalledWith(LIVE_DISCLOSURE_VERSION);
+	});
+
+	it('declining the GPT-Live disclosure starts nothing', async () => {
+		const s = steps({ discloseLive: vi.fn(async () => false) });
+		expect(await chooseCallMode(live({ acknowledged: false }), s as never)).toBeNull();
+		expect(s.acknowledgeLive).not.toHaveBeenCalled();
+	});
+
+	it('backing out of the choice starts nothing', async () => {
+		const s = steps({ choose: vi.fn(async () => null) });
+		expect(await chooseCallMode(live(), s as never)).toBeNull();
+	});
+});
+
+describe('the greeting (#37)', () => {
+	it('is an Indonesian instruction for the whole session, not a delegation update', () => {
+		const event = greetingEvent();
+		expect(event.type).toBe('session.instructions.append');
+		expect(event.delegation_id).toBeNull();
+		expect(event.content).toMatch(/bahasa Indonesia/);
+	});
+});
+
+describe('captions (#37)', () => {
+	const heard = (delta: string, start_ms = 0) => ({
+		type: 'session.input_transcript.delta',
+		delta,
+		start_ms
+	});
+	const said = (delta: string, start_ms = 0) => ({
+		type: 'session.output_transcript.delta',
+		delta,
+		start_ms
+	});
+
+	it('joins fragments from the same speaker and starts a new caption on a change', () => {
+		let captions = addCaption([], heard('Apa status ', 100));
+		captions = addCaption(captions, heard('SPBG?'));
+		captions = addCaption(captions, said('Masih di G1.', 900));
+		expect(captions).toEqual([
+			{ who: 'caller', text: 'Apa status SPBG?', start: 100 },
+			{ who: 'assistant', text: 'Masih di G1.', start: 900 }
+		]);
+	});
+
+	it('ignores every other event', () => {
+		expect(addCaption([], { type: 'session.delegation.created' })).toEqual([]);
+		expect(addCaption([], null)).toEqual([]);
+	});
+
+	it('keeps only the last few', () => {
+		let captions: ReturnType<typeof addCaption> = [];
+		for (let i = 0; i < 10; i++)
+			captions = addCaption(captions, i % 2 ? heard(`q${i}`) : said(`a${i}`));
+		expect(captions).toHaveLength(6);
+		expect(captions[5].text).toBe('q9');
 	});
 });

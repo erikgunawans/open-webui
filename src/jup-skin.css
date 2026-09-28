@@ -516,3 +516,107 @@
 		min-height: 2.75rem;
 	}
 }
+
+/* ── GPT-Live: the mode choice and the live-call panel (#37, ADR-0018) ─────
+   Our own markup, so our own classes. The governed call is listed first. */
+.jup-voice-modes {
+	display: grid;
+	gap: 0.5rem;
+}
+
+.jup-voice-mode {
+	display: grid;
+	gap: 0.125rem;
+	min-height: 44px;
+	padding: 0.75rem 1rem;
+	border: 1px solid var(--jup-line-soft);
+	border-radius: var(--jup-radius-sm);
+	text-align: left;
+}
+
+.jup-voice-mode:hover {
+	border-color: var(--jup-action);
+}
+
+.jup-voice-mode:focus-visible,
+.jup-live-hangup:focus-visible {
+	outline: 2px solid var(--jup-ring);
+	outline-offset: 2px;
+}
+
+.jup-voice-mode-name {
+	font-weight: 600;
+	color: var(--jup-ink);
+}
+
+.jup-voice-mode-note {
+	color: var(--jup-ink-soft);
+}
+
+.jup-live-call {
+	position: fixed;
+	z-index: 60;
+	right: 1rem;
+	bottom: 1rem;
+	left: 1rem;
+	max-width: 28rem;
+	margin-left: auto;
+	padding: 1rem 1.25rem;
+	border: 1px solid var(--jup-line-soft);
+	border-radius: var(--jup-radius-sm);
+	background: var(--jup-surface);
+	color: var(--jup-ink);
+	font-size: 0.875rem;
+	line-height: 1.5;
+	box-shadow: var(--jup-shadow-lg);
+}
+
+.jup-live-call-head {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-weight: 600;
+}
+
+.jup-live-call-dot {
+	width: 0.625rem;
+	height: 0.625rem;
+	border-radius: 9999px;
+	background: var(--jup-ink-soft);
+}
+
+.jup-live-call-dot-on {
+	background: var(--jup-action);
+}
+
+.jup-live-call-captions {
+	max-height: 12rem;
+	margin-top: 0.75rem;
+	overflow-y: auto;
+}
+
+.jup-live-caption + .jup-live-caption {
+	margin-top: 0.375rem;
+}
+
+.jup-live-caption-who {
+	margin-right: 0.375rem;
+	font-weight: 600;
+	color: var(--jup-ink-soft);
+}
+
+.jup-live-call-note {
+	margin-top: 0.75rem;
+	color: var(--jup-ink-soft);
+	font-size: 0.8125rem;
+}
+
+.jup-live-hangup {
+	width: 100%;
+	min-height: 44px;
+	margin-top: 0.75rem;
+	border-radius: 9999px;
+	background-color: var(--jup-down-bg);
+	color: var(--jup-down-text);
+	font-weight: 600;
+}

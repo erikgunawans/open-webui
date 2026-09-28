@@ -349,6 +349,11 @@ routes in `src/lib/apis/voice/index.ts`, and the disclosure in
     of `openCallOverlay()`.
   - `navigateHandler` opens the overlay only on the chat `pendingVoiceCall` names, that is, the one
     the route just made.
+  - GPT-Live (#37, ADR-0018): `<VoiceModeChoice />`, `<LiveDisclosure />` and `<LiveCallPanel />`
+    sit beside `<VoiceDisclosure />`. When `pendingCallMode` is `live`, `navigateHandler` sets
+    `liveCallChat` instead of opening the vendor overlay; the panel (`$lib/voice/liveCall.ts`)
+    runs the WebRTC call and the server answers every delegation. `runVoiceCall` asks for the mode
+    first, and only when the caller holds `jup.voice.live`.
 - `CallOverlay.svelte`:
   - `transcribeAudio(…, chatId)` sends `?chat_id=` (`apis/audio/index.ts` gains that parameter),
     so `voice_stt` names the chat.
