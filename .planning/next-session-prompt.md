@@ -1,3 +1,28 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-28-v33)
+
+> Prepended by /wrap 2026-09-28 (checkpoint 2026-09-28-v33). Supersedes v32's anchor and its "do next"; v32's constraints and those of the older blocks still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-28-v33).
+Anchor: `origin/main` at `d6153d8cd` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-28-v33`). Verify with `git log --oneline d6153d8cd..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live is still **`ent-os-00057-tvf`** (image `c0f9c0a41`, timeout 3600 s; rollback `ent-os-00056-9xm`). **#37 is NOT deployed:** `deploy.sh` died twice at the Cloud Build source upload (`400 Could not upload file … .tgz`, empty reason; the second attempt was cut off by a session restart); no build record exists for either. Records bucket synced to `~/jup` `3d09c24` (D23/D24 live in the decisions MCP). Voice test chats `01432ffc…`, `7d55a356…`, `742fb5e4…` deleted. Nobody holds `jup.voice.live` yet. Backend 1575 / 22 skipped, vitest 199.
+
+**Do next, in order:**
+1. **Retry the #37 deploy** (Erik OK'd 2026-09-28; before-values already in `.planning/voice-live-ui-deploy-before-2026-09-28.json`, still valid because live is unchanged; re-snapshot only if `gcloud run services describe` shows a revision other than `ent-os-00057-tvf`). Run `deploy.sh` in the background with its real exit code (`...; rc=$?; echo "deploy exit: $rc"; exit $rc`), not a trailing `echo`. If the upload 400s again: check `df -h`, swap and network, then try `gcloud builds submit` once on its own to see whether it is the upload itself. After success: new revision serving 100%, image tag = HEAD, IAP flags empty and IAP agent invoker still present, and the call screen loads in Interceptor.
+2. **Grant `jup.voice.live` to Erik** (OK'd): write the group **Suara — uji** (`27bf6dea-24fe-4534-bccc-e63390befff1`) before-value to `.planning/` on disk FIRST, then add `"live": true` beside `"call": true`; `/api/v1/voice/capabilities` must show `live.granted: true`.
+3. **#38 first GPT-Live call with Erik** (see v32 block item 4 for what to read afterwards and what is still unproven live; also confirm whether the OpenAI org has ZDR).
+4. **Kore + #31 acceptance call** (v32 item 5), then close #31/#32 and set V1/V2 `live`.
+5. Carried: ADR-0016 step 5 (six pending contributors); home-line wording; 2,238 empty id-ID keys; CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- A background command ending in `; echo "exit: $?"` reports exit 0 to the harness even when it failed; read the log's exit line, never the task status.
+- Pushing a new commit cancels the in-progress Frontend Build of the previous one (concurrency group): wait on the NEW commit's run. Python CI skips `.planning/`-only commits.
+- Delete app data through Erik's tab only after saving the full object to `.planning/` (chunk `eval` reads under ~5 KB; they are byte-checked).
+
+**Open items waiting on Erik:** delete or keep the ten older non-voice test chats (`e2ee24fd…`, `deb89026…`, `b2cee687…`, `219b6ffb…`, `48a8ccea…`, `fd654d19…`, `781ca6eb…`, `c24ad828…`, `dd81ec19…`, `10fdb3fb…`); restart the Mac (swap); the #38 GPT-Live call; the Kore/#31 call; home-line wording; approving the pending contributors; everything in older blocks' open items.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-28-v32)
 
 > Prepended by /wrap 2026-09-28 (checkpoint 2026-09-28-v32). Supersedes v31's anchor and its "do next"; the v31 and older blocks' constraints still hold unless noted.

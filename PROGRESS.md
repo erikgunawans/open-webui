@@ -1,6 +1,16 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-09-28-v32 (latest) — Kore live (#32 steps 1-4); GPT-Live #34-#37 built, server side deployed dark
+## Checkpoint 2026-09-28-v33 (latest) — records bucket synced (D23/D24), voice test chats deleted; #37 deploy failed at upload, NOT live
+
+- **Session:** `/next` → Mac check (6.8 GB free, swap 6.8/8 GB) → before-values for the #37 deploy (`daddc1772`) → waited for Frontend Build green on `daddc1772` (Erik: wait for green) → `deploy.sh` → **failed** → Erik OK'd the records sync and deleting the voice test chats → both done → deploy retried → session restarted mid-retry → `/wrap`.
+- **#37 deploy: NOT live.** Attempt 1 (`daddc1772`): `gcloud builds submit` died uploading the source tarball, `400 Could not upload file … .tgz` with an empty reason; no build was created. Attempt 2 (`d6153d8cd`) started uploading, then the session ended; no Cloud Build record exists for it. Live is unchanged: **`ent-os-00057-tvf`, image `c0f9c0a41`, 100%**. gcloud token was valid and disk had 7.2 GB free, so the cause is unknown (network or swap pressure are the suspects, unproven). CI for the #37 code: Python green on `881ef25ed`, Frontend green on `daddc1772`; later commits touch only `.planning/`.
+- **Records bucket:** `sync-records.sh --check` showed only `DECISIONS.md` drifting (bucket `66f3ad3`, local `3d09c24`). Before-copy `.planning/records-bucket-DECISIONS-before-2026-09-28.md` + manifest; synced with Erik's OK; re-check "in sync" at `3d09c24`. D23 and D24 now reach the decisions MCP.
+- **Voice test chats deleted** (Erik's OK): `01432ffc-14aa-48f0-b478-ba524e4c7597`, `7d55a356-7553-4082-aa37-5073c86661d1`, `742fb5e4-9699-48d6-a7bd-1dbec1353c32` (all "Panggilan suara"). Full JSON saved first to `.planning/voice-test-chats-before-delete-2026-09-28.jsonl` (byte-exact), DELETE 200 each, absent from the 45-chat list. The ten older non-voice test chats (#20–#23) were NOT deleted; asked Erik.
+- **Grant `jup.voice.live`:** not done (waits on the deploy). Before-value must go to disk before the write (last time it was lost on reload).
+- **Tests:** unchanged (backend 1575 / 22 skipped; vitest 199).
+- **Next:** retry the #37 deploy (already OK'd) and verify the revision → grant `jup.voice.live` (OK'd) → #38 first GPT-Live call.
+
+## Checkpoint 2026-09-28-v32 — Kore live (#32 steps 1-4); GPT-Live #34-#37 built, server side deployed dark
 
 - **Session:** `/next` → #32 Kore (code `502b86c9c`, TTS API enabled, deploy `ent-os-00056-9xm`, audio config switched `decef1041`) → KB update docs → GPT-Live API check (`030d9e88e`) → ADR-0018 amended (`6d2c22c66`) → #34-#38 opened → #34 (`427f9416d`) → #35 (`6f8939ee9`) → Option A → #36 (`dd01aab05`, CI fix `33e207758`) → standard disclosure fix (`84ad032bd`) → deploy `ent-os-00057-tvf` → #37 (`1f81b9729`) → `/wrap`. Every production step had Erik's OK.
 - **#32 Kore:** `google` TTS engine (`jup_voice.tts_google`, Cloud Run identity, no key); `SEALED_ENGINES` = openai + google; parts capped at 4000 UTF-8 bytes (Google limit 5000 bytes). Cloud Text-to-Speech API enabled on jup-ops. Audio config: engine openai→google, voice nova→`id-ID-Chirp3-HD-Kore` (all other TTS/STT fields unchanged; before/after `.planning/voice-tts-switch-kore-2026-09-28.json`). Smoke test on chat `01432ffc…`: 200 audio/mpeg 87 KB, `voice_tts` read, `cached: False`. Step 5 (Erik's listen) open.
