@@ -110,6 +110,10 @@ JUP_LEADERSHIP_ACTIONS_SOURCE: "records"
 # gives no one a call: it also needs the jup.voice.call group grant (Erik only at launch, D22).
 # Remove this line to switch voice off (the D22 decommission list has the rest).
 JUP_VOICE_ENABLED: "true"
+# Transcribe as Bahasa Indonesia (2026-09-28, Erik): with no language, gpt-4o-transcribe guessed
+# Japanese on a 2-3 s utterance and the answer followed it. Applies to every STT engine despite
+# the name; the vendor retries once without it if a transcription fails. English terms still pass.
+WHISPER_LANGUAGE: "id"
 EOF
 
 echo "==> deploying to Cloud Run"

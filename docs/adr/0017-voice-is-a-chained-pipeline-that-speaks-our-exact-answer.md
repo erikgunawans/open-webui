@@ -65,3 +65,10 @@ The boundary is enforced on the server:
 This does not stop a person from saying something out of scope into the microphone. The
 transcription carries it to OpenAI regardless (D16(e)); the disclosure says so. It does not claim
 OpenAI's transcription or speech endpoints are ZDR-eligible for this organisation.
+
+## Amendment 2026-09-28: transcription language
+
+The first live call showed auto-detection failing on short utterances: a 2-3 second phrase came back
+as Japanese, and the answer followed the language it was given. Transcription now requests Bahasa
+Indonesia (`WHISPER_LANGUAGE=id` in `deploy/gcp/deploy.sh`, Erik's call). English terms inside
+Indonesian speech still transcribe; a whole question spoken in English is the case this trades away.
