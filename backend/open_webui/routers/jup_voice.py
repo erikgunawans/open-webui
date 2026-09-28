@@ -6,6 +6,9 @@ voice chat (ADR-0017, spec #25).
   writes a `voice_ack` audit line.
 - **Acknowledge GPT-Live** (#34, ADR-0018) stores a separate signed record of the GPT-Live
   disclosure, for callers with both `jup.voice.call` and `jup.voice.live`, and writes `voice_live_ack`.
+- **Start a GPT-Live session** (#35) in the caller's own voice call: our server posts the browser's
+  WebRTC offer with the fixed config (`jup.voice_live`) to OpenAI and returns only the SDP answer
+  (`voice_live`).
 - **Start a call** needs the switch, an exact boolean `jup.voice.call` grant from the caller's
   groups (admins included) and a genuine acknowledgement of the current version. It creates a chat
   on the voice model whose `meta` carries a mark signed over the chat id and the caller. Each
@@ -47,7 +50,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.routing import APIRoute
 from pydantic import BaseModel
 
-from jup import voice, voice_audio, voice_turn
+from jup import voice, voice_audio, voice_live, voice_turn
 from jup.governance import audit
 from open_webui.utils.access_control import get_permissions
 from open_webui.utils.auth import get_verified_user
@@ -245,6 +248,82 @@ async def acknowledge_live(
     await store.set_user_info_key(user.id, voice.LIVE_ACK_KEY, record)
     audit('voice_live_ack', user=user.id, version=voice.LIVE_DISCLOSURE_VERSION)
     return {'acknowledged': True, 'disclosure_version': voice.LIVE_DISCLOSURE_VERSION}
+
+
+class LiveSessionForm(BaseModel):
+    chat_id: str
+    sdp: Any = None
+
+
+LIVE_ACK_REQUIRED = voice.Refusal(409, 'voice_live_ack_required', 'Acknowledge the GPT-Live disclosure first.')
+LIVE_CHAT_NOT_FOUND = voice.Refusal(404, 'voice_live_chat_not_found', 'GPT-Live runs only in your own voice call.')
+LIVE_UNAVAILABLE = voice.Refusal(503, 'voice_live_unavailable', 'GPT-Live is not configured on this server.')
+
+
+async def _live_create(body: dict, key: str) -> tuple[int, Any]:
+    """POST `body` to OpenAI's `/v1/live/sessions`; the status and the JSON body (or `None`)."""
+    from open_webui.env import AIOHTTP_CLIENT_SESSION_SSL
+
+    session = await get_session()
+    async with session.post(
+        voice_live.LIVE_URL,
+        json=body,
+        headers={'Authorization': f'Bearer {key}'},
+        ssl=AIOHTTP_CLIENT_SESSION_SSL,
+    ) as response:
+        try:
+            return response.status, await response.json(content_type=None)
+        except ValueError:
+            return response.status, None
+
+
+@router.post('/live/sessions')
+async def start_live_session(
+    form: LiveSessionForm,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(voice_permissions),
+    store: VoiceStore = Depends(voice_store),
+    secret: str = Depends(voice_secret),
+) -> dict[str, str]:
+    """Mints a GPT-Live session for the caller's own voice call and returns only the SDP answer (#35).
+
+    The browser sends its WebRTC offer; our server posts it with the fixed config
+    (`jup.voice_live.session_config`) and the key from Secret Manager, so no credential of any kind
+    reaches the browser. Every attempt writes `voice_live`, refusals included.
+    """
+    chat_id = form.chat_id
+    refusal = voice.live_refusal(
+        switched_on=voice.enabled(),
+        call_granted=voice.may_call(permissions),
+        live_granted=voice.may_go_live(permissions),
+    )
+    if refusal is None and not secret:
+        refusal = _MISCONFIGURED
+    if refusal is None and not voice.live_acknowledged(await store.user_info(user.id), user.id, secret=secret):
+        refusal = LIVE_ACK_REQUIRED
+    if refusal is None and await _own_voice_chat(chat_id, user.id, store, secret) is None:
+        refusal = LIVE_CHAT_NOT_FOUND
+    if refusal is None:
+        refusal = voice_live.offer_refusal(form.sdp)
+    key = (os.environ.get(voice_audio.OPENAI_KEY_ENV) or '').strip()
+    if refusal is None and not key:
+        refusal = LIVE_UNAVAILABLE
+    if refusal is not None:
+        audit('voice_live', user=user.id, chat=chat_id, outcome=refusal.code, session=None)
+        raise _refuse(refusal)
+
+    try:
+        status_code, body = await _live_create(voice_live.session_request(form.sdp), key)
+    except Exception as error:  # the network, not a refusal: still one audit line, never a bare 500
+        log.warning('GPT-Live session creation failed: %s', type(error).__name__)
+        status_code, body = None, None
+    answer = voice_live.session_answer(body) if status_code in (200, 201) else voice_live.UPSTREAM
+    if isinstance(answer, voice.Refusal):
+        audit('voice_live', user=user.id, chat=chat_id, outcome=answer.code, session=None, upstream_status=status_code)
+        raise _refuse(answer)
+    session_id, sdp = answer
+    audit('voice_live', user=user.id, chat=chat_id, outcome='started', session=session_id)
+    return {'session_id': session_id, 'sdp': sdp}
 
 
 @router.post('/calls')

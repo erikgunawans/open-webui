@@ -38,6 +38,19 @@ export const acknowledgeVoiceLive = async (token: string, version: string): Prom
 	});
 };
 
+/** Sends the WebRTC offer; the server mints the GPT-Live session and returns only its answer (#35). */
+export const startLiveSession = async (
+	token: string,
+	chatId: string,
+	sdp: string
+): Promise<{ session_id: string; sdp: string }> =>
+	(
+		await request(token, `${WEBUI_API_BASE_URL}/voice/live/sessions`, {
+			method: 'POST',
+			body: JSON.stringify({ chat_id: chatId, sdp })
+		})
+	).json();
+
 export const startVoiceCall = async (token: string): Promise<StartedCall> =>
 	(await request(token, `${WEBUI_API_BASE_URL}/voice/calls`, { method: 'POST' })).json();
 

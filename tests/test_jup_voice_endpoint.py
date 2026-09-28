@@ -68,6 +68,10 @@ class _Store:
     async def create_chat(self, chat_id: str, user_id: str, title: str, models: list[str], meta: dict) -> None:
         self.chats[chat_id] = {'user_id': user_id, 'title': title, 'models': models, 'meta': meta}
 
+    async def get_chat(self, chat_id: str) -> Any:
+        chat = self.chats.get(chat_id)
+        return None if chat is None else SimpleNamespace(id=chat_id, user_id=chat['user_id'], meta=chat['meta'])
+
 
 @pytest.fixture
 def directory(monkeypatch: pytest.MonkeyPatch) -> _Directory:
@@ -431,3 +435,136 @@ def test_the_call_acknowledgement_does_not_acknowledge_live(client, directory) -
     assert _ack(client).status_code == 200
     body = client.get(f'{BASE}/capabilities').json()
     assert body['acknowledged'] is True and body['live']['acknowledged'] is False
+
+
+# --- GPT-Live: the server mints the session (#35) ----------------------------------------
+
+OFFER = 'v=0\r\no=- 1 2 IN IP4 127.0.0.1\r\ns=-\r\n'
+ANSWER = 'v=0\r\no=- answer\r\n'
+
+
+@pytest.fixture
+def openai_live(monkeypatch: pytest.MonkeyPatch):
+    from open_webui.routers import jup_voice
+
+    monkeypatch.setenv('JUP_VOICE_OPENAI_API_KEY', 'sk-live\n\n')
+    fake = SimpleNamespace(
+        sent=[], reply=(201, {'session': {'id': 'live_123'}, 'transport': {'type': 'webrtc', 'sdp': ANSWER}})
+    )
+
+    async def _create(body, key):
+        fake.sent.append((body, key))
+        return fake.reply
+
+    monkeypatch.setattr(jup_voice, '_live_create', _create)
+    return fake
+
+
+def _live_ready(client, directory, *, live_ack: bool = True) -> str:
+    """Erik, granted call and live, both disclosures acknowledged, in a voice call he just started."""
+    directory.grant(ERIK, live=True)
+    _as(client, 'admin')
+    assert _ack(client).status_code == 200
+    if live_ack:
+        assert _live_ack(client).status_code == 200
+    return client.post(f'{BASE}/calls').json()['chat_id']
+
+
+def _mint(client, chat_id, sdp=OFFER):
+    return client.post(f'{BASE}/live/sessions', json={'chat_id': chat_id, 'sdp': sdp})
+
+
+def _live_lines(caplog) -> list[dict]:
+    return [{k: v for k, v in line.items() if k != 'ts'} for line in _audit(caplog, 'voice_live')]
+
+
+def test_the_server_mints_the_session_and_returns_only_the_answer(client, directory, openai_live, caplog) -> None:
+    from jup import voice_live
+
+    chat_id = _live_ready(client, directory)
+    response = _mint(client, chat_id)
+    assert response.status_code == 200
+    assert response.json() == {'session_id': 'live_123', 'sdp': ANSWER}
+    assert openai_live.sent == [(voice_live.session_request(OFFER), 'sk-live')]
+    assert _live_lines(caplog) == [
+        {'event': 'voice_live', 'user': ERIK, 'chat': chat_id, 'outcome': 'started', 'session': 'live_123'}
+    ]
+
+
+def test_live_needs_the_live_grant(client, directory, openai_live, caplog) -> None:
+    directory.grant(ERIK)
+    _as(client, 'admin')
+    assert _ack(client).status_code == 200
+    chat_id = client.post(f'{BASE}/calls').json()['chat_id']
+    response = _mint(client, chat_id)
+    assert response.status_code == 403 and response.json()['detail']['code'] == 'voice_live_not_granted'
+    assert openai_live.sent == []
+    assert _live_lines(caplog)[0]['outcome'] == 'voice_live_not_granted'
+
+
+def test_live_needs_its_own_acknowledgement(client, directory, openai_live) -> None:
+    chat_id = _live_ready(client, directory, live_ack=False)
+    response = _mint(client, chat_id)
+    assert response.status_code == 409 and response.json()['detail']['code'] == 'voice_live_ack_required'
+    assert openai_live.sent == []
+
+
+@pytest.mark.parametrize('which', ['missing', 'typed', 'others'])
+def test_live_runs_only_in_the_callers_own_voice_chat(client, directory, store, openai_live, which) -> None:
+    _live_ready(client, directory)
+    if which == 'typed':
+        store.chats['chat-typed'] = {'user_id': ERIK, 'title': 't', 'models': [], 'meta': {}}
+        chat_id = 'chat-typed'
+    elif which == 'others':
+        from jup import voice
+
+        chat_id = 'chat-other'
+        mark = voice.voice_mark(chat_id, OTHER, at=1, secret=SECRET)
+        store.chats[chat_id] = {'user_id': OTHER, 'title': 't', 'models': [], 'meta': {voice.CHAT_KEY: mark}}
+    else:
+        chat_id = 'no-such-chat'
+    response = _mint(client, chat_id)
+    assert response.status_code == 404 and response.json()['detail']['code'] == 'voice_live_chat_not_found'
+    assert openai_live.sent == []
+
+
+def test_a_bad_offer_is_refused_before_openai(client, directory, openai_live) -> None:
+    chat_id = _live_ready(client, directory)
+    response = _mint(client, chat_id, sdp='hello')
+    assert response.status_code == 400 and response.json()['detail']['code'] == 'voice_live_bad_offer'
+    assert openai_live.sent == []
+
+
+def test_without_the_key_live_is_unavailable(client, directory, openai_live, monkeypatch) -> None:
+    chat_id = _live_ready(client, directory)
+    monkeypatch.setenv('JUP_VOICE_OPENAI_API_KEY', '\n')
+    response = _mint(client, chat_id)
+    assert response.status_code == 503 and response.json()['detail']['code'] == 'voice_live_unavailable'
+    assert openai_live.sent == []
+
+
+@pytest.mark.parametrize('reply', [(500, {'error': {'message': 'boom'}}), (201, {'session': {}})])
+def test_an_openai_failure_is_a_502_and_audited(client, directory, openai_live, caplog, reply) -> None:
+    chat_id = _live_ready(client, directory)
+    openai_live.reply = reply
+    response = _mint(client, chat_id)
+    assert response.status_code == 502 and response.json()['detail']['code'] == 'voice_live_upstream'
+    line = _live_lines(caplog)[-1]
+    assert line['outcome'] == 'voice_live_upstream' and line['upstream_status'] == reply[0]
+
+
+def test_a_network_failure_reaching_openai_is_a_502_and_audited(
+    client, directory, openai_live, caplog, monkeypatch
+) -> None:
+    from open_webui.routers import jup_voice
+
+    chat_id = _live_ready(client, directory)
+
+    async def _down(body, key):
+        raise OSError('connection reset')
+
+    monkeypatch.setattr(jup_voice, '_live_create', _down)
+    response = _mint(client, chat_id)
+    assert response.status_code == 502 and response.json()['detail']['code'] == 'voice_live_upstream'
+    line = _live_lines(caplog)[-1]
+    assert line['outcome'] == 'voice_live_upstream' and line['upstream_status'] is None
