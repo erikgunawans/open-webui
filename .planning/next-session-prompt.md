@@ -1,3 +1,29 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-29-v34)
+
+> Prepended by /wrap 2026-09-29 (checkpoint 2026-09-29-v34). Supersedes v33's anchor and its "do next"; v33's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-29-v34).
+Anchor: `origin/main` at `be4e758c9` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-29-v34`). Verify with `git log --oneline be4e758c9..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live **`ent-os-00059-d6b`** (image `b1e54f951`; rollback `ent-os-00058-s7t`): GPT-Live call screen (#37) + the live-panel CSS fix; voice-model description is staff-facing Indonesian. Erik holds `jup.voice.live` (not yet acknowledged). Contract & lawsuit KB: proposal approved in full, nothing built. Backend 1576 / 22 skipped; vitest 199.
+
+**Do next, in order:**
+1. **Contract & lawsuit KB — Graph proof (Erik continues "in the morning").** Waiting on: JUP IT confirms the per-site grant (`POST /sites/{id}/permissions`, role `read`) for None-Jupe (`095f7f79-2430-4cff-8363-560bb063b3e1`, tenant `fc521bfb-40c2-4b87-95a7-65e0e888fdf8`) on `jakartautilitas-my.sharepoint.com/personal/legal_jup_jakarta-utilitas_com` — `Sites.Selected` alone grants nothing; and a NEW client secret for the server, stored by Erik in his own Terminal as `none-jupe-graph-secret` (`gcloud secrets create none-jupe-graph-secret --project jup-ops --replication-policy=user-managed --locations=asia-southeast2 --data-file=-`, paste, Ctrl-D twice). Then: client-credentials token → list `Backup data/Dokumen Legal/SCAN PERJANJIAN` + read the Daftar Perkara headers through the app → prove a site outside the grant is refused. Only then plan the pilot (2025–2026 folders + Daftar Perkara). Also confirm which model runs OCR-card drafting and check Document AI Enterprise OCR in `asia-southeast1`.
+2. **#38 first GPT-Live call with Erik** (v32 block item 4 lists what to read afterwards and what is unproven live; confirm OpenAI org ZDR for the disclosure wording). Remind Erik to ⌘⇧R first.
+3. **Kore + #31 acceptance call** (v32 item 5), then close #31/#32 and set V1/V2 `live` in the ledger.
+4. Carried: ADR-0016 step 5 (six pending contributors); home-line wording; 2,238 empty id-ID keys; CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- Contract/perkara KB decisions (memory `legal-kb-data-location-rule`): ONE Asisten JUP — never rebuild the separate "Asisten Legal"; storage Jakarta, OCR Singapore; individuals' names in Daftar Perkara and individual PKS partners masked to stable codes before any model, unmasked in Jakarta after it only for entitled users; signatories acting for a company not masked; the approved access matrix is enforced in the tools' code, not the prompt. A Graph secret never passes through a chat.
+- Before clicking anything that writes in an app tab after a deploy, prove the build: the tab's `entry/app.*.js` resource must equal the one in `fetch('/',{cache:'no-store'})`. If not, `fetch('/',{cache:'reload'}).then(()=>location.reload())`. The old shell against a new server creates real chats and 500s `/c/<id>`.
+- A widget mounted as a direct child of `#main-content` is sized by app.css `#main-content > *`; override at id level.
+- `interceptor style inject` goes to Chrome's active tab, not `--tab`; inject a `<style>` via `eval --main --tab <id>` instead. `deploy/gcp/lib/in-tab.ts` drives the ACTIVE tab (host-guarded).
+- zsh arrays are 1-indexed: run array loops under `bash`.
+
+**Open items waiting on Erik:** the None-Jupe per-site grant confirmation + the server secret (item 1); Legal names the contract-card reviewer(s) and weekly capacity; share the proposal doc with the Legal team (it is private); the #38 GPT-Live call; the Kore/#31 call; restart the Mac (swap); home-line wording; approving the pending contributors; everything in older blocks' open items.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-28-v33)
 
 > Prepended by /wrap 2026-09-28 (checkpoint 2026-09-28-v33). Supersedes v32's anchor and its "do next"; v32's constraints and those of the older blocks still hold unless noted.
