@@ -117,3 +117,16 @@ def test_a_gpt_live_call_opens_our_panel_not_the_vendor_overlay():
     live = loaded.index("if (get(pendingCallMode) === 'live') {")
     assert loaded.index('get(pendingVoiceCall) === chatIdProp') < live
     assert live < loaded.index('liveCallChat.set(chatIdProp);') < loaded.index('openCallOverlay();')
+
+
+def test_the_live_panel_stays_a_card_inside_main_content():
+    """#37: the panel mounts as a direct child of #main-content, where app.css's
+    `#main-content > * { height: 100%; max-width: 100% }` outranks a class. Without an id-level rule
+    the card filled the whole chat pane, its top pushed off-screen and its start under the sidebar.
+    """
+    pane = _read(ROOT / 'src' / 'app.css')
+    assert '#main-content > * {' in pane
+    skin = _read(ROOT / 'src' / 'jup-skin.css')
+    rule = _between(skin, '#main-content > .jup-live-call {', '}')
+    for decl in ('height: auto;', 'max-width: 28rem;', 'max-height: calc(100dvh - 2rem);'):
+        assert decl in rule

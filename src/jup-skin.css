@@ -571,6 +571,15 @@
 	box-shadow: var(--jup-shadow-lg);
 }
 
+/* The panel mounts as a direct child of #main-content, where app.css's `#main-content > *`
+   (height and max-width 100%) outranks a class: without this the card filled the chat pane. */
+#main-content > .jup-live-call {
+	height: auto;
+	max-width: 28rem;
+	max-height: calc(100dvh - 2rem);
+	overflow-y: auto;
+}
+
 .jup-live-call-head {
 	display: flex;
 	align-items: center;
