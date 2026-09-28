@@ -3105,6 +3105,7 @@ dev = [
     { name = "mcp" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
+    { name = "python-docx" },
     { name = "pyyaml" },
     { name = "ruff" },
 ]
@@ -3235,6 +3236,7 @@ dev = [
     { name = "mcp", specifier = "==1.27.2" },
     { name = "pytest", specifier = ">=8.4.0" },
     { name = "pytest-asyncio", specifier = ">=1.0.0" },
+    { name = "python-docx", specifier = "==1.2.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "ruff", specifier = ">=0.15.5" },
 ]
