@@ -47,6 +47,9 @@ design. The sandbox work for terminal and browser is needed on either path.
 | E6  | Skill proposals: agent drafts, admin approves, sync     | planned | self-improving skills              | E1                                           |
 | E7  | Messaging gateway (Telegram first, then WhatsApp)       | planned | chat channels                      | ADR-0012 amendment, D-decision per channel   |
 | I1  | Integrations via MCP (Notion first)                     | ready   | integrations                       | D25 signed; #39 (#40-#42); token from Erik   |
+| O1  | Office output: Word documents (.docx) in the JUP template | planned | docs (holaOS: `doc-coauthoring` skill + bash) | E1, E5 live; Erik: template, who gets it     |
+| O2  | Office output: spreadsheets (.xlsx)                      | planned | sheets (holaOS: `xlsx` skill + bash) | O1 (shared file path)                        |
+| O3  | Office output: slide decks (.pptx) in the JUP template   | planned | slides (holaOS: `pptx` skill + bash) | O1; Erik: master deck                        |
 | X1  | Hermes as an admin-only lab runtime                     | parked  | runtime experiments                | Erik reopens it                              |
 
 ## Where the gap is (holaOS `a6b58be` vs Asisten JUP `254da9640`)
@@ -62,6 +65,7 @@ design. The sandbox work for terminal and browser is needed on either path.
 | Subagents    | `delegate_task` family                                            | native, off                              | A2         |
 | Web search   | Holaboss search + Exa                                             | Brave, per-chat toggle (D19)             | A4         |
 | Self-improving skills | the agent writes its own                                 | admin-managed only                       | E6 (reviewed) |
+| Office files | docx/pptx/xlsx via installable skills run in its shell; outputs/ + in-app preview | reads attachments only; A3 (Pyodide) has openpyxl in the browser | O1–O3 |
 | Governance   | none: bypassed approvals, no sandbox, no audit                    | funnel + contract + audit + deny-default | keep it    |
 
 We do not copy holaOS's governance posture. Every phase keeps ADR-0002: **each model turn passes
@@ -191,6 +195,34 @@ is the governed answer, word for word. Spec: issue #25.
   and audited like typed chat. It needs one machine identity: an ADR-0012 amendment, decided
   before code. Each channel is new egress, so each needs a D-decision.
 
+## Track O — office output: documents, spreadsheets, slides (added 2026-09-29, Erik)
+
+holaOS (`a6b58be`) has no generator of its own: its Doc/Sheet/Slides chips insert Anthropic's
+`doc-coauthoring`, `xlsx` and `pptx` skills, whose Python/Node scripts run through its shell
+tool, write to `outputs/` and preview in the desktop app. That needs a sandbox, which is E2
+(parked). We do not need one: `python-docx`, `python-pptx` and `openpyxl` are already in our
+backend image, so each format is a **native tool with a fixed renderer**. The model sends
+structured content (headings, paragraphs, tables; sheets and rows; slides with title, bullets,
+table), the renderer builds the file on the server in Jakarta, and it is saved as an app File
+owned by the asking user and linked in the chat for download. No model-written code runs, so
+there is no code sandbox to build and no new egress, hence no D-decision under D20.
+
+- **O1 Documents.** `create_document` → .docx in the JUP template (GSM 2023 tokens, measured,
+  memory `jup-two-canonical-token-layers`). Risk class `write_own` (it only creates a file in the
+  caller's own space), E1 audit line with sizes, not content. Establishes the shared path: file
+  record, owner, download link, size caps, filename rules. Verify: a generated memo opens in Word
+  with the template's styles, its file belongs to the caller, and another user gets 404.
+- **O2 Spreadsheets.** `create_spreadsheet` → .xlsx: sheets, header row, typed cells (numbers stay
+  numbers, IDR and dates formatted), frozen header; formulas only from a small allowlist. Ad-hoc
+  analysis stays in A3 (Pyodide, browser-side, already has openpyxl).
+- **O3 Slides.** `create_presentation` → .pptx on a JUP master deck: title, section, bullets,
+  table and one chart layout. Verify it opens in PowerPoint and Keynote with the master's layouts.
+- **Later, not in O1–O3:** editing an uploaded file in place (read → new version), Google
+  Docs/Sheets/Slides output (that is I1-style egress and needs its own D-decision).
+- **Governance kept:** each call goes through the gate and the E1 audit; content comes only from
+  the governed turn, so a contract/perkara answer that the access matrix hides cannot be written
+  into a file either (the file is built from the answer the caller was allowed to see).
+
 ## Parked — Hermes Agent (X1)
 
 Researched 2026-09-23: NousResearch/hermes-agent, MIT, v0.21.4. It is single-tenant by design,
@@ -207,3 +239,5 @@ touching staff or records, and its model calls go through our funnel with no fal
 3. **E2:** deferred 2026-09-26; a VM budget when Erik reopens it. E3 and E4 wait on it.
 4. **E7:** the ADR-0012 amendment for one machine identity.
 5. **E7/I1:** one D-decision per new egress (channel, integration); third-party MCP only after E5 (D20).
+6. **O1–O3:** who gets office output first (Erik only, admins, or all staff), the JUP document
+   template and the master slide deck (from the GSM 2023 brand or an existing JUP deck).
