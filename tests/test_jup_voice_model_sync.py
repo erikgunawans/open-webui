@@ -95,3 +95,13 @@ def test_the_voice_instructions_greet_by_name_with_a_betawi_pantun_and_are_sent(
     assert 'voiceInstructions: VOICE_INSTRUCTIONS' in SCRIPT
     # Appended to Asisten JUP's own system prompt, never replacing it.
     assert '[(base.params || {}).system, P.voiceInstructions].filter(Boolean)' in SCRIPT
+
+
+def test_every_voice_turn_answers_in_indonesian_and_asks_again_when_unclear():
+    """The first live calls heard Japanese and Chinese in noise and answered in those languages."""
+    block = SCRIPT[
+        SCRIPT.index('const VOICE_INSTRUCTIONS') : SCRIPT.index('].join(', SCRIPT.index('const VOICE_INSTRUCTIONS'))
+    ]
+    assert 'Selalu jawab dalam Bahasa Indonesia' in block
+    assert 'minta pengguna mengulang' in block
+    assert 'tanpa daftar' in block

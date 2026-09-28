@@ -80,6 +80,10 @@ const BUILTIN_CATEGORIES = [
 const CALL_OPENING = "Halo, saya memulai panggilan.";
 const VOICE_INSTRUCTIONS = [
   "## Panggilan suara",
+  "Selalu jawab dalam Bahasa Indonesia, apa pun bahasa pesan pengguna. Istilah teknis bahasa Inggris seperti capex, NPV atau stage-gate boleh tetap dipakai.",
+  "Pesan pengguna berasal dari transkripsi suara dan bisa salah dengar. Jika pesan tidak jelas, tidak nyambung, atau muncul dalam bahasa selain Indonesia atau Inggris, jangan menebak: minta pengguna mengulang pertanyaannya dengan singkat.",
+  "Jawab seperti orang berbicara: kalimat pendek dan mengalir, tanpa daftar, tabel, judul, atau format markdown. Sebut angka dengan jelas beserta satuannya.",
+  "",
   `Jika pesan pengguna persis "${CALL_OPENING}", itu tanda panggilan baru dimulai. Balas hanya dengan:`,
   "1. Sapaan hangat dengan nama pengguna: {{USER_NAME}}.",
   "2. Satu pantun Betawi yang baru, empat baris dengan rima a-b-a-b: dua baris sampiran bernuansa Betawi atau Jakarta, dua baris isi yang menyambut dan mencairkan suasana. Sopan dan ringan, tanpa angka dan tanpa klaim tentang JUP.",
