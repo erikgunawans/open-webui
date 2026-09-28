@@ -1,3 +1,34 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-28-v32)
+
+> Prepended by /wrap 2026-09-28 (checkpoint 2026-09-28-v32). Supersedes v31's anchor and its "do next"; the v31 and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-28-v32).
+Anchor: `origin/main` at `1f81b9729` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-28-v32`). Verify with `git log --oneline 1f81b9729..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live on `ent-os-00057-tvf` (image `c0f9c0a41`, request timeout 3600 s; rollback `ent-os-00056-9xm`). Voice speaks with Google Chirp3-HD Kore (#32 steps 1-4 done). The standard call's disclosure is version 2026-09-28 (Google reads answers), so Erik re-acknowledges on his next call. GPT-Live server side (#34 grant/ack, #35 session mint, #36 relay) is deployed dark: nobody holds `jup.voice.live`. #37 (call screen, `1f81b9729`) is pushed, **not deployed**. Backend 1575 / 22 skipped, vitest 199.
+
+**Do next, in order:**
+1. **Check the Mac first:** `df -h /` and `sysctl vm.swapusage`. Swap reached 15 GB and filled the disk twice this session; Erik was about to restart. Need a few GB free before a deploy.
+2. **Deploy #37** (Erik OK'd 2026-09-28; save before-values to `.planning/` and commit first).
+3. **Grant `jup.voice.live` to Erik** (OK'd 2026-09-28): add `"live": true` beside `"call": true` in the permissions of group **Suara — uji** (`27bf6dea…`). DB write: save the group's before-value first. Then `/api/v1/voice/capabilities` must show `live.granted: true`.
+4. **#38 first GPT-Live call with Erik**: mode choice → GPT-Live disclosure → call. Then read `jup.governance` (`voice_live` attached/ended, `voice_live_delegation`, `voice_live_turn`), the chat (`message.meta.jup_voice_live`, `chat.meta.jup_voice_live`) and Cloud Run logs for the sideband. Unproven live: the WebSocket attach through aiohttp, the NDJSON stream through IAP/LB, the governed turn via `CHAT_COMPLETION_HANDLER` from a built request, `append_chat_meta_items` (real DB), Indonesian quality with GPT-Live's default voice. Also confirm whether the OpenAI org has Zero Data Retention (disclosure wording).
+5. **Kore + #31 acceptance call** (can be the same sitting): greeting + pantun + Kore voice, Indonesian answers, English question still answered in Indonesian, out-of-scope question refused, mumbled question → ask again. Then close #31 and #32, set V1/V2 `live` in the ledger.
+6. **Records bucket sync for D23/D24** (`~/jup` `3d09c24`): `sync-records.sh --check`, then sync with its own OK, before-copy of the bucket's DECISIONS.md.
+7. Carried: ADR-0016 step 5 (six pending contributors → "Kontributor Pengetahuan", then attach "JUP Staff Contributions" to Asisten JUP); home-line wording; 2,238 empty id-ID keys; CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- Every deploy, DB write, API enablement, grant and secret write needs Erik's per-change OK (the two above are already given); before-values to `.planning/` first, committed before `deploy.sh` (it refuses a dirty tree).
+- The audio config is DB-seeded: the TTS engine is `google`, voice `id-ID-Chirp3-HD-Kore`; the OpenAI `instructions` param stays stored but only applies to OpenAI. Rollback = engine `openai`, voice `nova` (full before-value in `.planning/voice-tts-switch-kore-2026-09-28.json`).
+- GPT-Live: the server is the only owner of delegations; the browser must never answer one. A live call is one request held open (Option A); a call is capped at 3600 s. Only a **sealed** answer is ever relayed. Disclosure texts are fixed and versioned on both sides (tests pin server↔UI): changing text means a version bump and everyone acknowledges again.
+- CI's `--only-group dev` has no typer/sqlalchemy/fastapi: a test that imports the `open_webui` package fails there even if it passes locally. Load our modules by path (see `tests/test_jup_voice_live_relay.py`) and keep vendor imports inside the functions that need them.
+- `gh run watch --exit-status` and `--commit <short sha>` gave false results this session (network timeouts; `--commit` needs the full SHA). Confirm CI with `gh run list --json name,headSha,conclusion` filtered by SHA prefix.
+- Run BOTH CI replays before pushing (backend ruff format/check + pytest; frontend `bun run format` → `i18n:parse` → clean tree → vitest). `bun run format` also reformats `docs/*.md|html`.
+- The PAI security hook blocks a recursive delete when the same shell line also mentions the filesystem root (even `df -h` of it); run deletes as their own command with full paths.
+
+**Open items waiting on Erik:** restart the Mac (swap); the #38 GPT-Live call; the Kore/#31 call; OK for the records-bucket sync; delete or keep voice test chats (`742fb5e4…`, `7d55a356…`, `01432ffc…` and the older list); home-line wording; approving the pending contributors; everything in older blocks' open items.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-28-v31)
 
 > Prepended by /wrap 2026-09-28 (checkpoint 2026-09-28-v31). Supersedes v28's anchor and its "do next"; the v28 and older blocks' constraints still hold unless noted.
