@@ -12,6 +12,9 @@ export const disclosureRequest = writable<((accepted: boolean) => void) | null>(
 /** The voice chat the start-call route just made; its page opens the call overlay once loaded. */
 export const pendingVoiceCall = writable<string | null>(null);
 
+/** The same chat, until its overlay has sent the opening line (`CALL_OPENING`). */
+export const voiceCallOpening = writable<string | null>(null);
+
 export const refreshVoiceCapabilities = async (token: string) => {
 	const capabilities = await getVoiceCapabilities(token).catch(() => null);
 	voiceCapabilities.set(capabilities);

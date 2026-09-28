@@ -8,7 +8,13 @@
 	import { generateEmoji } from '$lib/apis';
 	import { synthesizeOpenAISpeech, transcribeAudio } from '$lib/apis/audio';
 	import { getAnswerSpeechParts, synthesizeAnswerPart } from '$lib/apis/voice';
-	import { sealedAnswerParts, speaksSealedAnswers } from '$lib/voice/call';
+	import {
+		CALL_OPENING,
+		opensWithGreeting,
+		sealedAnswerParts,
+		speaksSealedAnswers
+	} from '$lib/voice/call';
+	import { voiceCallOpening } from '$lib/voice/session';
 
 	import { toast } from 'svelte-sonner';
 
@@ -793,6 +799,14 @@
 		eventTarget.addEventListener('chat:finish', chatFinishHandler);
 
 		document.addEventListener('keydown', handleKeydown);
+
+		// JUP: a new call opens with her voice: the visible opening line, answered with a greeting
+		// by name and a Betawi pantun (#29 follow-up; VENDOR-PATCHES.md). Listeners are in place,
+		// so the answer is read like any other.
+		if (opensWithGreeting($voiceCallOpening, chatId)) {
+			voiceCallOpening.set(null);
+			submitPrompt(CALL_OPENING, { _raw: true });
+		}
 
 		return async () => {
 			await stopAllAudio();

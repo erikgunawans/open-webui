@@ -94,3 +94,15 @@ def test_an_interrupt_or_hang_up_stops_the_sealed_parts():
     assert finished.index('const signal = audioAbortController.signal;') < finished.index(
         'await queueSealedAnswer(id, signal)'
     )
+
+
+def test_a_new_call_opens_with_the_greeting_line_once_its_listeners_are_in_place():
+    overlay = _read(CALL_OVERLAY)
+    mount = _between(overlay, 'onMount(async () => {', 'onDestroy(')
+    opening = mount.index('if (opensWithGreeting($voiceCallOpening, chatId))')
+    assert mount.index("eventTarget.addEventListener('chat:finish', chatFinishHandler);") < opening
+    assert mount.index('voiceCallOpening.set(null);', opening) < mount.index(
+        'submitPrompt(CALL_OPENING, { _raw: true });', opening
+    )
+    chat = _read(CHAT_SVELTE)
+    assert 'voiceCallOpening.set(chatIdProp);' in chat

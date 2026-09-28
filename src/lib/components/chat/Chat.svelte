@@ -110,7 +110,12 @@
 	import Messages from '$lib/components/chat/Messages.svelte';
 	import Navbar from '$lib/components/chat/Navbar.svelte';
 	import VoiceDisclosure from '$lib/components/jup/VoiceDisclosure.svelte';
-	import { pendingVoiceCall, refreshVoiceCapabilities, runVoiceCall } from '$lib/voice/session';
+	import {
+		pendingVoiceCall,
+		refreshVoiceCapabilities,
+		runVoiceCall,
+		voiceCallOpening
+	} from '$lib/voice/session';
 	import ChatControls from './ChatControls.svelte';
 	import EventConfirmDialog from '../common/ConfirmDialog.svelte';
 	import DeleteConfirmDialog from '../common/ConfirmDialog.svelte';
@@ -858,6 +863,7 @@
 			// JUP: the start-call route just made this voice chat; open its call (#29).
 			if (chatIdProp && get(pendingVoiceCall) === chatIdProp) {
 				pendingVoiceCall.set(null);
+				voiceCallOpening.set(chatIdProp);
 				openCallOverlay();
 			}
 		} else if (!embedded) {

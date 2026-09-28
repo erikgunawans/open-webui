@@ -351,6 +351,11 @@ routes in `src/lib/apis/voice/index.ts`, and the disclosure in
     from `POST /audio/speech` `{chat_id, message_id, part}`. Parts play through the vendor loop.
     Any other engine keeps the vendor path.
   - A reminder line (`jup-voice-reminder`) shows above the status text on every call.
+  - A new call opens with her voice (Erik, 2026-09-28): `Chat.svelte` marks the just-started chat
+    in `voiceCallOpening`. After its listeners are in place, `CallOverlay`'s `onMount` sends the
+    visible line `CALL_OPENING` once. The voice model's instructions (`sync-voice-model.ts`)
+    answer exactly that line with a greeting by name and a Betawi pantun. A reopened voice chat
+    sends nothing.
   - The call is tied to the chat it opened on: if `chatId` changes, the overlay closes, so speech
     never goes into a chat the disclosure does not cover.
   - With sealed speech, `stopAllAudio` aborts the turn's controller, and the part fetches check

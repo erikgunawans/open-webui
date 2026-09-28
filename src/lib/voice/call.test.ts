@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+	CALL_OPENING,
 	DISCLOSURE,
 	DISCLOSURE_VERSION,
 	beginCall,
 	callButton,
+	opensWithGreeting,
 	sealedAnswerParts,
 	speaksSealedAnswers,
 	type CallSteps,
@@ -207,5 +209,18 @@ describe('waiting for the sealed answer (#29)', () => {
 			code: 'voice_tts_not_voice'
 		});
 		expect(parts).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('the call opening (greeting and pantun)', () => {
+	it('is one fixed, visible line the voice model is told to answer with a greeting and a pantun', () => {
+		expect(CALL_OPENING).toBe('Halo, saya memulai panggilan.');
+	});
+
+	it('is sent only on the call the start-call route just made, not on a reopened voice chat', () => {
+		expect(opensWithGreeting('chat-1', 'chat-1')).toBe(true);
+		expect(opensWithGreeting(null, 'chat-1')).toBe(false);
+		expect(opensWithGreeting('chat-2', 'chat-1')).toBe(false);
+		expect(opensWithGreeting('chat-1', undefined)).toBe(false);
 	});
 });

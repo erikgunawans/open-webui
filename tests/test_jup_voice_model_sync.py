@@ -75,3 +75,23 @@ def test_a_new_model_is_admin_only_and_an_update_keeps_its_grants():
     assert 'JSON.stringify({ ...form, access_grants: [] })' in SCRIPT
     update = SCRIPT[SCRIPT.index("'/api/v1/models/model/update'") :]
     assert 'access_grants' not in update[: update.index('\n')]
+
+
+def test_the_voice_instructions_answer_the_call_uis_exact_opening_line():
+    """The greeting and pantun are keyed on one line; the UI and the model must agree on it."""
+    call_ts = (ROOT / 'src' / 'lib' / 'voice' / 'call.ts').read_text(encoding='utf-8')
+    ui = re.search(r"export const CALL_OPENING = '([^']+)';", call_ts).group(1)
+    script = re.search(r'const CALL_OPENING = "([^"]+)";', SCRIPT).group(1)
+    assert ui == script
+
+
+def test_the_voice_instructions_greet_by_name_with_a_betawi_pantun_and_are_sent():
+    block = SCRIPT[
+        SCRIPT.index('const VOICE_INSTRUCTIONS') : SCRIPT.index('].join(', SCRIPT.index('const VOICE_INSTRUCTIONS'))
+    ]
+    assert '{{USER_NAME}}' in block
+    assert 'pantun Betawi' in block
+    assert 'jangan memanggil tool' in block
+    assert 'voiceInstructions: VOICE_INSTRUCTIONS' in SCRIPT
+    # Appended to Asisten JUP's own system prompt, never replacing it.
+    assert '[(base.params || {}).system, P.voiceInstructions].filter(Boolean)' in SCRIPT

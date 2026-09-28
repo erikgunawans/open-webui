@@ -61,6 +61,19 @@ export const beginCall = async (steps: CallSteps): Promise<StartedCall | null> =
 	return steps.startCall();
 };
 
+/**
+ * The visible first line of every new call. The voice model's instructions
+ * (`deploy/gcp/sync-voice-model.ts`) answer exactly this line with a greeting by name and a Betawi
+ * pantun, so the call opens with her voice. Change both together.
+ */
+export const CALL_OPENING = 'Halo, saya memulai panggilan.';
+
+/** Only the call the start-call route just made opens with the greeting, never a reopened one. */
+export const opensWithGreeting = (
+	justStarted: string | null | undefined,
+	chatId: string | null | undefined
+): boolean => !!chatId && justStarted === chatId;
+
 /** Whether the call reads the sealed answer by message id rather than the streamed sentences. */
 export const speaksSealedAnswers = (engine: string | null | undefined): boolean =>
 	engine === 'openai';
