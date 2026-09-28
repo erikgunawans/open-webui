@@ -1,0 +1,50 @@
+{
+ "groups": [
+  {
+   "id": "27bf6dea-24fe-4534-bccc-e63390befff1",
+   "name": "Suara — uji",
+   "permissions": {
+    "jup": {
+     "voice": {
+      "call": true
+     }
+    }
+   },
+   "member_count": 1
+  },
+  {
+   "id": "e5657398-c01a-4b16-b3e4-283e4260e3fa",
+   "name": "Ruang Pimpinan — uji",
+   "permissions": {
+    "jup": {
+     "ruang_pimpinan": {
+      "board": {
+       "view": true
+      },
+      "rka": {
+       "view": true
+      },
+      "scopes": {
+       "jup_consolidated": true
+      },
+      "actions": {
+       "assign": true
+      }
+     }
+    }
+   },
+   "member_count": 1
+  }
+ ],
+ "model_grants": [
+  {
+   "id": "3c125c1a-9221-4e3c-b27c-653682488dce",
+   "resource_type": "model",
+   "resource_id": "asisten-jup-suara",
+   "principal_type": "group",
+   "principal_id": "27bf6dea-24fe-4534-bccc-e63390befff1",
+   "permission": "read",
+   "created_at": 1790554186
+  }
+ ]
+}
