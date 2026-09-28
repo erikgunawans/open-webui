@@ -35,7 +35,7 @@ from typing import Any
 ENABLED_ENV = 'JUP_VOICE_ENABLED'
 
 #: Bumped whenever the disclosure text in the call UI changes, so everyone acknowledges it again.
-DISCLOSURE_VERSION = '2026-09-27'
+DISCLOSURE_VERSION = '2026-09-28'  # Google reads answers aloud (#32, D23)
 
 #: The model every voice turn runs on (#27 creates it and forces it).
 VOICE_MODEL_ID = 'asisten-jup-suara'

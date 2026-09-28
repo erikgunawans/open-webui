@@ -122,8 +122,16 @@ describe('the disclosure text (#29)', () => {
 	const id = DISCLOSURE.id.join(' ');
 	const en = DISCLOSURE.en.join(' ');
 
+	it('says Google reads answers aloud, not OpenAI (#32, D23)', () => {
+		expect(id).toMatch(/Google Text-to-Speech/);
+		expect(en).toMatch(/Google Text-to-Speech/);
+		expect(en).not.toMatch(/OpenAI[^.]*read answers aloud/);
+		expect(id).not.toMatch(/OpenAI[^.]*membacakan jawaban/);
+		expect(DISCLOSURE.id.length).toBe(DISCLOSURE.en.length);
+	});
+
 	it('is versioned like the server, so a changed text is acknowledged again', () => {
-		expect(DISCLOSURE_VERSION).toBe('2026-09-27');
+		expect(DISCLOSURE_VERSION).toBe('2026-09-28');
 	});
 
 	it('names OpenAI, the US and up to 30 days (D21), in both languages', () => {

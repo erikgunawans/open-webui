@@ -288,3 +288,13 @@ def test_the_call_ui_holds_the_same_live_disclosure_version() -> None:
     live_ts = (Path(__file__).resolve().parent.parent / 'src' / 'lib' / 'voice' / 'live.ts').read_text(encoding='utf-8')
     ui = re.search(r"export const LIVE_DISCLOSURE_VERSION = '([^']+)';", live_ts).group(1)
     assert ui == voice.LIVE_DISCLOSURE_VERSION
+
+
+def test_the_call_ui_holds_the_same_call_disclosure_version() -> None:
+    """The UI acknowledges the version it shows; if the two drift, every acknowledgement is refused (409)."""
+    import re
+    from pathlib import Path
+
+    call_ts = (Path(__file__).resolve().parent.parent / 'src' / 'lib' / 'voice' / 'call.ts').read_text(encoding='utf-8')
+    ui = re.search(r"export const DISCLOSURE_VERSION = '([^']+)';", call_ts).group(1)
+    assert ui == voice.DISCLOSURE_VERSION
