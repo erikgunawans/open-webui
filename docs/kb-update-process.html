@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Updating the Knowledge Base</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --surface: #ffffff; --ink: #1c1d1f; --muted: #5b5f66; --line: #e2e2de;
+    --a: #0f5f8c; --a-soft: #e6f0f6; --b: #7a4b00; --b-soft: #f7eedf;
+    --warn: #8a1f1f; --warn-soft: #fbeaea; --code: #f0f0ec; --ok: #1d6b3a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141518; --surface: #1c1e22; --ink: #e8e8e6; --muted: #a3a7ae; --line: #2e3137;
+      --a: #7cc0ea; --a-soft: #16293a; --b: #e5b567; --b-soft: #2e2415;
+      --warn: #f0a3a3; --warn-soft: #351b1b; --code: #25282d; --ok: #7fd19c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  main { max-width: 920px; margin: 0 auto; padding: 40px 16px 80px; }
+  h1 { font-size: clamp(1.8rem, 4vw, 2.4rem); line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.01em; }
+  h2 { font-size: 1.4rem; margin: 56px 0 12px; }
+  h3 { font-size: 1.05rem; margin: 0 0 6px; }
+  p { margin: 0 0 12px; }
+  .lede { color: var(--muted); font-size: 1.1rem; margin-bottom: 28px; }
+  code { font: 0.88em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code); padding: 1px 5px; border-radius: 4px; }
+  pre { background: var(--code); padding: 12px 14px; border-radius: 8px; overflow-x: auto; margin: 10px 0 0; }
+  pre code { background: none; padding: 0; font-size: 0.85rem; }
+  .muted { color: var(--muted); }
+
+  .routes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .route { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; border-top: 4px solid var(--c); }
+  .route.a { --c: var(--a); } .route.b { --c: var(--b); }
+  .tag { display: inline-block; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--c); margin-bottom: 4px; }
+  .route dl { margin: 12px 0 0; display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; font-size: 0.92rem; }
+  .route dt { color: var(--muted); }
+  .route dd { margin: 0; }
+
+  .alert { background: var(--warn-soft); border-left: 4px solid var(--warn); border-radius: 8px; padding: 14px 16px; margin: 20px 0; }
+  .alert strong { color: var(--warn); }
+
+  ol.steps { list-style: none; margin: 16px 0 0; padding: 0; counter-reset: s; }
+  ol.steps > li { counter-increment: s; position: relative; padding: 0 0 22px 52px; }
+  ol.steps > li::before {
+    content: counter(s); position: absolute; left: 0; top: 0; width: 34px; height: 34px; border-radius: 50%;
+    background: var(--c); color: var(--surface); font-weight: 700; display: grid; place-items: center; font-size: 0.95rem;
+  }
+  ol.steps > li::after { content: ""; position: absolute; left: 16px; top: 38px; bottom: 4px; width: 2px; background: var(--line); }
+  ol.steps > li:last-child::after { display: none; }
+  ol.steps.a { --c: var(--a); } ol.steps.b { --c: var(--b); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .card ul { margin: 6px 0 0; padding-left: 20px; }
+  .card li { margin: 2px 0; }
+  .ok-badge { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 1px 8px; border-radius: 99px; background: var(--warn-soft); color: var(--warn); margin-left: 6px; vertical-align: 2px; }
+  .opt { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 1px 8px; border-radius: 99px; background: var(--code); color: var(--muted); margin-left: 6px; vertical-align: 2px; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: 0.93rem; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--code); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  .table-wrap { overflow-x: auto; }
+
+  .oks { columns: 2; column-gap: 24px; padding-left: 20px; }
+  footer { margin-top: 56px; color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 16px; }
+
+  @media (max-width: 640px) {
+    .routes { grid-template-columns: 1fr; }
+    .oks { columns: 1; }
+    ol.steps > li { padding-left: 46px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Updating the knowledge base</h1>
+  <p class="lede">How new or changed knowledge reaches Asisten JUP, and who has to do what. There are two routes in, and they never mix.</p>
+
+  <div class="routes">
+    <section class="route a">
+      <span class="tag">Route A</span>
+      <h3>The Strategy KB</h3>
+      <p class="muted">Generated from the <code>~/jup</code> repository.</p>
+      <dl>
+        <dt>Collection</dt><dd>JUP Strategy KB</dd>
+        <dt>Changed by</dt><dd>Erik, by editing <code>~/jup</code></dd>
+        <dt>Gets in by</dt><dd>a sync script</dd>
+        <dt>Decided in</dt><dd>ADR-0011</dd>
+      </dl>
+    </section>
+    <section class="route b">
+      <span class="tag">Route B</span>
+      <h3>Staff contributions</h3>
+      <p class="muted">A document a staff member uploads.</p>
+      <dl>
+        <dt>Collection</dt><dd>JUP Staff Contributions</dd>
+        <dt>Changed by</dt><dd>staff with <code>jup.kb.submit</code>, reviewed by an admin</dd>
+        <dt>Gets in by</dt><dd>approval at <code>/kb-review</code></dd>
+        <dt>Decided in</dt><dd>ADR-0015</dd>
+      </dl>
+    </section>
+  </div>
+
+  <div class="alert">
+    <strong>Never add a file to the JUP Strategy KB by hand in the app.</strong>
+    The sync deletes every file in that collection that it did not put there itself, so a hand-added file disappears on the next run. Nothing warns you when it does. A staff document goes through Route B instead.
+  </div>
+
+  <h2>Route A: change the Strategy KB</h2>
+  <p>The Strategy KB is <strong>generated</strong>. You edit the source in <code>~/jup</code>, never the copy in the app. It holds every <code>kb/*.md</code> except <code>kb/CONTEXT.md</code> (the assistant's operating contract), plus <code>DECISIONS.md</code> and every <code>records/**/*.md</code>.</p>
+
+  <ol class="steps a">
+    <li>
+      <div class="card">
+        <h3>Edit the source in <code>~/jup</code></h3>
+        <ul>
+          <li>Partner state lives in <code>records/engagements/</code>, not in <code>kb/partners.md</code>. Its state table is generated from the records.</li>
+          <li>Never edit inside a <code>&lt;!-- BEGIN generated:... --&gt;</code> region.</li>
+          <li>Do not use a stage-ladder label as a table cell outside a generated region. Prose that names a stage is fine.</li>
+          <li><code>kb/gas.md</code> and <code>kb/governance.md</code> are checked: the "5 mmscfd allocation is not secured" caveat must stay true to the G1 gate assessments. Contradicting it fails, and so does deleting it.</li>
+        </ul>
+      </div>
+    </li>
+    <li>
+      <div class="card">
+        <h3>Regenerate and check</h3>
+        <p class="muted">From <code>~/ent-os-new-jup</code>. Exit 0 is clean, 1 is drift, 2 is a malformed tree.</p>
+<pre><code>uv run --no-sync --only-group dev python -m jup.kb_sync --jup-root ~/jup
+uv run --no-sync --only-group dev python -m jup.kb_sync --jup-root ~/jup --check</code></pre>
+      </div>
+    </li>
+    <li>
+      <div class="card">
+        <h3>Commit and push <code>~/jup</code></h3>
+        <p class="muted">The pre-commit hook refuses a commit that leaves <code>kb/</code> disagreeing with <code>records/</code>. It checks the working tree, so commit everything you edited.</p>
+<pre><code>cd ~/jup &amp;&amp; git add -A &amp;&amp; git commit -m "..." &amp;&amp; git push</code></pre>
+      </div>
+    </li>
+    <li>
+      <div class="card">
+        <h3>Sync into the app <span class="ok-badge">Erik's OK</span></h3>
+        <p class="muted">Needs Erik's signed-in tab open in Chrome: the app is behind IAP, so the script runs its calls inside that tab. Only added or changed files are uploaded; deleted and stale copies are removed.</p>
+<pre><code>bun deploy/gcp/sync-kb.ts --check   # writes nothing
+bun deploy/gcp/sync-kb.ts           # the sync</code></pre>
+      </div>
+    </li>
+    <li>
+      <div class="card">
+        <h3>If a voice file changed, re-sync the voice model <span class="ok-badge">Erik's OK</span></h3>
+        <p class="muted">The voice assistant answers from eight named files and points at them by file id. A changed file comes back under a new id, so re-point the model:</p>
+        <ul>
+          <li><code>kb/</code>: strategy, gas, portfolio, rued, governance, faq</li>
+          <li><code>records/projects/gas-spbg-reactivation.md</code></li>
+          <li><code>records/gate-assessments/gas-spbg-reactivation-g1.md</code></li>
+        </ul>
+<pre><code>bun deploy/gcp/sync-voice-model.ts --dry-run
+bun deploy/gcp/sync-voice-model.ts</code></pre>
+        <p class="muted" style="margin-top:8px">Adding a ninth file is a governance change: it needs a date and Erik's name (ADR-0006).</p>
+      </div>
+    </li>
+    <li>
+      <div class="card">
+        <h3>Sync the records bucket for the dashboard <span class="ok-badge">Erik's OK</span></h3>
+        <p class="muted">The Portfolio dashboard reads <code>gs://jup-ops-records</code>, a copy of <code>~/jup</code>, not a live view. From <code>deploy/gcp</code>:</p>
+<pre><code>./sync-records.sh --check
+./sync-records.sh</code></pre>
+      </div>
+    </li>
+    <li>
+      <div class="card">
+        <h3>The separate Worker assistant <span class="opt">only if needed</span> <span class="ok-badge">Erik's OK</span></h3>
+        <p class="muted">The public-facing strategy Worker keeps its own bundle. In <code>~/jup-kb-assistant-worker</code>:</p>
+<pre><code>bun build-kb-bundle.ts
+wrangler deploy</code></pre>
+      </div>
+    </li>
+    <li>
+      <div class="card">
+        <h3>Verify</h3>
+        <ul>
+          <li><code>sync-kb.ts --check</code> reports no drift.</li>
+          <li>Ask Asisten JUP a question only the new content answers, and check that it cites the file.</li>
+          <li>If a voice file changed, ask the same question in a voice call.</li>
+        </ul>
+      </div>
+    </li>
+  </ol>
+
+  <h2>Route B: a staff member contributes a document</h2>
+  <p><strong>Submitting</strong> needs the group grant <code>jup.kb.submit</code>. Nobody has it by default, the admin role does not include it, and it must be granted exactly as <code>true</code>. <strong>Reviewing</strong> needs the <code>admin</code> role.</p>
+
+  <ol class="steps b">
+    <li>
+      <div class="card">
+        <h3>Submit</h3>
+        <p>The staff member opens <code>/kb-review</code> and uploads the document with a note. It is stored as a <code>pending</code> file, with a SHA-256 digest of its text.</p>
+      </div>
+    </li>
+    <li>
+      <div class="card">
+        <h3>Review</h3>
+        <p>An admin opens the same page, sees the queue and opens the preview.</p>
+      </div>
+    </li>
+    <li>
+      <div class="card">
+        <h3>Approve or reject</h3>
+        <ul>
+          <li><strong>Approve</strong> adds the file to <em>JUP Staff Contributions</em>; the first approval creates that collection. The file is marked <code>approved</code> only after the add succeeds. Approval is refused (409) if the text changed after the preview was opened.</li>
+          <li><strong>Reject</strong> needs a reason. A rejected file cannot be resubmitted; the staff member uploads a corrected copy as a new file.</li>
+        </ul>
+      </div>
+    </li>
+    <li>
+      <div class="card">
+        <h3>Attach, once <span class="ok-badge">Erik's OK</span></h3>
+        <p>Approved contributions reach answers only once <em>JUP Staff Contributions</em> is attached to Asisten JUP's knowledge next to the Strategy KB. This is still pending (ADR-0016 step 5).</p>
+      </div>
+    </li>
+  </ol>
+  <p class="muted">Every submit, approve and reject writes one <code>jup.governance</code> audit line, with ids and the result, never the document, the note or the reason. Known gap: the owner of an approved file can still edit its text; the queue then shows "changed since submitted", but it cannot stop the edit.</p>
+
+  <h2>Quick reference</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>I want to...</th><th>Do this</th></tr></thead>
+      <tbody>
+        <tr><td>Change partner or gate state</td><td>Edit the record in <code>~/jup/records/</code>, regenerate, commit, <code>sync-kb.ts</code></td></tr>
+        <tr><td>Change strategy prose</td><td>Edit <code>~/jup/kb/*.md</code>, check, commit, <code>sync-kb.ts</code></td></tr>
+        <tr><td>Record a decision</td><td>Edit <code>~/jup/DECISIONS.md</code>, commit, <code>sync-kb.ts</code> and <code>sync-records.sh</code></td></tr>
+        <tr><td>Change one of the eight voice files</td><td>As above, then <code>sync-voice-model.ts</code></td></tr>
+        <tr><td>Add a staff document</td><td>Route B at <code>/kb-review</code></td></tr>
+        <tr><td>See whether the app has fallen behind</td><td><code>sync-kb.ts --check</code> and <code>sync-records.sh --check</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Production steps that need Erik's OK every time</h2>
+  <ul class="oks">
+    <li><code>sync-kb.ts</code> (without <code>--check</code>)</li>
+    <li><code>sync-voice-model.ts</code> (without <code>--dry-run</code>)</li>
+    <li><code>sync-records.sh</code> (without <code>--check</code>)</li>
+    <li><code>wrangler deploy</code> of the Worker</li>
+    <li>Attaching JUP Staff Contributions to Asisten JUP</li>
+    <li>Granting <code>jup.kb.submit</code> to a group</li>
+  </ul>
+
+  <footer>Source: <code>docs/kb-update-process.md</code> in ent-os-new-jup. Based on ADR-0006, ADR-0011, ADR-0015 and the scripts in <code>deploy/gcp/</code>.</footer>
+</main>
+</body>
+</html>
