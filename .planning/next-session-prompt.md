@@ -1,3 +1,34 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-28-v31)
+
+> Prepended by /wrap 2026-09-28 (checkpoint 2026-09-28-v31). Supersedes v28's anchor and its "do next"; the v28 and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-28-v31).
+Anchor: `origin/main` at `7bf5f94c5` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-28-v31`). Verify with `git log --oneline 7bf5f94c5..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** voice is LIVE for Erik only on `ent-os-00055-bjk` (image `831c4b5ff`, rollback `ent-os-00054-x2k`): governed call (OpenAI STT `gpt-4o-transcribe` with `WHISPER_LANGUAGE=id` → Asisten JUP — Suara, 8 files → OpenAI TTS `nova`), greeting + Betawi pantun on a new call, key from Secret Manager (trimmed). Erik signed **D23** (speak with Google Chirp3-HD `id-ID-Chirp3-HD-Kore`) and **D24 / ADR-0018** (GPT-Live as an opt-in second call mode). Sidebar spacing live. Backend 1473+ / 22 skipped, vitest 165.
+
+**Do next, in order:**
+1. **`/implement #32` (Kore, D23).** Each step its own OK: enable Cloud Text-to-Speech API on `jup-ops` (it is NOT enabled; samples were made via `story-maker-demo`); a Google branch in the sealed speech path (`jup_voice.speech_body` → `routers/audio.py:speech`) using the Cloud Run service identity, same boundary (message id, sealed only, `voice_tts`), tests + presence + VENDOR-PATCHES; deploy; audio config switch (DB write, before-values).
+2. **#31 acceptance call** with Erik after #32 (or before, if he wants): verify from `jup.governance` logs + `/api/v1/chats/<id>` that transcripts are Indonesian, the always-Indonesian / ask-again rules hold, the greeting + pantun plays, answers stay in the 8 files. Then close #31 and set V1/V2 `live` in the ledger.
+3. **#33 GPT-Live (ADR-0018, D24):** FIRST re-check OpenAI's current GPT-Live API (sessions, ephemeral creds, tool/delegation events, any verbatim mode), then split into TDD tickets.
+4. **Records bucket sync for D23/D24** (`~/jup` `3d09c24`): `sync-records.sh --check` then sync, its own OK, before-copy of the bucket's DECISIONS.md.
+5. **Routine:** A1's first run (Mon 2026-09-28 09:00 WIB) → `success` at `/api/v1/automations/c516815a-1dfb-4d5a-ad7d-3b8e23618eaf/runs`.
+6. Carried: ADR-0016 step 5 (six pending contributors → "Kontributor Pengetahuan", then "JUP Staff Contributions" attached to Asisten JUP); home-line wording; gate follow-ups (raise, don't build); 2,238 empty id-ID keys; CI Docker/PyPI red.
+
+**Constraints to honor** (new, plus the blocks below):
+- Every deploy, DB write, API enablement and secret write needs Erik's per-change OK; save before-values to `.planning/` first.
+- The vendor's audio key rows are DB-seeded and win over env vars: never put the OpenAI key in the DB; `jup_voice.openai_api_key` swaps it in, only for `https://api.openai.com`. Secrets can carry hidden trailing newlines (memory: secret-trailing-newline-hidden-by-shell).
+- `WHISPER_LANGUAGE` applies to every STT engine. The `voice_stt` audit logs the *requested* language from metadata, so it shows `None` even though `id` is sent.
+- The call opening line `CALL_OPENING` in `src/lib/voice/call.ts` and `sync-voice-model.ts` must match (test pins it). Voice model changes go through `sync-voice-model.ts` (dry-run first); Asisten JUP's own `params.system` is empty, so the voice instructions are the only stored prompt.
+- `deploy.sh` refuses a dirty tree: write logs to `$TMPDIR`, not `.planning/`, and commit before-values before deploying.
+- After a deploy, the browser may hold the old HTML shell: `fetch('/', {cache:'reload'})` then navigate. Interceptor: use `interceptor tab new https://non-jupe.jup.co.id/`; Erik's tab often holds `localStorage.token` absent (cookie auth works: use `credentials:'include'`). Don't front a tab while Erik presents.
+- Run BOTH CI replays before pushing: frontend (format → i18n:parse → clean tree) and backend (`ruff format --check`, `ruff check --select=F…`, pytest).
+- Local disk swings to ~1-3 GB free; check `df -h /` before builds.
+
+**Open items waiting on Erik:** OK for each #32 step; the #31 call; the records-bucket sync; delete or keep voice test chats `742fb5e4…`, `7d55a356…`, `01432ffc…` (plus the older list below); home-line wording; approving the pending contributors; everything in older blocks' open items.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-28-v28)
 
 > Prepended by /wrap 2026-09-28 (checkpoint 2026-09-28-v28). Supersedes v26's anchor and its "do next"; the v25 and older blocks' constraints (below) still hold unless noted.
