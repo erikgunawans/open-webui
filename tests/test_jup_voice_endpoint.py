@@ -44,8 +44,9 @@ class _Directory:
     def __init__(self) -> None:
         self.groups: dict[str, list[SimpleNamespace]] = {}
 
-    def grant(self, user_id: str, value: Any = True) -> None:
-        self.groups[user_id] = [SimpleNamespace(permissions={'jup': {'voice': {'call': value}}})]
+    def grant(self, user_id: str, value: Any = True, *, live: Any = None) -> None:
+        grants = {'call': value} if live is None else {'call': value, 'live': live}
+        self.groups[user_id] = [SimpleNamespace(permissions={'jup': {'voice': grants}})]
 
     async def get_groups_by_member_id(self, user_id: str, db=None) -> list[SimpleNamespace]:
         return list(self.groups.get(user_id, []))
@@ -158,6 +159,7 @@ def test_capabilities_report_grant_and_acknowledgement(client, directory) -> Non
         'granted': True,
         'acknowledged': False,
         'disclosure_version': voice.DISCLOSURE_VERSION,
+        'live': {'granted': False, 'acknowledged': False, 'disclosure_version': voice.LIVE_DISCLOSURE_VERSION},
     }
     assert _ack(client).status_code == 200
     assert client.get(f'{BASE}/capabilities').json()['acknowledged'] is True
@@ -356,3 +358,76 @@ def test_no_server_secret_refuses_instead_of_failing(client, directory) -> None:
     for response in (_ack(client), client.post(f'{BASE}/calls')):
         assert response.status_code == 503
         assert response.json()['detail']['code'] == 'voice_misconfigured'
+
+
+# --- GPT-Live: grant and acknowledgement (#34, ADR-0018) --------------------------------
+
+
+def _live_ack(client, version: str | None = None) -> Any:
+    from jup import voice
+
+    return client.post(f'{BASE}/live/acknowledge', json={'version': version or voice.LIVE_DISCLOSURE_VERSION})
+
+
+def test_live_capabilities_follow_the_live_grant_and_acknowledgement(client, directory) -> None:
+    directory.grant(ERIK, live=True)
+    _as(client, 'admin')
+    assert client.get(f'{BASE}/capabilities').json()['live']['granted'] is True
+    assert client.get(f'{BASE}/capabilities').json()['live']['acknowledged'] is False
+    assert _live_ack(client).status_code == 200
+    assert client.get(f'{BASE}/capabilities').json()['live']['acknowledged'] is True
+
+
+def test_live_is_off_when_the_switch_is_off(client, directory, monkeypatch) -> None:
+    monkeypatch.setenv('JUP_VOICE_ENABLED', 'false')
+    directory.grant(ERIK, live=True)
+    _as(client, 'admin')
+    assert client.get(f'{BASE}/capabilities').json()['live']['granted'] is False
+    response = _live_ack(client)
+    assert response.status_code == 503
+
+
+def test_the_call_grant_alone_does_not_open_live(client, directory, store) -> None:
+    directory.grant(ERIK)
+    _as(client, 'admin')
+    assert client.get(f'{BASE}/capabilities').json()['live']['granted'] is False
+    response = _live_ack(client)
+    assert response.status_code == 403 and response.json()['detail']['code'] == 'voice_live_not_granted'
+    assert ERIK not in store.info
+
+
+def test_the_live_grant_without_the_call_grant_is_refused(client, directory) -> None:
+    directory.grant(ERIK, False, live=True)
+    _as(client, 'admin')
+    response = _live_ack(client)
+    assert response.status_code == 403 and response.json()['detail']['code'] == 'voice_not_granted'
+
+
+def test_acknowledging_live_stores_its_own_signed_record_and_audits_it(client, directory, store, caplog) -> None:
+    from jup import voice
+
+    directory.grant(ERIK, live=True)
+    _as(client, 'admin')
+    assert _live_ack(client).json() == {'acknowledged': True, 'disclosure_version': voice.LIVE_DISCLOSURE_VERSION}
+    assert voice.live_acknowledged(store.info[ERIK], ERIK, secret=SECRET) is True
+    assert voice.ACK_KEY not in store.info[ERIK]
+    lines = _audit(caplog, 'voice_live_ack')
+    assert [{k: v for k, v in line.items() if k != 'ts'} for line in lines] == [
+        {'event': 'voice_live_ack', 'user': ERIK, 'version': voice.LIVE_DISCLOSURE_VERSION}
+    ]
+
+
+def test_acknowledging_an_old_live_version_is_refused(client, directory, store) -> None:
+    directory.grant(ERIK, live=True)
+    _as(client, 'admin')
+    response = _live_ack(client, '2000-01-01')
+    assert response.status_code == 409 and response.json()['detail']['code'] == 'voice_live_disclosure_changed'
+    assert ERIK not in store.info
+
+
+def test_the_call_acknowledgement_does_not_acknowledge_live(client, directory) -> None:
+    directory.grant(ERIK, live=True)
+    _as(client, 'admin')
+    assert _ack(client).status_code == 200
+    body = client.get(f'{BASE}/capabilities').json()
+    assert body['acknowledged'] is True and body['live']['acknowledged'] is False

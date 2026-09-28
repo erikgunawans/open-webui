@@ -30,6 +30,14 @@ export const acknowledgeVoice = async (token: string, version: string): Promise<
 	});
 };
 
+/** Acknowledges the GPT-Live disclosure (#34), separately from the call's. */
+export const acknowledgeVoiceLive = async (token: string, version: string): Promise<void> => {
+	await request(token, `${WEBUI_API_BASE_URL}/voice/live/acknowledge`, {
+		method: 'POST',
+		body: JSON.stringify({ version })
+	});
+};
+
 export const startVoiceCall = async (token: string): Promise<StartedCall> =>
 	(await request(token, `${WEBUI_API_BASE_URL}/voice/calls`, { method: 'POST' })).json();
 

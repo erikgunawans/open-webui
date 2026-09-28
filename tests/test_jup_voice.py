@@ -212,3 +212,79 @@ def test_an_unsealed_or_forged_answer_does_not_verify(message) -> None:
 
 def test_a_seal_needs_the_server_secret() -> None:
     assert voice.answer_sealed(_sealed(), CHAT, 'a-1', secret='') is False
+
+
+# --- GPT-Live: its own grant and acknowledgement (#34, ADR-0018) -------------------------
+
+LIVE = {'jup': {'voice': {'call': True, 'live': True}}}
+
+
+def test_the_live_grant_is_denied_by_default() -> None:
+    assert voice.DEFAULT_PERMISSIONS['jup']['voice']['live'] is False
+    assert voice.may_go_live(voice.DEFAULT_PERMISSIONS) is False
+    assert voice.may_go_live({}) is False
+    assert voice.may_go_live(None) is False
+
+
+def test_the_live_grant_needs_an_exact_boolean() -> None:
+    assert voice.may_go_live(LIVE) is True
+    for value in ('true', 1, None):
+        assert voice.may_go_live({'jup': {'voice': {'call': True, 'live': value}}}) is False
+
+
+def test_the_call_grant_does_not_imply_live() -> None:
+    assert voice.may_go_live({'jup': {'voice': {'call': True}}}) is False
+
+
+def test_live_also_needs_the_call_grant_because_it_runs_in_a_voice_chat() -> None:
+    assert voice.may_go_live({'jup': {'voice': {'call': False, 'live': True}}}) is False
+
+
+def _info_with_live_ack(user_id: str = ERIK, version: str = voice.LIVE_DISCLOSURE_VERSION) -> dict:
+    return {voice.LIVE_ACK_KEY: voice.live_acknowledgement(user_id, version, at=1_790_000_000, secret=SECRET)}
+
+
+def test_a_live_acknowledgement_counts_for_its_user_and_version() -> None:
+    assert voice.live_acknowledged(_info_with_live_ack(), ERIK, secret=SECRET) is True
+
+
+def test_a_live_acknowledgement_of_another_version_or_user_does_not_count() -> None:
+    assert voice.live_acknowledged(_info_with_live_ack(version='2000-01-01'), ERIK, secret=SECRET) is False
+    assert voice.live_acknowledged(_info_with_live_ack(), OTHER, secret=SECRET) is False
+
+
+def test_the_call_acknowledgement_is_not_a_live_acknowledgement() -> None:
+    """Same user, same version string, same time: the signature still differs, so it cannot be replayed."""
+    call = voice.acknowledgement(ERIK, voice.LIVE_DISCLOSURE_VERSION, at=1_790_000_000, secret=SECRET)
+    assert voice.live_acknowledged({voice.LIVE_ACK_KEY: call}, ERIK, secret=SECRET) is False
+    live = voice.live_acknowledgement(ERIK, voice.DISCLOSURE_VERSION, at=1_790_000_000, secret=SECRET)
+    assert voice.acknowledged({voice.ACK_KEY: live}, ERIK, secret=SECRET) is False
+
+
+def test_a_forged_live_acknowledgement_does_not_count() -> None:
+    forged = {voice.LIVE_ACK_KEY: {'version': voice.LIVE_DISCLOSURE_VERSION, 'at': 1, 'sig': 'a' * 64}}
+    assert voice.live_acknowledged(forged, ERIK, secret=SECRET) is False
+
+
+def test_the_live_acknowledgement_lives_under_its_own_key() -> None:
+    assert voice.LIVE_ACK_KEY != voice.ACK_KEY
+
+
+def test_live_access_refusals_in_order() -> None:
+    off = voice.live_refusal(switched_on=False, call_granted=True, live_granted=True)
+    assert off is not None and off.code == 'voice_disabled'
+    no_call = voice.live_refusal(switched_on=True, call_granted=False, live_granted=True)
+    assert no_call is not None and no_call.code == 'voice_not_granted'
+    no_live = voice.live_refusal(switched_on=True, call_granted=True, live_granted=False)
+    assert no_live is not None and (no_live.status, no_live.code) == (403, 'voice_live_not_granted')
+    assert voice.live_refusal(switched_on=True, call_granted=True, live_granted=True) is None
+
+
+def test_the_call_ui_holds_the_same_live_disclosure_version() -> None:
+    """The UI asks for the version it shows; if the two drift, every acknowledgement is refused (409)."""
+    import re
+    from pathlib import Path
+
+    live_ts = (Path(__file__).resolve().parent.parent / 'src' / 'lib' / 'voice' / 'live.ts').read_text(encoding='utf-8')
+    ui = re.search(r"export const LIVE_DISCLOSURE_VERSION = '([^']+)';", live_ts).group(1)
+    assert ui == voice.LIVE_DISCLOSURE_VERSION

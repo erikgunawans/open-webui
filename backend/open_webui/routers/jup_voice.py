@@ -4,6 +4,8 @@ voice chat (ADR-0017, spec #25).
 - **Capabilities** tell the call UI whether to show the call button and the disclosure.
 - **Acknowledge** stores a signed record of the current disclosure version in `user.info` and
   writes a `voice_ack` audit line.
+- **Acknowledge GPT-Live** (#34, ADR-0018) stores a separate signed record of the GPT-Live
+  disclosure, for callers with both `jup.voice.call` and `jup.voice.live`, and writes `voice_live_ack`.
 - **Start a call** needs the switch, an exact boolean `jup.voice.call` grant from the caller's
   groups (admins included) and a genuine acknowledgement of the current version. It creates a chat
   on the voice model whose `meta` carries a mark signed over the chat id and the caller. Each
@@ -175,13 +177,24 @@ async def get_capabilities(
             'granted': False,
             'acknowledged': False,
             'disclosure_version': voice.DISCLOSURE_VERSION,
+            'live': _live_capabilities(granted=False, acknowledged=False),
         }
+    info = await store.user_info(user.id)
     return {
         'enabled': True,
         'granted': voice.may_call(permissions),
-        'acknowledged': voice.acknowledged(await store.user_info(user.id), user.id, secret=secret),
+        'acknowledged': voice.acknowledged(info, user.id, secret=secret),
         'disclosure_version': voice.DISCLOSURE_VERSION,
+        'live': _live_capabilities(
+            granted=voice.may_go_live(permissions),
+            acknowledged=voice.live_acknowledged(info, user.id, secret=secret),
+        ),
     }
+
+
+def _live_capabilities(*, granted: bool, acknowledged: bool) -> dict[str, Any]:
+    """GPT-Live's own grant and acknowledgement (ADR-0018); the call UI offers the mode only when granted."""
+    return {'granted': granted, 'acknowledged': acknowledged, 'disclosure_version': voice.LIVE_DISCLOSURE_VERSION}
 
 
 @router.post('/acknowledge')
@@ -204,6 +217,34 @@ async def acknowledge(
     await store.set_user_info_key(user.id, voice.ACK_KEY, record)
     audit('voice_ack', user=user.id, version=voice.DISCLOSURE_VERSION)
     return {'acknowledged': True, 'disclosure_version': voice.DISCLOSURE_VERSION}
+
+
+@router.post('/live/acknowledge')
+async def acknowledge_live(
+    form: AcknowledgeForm,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(voice_permissions),
+    store: VoiceStore = Depends(voice_store),
+    secret: str = Depends(voice_secret),
+) -> dict[str, Any]:
+    """Stores the caller's acknowledgement of the GPT-Live disclosure (#34), apart from the call's."""
+    refusal = voice.live_refusal(
+        switched_on=voice.enabled(),
+        call_granted=voice.may_call(permissions),
+        live_granted=voice.may_go_live(permissions),
+    )
+    if refusal is not None:
+        raise _refuse(refusal)
+    if not secret:
+        raise _refuse(_MISCONFIGURED)
+    if form.version != voice.LIVE_DISCLOSURE_VERSION:
+        raise _refuse(
+            voice.Refusal(409, 'voice_live_disclosure_changed', 'The GPT-Live disclosure has changed. Read it again.')
+        )
+    record = voice.live_acknowledgement(user.id, voice.LIVE_DISCLOSURE_VERSION, at=int(time.time()), secret=secret)
+    await store.set_user_info_key(user.id, voice.LIVE_ACK_KEY, record)
+    audit('voice_live_ack', user=user.id, version=voice.LIVE_DISCLOSURE_VERSION)
+    return {'acknowledged': True, 'disclosure_version': voice.LIVE_DISCLOSURE_VERSION}
 
 
 @router.post('/calls')

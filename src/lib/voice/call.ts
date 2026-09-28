@@ -1,3 +1,5 @@
+import type { LiveCapabilities } from './live';
+
 /**
  * The voice call a director starts (#29, ADR-0017).
  *
@@ -30,6 +32,8 @@ export type VoiceCapabilities = {
 	granted: boolean;
 	acknowledged: boolean;
 	disclosure_version: string;
+	/** GPT-Live's own grant and acknowledgement (#34); absent from a server older than it. */
+	live?: LiveCapabilities;
 };
 
 export type CallButton = 'hidden' | 'disclose' | 'call';

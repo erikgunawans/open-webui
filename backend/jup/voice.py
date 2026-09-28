@@ -14,6 +14,10 @@ A third mark seals each answer a voice turn wrote (#28). A chat's owner can edit
 or add one through the chat API, so OpenAI speech reads an answer only when its content still
 matches the seal written, server-side, as the turn finished.
 
+GPT-Live (ADR-0018, #34) is a second call mode with its own grant, `jup.voice.live`, and its own
+acknowledgement under its own key and version, signed with a different tag so neither
+acknowledgement can stand in for the other.
+
 Only the start-call route creates voice chats; everything that treats a chat as voice asks
 `is_voice_chat`, never the raw meta.
 """
@@ -36,9 +40,13 @@ DISCLOSURE_VERSION = '2026-09-27'
 #: The model every voice turn runs on (#27 creates it and forces it).
 VOICE_MODEL_ID = 'asisten-jup-suara'
 
-DEFAULT_PERMISSIONS: dict[str, Any] = {'jup': {'voice': {'call': False}}}
+#: The GPT-Live disclosure's version (ADR-0018); bumped with its text in the call UI.
+LIVE_DISCLOSURE_VERSION = '2026-09-28'
+
+DEFAULT_PERMISSIONS: dict[str, Any] = {'jup': {'voice': {'call': False, 'live': False}}}
 
 ACK_KEY = 'jup_voice_ack'
+LIVE_ACK_KEY = 'jup_voice_live_ack'
 CHAT_KEY = 'jup_voice'
 #: In `message.meta` of an answer a voice turn wrote: a seal over the chat, the message and its
 #: content. `meta`, because the vendor's `chat_message` table keeps only its own columns.
@@ -72,6 +80,18 @@ def may_call(permissions: Any) -> bool:
         return False
 
 
+def may_go_live(permissions: Any) -> bool:
+    """True only for exact boolean `jup.voice.live` and `jup.voice.call` grants.
+
+    Live runs inside a voice chat, which only the call grant opens; the call grant alone does not
+    imply live (ADR-0018).
+    """
+    try:
+        return may_call(permissions) and permissions['jup']['voice']['live'] is True
+    except (KeyError, TypeError):
+        return False
+
+
 def access_refusal(*, switched_on: bool, granted: bool) -> Refusal | None:
     """Why this user may not use voice at all: the switch, then the grant."""
     if not switched_on:
@@ -86,6 +106,14 @@ def start_refusal(*, switched_on: bool, granted: bool, acknowledged: bool) -> Re
     refusal = access_refusal(switched_on=switched_on, granted=granted)
     if refusal is None and not acknowledged:
         refusal = Refusal(409, 'voice_ack_required', 'Acknowledge the voice disclosure before starting a call.')
+    return refusal
+
+
+def live_refusal(*, switched_on: bool, call_granted: bool, live_granted: bool) -> Refusal | None:
+    """Why this user may not use GPT-Live: the switch, the call grant, then the live grant."""
+    refusal = access_refusal(switched_on=switched_on, granted=call_granted)
+    if refusal is None and not live_granted:
+        refusal = Refusal(403, 'voice_live_not_granted', 'This account has no access to GPT-Live calls.')
     return refusal
 
 
@@ -123,6 +151,19 @@ def acknowledged(info: Any, user_id: str, *, secret: str, version: str = DISCLOS
     if not isinstance(record, dict) or record.get('version') != version:
         return False
     return _matches(record.get('sig'), secret, 'ack', user_id, version, record.get('at'))
+
+
+def live_acknowledgement(user_id: str, version: str, *, at: int, secret: str) -> dict[str, Any]:
+    """The record stored under `user.info[LIVE_ACK_KEY]`."""
+    return {'version': version, 'at': at, 'sig': _sign(secret, 'live_ack', user_id, version, at)}
+
+
+def live_acknowledged(info: Any, user_id: str, *, secret: str, version: str = LIVE_DISCLOSURE_VERSION) -> bool:
+    """True when `info` holds this user's genuine acknowledgement of the GPT-Live disclosure `version`."""
+    record = info.get(LIVE_ACK_KEY) if isinstance(info, dict) else None
+    if not isinstance(record, dict) or record.get('version') != version:
+        return False
+    return _matches(record.get('sig'), secret, 'live_ack', user_id, version, record.get('at'))
 
 
 def voice_mark(chat_id: str, user_id: str, *, at: int, secret: str) -> dict[str, Any]:
