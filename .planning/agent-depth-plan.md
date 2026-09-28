@@ -38,8 +38,8 @@ design. The sandbox work for terminal and browser is needed on either path.
 | A5  | MCP tool servers                                        | live    | MCP                                | —                                            |
 | V1  | Voice boundary on the server (ADR-0017)                 | in-progress | voice (holaOS has none)        | live 00055 for Erik; #31 acceptance call     |
 | V2  | Voice call UI, disclosure and voice chats               | in-progress | voice                          | live (greeting + pantun); #31 acceptance     |
-| V3  | Voice speaks with Google Chirp3-HD Kore (D23)           | ready   | voice                              | #32                                          |
-| V4  | GPT-Live as an opt-in call mode (ADR-0018, D24)         | planned | voice                              | #33; re-check OpenAI's GPT-Live API first    |
+| V3  | Voice speaks with Google Chirp3-HD Kore (D23)           | live    | voice                              | live 00057; #32 closes with the #31 call     |
+| V4  | GPT-Live as an opt-in call mode (ADR-0018, D24)         | in-progress | voice                              | UI live 00058, Erik granted; #38 first call  |
 | E2  | Sandbox host: private VM, gVisor containers, egress proxy | parked  | the fence for E3 and E4            | Erik deferred 2026-09-26; reopens it         |
 | E3  | Terminal via Open Terminal in the sandbox, admin-only   | planned | terminal, files                    | E1, E2, E5                                   |
 | E4  | Browser automation via Playwright MCP in the sandbox    | planned | browser                            | A5, E2, E5                                   |
