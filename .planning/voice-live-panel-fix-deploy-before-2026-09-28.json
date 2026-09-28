@@ -1,0 +1,9 @@
+{
+ "captured_at": "2026-09-28T14:09:58.653Z",
+ "revision": "ent-os-00058-s7t",
+ "percent": 100,
+ "image": "asia-southeast2-docker.pkg.dev/jup-ops/ent-os/ent-os:92b4f0e18",
+ "timeoutSeconds": 3600,
+ "rollback": "ent-os-00058-s7t",
+ "deploying": "87f6df356 (GPT-Live panel CSS fix)"
+}
