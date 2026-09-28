@@ -4,13 +4,13 @@ How new or changed knowledge reaches Asisten JUP, and who has to do what.
 
 There are **two routes in**, and they never mix:
 
-| | Route A: the Strategy KB | Route B: staff contributions |
-|---|---|---|
-| Collection in the app | **JUP Strategy KB** | **JUP Staff Contributions** |
-| Source of truth | the `~/jup` repository | a file a staff member uploads |
-| Who changes it | Erik (or whoever edits `~/jup`) | staff with the `jup.kb.submit` grant, then an admin reviews it |
-| How it gets in | a script syncs `~/jup` into the app | approved in the review queue at `/kb-review` |
-| Decided in | ADR-0011 | ADR-0015 |
+|                       | Route A: the Strategy KB            | Route B: staff contributions                                   |
+| --------------------- | ----------------------------------- | -------------------------------------------------------------- |
+| Collection in the app | **JUP Strategy KB**                 | **JUP Staff Contributions**                                    |
+| Source of truth       | the `~/jup` repository              | a file a staff member uploads                                  |
+| Who changes it        | Erik (or whoever edits `~/jup`)     | staff with the `jup.kb.submit` grant, then an admin reviews it |
+| How it gets in        | a script syncs `~/jup` into the app | approved in the review queue at `/kb-review`                   |
+| Decided in            | ADR-0011                            | ADR-0015                                                       |
 
 > **Never add a file to the JUP Strategy KB by hand in the app.** The sync deletes every file in
 > that collection that it did not put there itself, so a hand-added file disappears on the next
@@ -162,14 +162,14 @@ The queue then shows "changed since submitted": it detects the edit but cannot s
 
 ## Quick reference
 
-| I want to... | Do this |
-|---|---|
-| Change partner or gate state | edit the record in `~/jup/records/`, regenerate, commit, `sync-kb.ts` |
-| Change strategy prose | edit `~/jup/kb/*.md`, check, commit, `sync-kb.ts` |
-| Record a decision | edit `~/jup/DECISIONS.md`, commit, `sync-kb.ts` (and `sync-records.sh`) |
-| Change one of the eight voice files | as above, then `sync-voice-model.ts` |
-| Add a staff document | Route B at `/kb-review` |
-| See whether the app has fallen behind | `sync-kb.ts --check` and `sync-records.sh --check` |
+| I want to...                          | Do this                                                                 |
+| ------------------------------------- | ----------------------------------------------------------------------- |
+| Change partner or gate state          | edit the record in `~/jup/records/`, regenerate, commit, `sync-kb.ts`   |
+| Change strategy prose                 | edit `~/jup/kb/*.md`, check, commit, `sync-kb.ts`                       |
+| Record a decision                     | edit `~/jup/DECISIONS.md`, commit, `sync-kb.ts` (and `sync-records.sh`) |
+| Change one of the eight voice files   | as above, then `sync-voice-model.ts`                                    |
+| Add a staff document                  | Route B at `/kb-review`                                                 |
+| See whether the app has fallen behind | `sync-kb.ts --check` and `sync-records.sh --check`                      |
 
 ## Production steps that need Erik's OK every time
 
