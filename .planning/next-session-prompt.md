@@ -1,3 +1,31 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-29-v35)
+
+> Prepended by /wrap 2026-09-29 (checkpoint 2026-09-29-v35). Supersedes v34's anchor and its "do next"; v34's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-29-v35).
+Anchor: `origin/main` at `fdaea6828` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-29-v35`). Verify with `git log --oneline fdaea6828..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** 🔴 **None-JUPe sign-in is DOWN**: billing on jup-ops was disabled 05:43 WIB 2026-09-29 and is enabled again, but the IAP sign-in service `iap-gcip-hosted-ui-ent-os-backend-jup` (asia-southeast2) answers 503 "not available yet" to every request (still at 07:33 WIB). ent-os itself is up on `ent-os-00059-d6b`. O1 (Word drafts on the JUP templates) #44 + #45 are built and pushed, not deployed. D25 (Notion, read-only, admin-only) signed. Document AI + Vertex AI enabled on jup-ops; the in-region drafting model is `gemini-2.5-flash` in asia-southeast1. Backend 1633 / 22 skipped.
+
+**Do next, in order:**
+1. **Restore sign-in.** First `curl -s -o /dev/null -w '%{http_code}' https://iap-gcip-hosted-ui-ent-os-backend-jup-uit4bfhauq-et.a.run.app/` — if 200, it recovered on its own; confirm `https://non-jupe.jup.co.id/` loads in Interceptor. If still 503 and Erik has OK'd it: save `gcloud run services describe … --format=yaml` to `.planning/`, then `gcloud run services update iap-gcip-hosted-ui-ent-os-backend-jup --region asia-southeast2 --project jup-ops --update-labels restarted=2026-09-29` (label only; NEVER touch IAP/ingress/invoker — memory `cloud-run-iap-toggle-breaks-lb-iap`), then prove the page loads. Ask Erik what the billing account showed.
+2. **Voice UI + logo (Erik's `/ui-ux-pro-max` request):** improve the GPT-Live panel / voice call UI and enlarge the top-left None-JUPe lockup with more spacing. Look at it live first (Interceptor, guard `location.host`; do not start a call — it creates real chats; the mode-choice dialog can be opened and cancelled). Files: `src/lib/components/jup/LiveCallPanel.svelte`, `VoiceModeChoice.svelte`, `VoiceDisclosure.svelte`, `LiveDisclosure.svelte`, CSS `src/jup-skin.css` (~L355-640; vendor CallOverlay only via jup-skin classes), `src/lib/components/layout/Sidebar/NoneJupeLockup.svelte` (32px mark, 19px wordmark) + the header row in `Sidebar.svelte` ~L1258. Measure contrast/spacing; deploy needs Erik's OK.
+3. **#46 O1 go-live** (each its own OK): check CI green on `fdaea6828`; deploy; `bun deploy/gcp/sync-tools.ts --check` then sync (`jup_documents` arrives admin-only); verify the tool's JSON schema for `blocks` (array of objects) in the live tool spec; grant all staff (DB write, before-value first); live: notulen + memo keputusan open in Word with JUP styles, Draf, INTERNAL; TERBATAS kept; PUBLIK refused; second account 404 on the file; audit line.
+4. **#40 Notion tools** (`jup.notion` + `tools/notion.py`, TDD, admin gate in code, token trimmed) — nothing needed from Erik to build.
+5. **Contract KB Graph proof** once `none-jupe-graph-secret` exists (v34 block item 1 lists the steps); then plan the pilot (OCR `OCR_PROCESSOR` asia-southeast1, drafting `gemini-2.5-flash` asia-southeast1).
+6. Carried: #38 first GPT-Live call; Kore/#31 acceptance call; ADR-0016 step 5; home-line wording; 2,238 empty id-ID keys; CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- Never import `open_webui` (config) outside pytest to inspect something — it can wipe tracked `static/` (memory `config-import-wipes-static-dir`). Use `../.venv/bin/python` or `uv run --only-group dev`; plain `uv run` now tries to rebuild the project (npm build) after the lock change.
+- Office output rules live in code: status always Draf; PUBLIK refused; a caller `floor` only raises; the tool wrapper never passes a floor (the contract/perkara tools will). Surat Resmi is deliberately excluded.
+- Notion (D25): read-only, admin-only checked in code, never stored, no contracts/perkara/personal data; token only via Erik's own Terminal.
+- Interceptor can drift to another tab (it drove `localhost:8787`): read `location.host` before every mutating step.
+- Check `df -h /` and swap before builds; the disk fell to 168 MB this session.
+
+**Open items waiting on Erik:** 🔴 why billing was disabled + OK for the sign-in revision; confirm the two office rules (always Draf; minimum classification); OK to sync D25 to the records bucket; create the Notion internal integration (Read content only) + store `notion-integration-token`; JUP IT per-site grant + `none-jupe-graph-secret`; Legal: Pasal 56 basis for Singapore OCR/drafting, card reviewer(s) + weekly capacity; restart the Mac (swap); the #38 and Kore/#31 calls; everything in older blocks' open items.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-29-v34)
 
 > Prepended by /wrap 2026-09-29 (checkpoint 2026-09-29-v34). Supersedes v33's anchor and its "do next"; v33's and older blocks' constraints still hold unless noted.

@@ -47,7 +47,7 @@ design. The sandbox work for terminal and browser is needed on either path.
 | E6  | Skill proposals: agent drafts, admin approves, sync     | planned | self-improving skills              | E1                                           |
 | E7  | Messaging gateway (Telegram first, then WhatsApp)       | planned | chat channels                      | ADR-0012 amendment, D-decision per channel   |
 | I1  | Integrations via MCP (Notion first)                     | ready   | integrations                       | D25 signed; #39 (#40-#42); token from Erik   |
-| O1  | Office output: Word documents (.docx) in the JUP template | ready   | docs (holaOS: `doc-coauthoring` skill + bash) | all staff + JUP Template 2.0 (Erik 09-29)    |
+| O1  | Office output: Word documents (.docx) in the JUP template | in-progress | docs (holaOS: `doc-coauthoring` skill + bash) | #44 #45 done; #46 deploy + live check      |
 | O2  | Office output: spreadsheets (.xlsx)                      | planned | sheets (holaOS: `xlsx` skill + bash) | O1 (shared file path)                        |
 | O3  | Office output: slide decks (.pptx) in the JUP template   | planned | slides (holaOS: `pptx` skill + bash) | O1; deck = JUP Template v1.5-r2              |
 | X1  | Hermes as an admin-only lab runtime                     | parked  | runtime experiments                | Erik reopens it                              |
