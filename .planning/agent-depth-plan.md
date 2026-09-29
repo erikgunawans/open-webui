@@ -229,7 +229,8 @@ there is no code sandbox to build and no new egress, hence no D-decision under D
     The model picks one of the 17 types (memo keputusan, notulen, SOP, …); the catalogue
     `Daftar-Induk-Template.csv` gives each type's code, group and owner.
   - **Classification and status** (`Panduan-Klasifikasi-Dokumen-JUP.md`): PUBLIK / INTERNAL /
-    TERBATAS / RAHASIA in the footer, default INTERNAL. A generated file is always status **Draf**
+    TERBATAS / RAHASIA in the footer, default INTERNAL (both rules below confirmed by Erik
+    2026-09-29). A generated file is always status **Draf**
     (the template says status follows proof of approval, which a model does not have); its
     classification is never below what its sources require: anything from contract cards with
     money terms or full text, or from Daftar Perkara, is at least TERBATAS. Enforced in code.

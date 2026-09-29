@@ -22,5 +22,7 @@
   is not good enough (then the choice goes back to Erik).
 
 ## Open
-- OCR and drafting in Singapore are both transfers under UU 27/2022 Pasal 56; Legal to confirm the
-  equal-protection basis (Singapore PDPA).
+- ~~OCR and drafting in Singapore are both transfers under UU 27/2022 Pasal 56; Legal to confirm the
+  equal-protection basis (Singapore PDPA).~~ Settled 2026-09-29: Erik OK'd the Pasal 56 basis.
+- Card reviewers: the **Legal team** reviews the contract cards (Erik, 2026-09-29). Weekly capacity
+  still to be named.
