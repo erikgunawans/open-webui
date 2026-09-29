@@ -3,7 +3,7 @@
 > Prepended by /wrap 2026-09-29 (checkpoint 2026-09-29-v35). Supersedes v34's anchor and its "do next"; v34's and older blocks' constraints still hold unless noted.
 
 Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-29-v35).
-Anchor: `origin/main` at `fdaea6828` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-29-v35`). Verify with `git log --oneline fdaea6828..origin/main`; any other commit in that range is a parallel push.
+Anchor: `origin/main` at `677147bf4` (the v35 wrap commit) **as this was written**, or one commit ahead at the Frontend-gate fix that follows it (subject begins `style(office): prettier-format the template manifest`). Verify with `git log --oneline 677147bf4..origin/main`; any other commit in that range is a parallel push. The Frontend Build was red on `7a109e5bf` and `fdaea6828` (unformatted `manifest.json`); confirm it is green on the fix commit before deploying.
 
 **Current state:** 🔴 **None-JUPe sign-in is DOWN**: billing on jup-ops was disabled 05:43 WIB 2026-09-29 and is enabled again, but the IAP sign-in service `iap-gcip-hosted-ui-ent-os-backend-jup` (asia-southeast2) answers 503 "not available yet" to every request (still at 07:33 WIB). ent-os itself is up on `ent-os-00059-d6b`. O1 (Word drafts on the JUP templates) #44 + #45 are built and pushed, not deployed. D25 (Notion, read-only, admin-only) signed. Document AI + Vertex AI enabled on jup-ops; the in-region drafting model is `gemini-2.5-flash` in asia-southeast1. Backend 1633 / 22 skipped.
 

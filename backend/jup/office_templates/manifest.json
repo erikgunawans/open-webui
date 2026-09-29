@@ -1,120 +1,120 @@
 {
-  "source": "JUP Template Dokumen 2.0 (17 September 2026), ~/NEW-JUP/deliverables/JUP-Enterprise-Document-Templates-2026-09-17",
-  "excluded": {
-    "17-JUP-Surat-Resmi.docx": "formal letter: a different layout, and it speaks for JUP to outside parties; not in O1"
-  },
-  "templates": [
-    {
-      "code": "WHP",
-      "file": "01-JUP-Whitepaper.docx",
-      "name": "Whitepaper perusahaan",
-      "group": "Strategi dan Pengambilan Keputusan",
-      "sha256": "4f96566388d2d242e1c78c5a6e678c395eed0295fb6c534d8ec7721a144ad74c"
-    },
-    {
-      "code": "REK",
-      "file": "02-JUP-Ringkasan-Eksekutif.docx",
-      "name": "Ringkasan eksekutif",
-      "group": "Strategi dan Pengambilan Keputusan",
-      "sha256": "3f60bfd5151d0f6d70ce295842b3c788d8d99bb165f4178e35bff032267dd3e2"
-    },
-    {
-      "code": "RSH",
-      "file": "03-JUP-One-Pager.docx",
-      "name": "Ringkasan satu halaman",
-      "group": "Administrasi dan Komunikasi",
-      "sha256": "778d36e8b8fc5001a89528e2355753d023beee6f4617a850dce821686a2c38a8"
-    },
-    {
-      "code": "SOP",
-      "file": "04-JUP-SOP.docx",
-      "name": "Prosedur operasional standar",
-      "group": "Operasional dan Petunjuk Kerja",
-      "sha256": "dba0962bc6e0bf416b6125510481314aeaabcbf3879f00c1fa9f1ad05a7f8666"
-    },
-    {
-      "code": "MAN",
-      "file": "05-JUP-Manual.docx",
-      "name": "Manual penggunaan dan operasi",
-      "group": "Operasional dan Petunjuk Kerja",
-      "sha256": "ccaeb729c69bdf424ac1c312d47e4f099737e60f50bfa9723a5be3a039b033f5"
-    },
-    {
-      "code": "KEB",
-      "file": "06-JUP-Kebijakan.docx",
-      "name": "Kebijakan perusahaan",
-      "group": "Tata Kelola dan Kebijakan",
-      "sha256": "c17ca8bec2e5c7ca90b509a520ba0aed2b0e3bd8cc2847d753e9280733e2acb5"
-    },
-    {
-      "code": "KKU",
-      "file": "07-JUP-Business-Case.docx",
-      "name": "Kajian kelayakan usulan",
-      "group": "Strategi dan Pengambilan Keputusan",
-      "sha256": "5b53e07784cde93c682c11005e4e2050aae36c2c32bbe346ac045bd68269586d"
-    },
-    {
-      "code": "PRY",
-      "file": "08-JUP-Piagam-Proyek.docx",
-      "name": "Piagam proyek",
-      "group": "Proyek dan Perubahan",
-      "sha256": "de5e1e605697cc851cd87df05507e7ea3d54c9943c9ae40b8178c9eb14c3b356"
-    },
-    {
-      "code": "KAK",
-      "file": "09-JUP-Kerangka-Acuan-Kerja.docx",
-      "name": "Kerangka acuan kerja",
-      "group": "Proyek dan Perubahan",
-      "sha256": "93f7d181841adba2b680cbfc8f28548ed2940fcc6cc0cf5a3751aa74ed8d3ab8"
-    },
-    {
-      "code": "LKP",
-      "file": "10-JUP-Laporan-Kinerja.docx",
-      "name": "Laporan kinerja berkala",
-      "group": "Kinerja, Risiko, dan Pengendalian",
-      "sha256": "7f39af4172170c1f8f69ca799eff13ec413cceb3ba0a2134f22965e89d05f629"
-    },
-    {
-      "code": "MEM",
-      "file": "11-JUP-Memo-Keputusan.docx",
-      "name": "Memo usulan keputusan",
-      "group": "Strategi dan Pengambilan Keputusan",
-      "sha256": "a204b18476ae39ec6c604f864ecf4586cac553277aca515a6182e3168b11ccb0"
-    },
-    {
-      "code": "NOT",
-      "file": "12-JUP-Notulen-Rapat.docx",
-      "name": "Notulen rapat",
-      "group": "Administrasi dan Komunikasi",
-      "sha256": "4a51156cd032d848c2c71d908589eefcd4ac029a1be8e4b75b6b4828e6f5a523"
-    },
-    {
-      "code": "RSK",
-      "file": "13-JUP-Register-Risiko.docx",
-      "name": "Register risiko",
-      "group": "Kinerja, Risiko, dan Pengendalian",
-      "sha256": "eb0794ffcf525897a97afc90c19a95037e63c8c1a467fe285fb2d1dfc48d20d5"
-    },
-    {
-      "code": "INS",
-      "file": "14-JUP-Laporan-Insiden.docx",
-      "name": "Laporan insiden dan tindakan korektif",
-      "group": "Kinerja, Risiko, dan Pengendalian",
-      "sha256": "81389aa8d393b275bb5eafb88fe72ced3c58db39b37a4bd43bbc3a2c55afa50d"
-    },
-    {
-      "code": "PRB",
-      "file": "15-JUP-Permohonan-Perubahan.docx",
-      "name": "Permohonan perubahan",
-      "group": "Proyek dan Perubahan",
-      "sha256": "23e9fb241e1fc31e00e93b94de36c168d020ab6a33dfc49c8de5bfe577b17712"
-    },
-    {
-      "code": "IK",
-      "file": "16-JUP-Instruksi-Kerja.docx",
-      "name": "Instruksi kerja",
-      "group": "Operasional dan Petunjuk Kerja",
-      "sha256": "a6e8c64f07e6dd2912c4c173a810ff6e56c86b7336e2b264fa1add16b0772c32"
-    }
-  ]
+	"source": "JUP Template Dokumen 2.0 (17 September 2026), ~/NEW-JUP/deliverables/JUP-Enterprise-Document-Templates-2026-09-17",
+	"excluded": {
+		"17-JUP-Surat-Resmi.docx": "formal letter: a different layout, and it speaks for JUP to outside parties; not in O1"
+	},
+	"templates": [
+		{
+			"code": "WHP",
+			"file": "01-JUP-Whitepaper.docx",
+			"name": "Whitepaper perusahaan",
+			"group": "Strategi dan Pengambilan Keputusan",
+			"sha256": "4f96566388d2d242e1c78c5a6e678c395eed0295fb6c534d8ec7721a144ad74c"
+		},
+		{
+			"code": "REK",
+			"file": "02-JUP-Ringkasan-Eksekutif.docx",
+			"name": "Ringkasan eksekutif",
+			"group": "Strategi dan Pengambilan Keputusan",
+			"sha256": "3f60bfd5151d0f6d70ce295842b3c788d8d99bb165f4178e35bff032267dd3e2"
+		},
+		{
+			"code": "RSH",
+			"file": "03-JUP-One-Pager.docx",
+			"name": "Ringkasan satu halaman",
+			"group": "Administrasi dan Komunikasi",
+			"sha256": "778d36e8b8fc5001a89528e2355753d023beee6f4617a850dce821686a2c38a8"
+		},
+		{
+			"code": "SOP",
+			"file": "04-JUP-SOP.docx",
+			"name": "Prosedur operasional standar",
+			"group": "Operasional dan Petunjuk Kerja",
+			"sha256": "dba0962bc6e0bf416b6125510481314aeaabcbf3879f00c1fa9f1ad05a7f8666"
+		},
+		{
+			"code": "MAN",
+			"file": "05-JUP-Manual.docx",
+			"name": "Manual penggunaan dan operasi",
+			"group": "Operasional dan Petunjuk Kerja",
+			"sha256": "ccaeb729c69bdf424ac1c312d47e4f099737e60f50bfa9723a5be3a039b033f5"
+		},
+		{
+			"code": "KEB",
+			"file": "06-JUP-Kebijakan.docx",
+			"name": "Kebijakan perusahaan",
+			"group": "Tata Kelola dan Kebijakan",
+			"sha256": "c17ca8bec2e5c7ca90b509a520ba0aed2b0e3bd8cc2847d753e9280733e2acb5"
+		},
+		{
+			"code": "KKU",
+			"file": "07-JUP-Business-Case.docx",
+			"name": "Kajian kelayakan usulan",
+			"group": "Strategi dan Pengambilan Keputusan",
+			"sha256": "5b53e07784cde93c682c11005e4e2050aae36c2c32bbe346ac045bd68269586d"
+		},
+		{
+			"code": "PRY",
+			"file": "08-JUP-Piagam-Proyek.docx",
+			"name": "Piagam proyek",
+			"group": "Proyek dan Perubahan",
+			"sha256": "de5e1e605697cc851cd87df05507e7ea3d54c9943c9ae40b8178c9eb14c3b356"
+		},
+		{
+			"code": "KAK",
+			"file": "09-JUP-Kerangka-Acuan-Kerja.docx",
+			"name": "Kerangka acuan kerja",
+			"group": "Proyek dan Perubahan",
+			"sha256": "93f7d181841adba2b680cbfc8f28548ed2940fcc6cc0cf5a3751aa74ed8d3ab8"
+		},
+		{
+			"code": "LKP",
+			"file": "10-JUP-Laporan-Kinerja.docx",
+			"name": "Laporan kinerja berkala",
+			"group": "Kinerja, Risiko, dan Pengendalian",
+			"sha256": "7f39af4172170c1f8f69ca799eff13ec413cceb3ba0a2134f22965e89d05f629"
+		},
+		{
+			"code": "MEM",
+			"file": "11-JUP-Memo-Keputusan.docx",
+			"name": "Memo usulan keputusan",
+			"group": "Strategi dan Pengambilan Keputusan",
+			"sha256": "a204b18476ae39ec6c604f864ecf4586cac553277aca515a6182e3168b11ccb0"
+		},
+		{
+			"code": "NOT",
+			"file": "12-JUP-Notulen-Rapat.docx",
+			"name": "Notulen rapat",
+			"group": "Administrasi dan Komunikasi",
+			"sha256": "4a51156cd032d848c2c71d908589eefcd4ac029a1be8e4b75b6b4828e6f5a523"
+		},
+		{
+			"code": "RSK",
+			"file": "13-JUP-Register-Risiko.docx",
+			"name": "Register risiko",
+			"group": "Kinerja, Risiko, dan Pengendalian",
+			"sha256": "eb0794ffcf525897a97afc90c19a95037e63c8c1a467fe285fb2d1dfc48d20d5"
+		},
+		{
+			"code": "INS",
+			"file": "14-JUP-Laporan-Insiden.docx",
+			"name": "Laporan insiden dan tindakan korektif",
+			"group": "Kinerja, Risiko, dan Pengendalian",
+			"sha256": "81389aa8d393b275bb5eafb88fe72ced3c58db39b37a4bd43bbc3a2c55afa50d"
+		},
+		{
+			"code": "PRB",
+			"file": "15-JUP-Permohonan-Perubahan.docx",
+			"name": "Permohonan perubahan",
+			"group": "Proyek dan Perubahan",
+			"sha256": "23e9fb241e1fc31e00e93b94de36c168d020ab6a33dfc49c8de5bfe577b17712"
+		},
+		{
+			"code": "IK",
+			"file": "16-JUP-Instruksi-Kerja.docx",
+			"name": "Instruksi kerja",
+			"group": "Operasional dan Petunjuk Kerja",
+			"sha256": "a6e8c64f07e6dd2912c4c173a810ff6e56c86b7336e2b264fa1add16b0772c32"
+		}
+	]
 }
