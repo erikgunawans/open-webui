@@ -4,6 +4,8 @@
 	import { getContext } from 'svelte';
 
 	import Modal from '$lib/components/common/Modal.svelte';
+	import Mic from '$lib/components/icons/Mic.svelte';
+	import Headphone from '$lib/components/icons/Headphone.svelte';
 	import type { CallMode } from '$lib/voice/live';
 	import { modeRequest } from '$lib/voice/session';
 
@@ -28,16 +30,25 @@
 
 		<div class="jup-voice-modes">
 			<button type="button" class="jup-voice-mode" on:click={() => answer('governed')}>
-				<span class="jup-voice-mode-name">{$i18n.t('Voice call')}</span>
-				<span class="jup-voice-mode-note"
-					>{$i18n.t('Answers are read word for word from the documents.')}</span
-				>
+				<span class="jup-voice-mode-icon"><Mic className="size-5" strokeWidth="1.75" /></span>
+				<span class="jup-voice-mode-text">
+					<span class="jup-voice-mode-name"
+						>{$i18n.t('Voice call')}
+						<span class="jup-voice-mode-badge">{$i18n.t('Recommended')}</span></span
+					>
+					<span class="jup-voice-mode-note"
+						>{$i18n.t('Answers are read word for word from the documents.')}</span
+					>
+				</span>
 			</button>
 			<button type="button" class="jup-voice-mode" on:click={() => answer('live')}>
-				<span class="jup-voice-mode-name">GPT-Live</span>
-				<span class="jup-voice-mode-note"
-					>{$i18n.t('A more natural conversation. The assistant paraphrases the answers.')}</span
-				>
+				<span class="jup-voice-mode-icon"><Headphone className="size-5" /></span>
+				<span class="jup-voice-mode-text">
+					<span class="jup-voice-mode-name">GPT-Live</span>
+					<span class="jup-voice-mode-note"
+						>{$i18n.t('A more natural conversation. The assistant paraphrases the answers.')}</span
+					>
+				</span>
 			</button>
 		</div>
 

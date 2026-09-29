@@ -459,6 +459,24 @@
 	line-height: 1.25rem;
 }
 
+/* The lockup row (2026-09-29): the larger lockup gets air. The mark's left edge sits on the row
+   icons' 18px line, and the row clears the first action by 8px instead of overlapping it (-mb-2). */
+#sidebar div.sidebar:has(> #sidebar-webui-name) {
+	align-items: center;
+	padding: 0.875rem 0.5rem 0.625rem;
+	margin-bottom: 0.5rem;
+}
+
+#sidebar #sidebar-webui-name {
+	padding: 0.25rem 0 0.25rem 0.625rem;
+	border-radius: var(--jup-radius-sm);
+}
+
+#sidebar #sidebar-webui-name:focus-visible {
+	outline: 2px solid var(--jup-ring);
+	outline-offset: 2px;
+}
+
 /* Actions above, destinations below: the hairline gets room on both sides. */
 #sidebar div:has(> #sidebar-search-button) {
 	margin-bottom: 0.625rem;
@@ -521,21 +539,27 @@
    Our own markup, so our own classes. The governed call is listed first. */
 .jup-voice-modes {
 	display: grid;
-	gap: 0.5rem;
+	gap: 0.625rem;
 }
 
+/* A card per mode: icon tile, name, one line on what it does. */
 .jup-voice-mode {
-	display: grid;
-	gap: 0.125rem;
+	display: flex;
+	align-items: flex-start;
+	gap: 0.875rem;
 	min-height: 44px;
-	padding: 0.75rem 1rem;
+	padding: 0.875rem 1rem;
 	border: 1px solid var(--jup-line-soft);
 	border-radius: var(--jup-radius-sm);
 	text-align: left;
+	transition:
+		border-color 150ms ease,
+		background-color 150ms ease;
 }
 
 .jup-voice-mode:hover {
 	border-color: var(--jup-action);
+	background-color: var(--jup-hover);
 }
 
 .jup-voice-mode:focus-visible,
@@ -544,9 +568,39 @@
 	outline-offset: 2px;
 }
 
+.jup-voice-mode-icon {
+	display: grid;
+	place-items: center;
+	flex-shrink: 0;
+	width: 2.5rem;
+	height: 2.5rem;
+	border-radius: var(--jup-radius-sm);
+	background: var(--jup-surface-2);
+	color: var(--jup-link-text);
+}
+
+.jup-voice-mode-text {
+	display: grid;
+	gap: 0.125rem;
+}
+
 .jup-voice-mode-name {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
 	font-weight: 600;
 	color: var(--jup-ink);
+}
+
+.jup-voice-mode-badge {
+	padding: 0.0625rem 0.5rem;
+	border-radius: 9999px;
+	background: var(--jup-action);
+	color: var(--jup-on-action);
+	font-size: 0.6875rem;
+	font-weight: 600;
+	line-height: 1.125rem;
 }
 
 .jup-voice-mode-note {
@@ -559,11 +613,11 @@
 	right: 1rem;
 	bottom: 1rem;
 	left: 1rem;
-	max-width: 28rem;
+	max-width: 24rem;
 	margin-left: auto;
-	padding: 1rem 1.25rem;
+	padding: 1.125rem 1.25rem 1.25rem;
 	border: 1px solid var(--jup-line-soft);
-	border-radius: var(--jup-radius-sm);
+	border-radius: 1rem;
 	background: var(--jup-surface);
 	color: var(--jup-ink);
 	font-size: 0.875rem;
@@ -575,7 +629,7 @@
    (height and max-width 100%) outranks a class: without this the card filled the chat pane. */
 #main-content > .jup-live-call {
 	height: auto;
-	max-width: 28rem;
+	max-width: 24rem;
 	max-height: calc(100dvh - 2rem);
 	overflow-y: auto;
 }
@@ -583,35 +637,121 @@
 .jup-live-call-head {
 	display: flex;
 	align-items: center;
-	gap: 0.5rem;
+	gap: 0.75rem;
+}
+
+.jup-live-call-badge {
+	position: relative;
+	display: grid;
+	place-items: center;
+	flex-shrink: 0;
+	width: 2.75rem;
+	height: 2.75rem;
+	border-radius: 9999px;
+	background: var(--jup-surface-2);
+	color: var(--jup-ink-soft);
+}
+
+.jup-live-call-badge-on {
+	background: var(--jup-action);
+	color: var(--jup-on-action);
+}
+
+/* A slow ring while GPT-Live listens: the one moving thing on the card, and off for reduced motion. */
+.jup-live-call-badge-on::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	border: 2px solid var(--jup-action);
+	animation: jup-live-ring 1.8s ease-out infinite;
+}
+
+@keyframes jup-live-ring {
+	from {
+		transform: scale(1);
+		opacity: 0.6;
+	}
+	to {
+		transform: scale(1.45);
+		opacity: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.jup-live-call-badge-on::after {
+		animation: none;
+	}
+}
+
+.jup-live-call-title {
+	display: grid;
+	flex: 1;
+	min-width: 0;
+}
+
+.jup-live-call-title > :first-child {
+	font-size: 1rem;
 	font-weight: 600;
+	line-height: 1.375rem;
+}
+
+.jup-live-call-state {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	color: var(--jup-ink-soft);
+	font-size: 0.8125rem;
 }
 
 .jup-live-call-dot {
-	width: 0.625rem;
-	height: 0.625rem;
+	width: 0.5rem;
+	height: 0.5rem;
 	border-radius: 9999px;
 	background: var(--jup-ink-soft);
 }
 
 .jup-live-call-dot-on {
-	background: var(--jup-action);
+	background: var(--jup-up-text);
+}
+
+.jup-live-call-clock {
+	font-variant-numeric: tabular-nums;
+	font-weight: 600;
+	color: var(--jup-ink-soft);
+}
+
+.jup-live-call-clock-late {
+	color: var(--jup-down-text);
 }
 
 .jup-live-call-captions {
-	max-height: 12rem;
-	margin-top: 0.75rem;
+	display: grid;
+	gap: 0.5rem;
+	max-height: 14rem;
+	min-height: 4.5rem;
+	margin-top: 1rem;
+	padding: 0.75rem;
+	border-radius: var(--jup-radius-sm);
+	background: var(--jup-surface-2);
 	overflow-y: auto;
-}
-
-.jup-live-caption + .jup-live-caption {
-	margin-top: 0.375rem;
+	align-content: start;
 }
 
 .jup-live-caption-who {
-	margin-right: 0.375rem;
+	display: block;
+	font-size: 0.75rem;
 	font-weight: 600;
 	color: var(--jup-ink-soft);
+}
+
+.jup-live-caption-assistant .jup-live-caption-who {
+	color: var(--jup-link-text);
+}
+
+.jup-live-call-empty {
+	color: var(--jup-ink-soft);
+	font-style: italic;
 }
 
 .jup-live-call-note {
@@ -621,11 +761,23 @@
 }
 
 .jup-live-hangup {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
 	width: 100%;
-	min-height: 44px;
-	margin-top: 0.75rem;
+	min-height: 48px;
+	margin-top: 1rem;
 	border-radius: 9999px;
 	background-color: var(--jup-down-bg);
 	color: var(--jup-down-text);
 	font-weight: 600;
+}
+
+.jup-live-hangup:hover:not(:disabled) {
+	filter: brightness(0.95);
+}
+
+.jup-live-hangup:disabled {
+	opacity: 0.6;
 }

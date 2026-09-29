@@ -31,27 +31,29 @@
 </div>
 
 <style>
+	/* Sized up 2026-09-29 (Erik): 40px mark, 24px wordmark. It fits the 245px panel beside the
+	   collapse button with room to spare (mark + gap + wordmark = 40 + 12 + ~124px). */
 	.nj-lockup {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 0.75rem;
 	}
 
 	.nj-mark {
-		width: 2rem;
-		height: 2rem;
+		width: 2.5rem;
+		height: 2.5rem;
 		flex-shrink: 0;
 	}
 
 	.nj-type {
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: 0.375rem;
 	}
 
 	.nj-wordmark {
 		font-family: 'Space Grotesk', sans-serif;
-		font-size: 1.1875rem;
+		font-size: 1.5rem;
 		letter-spacing: -0.025em;
 		line-height: 1;
 		white-space: nowrap;
@@ -68,20 +70,21 @@
 		color: #004999;
 	}
 
-	/* The design's text green, not the #00A550 fill in the mark. 4.45:1 on white, which clears
-	   the 3:1 large-text bar: the wordmark is 19px bold, and it is a logo. */
+	/* The design's text green, not the #00A550 fill in the mark. 4.45:1 on white and 3.93:1 on the
+	   sidebar paper (measured 2026-09-29), which clears the 3:1 large-text bar: the wordmark is
+	   24px bold, and it is a logo. */
 	.nj-e {
 		font-weight: 700;
 		color: #008a43;
 	}
 
 	/* The logo system tracks the descriptor at 0.34em beside a 48px wordmark. At sidebar size that
-	   overshoots the wordmark, so it tightens to 0.2em and sits flush under "None-JUPe". */
+	   overshoots the wordmark, so it tightens to 0.24em and sits flush under "None-JUPe". */
 	.nj-tagline {
 		font-family: 'Space Grotesk', sans-serif;
-		font-size: 0.5625rem;
+		font-size: 0.625rem;
 		font-weight: 500;
-		letter-spacing: 0.2em;
+		letter-spacing: 0.24em;
 		text-transform: uppercase;
 		line-height: 1;
 		white-space: nowrap;
