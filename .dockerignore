@@ -3,7 +3,7 @@
 docs
 kubernetes
 node_modules
-/.svelte-kit
+.svelte-kit
 /package
 .env
 .env.*
@@ -18,3 +18,9 @@ uploads
 **/*.db
 _test
 backend/data/*
+# JUP: local-only trees that must never enter the build context (.venv alone is ~2 GB).
+.venv
+.ruff_cache
+.pytest_cache
+.planning
+.git
