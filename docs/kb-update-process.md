@@ -2,6 +2,9 @@
 
 How new or changed knowledge reaches Asisten JUP, and who has to do what.
 
+Whatever the route, a document should first be in the KB Markdown shape: see
+[kb-document-template.md](kb-document-template.md) (the in-app skill **Dokumen KB JUP** drafts it).
+
 There are **two routes in**, and they never mix:
 
 |                       | Route A: the Strategy KB            | Route B: staff contributions                                   |
