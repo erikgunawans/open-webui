@@ -920,3 +920,23 @@
 #message-input-container:focus-within {
 	border-color: var(--jup-ink-faint) !important;
 }
+
+/* Prompt suggestions on the empty chat: they are buttons, so they look pressable. */
+#main-content button.waterfall {
+	border-radius: var(--jup-radius-sm);
+}
+
+#main-content button.waterfall:hover {
+	background-color: var(--jup-hover);
+}
+
+#main-content button.waterfall:focus-visible {
+	outline: 2px solid var(--jup-ring);
+	outline-offset: 1px;
+}
+
+/* Settings and admin helper lines: the vendor sets 11px hints in gray-400 / dark:gray-600,
+   measured 2.06:1 on white and 3.35:1 on the dark modal (2026-09-30). ink-faint is 5.24:1+. */
+.text-\[0\.6875rem\].text-gray-400 {
+	color: var(--jup-ink-faint);
+}
