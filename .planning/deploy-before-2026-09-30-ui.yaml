@@ -1,0 +1,150 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  annotations:
+    run.googleapis.com/client-name: gcloud
+    run.googleapis.com/client-version: 580.0.0
+    run.googleapis.com/ingress: internal-and-cloud-load-balancing
+    run.googleapis.com/ingress-status: internal-and-cloud-load-balancing
+    run.googleapis.com/maxScale: '10'
+    run.googleapis.com/operation-id: 08b3a644-7952-47a4-8a4f-97b684ec1814
+    run.googleapis.com/urls: '["https://ent-os-1001937491646.asia-southeast2.run.app","https://ent-os-uit4bfhauq-et.a.run.app"]'
+    serving.knative.dev/creator: alesha-bot@axiara.ai
+    serving.knative.dev/lastModifier: alesha-bot@axiara.ai
+  creationTimestamp: '2026-09-19T02:12:04.783072Z'
+  generation: 68
+  labels:
+    cloud.googleapis.com/location: asia-southeast2
+    run.googleapis.com/satisfiesPzs: 'true'
+  name: ent-os
+  namespace: '1001937491646'
+  resourceVersion: AAZcsj5zdvk
+  selfLink: /apis/serving.knative.dev/v1/namespaces/1001937491646/services/ent-os
+  uid: 1f671bea-56a9-48fa-a8bb-d8b08a65c6f2
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: '4'
+        autoscaling.knative.dev/minScale: '1'
+        run.googleapis.com/client-name: gcloud
+        run.googleapis.com/client-version: 580.0.0
+        run.googleapis.com/network-interfaces: '[{"network":"default","subnetwork":"default"}]'
+        run.googleapis.com/startup-cpu-boost: 'true'
+        run.googleapis.com/vpc-access-egress: private-ranges-only
+      labels:
+        client.knative.dev/nonce: wjtajwlidj
+        run.googleapis.com/startupProbeType: Default
+    spec:
+      containerConcurrency: 160
+      containers:
+      - env:
+        - name: VECTOR_DB
+          value: pgvector
+        - name: STORAGE_PROVIDER
+          value: gcs
+        - name: GCS_BUCKET_NAME
+          value: jup-ops-data
+        - name: JUP_RECORDS_DIR
+          value: /srv/jup/records
+        - name: JUP_ARTEFACT_ROOT
+          value: /srv/jup
+        - name: ENABLE_SIGNUP
+          value: 'False'
+        - name: DEFAULT_USER_ROLE
+          value: pending
+        - name: ENV
+          value: prod
+        - name: DEFAULT_LOCALE
+          value: id-ID
+        - name: WEBUI_NAME
+          value: None-JUPe
+        - name: ENABLE_OLLAMA_API
+          value: 'False'
+        - name: ENABLE_PIP_INSTALL_FRONTMATTER_REQUIREMENTS
+          value: 'False'
+        - name: RAG_EMBEDDING_MODEL_AUTO_UPDATE
+          value: 'False'
+        - name: ENABLE_VERSION_UPDATE_CHECK
+          value: 'False'
+        - name: WEBUI_AUTH_TRUSTED_EMAIL_HEADER
+          value: X-Goog-Authenticated-User-Email
+        - name: JUP_ADMIN_EMAILS
+          value: erik@jakarta-utilitas.com
+        - name: ENABLE_ADMIN_CHAT_ACCESS
+          value: 'false'
+        - name: JUP_LEADERSHIP_ENABLED
+          value: 'true'
+        - name: JUP_LEADERSHIP_SAMPLE_FILE
+          value: /srv/jup/leadership/illustrative-seed.json
+        - name: JUP_LEADERSHIP_ACTIONS_SOURCE
+          value: records
+        - name: JUP_VOICE_ENABLED
+          value: 'true'
+        - name: WHISPER_LANGUAGE
+          value: id
+        - name: WEBUI_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: webui-secret-key
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: database-url
+        - name: JUP_VOICE_OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: openai-live-key
+        image: asia-southeast2-docker.pkg.dev/jup-ops/ent-os/ent-os:e64249706
+        ports:
+        - containerPort: 8080
+          name: http1
+        resources:
+          limits:
+            cpu: '2'
+            memory: 4Gi
+        startupProbe:
+          failureThreshold: 1
+          periodSeconds: 240
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 240
+        volumeMounts:
+        - mountPath: /srv/jup
+          name: jup
+      serviceAccountName: 1001937491646-compute@developer.gserviceaccount.com
+      timeoutSeconds: 3600
+      volumes:
+      - csi:
+          driver: gcsfuse.run.googleapis.com
+          readOnly: true
+          volumeAttributes:
+            bucketName: jup-ops-records
+        name: jup
+  traffic:
+  - latestRevision: true
+    percent: 100
+status:
+  address:
+    url: https://ent-os-uit4bfhauq-et.a.run.app
+  conditions:
+  - lastTransitionTime: '2026-09-30T12:14:41.952505Z'
+    status: 'True'
+    type: Ready
+  - lastTransitionTime: '2026-09-30T12:14:01.521396Z'
+    status: 'True'
+    type: ConfigurationsReady
+  - lastTransitionTime: '2026-09-30T12:14:41.915495Z'
+    status: 'True'
+    type: RoutesReady
+  latestCreatedRevisionName: ent-os-00060-89r
+  latestReadyRevisionName: ent-os-00060-89r
+  observedGeneration: 68
+  traffic:
+  - latestRevision: true
+    percent: 100
+    revisionName: ent-os-00060-89r
+  url: https://ent-os-uit4bfhauq-et.a.run.app
