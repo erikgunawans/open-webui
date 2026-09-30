@@ -781,3 +781,142 @@
 .jup-live-hangup:disabled {
 	opacity: 0.6;
 }
+
+/* ── Chat reading surface (2026-09-30, Erik: "make the whole app more aesthetic") ──────────
+   Answers are where staff spend their time, and the vendor styles them as a chat bubble dump.
+   Measured before: a 58rem column put ~100 characters on a line at 15px; headings sat flush on
+   the paragraph above; tables had no container and a 1.3:1 header rule; quotes were italic with
+   generated quotation marks, which reads as a pull quote, not a caution. */
+
+/* One reading measure for the thread, the composer and the empty state: 48rem keeps an answer
+   near 80 characters a line (the vendor's 58rem ran past 100). */
+#main-content .max-w-\[58rem\] {
+	max-width: 48rem;
+}
+
+#response-content-container > div {
+	font-size: 1rem !important;
+	line-height: 1.65;
+	color: var(--jup-ink);
+}
+
+#response-content-container :is(h1, h2, h3, h4) {
+	font-family: var(--jup-font-display);
+	font-weight: 600;
+	letter-spacing: -0.01em;
+	line-height: 1.3;
+	color: var(--jup-ink);
+}
+
+#response-content-container h1 {
+	font-size: 1.375rem;
+}
+
+#response-content-container h2 {
+	font-size: 1.1875rem;
+}
+
+#response-content-container h3 {
+	font-size: 1.0625rem;
+}
+
+/* Room above a heading, less below: the heading belongs to what follows it. */
+#response-content-container :is(h1, h2, h3, h4):not(:first-child) {
+	margin-top: 1.5rem;
+	margin-bottom: 0.5rem;
+}
+
+#response-content-container :is(p, li) {
+	color: var(--jup-ink);
+}
+
+#response-content-container strong {
+	font-weight: 600;
+	color: var(--jup-ink);
+}
+
+/* Tables: a hairline card with a quiet header band, like the Portfolio cards. */
+#response-content-container div.overflow-x-auto:has(> table) {
+	margin-block: 0.75rem;
+	border: 1px solid var(--jup-line);
+	border-radius: var(--jup-radius);
+	background: var(--jup-surface);
+}
+
+#response-content-container table {
+	margin: 0;
+	color: var(--jup-ink);
+}
+
+#response-content-container thead {
+	background: var(--jup-surface-2);
+}
+
+#response-content-container thead th {
+	padding: 0.625rem 0.875rem !important;
+	border-bottom: 1px solid var(--jup-line) !important;
+	color: var(--jup-ink-soft) !important;
+	font-size: 0.75rem;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+}
+
+#response-content-container tbody td {
+	padding: 0.625rem 0.875rem !important;
+	font-size: 0.875rem;
+	color: var(--jup-ink);
+	font-variant-numeric: tabular-nums;
+	vertical-align: top;
+}
+
+#response-content-container tbody tr + tr td {
+	border-top: 1px solid var(--jup-line-soft);
+}
+
+/* A quote in an answer is a caution or a citation: a note, not a pull quote. */
+#response-content-container blockquote {
+	margin-block: 0.75rem;
+	padding: 0.625rem 0.875rem;
+	border-inline-start: 3px solid var(--jup-action);
+	border-radius: 0 var(--jup-radius-sm) var(--jup-radius-sm) 0;
+	background: color-mix(in srgb, var(--jup-action) 7%, var(--jup-surface));
+	color: var(--jup-ink);
+	font-style: normal;
+}
+
+#response-content-container blockquote p::before,
+#response-content-container blockquote p::after {
+	content: none;
+}
+
+#response-content-container hr {
+	margin-block: 1.25rem;
+	border-color: var(--jup-line-soft);
+}
+
+/* The model's name above an answer is a label, not a heading. */
+#main-content .chat-assistant ~ * .line-clamp-1,
+#main-content [id^='message-'] div.self-center.font-normal.line-clamp-1 {
+	font-size: 0.8125rem;
+	font-weight: 600;
+	letter-spacing: 0.01em;
+}
+
+#main-content [id^='message-'] div.self-center.font-normal.line-clamp-1 span {
+	color: var(--jup-ink-soft);
+}
+
+/* The composer: a lifted card. The editor takes focus on every page load, so a full focus ring
+   would never go away; focus darkens the edge instead, and the caret does the rest. */
+#message-input-container {
+	border-color: var(--jup-line) !important;
+	background-color: var(--jup-surface) !important;
+	box-shadow: var(--jup-shadow-md) !important;
+	transition:
+		border-color 150ms ease,
+		box-shadow 150ms ease;
+}
+
+#message-input-container:focus-within {
+	border-color: var(--jup-ink-faint) !important;
+}
