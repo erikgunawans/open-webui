@@ -11,6 +11,9 @@
  *   result on `window.__jupResult`, and is polled.
  *
  * Every eval checks the host first, because the driven tab has drifted to another app before.
+ *
+ * With two browsers connected, Interceptor refuses to pick one: set INTERCEPTOR_CONTEXT to the
+ * extension id it names. INTERCEPTOR_TAB pins the eval to one tab instead of the active one.
  */
 
 // The JUP address since 2026-09-25; ops.axiara.ai still serves the same app as a fallback.
@@ -19,10 +22,13 @@ const CHUNK = 2500;
 const POLL_MS = 3000;
 const TIMEOUT_MS = 10 * 60 * 1000;
 
+const CONTEXT = process.env.INTERCEPTOR_CONTEXT ? ["--context", process.env.INTERCEPTOR_CONTEXT] : [];
+const TAB = process.env.INTERCEPTOR_TAB ? ["--tab", process.env.INTERCEPTOR_TAB] : [];
+
 const guard = `if (location.host !== ${JSON.stringify(HOST)}) return 'WRONG HOST ' + location.host;`;
 
 async function interceptor(args: string[]): Promise<string> {
-  const proc = Bun.spawn(["interceptor", ...args], { stdout: "pipe", stderr: "pipe" });
+  const proc = Bun.spawn(["interceptor", ...CONTEXT, ...args], { stdout: "pipe", stderr: "pipe" });
   const out = (await new Response(proc.stdout).text()).trim();
   const err = (await new Response(proc.stderr).text()).trim();
   const code = await proc.exited;
@@ -31,7 +37,7 @@ async function interceptor(args: string[]): Promise<string> {
 }
 
 async function evalMain(program: string, expect: string): Promise<void> {
-  const answer = await interceptor(["eval", "--main", program]);
+  const answer = await interceptor(["eval", "--main", ...TAB, program]);
   if (answer !== expect) throw new Error(`refused before anything was written: ${answer}`);
 }
 
@@ -72,7 +78,7 @@ export async function runInTab<T>(payload: unknown, body: string): Promise<T> {
   for (;;) {
     if (Date.now() > deadline) throw new Error("timed out waiting for the in-tab program");
     await Bun.sleep(POLL_MS);
-    const result = JSON.parse(await interceptor(["eval", "--main", "JSON.stringify(window.__jupResult)"]));
+    const result = JSON.parse(await interceptor(["eval", "--main", ...TAB, "JSON.stringify(window.__jupResult)"]));
     if (result.state === "done") return result.value as T;
     if (result.state === "error") throw new Error(result.error);
   }
