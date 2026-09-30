@@ -1,3 +1,33 @@
+# Next session — ent-os-new-jup (checkpoint 2026-09-30-v36)
+
+> Prepended by /wrap 2026-09-30 (checkpoint 2026-09-30-v36). Supersedes v35's anchor and its "do next"; v35's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-09-30-v36).
+Anchor: `origin/main` at `4accb6e83` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-09-30-v36`). Verify with `git log --oneline 4accb6e83..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** billing paid, sign-in works. Live **`ent-os-00061-crs`** (image `343b8ae24`; rollback `00060-89r`): O1 Word drafts (granted to ALL staff), Notion tools (admin-only, inert — no token), voice UI + 40 px lockup, chat reading surface (48rem column, table cards, note callouts), settings hint contrast fix. Skills: "Dokumen KB JUP" synced admin-only. Records bucket = `~/jup` `1a4d3a1` (D25). Backend 1671 / 22 skipped; vitest 199.
+
+**Do next, in order:**
+1. **O1 staff-account check (#46, last item):** a non-admin JUP account sees "JUP documents" under + → Alat and gets 404 on Erik's two test files (`89e158b8-05e9-49ee-8576-6d09832cfa93`, `604c45fe-c18d-4365-8825-334b5637985d`). Needs a staff login — ask Erik who (or his OK for a non-admin test account, a DB write). Then close #46 and set O1 `live` in the ledger. Ask Erik whether to delete the two test .docx files.
+2. **#47 IAP session expiry:** detect IAP-shaped API failures (non-JSON / redirect to `iap-gcip-hosted-ui…`) and tell the user to reload (Indonesian); mark an orphaned `done:false` answer as interrupted so the chat accepts new messages; research raising the IAP session length (config change = its own OK).
+3. **UI follow-ups (copy/config, not CSS):** hide the vendor "what's new" changelog modal (English, emoji, GitHub links on first login); check live home suggestions (DB-seeded); the English settings helper strings are part of the 2,238 empty id-ID keys. Erik may want the green panel edge softened — ask, it was his 09-26 call.
+4. **Notion #41/#42** once Erik has created the integration (Read content only) and stored `notion-integration-token`; then bind `JUP_NOTION_TOKEN` in deploy.sh's env heredoc (NOT gcloud-only), deploy, live test with Erik.
+5. **Staff grant for "Dokumen KB JUP"** only if Erik asks (it is admin-only now).
+6. Carried: #38 first GPT-Live call; Kore/#31 acceptance call; Contract KB Graph proof when `none-jupe-graph-secret` exists (JUP IT grant in progress); Legal's weekly card capacity; ADR-0016 step 5; home-line wording; CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- **IAP session dies ~1 h after sign-in** (memory `iap-session-expires-hourly`): before any in-tab write or live test open a FRESH tab and check `/api/v1/auths/` is 200; never reuse a chat with a cut answer.
+- **Two browser extensions are connected:** every interceptor call needs `--context 75e09d94-bc12-4b76-9688-c1f1dedec559`; in-tab scripts take `INTERCEPTOR_CONTEXT` and `INTERCEPTOR_TAB`.
+- **After every deploy, prove the build:** a new tab served the OLD `entry/app.*` today; `fetch('/',{cache:'reload'}).then(()=>location.reload())`, then compare with `fetch('/',{cache:'no-store'})`.
+- **Never use `interceptor macos screenshot` while Erik uses Chrome** — it captured his private WhatsApp tab. For visual design use the local dev build + chrome-devtools MCP in an isolated context; verify live with computed-style probes.
+- **Billing:** check `gcloud billing accounts describe 012944-41677E-208592 --format='value(open)'` — `billingEnabled` on the project lies when the account is delinquent.
+- **KB conversions:** "Yang tidak dicakup" lists only the source's own gaps; never import a caveat from another KB file. Refuse contracts, Daftar Perkara, personal data, RAHASIA.
+- Local Docker build of ent-os needs ~8 GB free; don't retry below that (`.dockerignore` now excludes `.venv`/`.git`/`.planning`).
+
+**Open items waiting on Erik:** who does the staff-account check; delete the two O1 test .docx files?; Notion integration + token; JUP IT per-site grant + `none-jupe-graph-secret`; Legal's weekly card capacity; keep or drop `docker-compose.dev.yaml` (parked in the session scratchpad, not in git); green panel edge; the #38 and Kore/#31 calls.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-29-v35)
 
 > Prepended by /wrap 2026-09-29 (checkpoint 2026-09-29-v35). Supersedes v34's anchor and its "do next"; v34's and older blocks' constraints still hold unless noted.
