@@ -45,7 +45,7 @@ Aturan:
 - "jenis_dokumen": misalnya PKS, adendum, perjanjian jual beli gas, perjanjian pinjaman, novasi, KSO.
 - "keabsahan": penandatangan dan jabatannya, dasar kewenangan, e-Meterai/meterai, legalisasi notaris.
 - "hubungan_dokumen": perjanjian induk/adendum yang dirujuk dan ketentuan mana yang diubah atau digantikan.
-- "perorangan_non_penandatangan": nama orang yang menjadi PIHAK atas nama pribadi (bukan yang menandatangani atas nama perusahaan/instansi). Kosongkan bila tidak ada.`;
+- "perorangan_non_penandatangan": HANYA orang perseorangan yang menjadi PIHAK dalam perjanjian atas nama dirinya sendiri (misalnya penjual tanah pribadi, peminjam perorangan). BUKAN: notaris, saksi, pejabat/direksi/kuasa yang bertindak untuk perusahaan atau instansi, penghadap yang mewakili badan hukum, atau orang yang hanya disebut dalam akta. Bila ragu, jangan dimasukkan. Kosongkan bila tidak ada.`;
 
 const only = process.argv.slice(2);
 for (const m of manifest) {

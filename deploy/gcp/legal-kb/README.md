@@ -23,5 +23,5 @@ synchronous calls did the 10 pilot PDFs (161 pages) in ~2.5 min. Polling an oper
 `x-goog-user-project: jup-ops` header.
 
 Pilot (2026-10-01/02): 10 contracts picked from the inventory, approved unchanged by Rully (Business
-Legal). Known draft weakness: card 01 flagged a notary/witnesses as "perorangan" parties; tighten that
-instruction before a full run.
+Legal). Card 01 once listed a notary and witnesses as "perorangan" parties; the instruction now excludes
+notaries, witnesses and officials acting for an entity (re-drafted 2026-10-02, v1 kept in `cards-v1/`).
