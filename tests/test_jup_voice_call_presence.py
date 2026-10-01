@@ -128,5 +128,5 @@ def test_the_live_panel_stays_a_card_inside_main_content():
     assert '#main-content > * {' in pane
     skin = _read(ROOT / 'src' / 'jup-skin.css')
     rule = _between(skin, '#main-content > .jup-live-call {', '}')
-    for decl in ('height: auto;', 'max-width: 28rem;', 'max-height: calc(100dvh - 2rem);'):
+    for decl in ('height: auto;', 'max-width: 24rem;', 'max-height: calc(100dvh - 2rem);'):
         assert decl in rule
