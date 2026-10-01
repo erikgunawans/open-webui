@@ -32,7 +32,7 @@
 	<title>Ruang Pimpinan / {$WEBUI_NAME}</title>
 </svelte:head>
 
-<div class="jlp-root jlp-section">
+<div class="jlp-root jlp-section jlp-board">
 	<div class="jlp-scroll">
 		<div class="jlp-container">
 			<MobileSidebarToggle />
