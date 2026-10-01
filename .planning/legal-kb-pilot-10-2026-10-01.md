@@ -32,3 +32,9 @@ Erik: go ahead, Alesha picks, Rully (legal officer) approves or swaps. OCR start
 - **Not yet read by Asisten JUP:** the model (`xiaomi/mimo-v2.6-pro-ultraspeed`, "Asisten JUP") has only "JUP Strategy KB" attached. Attaching the collection is a separate production write (ADR-0015 §1), waiting on Erik's OK.
 - **Attached 2026-10-01** (Erik's OK): Asisten JUP knowledge = JUP Strategy KB + JUP Staff Contributions (before-value `.planning/asisten-jup-model-before-kb-attach-2026-10-01.json`; tools, grants, name unchanged).
 - Live check: with a `session_id` the model calls `query_knowledge_files` + `grep_knowledge_files` for all three test questions. Vector search alone: BP BUMD functions → `bpbumd-tugas-pokok-dan-fungsi` (top 3); "direksi JUP" → `tata-kelola…` first, not `dewan-komisaris-dan-direksi…`; "PAM Jaya Rorotan" → misses `jup-berita-kerja-sama…` (grep finds it). Semantic recall on short Indonesian queries is weak; the grep tool carries names.
+
+## Rully's reply — 2026-10-01 17:17 (email "RE: Legal for Knowledge Base" + verbal to Erik)
+- List approved as-is (no swaps).
+- Pre-2016 folders: confirmed largely empty.
+- Capacity: she can review all the cards; her team helps.
+- Note: Rully is "Ibu" — Erik's email said "Bapak tinjau"; use Ibu in anything sent to her.
