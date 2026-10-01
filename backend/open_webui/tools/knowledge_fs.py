@@ -79,6 +79,10 @@ def is_regex_pattern(pattern: str) -> bool:
         or '\w' in pattern
         or '\s' in pattern
         or bool(re.search(r'\[.+\]', pattern))
+        # JUP (2026-10-02): models write "(?i)direktur" and "\bJUP\b"; without these two checks the
+        # pattern was matched as literal text and grep answered "No matches". See VENDOR-PATCHES.md.
+        or '(?' in pattern
+        or '\\b' in pattern
     )
 
 

@@ -858,3 +858,17 @@ Chat uploads embedded under MiniLM are not re-indexed by that route.
 
 **If dropped:** the DB still names e5 but the image no longer contains it, so RAG degrades (the
 embedding function raises; boot does not crash). Keep the prefixes only while the model is e5.
+
+## `backend/open_webui/tools/knowledge_fs.py` — `is_regex_pattern` recognises `(?` and `\b`
+
+**What:** two more checks in the regex-or-literal detector shared by `grep_knowledge_files` and
+`kb_exec`.
+
+**Why:** the model writes `(?i)direktur`. Without these checks the pattern was matched as the literal
+text "(?i)direktur", grep answered "No matches" across a KB full of "Direktur", and Asisten JUP told
+the user the board of directors was not in the knowledge base (live, 2026-10-02).
+
+**If dropped:** silent — grep returns no matches for those patterns and the answer degrades.
+`tests/test_kb_grep_inline_flags.py` notices.
+
+**Conflict risk:** low. Two lines appended to one boolean expression.
