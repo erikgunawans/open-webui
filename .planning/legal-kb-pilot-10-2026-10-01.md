@@ -23,3 +23,10 @@ Erik: go ahead, Alesha picks, Rully (legal officer) approves or swaps. OCR start
 | 8 | 2022 | JUP - TEKNO INTEGRASI SOLUSINDO | JUP - TIS.pdf | 8.4 | large recent |
 | 9 | 2024 | JUP - BIOTEK GRAHADUTA | Addendum JUP Biotek.pdf | 1.8 | addendum |
 | 10 | 2026 | JUP - JAKTOUR | PKS Induk Jaktour - JUP tentang Penyediaan Lahan (SPKL).pdf | 2.2 | newest; master PKS |
+
+---
+## (Same day, unrelated) Website KB upload — 2026-10-01
+- Group **Kontributor KB** (`e52ce433-e2f7-4005-a1d9-964e3449ec5c`) created with `jup.kb.submit: true`, Erik only (Erik's choice; the admin role does not imply submit).
+- First live approval failed: `KbReviewStore.attach` passed `db=None` to the vendor; fixed `58af67d96`, deployed `ent-os-00063-8dm` (image `4b9a5d3df`; rollback `ent-os-00062-6zl`, before-value `.planning/kb-attach-fix-deploy-before-2026-10-01.json`).
+- 47 `.kb.md` from `~/Documents/JUP-KB-Web-2026-10-01/` submitted + approved into **JUP Staff Contributions** (`35b1abaf-7777-4286-88c1-f6c2bdaa16ed`): 47 files confirmed.
+- **Not yet read by Asisten JUP:** the model (`xiaomi/mimo-v2.6-pro-ultraspeed`, "Asisten JUP") has only "JUP Strategy KB" attached. Attaching the collection is a separate production write (ADR-0015 §1), waiting on Erik's OK.
