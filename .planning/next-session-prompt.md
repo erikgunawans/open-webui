@@ -1,3 +1,32 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-01-v37)
+
+> Prepended by /wrap 2026-10-01 (checkpoint 2026-10-01-v37). Supersedes v36's anchor and its "do next"; v36's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-01-v37).
+Anchor: `origin/main` at `dc524f991` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-10-01-v37`). Verify with `git log --oneline dc524f991..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live **`ent-os-00063-8dm`** (image `4b9a5d3df`; rollback `00062-6zl`): #47 IAP-expiry handling + the kb-review approve fix. Asisten JUP (`xiaomi/mimo-v2.6-pro-ultraspeed`) reads JUP Strategy KB + **JUP Staff Contributions** (47 website files, approved 10-01). Graph access to `SCAN PERJANJIAN` verified; 10-contract pilot picked, waiting on Rully. Ledger 15 live · 3 in progress. Backend 1675 / 22 skipped; vitest 209.
+
+**Do next, in order:**
+1. **Contract KB pilot (when Erik relays Rully's reply):** swap any picks he names in `.planning/legal-kb-pilot-10-2026-10-01.md`; then OCR the 10 via Document AI `OCR_PROCESSOR` in `asia-southeast1` (Erik OK'd the pilot 10-01; processor creation is a cloud resource, mention it). Fetch PDFs through `/shares/u!…/driveItem` → `/drives/{id}/items/{id}/content` (token from `none-jupe-graph-secret`, client `095f7f79-2430-4cff-8363-560bb063b3e1`, tenant `fc521bfb-40c2-4b87-95a7-65e0e888fdf8`). Store OCR text in Jakarta only (decide where: a Jakarta GCS bucket needs Erik's OK), never in the repo or a non-Jakarta region. Then draft 10 cards with `gemini-2.5-flash` (asia-southeast1) and give Erik a side-by-side preview. Also ask Rully's weekly review capacity and whether pre-2016 originals exist (276/281 folders empty).
+2. **Rully's app login + #46:** when he has an account, he is the non-admin staff check for O1 (sees "JUP documents" under + → Alat; 404 on `89e158b8-…` and `604c45fe-…`), then close #46, set O1 live. Card-review rights for him need a group grant (Erik's OK).
+3. **Website KB follow-up:** ask Erik how Asisten JUP answers in the UI (e.g. "Apa fungsi BP BUMD terkait pengangkatan direksi BUMD?"). If answers miss, the cause is retrieval (embedding/chunking), not the files — vector top-3 missed the directors and PAM Jaya Rorotan files; grep finds them.
+4. **#47 live proof:** after a tab passes ~1 h, send a message without reloading → expect the toast + "Jawaban ini terputus…"; then close #47.
+5. **Notion #41/#42** once Erik stores `notion-integration-token` (Jakarta): verify read-only, secretAccessor for the compute SA (before-value), bind `JUP_NOTION_TOKEN` in deploy.sh's heredoc, deploy, live test — each step its own OK.
+6. Carried: UI copy/config (vendor changelog modal, live suggestions, empty id-ID keys); #38 GPT-Live first call (V4); Contract KB Daftar Perkara grant from JUP IT; ADR-0016 step 5; CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- **Testing the KB through `/api/chat/completions` needs a `session_id`** (memory `kb-test-needs-session-id`): without it the model gets no knowledge tools and looks broken.
+- **Approving in `/kb-review` now publishes to Asisten JUP** (the collection is attached).
+- **The Gmail connector is read-only** (send and draft both 403 on scope): messages to Rully go through Erik.
+- **jup.co.id 503s parallel scrapers** (memory `jup-co-id-scrape-traps`): sequential, trailing slash, grep raw output for `# 503`.
+- **Disk:** swap held 10.6 GB and left 1 GB free on 10-01; check `df -h /` and `sysctl vm.swapusage` before any large local job; Erik should restart the Mac.
+- gcloud is signed in as `alesha-bot@axiara.ai`; re-auth (`gcloud auth login`) kills a deploy mid-build.
+
+**Open items waiting on Erik:** Rully's reply (list OK/swaps, capacity, pre-2016 originals); Rully's app account; Notion integration + token; delete the two O1 test .docx files?; JUP IT grant for Daftar Perkara; Gmail send scope if he wants me to email; restart the Mac; #38 GPT-Live call; green panel edge; keep or drop `docker-compose.dev.yaml`.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-09-30-v36)
 
 > Prepended by /wrap 2026-09-30 (checkpoint 2026-09-30-v36). Supersedes v35's anchor and its "do next"; v35's and older blocks' constraints still hold unless noted.
