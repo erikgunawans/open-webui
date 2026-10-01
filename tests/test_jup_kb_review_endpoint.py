@@ -583,3 +583,36 @@ async def test_the_store_finds_the_collection_by_exact_name(real_store) -> None:
     session.add(Knowledge(id='first', user_id=ADMIN, name='JUP Staff Contributions', description='', created_at=2))
     await session.commit()
     assert await store.find_collection() == 'first'
+
+
+async def test_the_store_hands_the_vendor_attach_a_real_session(monkeypatch) -> None:
+    """Production builds the store with `db=None`; the vendor's `process_file` commits on the session
+    it is given, so attach must open one. Every live approval failed with "'NoneType' object has no
+    attribute 'commit'" until it did (2026-10-01)."""
+    import sys
+    from contextlib import asynccontextmanager
+    from types import ModuleType
+
+    from open_webui.routers.jup_kb_review import KbReviewStore
+
+    opened = object()
+    seen: dict[str, Any] = {}
+
+    @asynccontextmanager
+    async def fake_context(db=None):
+        seen['given'] = db
+        yield opened
+
+    async def fake_add(request, knowledge_id, form_data, user=None, db=None):
+        seen['db'], seen['knowledge'], seen['file'] = db, knowledge_id, form_data.file_id
+
+    knowledge = ModuleType('open_webui.routers.knowledge')
+    knowledge.KnowledgeFileIdForm = lambda file_id: SimpleNamespace(file_id=file_id)
+    knowledge.add_file_to_knowledge_by_id = fake_add
+    monkeypatch.setitem(sys.modules, 'open_webui.routers.knowledge', knowledge)
+    import open_webui.internal.db as internal_db
+
+    monkeypatch.setattr(internal_db, 'get_async_db_context', fake_context)
+
+    await KbReviewStore().attach(None, 'kb-1', 'f1', SimpleNamespace(id=ADMIN))
+    assert seen == {'given': None, 'db': opened, 'knowledge': 'kb-1', 'file': 'f1'}

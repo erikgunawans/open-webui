@@ -165,12 +165,19 @@ class KbReviewStore:
         return knowledge.id
 
     async def attach(self, request: Request, knowledge_id: str, file_id: str, user: Any) -> None:
-        """The vendor's own add-file route, called as a function: process into the collection, then link."""
+        """The vendor's own add-file route, called as a function: process into the collection, then link.
+
+        It needs a real session even when `self.db` is `None`: called as a route, FastAPI injects one,
+        and the vendor's `process_file` calls `db.commit()` on it before embedding. Passing `None`
+        failed every live approval with "'NoneType' object has no attribute 'commit'" (2026-10-01).
+        """
+        from open_webui.internal.db import get_async_db_context
         from open_webui.routers.knowledge import KnowledgeFileIdForm, add_file_to_knowledge_by_id
 
-        await add_file_to_knowledge_by_id(
-            request, knowledge_id, KnowledgeFileIdForm(file_id=file_id), user=user, db=self.db
-        )
+        async with get_async_db_context(self.db) as db:
+            await add_file_to_knowledge_by_id(
+                request, knowledge_id, KnowledgeFileIdForm(file_id=file_id), user=user, db=db
+            )
 
 
 def kb_review_store() -> KbReviewStore:
