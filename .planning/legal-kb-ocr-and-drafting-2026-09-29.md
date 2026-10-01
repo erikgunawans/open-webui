@@ -26,5 +26,10 @@
   equal-protection basis (Singapore PDPA).~~ Settled 2026-09-29: Erik OK'd the Pasal 56 basis.
 - Card reviewers: the **Legal team** reviews the contract cards (Erik, 2026-09-29); the legal officer is
   **Rully** (Erik, 2026-10-01). Weekly capacity still to be named.
-- OneDrive access: Erik says granted (2026-10-01), but `none-jupe-graph-secret` is not in jup-ops Secret
-  Manager yet (checked 2026-10-01). Verify a read-only listing through the app before building.
+- OneDrive access VERIFIED 2026-10-01: `none-jupe-graph-secret` stored by Erik (Jakarta, user-managed).
+  Client-credentials token for None-Jupe carries ONLY `Files.SelectedOperations.Selected` (item-level grant).
+  Reach the folder through `/shares/u!<base64 url>/driveItem` (or `/drives/{driveId}/items/{id}`):
+  `/users/legal@…/drive/...` returns 404 under an item-level grant. `SCAN PERJANJIAN` = 200 (36 entries:
+  1994–2026 year folders + "Akan menjadi Outstanding", "KSO WTP PLUIT", "MoU JUP Mitra"; 697 partner folders
+  below). Refused: parent `Dokumen Legal` and `Backup data` (403), tenant root site (403), `/users` (403).
+  Daftar Perkara (xlsx) NOT tested: its location is outside the granted folder unless JUP IT grants it too.
