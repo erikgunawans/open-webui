@@ -38,6 +38,7 @@
 		desktopEvent
 	} from '$lib/stores';
 	import { refreshChatList } from '$lib/stores/chatList';
+	import { iapSessionExpired, isIapExpiry, withIapAjaxHeader } from '$lib/iap/session';
 	import { getFileContentById } from '$lib/apis/files';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -176,6 +177,7 @@
 
 		_socket.on('connect_error', (err) => {
 			console.log('connect_error', err);
+			probeIapSession();
 		});
 
 		let hasConnectedOnce = false;
@@ -1061,10 +1063,43 @@
 		}
 	};
 
+	// JUP #47: IAP's own 401 means the IAP session ended, not the app session. Tell the user to
+	// reload (that signs back in silently) instead of signing them out. VENDOR-PATCHES.md.
+	const handleIapExpiry = () => {
+		if ($iapSessionExpired) {
+			return;
+		}
+		iapSessionExpired.set(true);
+		toast.error($i18n.t('Your sign-in session has ended. Reload the page to continue.'), {
+			duration: Infinity,
+			action: { label: $i18n.t('Reload page'), onClick: () => location.reload() }
+		});
+	};
+
+	// JUP #47: a stream can die with no fetch in flight, so a failed socket reconnect asks the
+	// server once (at most every 30 s); the fetch wrapper recognises IAP's answer.
+	let lastIapProbeAt = 0;
+	const probeIapSession = () => {
+		if ($iapSessionExpired || !localStorage.token || Date.now() - lastIapProbeAt < 30_000) {
+			return;
+		}
+		lastIapProbeAt = Date.now();
+		fetch(`${WEBUI_API_BASE_URL}/auths/`, {
+			headers: { Authorization: `Bearer ${localStorage.token}` },
+			credentials: 'include'
+		}).catch(() => {});
+	};
+
 	onMount(async () => {
 		const originalFetch = window.fetch.bind(window);
 		window.fetch = async (input, init) => {
+			[input, init] = withIapAjaxHeader(input, init, window.location.origin);
 			const response = await originalFetch(input, init);
+
+			if (isIapExpiry(response)) {
+				handleIapExpiry();
+				return response;
+			}
 
 			if (
 				response.status === 401 &&

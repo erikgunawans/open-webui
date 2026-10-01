@@ -795,3 +795,33 @@ its audit line has no `tool_id`. Safe, but noisy and untraceable.
 `tests/test_jup_tool_gate_presence.py`; the resolution in `tests/test_jup_mcp_risk_class.py`.
 
 **Conflict risk:** low to moderate: the MCP loop moves upstream. Re-apply inside the tool entry dict.
+
+## IAP session expiry is not app sign-out, and it unsticks the chat — `src/routes/+layout.svelte`, `src/lib/components/chat/Chat.svelte` (2026-10-01, #47)
+
+**What:** fork logic lives in `src/lib/iap/session.ts` (unit-tested). The vendor files get hooks only:
+
+- `+layout.svelte`, the `window.fetch` wrapper: `withIapAjaxHeader` adds `X-Requested-With:
+  XMLHttpRequest` to same-origin URL requests; `isIapExpiry` (a 401 carrying
+  `x-goog-iap-generated-response: true`) is checked **before** the vendor's 401 branch and calls
+  `handleIapExpiry`, which sets `iapSessionExpired` and shows one persistent Indonesian toast with a
+  "Muat ulang halaman" action. The socket's `connect_error` calls `probeIapSession` (one
+  `/api/v1/auths/` request, at most every 30 s), because a stream can die with no fetch in flight.
+- `Chat.svelte`: `$: if ($iapSessionExpired) interruptForIapExpiry();` marks a `done: false`
+  assistant answer done with an interrupted note and hands any queued messages back to the
+  composer; `submitHandler` refuses to send or queue while the session is expired and keeps the text.
+
+**Why:** the IAP/GCIP session ends about an hour after sign-in (seen live 2026-09-30). Without the
+hint IAP answers a script with a 302 to the cross-origin sign-in page, which `fetch` reports as a
+bare network error: the answer stopped with no message, stayed `done: false`, and every later
+message was silently queued behind it. With the hint IAP answers 401
+(https://docs.cloud.google.com/iap/docs/sessions-howto), which the vendor's wrapper would have read
+as app-session expiry and **signed the user out**, hence the ordering.
+
+**If dropped:** silent. Without the layout hook staff get the stuck chat back; if only the ordering is
+lost while the header stays, every hourly IAP expiry signs staff out of the app.
+
+**The test that catches it:** `tests/test_iap_session_expiry_patch.py`; logic in
+`src/lib/iap/session.test.ts`.
+
+**Conflict risk:** low to moderate. The fetch wrapper and `submitHandler` change upstream now and
+then; keep the IAP check first in the wrapper and the guard first in `submitHandler`.

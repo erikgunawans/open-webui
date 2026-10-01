@@ -121,6 +121,7 @@
 		runVoiceCall,
 		voiceCallOpening
 	} from '$lib/voice/session';
+	import { iapSessionExpired, interruptPendingAnswer } from '$lib/iap/session';
 	import ChatControls from './ChatControls.svelte';
 	import EventConfirmDialog from '../common/ConfirmDialog.svelte';
 	import DeleteConfirmDialog from '../common/ConfirmDialog.svelte';
@@ -258,6 +259,28 @@
 			next += estimateTokens(message.files);
 			return next;
 		}, 0);
+
+	// JUP #47: when the IAP session ends mid-answer the stream stops and the answer stays
+	// `done: false`, so every later message was queued behind it and never sent. Mark the answer
+	// interrupted and hand any queued text back to the composer. VENDOR-PATCHES.md.
+	const interruptForIapExpiry = () => {
+		const current = history?.currentId ? history.messages[history.currentId] : null;
+		const note = $i18n.t(
+			'This answer was cut off because your sign-in session ended. Reload the page, then ask again.'
+		);
+		if (interruptPendingAnswer(current, note)) {
+			taskIds = null;
+			history = history;
+		}
+		const queued = $chatId ? ($chatRequestQueues[$chatId] ?? []) : [];
+		if (queued.length > 0) {
+			chatRequestQueues.update((q) => ({ ...q, [$chatId]: [] }));
+			messageInput?.setText(
+				[...queued.map((m) => m.prompt), prompt].filter((text) => text?.trim()).join('\n\n')
+			);
+		}
+	};
+	$: if ($iapSessionExpired) interruptForIapExpiry();
 
 	$: contextCompactionEnabled = Boolean($config?.features?.enable_context_compaction);
 
@@ -3105,6 +3128,12 @@
 
 	const submitHandler = async (userPrompt, { _raw = false } = {}) => {
 		console.log('submitHandler', userPrompt, $chatId);
+
+		// JUP #47: nothing can reach the app until a reload; keep the text in the composer.
+		if ($iapSessionExpired) {
+			toast.error($i18n.t('Your sign-in session has ended. Reload the page to continue.'));
+			return;
+		}
 
 		const _selectedModels = selectedModels.map((modelId) =>
 			$models.map((m) => m.id).includes(modelId) ? modelId : ''
