@@ -24,5 +24,7 @@
 ## Open
 - ~~OCR and drafting in Singapore are both transfers under UU 27/2022 Pasal 56; Legal to confirm the
   equal-protection basis (Singapore PDPA).~~ Settled 2026-09-29: Erik OK'd the Pasal 56 basis.
-- Card reviewers: the **Legal team** reviews the contract cards (Erik, 2026-09-29). Weekly capacity
-  still to be named.
+- Card reviewers: the **Legal team** reviews the contract cards (Erik, 2026-09-29); the legal officer is
+  **Rully** (Erik, 2026-10-01). Weekly capacity still to be named.
+- OneDrive access: Erik says granted (2026-10-01), but `none-jupe-graph-secret` is not in jup-ops Secret
+  Manager yet (checked 2026-10-01). Verify a read-only listing through the app before building.
