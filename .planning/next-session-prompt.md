@@ -1,3 +1,32 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-02-v38)
+
+> Prepended by /wrap 2026-10-02 (checkpoint 2026-10-02-v38). Supersedes v37's anchor and its "do next"; v37's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-02-v38).
+Anchor: `origin/main` at `51f9c00a6` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-10-02-v38`). Verify with `git log --oneline 51f9c00a6..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live **`ent-os-00066-5tn`** (image `b5e1dfb27`): PR #48 (staff can read model-attached KBs; multilingual-e5 embeddings) + #49 (grep regex fix). Live settings: Asisten JUP reasoning low + builtin tools time/files/knowledge; voice model reads both KB collections; hybrid search, top-k 5. Answers 5–8 s (were 18–30 s). Contract pilot: 10 PDFs OCR'd (161 pages) + 10 cards drafted, preview in the Jakarta bucket, not yet reviewed. Backend 1686 / 22 skipped.
+
+**Do next, in order:**
+1. **Contract cards — Erik's review of the preview** (`https://storage.cloud.google.com/jup-ops-legal-kb/pilot/preview/kartu-kontrak-pilot.html`, erik@axiara.ai has objectViewer). Collect his corrections; tighten the drafting prompt (card 01 flagged a notary/witnesses as "perorangan" parties). Scripts: `deploy/gcp/legal-kb/` (fetch → ocr → draft-cards → preview); OCR synchronous only (batch stalls).
+2. **Then the card review path in the app** (proposal: Legal reviews in /kb-review; access matrix enforced in tool code — all staff no money fields, managers+ money, full text Legal+Direksi, managers by unit). Plan it first and get Erik's OK; it is a new tool + data model, not a sync. Ask Rully's team who reviews and send the preview to her only via Erik (Gmail connector is read-only).
+3. **Rully's app login + #46:** she is the first non-admin; check O1 ("JUP documents" under + → Alat; 404 on `89e158b8-…`/`604c45fe-…`) AND that Asisten JUP answers from the KB for a non-admin (PR #48 is only test-proven). Then close #46.
+4. **#47 live proof:** a tab past ~1 h, send without reload → toast + "Jawaban ini terputus…"; close #47.
+5. **Notion #41/#42** once Erik stores `notion-integration-token` (Jakarta) — each step its own OK.
+6. Carried: model trial if MiMo stalls still hurt (Erik's call); UI copy/config (vendor changelog modal, live suggestions, empty id-ID keys); #38 GPT-Live first call; Daftar Perkara grant from JUP IT; ADR-0016 step 5; CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- **The embedding model is DB config, now e5.** A switch = `POST /api/v1/retrieval/embedding/update` + `POST /api/v1/knowledge/reindex` + a label-only revision restart (memory `embedding-switch-needs-restart`). Rolling back to an image older than `638bca003` without switching back to MiniLM breaks RAG. The `query: `/`passage: ` prefixes in deploy.sh are only right for e5.
+- **Model-attached = readable (Erik, 10-02):** never "fix" staff KB access by adding grants to the collections; that exposes raw files in Workspace.
+- **Document AI batch stalls:** use synchronous `:process` in ≤15-page chunks; polling needs `x-goog-user-project: jup-ops` (memory `documentai-batch-stalls-use-sync`).
+- **Contract data stays in `gs://jup-ops-legal-kb` (Jakarta)**: never in the repo, never on local disk beyond memory, never in an artifact. Rully is "Ibu".
+- **The session scratchpad does not survive a Mac restart** — anything worth keeping goes in the repo.
+- CI skips the runtime suite: run `.venv/bin/python -m pytest tests` locally before any merge touching vendor code.
+
+**Open items waiting on Erik:** review the 10-card preview; Rully's app account; whether to trial another model if answers still feel slow; Notion integration + token; delete the "Uji kecepatan" test chats and the two O1 test .docx?; JUP IT grant for Daftar Perkara; Gmail send scope if he wants me to email; #38 GPT-Live call; keep or drop `docker-compose.dev.yaml`.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-01-v37)
 
 > Prepended by /wrap 2026-10-01 (checkpoint 2026-10-01-v37). Supersedes v36's anchor and its "do next"; v36's and older blocks' constraints still hold unless noted.
