@@ -11,7 +11,12 @@ ARG USE_CUDA_VER=cu128
 # Leaderboard: https://huggingface.co/spaces/mteb/leaderboard 
 # for better performance and multilangauge support use "intfloat/multilingual-e5-large" (~2.5GB) or "intfloat/multilingual-e5-base" (~1.5GB)
 # IMPORTANT: If you change the embedding model (sentence-transformers/all-MiniLM-L6-v2) and vice versa, you aren't able to use RAG Chat with your previous documents loaded in the WebUI! You need to re-embed them.
-ARG USE_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+# JUP (2026-10-02): the KB is Indonesian and MiniLM is English-only — vector search missed the right
+# file for plain Indonesian questions. multilingual-e5-small is the same 384 dimensions and runs on
+# the Cloud Run CPU, so nothing leaves Jakarta. It needs "query: " / "passage: " prefixes (deploy.sh).
+# The live model is DB-persisted config: switching it is an admin API call plus /knowledge/reindex,
+# not this line. See deploy/gcp/VENDOR-PATCHES.md.
+ARG USE_EMBEDDING_MODEL=intfloat/multilingual-e5-small
 ARG USE_RERANKING_MODEL=""
 ARG USE_AUXILIARY_EMBEDDING_MODEL=TaylorAI/bge-micro-v2
 
@@ -167,6 +172,8 @@ RUN set -e; \
     uv pip install --system -r requirements.txt --no-cache-dir; \
     if [ "$USE_SLIM" != "true" ]; then \
     python -c "import os; from sentence_transformers import SentenceTransformer; SentenceTransformer(os.environ['RAG_EMBEDDING_MODEL'], device='cpu')"; \
+    # JUP: keep MiniLM baked too, so the image still serves the old DB config until it is switched.
+    python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device='cpu')"; \
     python -c "import os; from sentence_transformers import SentenceTransformer; SentenceTransformer(os.environ.get('AUXILIARY_EMBEDDING_MODEL', 'TaylorAI/bge-micro-v2'), device='cpu')"; \
     python -c "import os; from faster_whisper import WhisperModel; WhisperModel(os.environ['WHISPER_MODEL'], device='cpu', compute_type='int8', download_root=os.environ['WHISPER_MODEL_DIR'])"; \
     python -c "import os; import tiktoken; tiktoken.get_encoding(os.environ['TIKTOKEN_ENCODING_NAME'])"; \

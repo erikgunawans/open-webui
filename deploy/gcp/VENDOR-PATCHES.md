@@ -825,3 +825,36 @@ lost while the header stays, every hourly IAP expiry signs staff out of the app.
 
 **Conflict risk:** low to moderate. The fetch wrapper and `submitHandler` change upstream now and
 then; keep the IAP check first in the wrapper and the guard first in `submitHandler`.
+
+## `backend/open_webui/tools/builtin.py` — model-attached collections are readable by the model's users
+
+**What:** `_model_attached_collection_ids` and `_can_read_knowledge` replace the inline
+admin / owner / grant check in `search_knowledge_files`, `grep_knowledge_files`, `view_knowledge_file`
+(which now also takes `__model_knowledge__`), `list_knowledge` and `query_knowledge_files`, and
+`_has_read_access_to_file` also accepts a file inside a model-attached collection. Only items whose
+`source` is `'model'` count; a collection a user attaches to their own chat still needs a grant.
+
+**Why:** ADR-0015 §1 keeps the KB collections private (no grants) and makes them reachable only by
+attaching them to the model. The vendor already allows a model-attached *file* without a grant, but
+not a model-attached *collection*, so every non-admin got empty knowledge results from Asisten JUP
+and the voice model while admins saw answers (found 2026-10-02).
+
+**If dropped:** silent. Staff answers lose every KB source and the assistant says the information is
+not available; admins see no difference, which is how it went unnoticed.
+`tests/test_kb_model_attached_access.py` notices.
+
+**Conflict risk:** medium. Five vendor tool bodies are touched; on a rebase, re-apply the helper at
+every model-knowledge access check (the static test lists them).
+
+## `Dockerfile` + `deploy/gcp/deploy.sh` — multilingual embedding model
+
+**What:** `USE_EMBEDDING_MODEL=intfloat/multilingual-e5-small` (MiniLM stays baked as well), and
+`RAG_EMBEDDING_QUERY_PREFIX` / `RAG_EMBEDDING_CONTENT_PREFIX` = `query: ` / `passage: ` in deploy.sh.
+
+**Why:** the KB is Indonesian; MiniLM is English-only and vector search missed the right file for
+plain Indonesian questions (2026-10-02 probe). The live embedding model is DB-persisted config: the
+switch is `POST /api/v1/retrieval/embedding/update` followed by `POST /api/v1/knowledge/reindex`.
+Chat uploads embedded under MiniLM are not re-indexed by that route.
+
+**If dropped:** the DB still names e5 but the image no longer contains it, so RAG degrades (the
+embedding function raises; boot does not crash). Keep the prefixes only while the model is e5.

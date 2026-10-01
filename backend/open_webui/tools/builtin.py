@@ -113,12 +113,55 @@ async def _has_read_access_to_file(
         return True
     if model_knowledge and any(item.get('type') == 'file' and item.get('id') == file.id for item in model_knowledge):
         return True
+    attached = _model_attached_collection_ids(model_knowledge)
+    if attached:
+        from open_webui.models.knowledge import Knowledges
+
+        if any(kb.id in attached for kb in await Knowledges.get_knowledges_by_file_id(file.id)):
+            return True
     from open_webui.utils.access_control.files import has_access_to_file
 
     return await has_access_to_file(
         file_id=file.id,
         access_type='read',
         user=UserModel(**user),
+    )
+
+
+def _model_attached_collection_ids(model_knowledge: Optional[list[dict]]) -> set[str]:
+    """JUP (ADR-0015 §1): the collections an admin attached to the model itself.
+
+    Anyone allowed to use the model may search these, as the vendor already allows for single files
+    attached to a model. The collections stay private otherwise (no grant), so staff cannot browse
+    the raw files in Workspace. Only `source == 'model'` counts: a collection a user attaches to
+    their own chat (`source == 'chat'`) still needs a grant. See deploy/gcp/VENDOR-PATCHES.md.
+    """
+    return {
+        item.get('id')
+        for item in model_knowledge or []
+        if item.get('type') == 'collection' and item.get('source') == 'model' and item.get('id')
+    }
+
+
+async def _can_read_knowledge(
+    knowledge,
+    user: dict,
+    user_group_ids,
+    model_knowledge: Optional[list[dict]] = None,
+) -> bool:
+    """Read access to a collection: admin, owner, attached to this model (JUP), or a read grant."""
+    if user.get('role', 'user') == 'admin' or knowledge.user_id == user.get('id'):
+        return True
+    if knowledge.id in _model_attached_collection_ids(model_knowledge):
+        return True
+    from open_webui.models.access_grants import AccessGrants
+
+    return await AccessGrants.has_access(
+        user_id=user.get('id'),
+        resource_type='knowledge',
+        resource_id=knowledge.id,
+        permission='read',
+        user_group_ids=set(user_group_ids),
     )
 
 
@@ -2213,17 +2256,7 @@ async def search_knowledge_files(
                 if not knowledge:
                     continue
 
-                if not (
-                    user_role == 'admin'
-                    or knowledge.user_id == user_id
-                    or await AccessGrants.has_access(
-                        user_id=user_id,
-                        resource_type='knowledge',
-                        resource_id=knowledge.id,
-                        permission='read',
-                        user_group_ids=set(user_group_ids),
-                    )
-                ):
+                if not await _can_read_knowledge(knowledge, __user__, user_group_ids, __model_knowledge__):
                     continue
 
                 result = await Knowledges.search_files_by_id(
@@ -2649,7 +2682,6 @@ async def grep_knowledge_files(
         from open_webui.models.knowledge import Knowledges
 
         user_id = __user__.get('id')
-        user_role = __user__.get('role', 'user')
         user_group_ids = [group.id for group in await Groups.get_groups_by_member_id(user_id)]
 
         # Collect files to search
@@ -2664,8 +2696,6 @@ async def grep_knowledge_files(
                 files_to_search.append(file)
         elif __model_knowledge__:
             # Scoped to model's attached knowledge
-            from open_webui.models.access_grants import AccessGrants
-
             seen_ids = set()
             for item in __model_knowledge__:
                 item_type = item.get('type')
@@ -2680,17 +2710,7 @@ async def grep_knowledge_files(
                     if not knowledge:
                         continue
                     # Verify user can access this KB
-                    if not (
-                        user_role == 'admin'
-                        or knowledge.user_id == user_id
-                        or await AccessGrants.has_access(
-                            user_id=user_id,
-                            resource_type='knowledge',
-                            resource_id=knowledge.id,
-                            permission='read',
-                            user_group_ids=set(user_group_ids),
-                        )
-                    ):
+                    if not await _can_read_knowledge(knowledge, __user__, user_group_ids, __model_knowledge__):
                         continue
                     kb_files = await Knowledges.get_files_by_id(item_id)
                     if kb_files:
@@ -2856,6 +2876,7 @@ async def view_knowledge_file(
     end_line: Optional[int] = None,
     __request__: Request = None,
     __user__: dict = None,
+    __model_knowledge__: Optional[list[dict]] = None,
 ) -> str:
     """
     Get the content of a file from a knowledge base. Supports pagination for large files.
@@ -2891,7 +2912,6 @@ async def view_knowledge_file(
     offset = max(offset, 0)
 
     try:
-        from open_webui.models.access_grants import AccessGrants
         from open_webui.models.files import Files
         from open_webui.models.knowledge import Knowledges
 
@@ -2909,17 +2929,7 @@ async def view_knowledge_file(
         knowledge_info = None
 
         for knowledge_base in knowledges:
-            if (
-                user_role == 'admin'
-                or knowledge_base.user_id == user_id
-                or await AccessGrants.has_access(
-                    user_id=user_id,
-                    resource_type='knowledge',
-                    resource_id=knowledge_base.id,
-                    permission='read',
-                    user_group_ids=set(user_group_ids),
-                )
-            ):
+            if await _can_read_knowledge(knowledge_base, __user__, user_group_ids, __model_knowledge__):
                 has_knowledge_access = True
                 knowledge_info = {'id': knowledge_base.id, 'name': knowledge_base.name}
                 break
@@ -3059,17 +3069,7 @@ async def list_knowledge(
 
             if item_type == 'collection':
                 knowledge = await Knowledges.get_knowledge_by_id(item_id)
-                if knowledge and (
-                    user_role == 'admin'
-                    or knowledge.user_id == user_id
-                    or await AccessGrants.has_access(
-                        user_id=user_id,
-                        resource_type='knowledge',
-                        resource_id=knowledge.id,
-                        permission='read',
-                        user_group_ids=set(user_group_ids),
-                    )
-                ):
+                if knowledge and await _can_read_knowledge(knowledge, __user__, user_group_ids, __model_knowledge__):
                     kb_files = await Knowledges.get_files_by_id(knowledge.id)
                     file_count = len(kb_files) if kb_files else 0
 
@@ -3208,16 +3208,8 @@ async def query_knowledge_files(
                 if item_type == 'collection':
                     # Knowledge base - use KB ID as collection name
                     knowledge = await Knowledges.get_knowledge_by_id(item_id)
-                    if knowledge and (
-                        user_role == 'admin'
-                        or knowledge.user_id == user_id
-                        or await AccessGrants.has_access(
-                            user_id=user_id,
-                            resource_type='knowledge',
-                            resource_id=knowledge.id,
-                            permission='read',
-                            user_group_ids=set(user_group_ids),
-                        )
+                    if knowledge and await _can_read_knowledge(
+                        knowledge, __user__, user_group_ids, __model_knowledge__
                     ):
                         if (knowledge.meta or {}).get('source') == 'external':
                             external_knowledges.append(knowledge)

@@ -69,8 +69,12 @@ ENABLE_OLLAMA_API: "False"
 # The two below are read from the environment on every boot and are not DB-seeded.
 # Tools run as Python in the backend. Saving one must not also pip-install into the image.
 ENABLE_PIP_INSTALL_FRONTMATTER_REQUIREMENTS: "False"
-# MiniLM is baked into the image; the auto-update reached HuggingFace on every boot.
+# The embedding models are baked into the image; the auto-update reached HuggingFace on every boot.
 RAG_EMBEDDING_MODEL_AUTO_UPDATE: "False"
+# multilingual-e5 is trained with these prefixes and loses recall without them. Read from the
+# environment on every boot (not DB-seeded). Only correct while the DB embedding model is an e5 model.
+RAG_EMBEDDING_QUERY_PREFIX: "query: "
+RAG_EMBEDDING_CONTENT_PREFIX: "passage: "
 # Erik's call 2026-09-25. The admin-only "new version available" toast pointed at upstream Open
 # WebUI releases, which nobody here acts on (upstream moves by quarterly rebase, ADR-0007), and each
 # check called api.github.com from the server. Off, /api/version/updates answers current=latest.
