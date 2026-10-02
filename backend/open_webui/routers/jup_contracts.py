@@ -13,6 +13,8 @@ server. This module checks who is asking, reaches the tables, and serialises.
   `kontrak-<ref>.pdf`, never the OneDrive file name, which can carry an individual's name.
 - **Names** (`/parties/resolve`): code → name for display after an answer, with the `names` grant
   only (D2). The model never reads a name.
+- **Review** (`/review/…`, phase 2): the `review` grant (Legal) — the queue, one card with its events
+  and OCR pages, and every change Legal makes (`jup.contracts.review`). Stale versions are 409.
 - **Every write, PDF read and resolve writes one `jup.governance` audit line**, refusals included:
   ids, references and counts only.
 """
@@ -22,6 +24,7 @@ import logging
 from typing import Any
 
 import copy
+import json
 import os
 from pathlib import Path
 
@@ -32,6 +35,7 @@ from pydantic import BaseModel, Field
 
 from jup.contracts import access as contract_access
 from jup.contracts import imports as contract_imports
+from jup.contracts import review as contract_review
 from jup.contracts import titles as rules
 from jup.contracts import tool as contract_tool
 from jup.contracts.migrate import schema_ready
@@ -341,4 +345,361 @@ async def contract_pdf(
         filename=f'kontrak-{reference}.pdf',
         content_disposition_type='inline',
         headers=NO_STORE,
+    )
+
+
+# --- Review (phase 2, the "Kartu Kontrak" tab) ----------------------------------------------------
+#
+# The `review` grant only (Legal). Admin is not Legal (ADR-0012), so an admin without the grant is
+# refused like anyone else, with 403. Every write names the version it was made against: a stale one
+# is 409 and the screen reloads. A reader without `names` gets the card masked, as the tool would.
+
+
+def _require_review(user: Any, reader: contract_access.Access, action: str, **fields: Any) -> None:
+    if not reader.review:
+        audit('contract_review', user=user.id, action=action, result='refused', code='review_required', **fields)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                'code': 'review_required',
+                'message': 'Tinjauan kartu kontrak memerlukan akses tinjauan (Tim Legal).',
+            },
+        )
+    _require_schema()
+
+
+def _masked(value: Any, parties: list[dict[str, str]]) -> Any:
+    if isinstance(value, str):
+        return contract_access.mask(value, parties)
+    if isinstance(value, list):
+        return [_masked(item, parties) for item in value]
+    if isinstance(value, dict):
+        return {key: _masked(item, parties) for key, item in value.items()}
+    return value
+
+
+def _review_view(found: dict[str, Any], reader: contract_access.Access) -> dict[str, Any]:
+    if reader.names:
+        return found
+    parties = found['parties']
+    return {
+        **found,
+        'card': _masked(found['card'], parties),
+        'draft_card': _masked(found['draft_card'], parties),
+        'events': _masked(found['events'], parties),
+        'parties': [{'code': p['code'], 'name': None} for p in parties],
+    }
+
+
+@router.get('/review/queue')
+async def review_queue(
+    state: str | None = None,
+    flag: str | None = None,
+    q: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+    user=Depends(get_verified_user),
+    reader: contract_access.Access = Depends(contract_reader),
+    engine: Any = Depends(contracts_engine),
+) -> Any:
+    _require_review(user, reader, 'queue')
+    try:
+        page = await run_in_threadpool(
+            contract_review.queue, engine, state=state, flag=flag, q=q, limit=limit, offset=offset
+        )
+    except contract_review.Invalid as error:
+        raise HTTPException(status_code=422, detail={'code': 'invalid', 'message': str(error)})
+    return JSONResponse(page, headers=NO_STORE)
+
+
+@router.get('/review/{contract_id}')
+async def review_detail(
+    contract_id: str,
+    user=Depends(get_verified_user),
+    reader: contract_access.Access = Depends(contract_reader),
+    engine: Any = Depends(contracts_engine),
+) -> Any:
+    _require_review(user, reader, 'detail', contract=contract_id)
+    found = await run_in_threadpool(contract_review.detail, engine, contract_id)
+    if found is None:
+        raise HTTPException(status_code=404, detail={'code': 'not_found', 'message': 'No such contract.'})
+    return JSONResponse(_review_view(found, reader), headers=NO_STORE)
+
+
+@router.get('/review/{contract_id}/pages')
+async def review_pages(
+    contract_id: str,
+    user=Depends(get_verified_user),
+    reader: contract_access.Access = Depends(contract_reader),
+    engine: Any = Depends(contracts_engine),
+    root: Path | None = Depends(contracts_root),
+) -> Any:
+    """Every OCR page, for reading beside the card. Masked unless the reader holds `names`."""
+    _require_review(user, reader, 'pages', contract=contract_id)
+    found = await run_in_threadpool(contract_review.detail, engine, contract_id)
+    if found is None:
+        raise HTTPException(status_code=404, detail={'code': 'not_found', 'message': 'No such contract.'})
+    row = found['contract']
+    path = root / row['run'] / 'ocr-text' / f'{row["number"]}.json' if root else None
+    try:
+        pages = json.loads(await run_in_threadpool(path.read_text, encoding='utf-8')) if path else None
+    except (OSError, ValueError):
+        pages = None
+    if not isinstance(pages, list):
+        raise HTTPException(
+            status_code=404,
+            detail={'code': 'pages_not_found', 'message': 'The OCR text of this contract is not available.'},
+        )
+    parties = found['parties']
+    shown = [
+        {
+            'halaman': page.get('n'),
+            'teks': (page.get('text') or '') if reader.names else contract_access.mask(page.get('text') or '', parties),
+            'ocr_rendah': (page.get('conf') or 0) < 0.8,
+        }
+        for page in pages
+        if isinstance(page, dict)
+    ]
+    audit('contract_review', user=user.id, action='pages', contract=contract_id, pages=len(shown), result='ok')
+    return JSONResponse({'pages': shown}, headers=NO_STORE)
+
+
+class _Versioned(BaseModel):
+    version: int
+
+
+class FieldForm(_Versioned):
+    field: str
+    text: str
+    pages: list[int] = Field(default_factory=list)
+
+
+class ApproveForm(_Versioned):
+    card_sha256: str
+
+
+class ReturnForm(_Versioned):
+    reason: str
+
+
+class UnitsForm(_Versioned):
+    units: list[str] = Field(default_factory=list, max_length=20)
+
+
+class DatesForm(_Versioned):
+    start: str | None = None
+    end: str | None = None
+    auto_renewal: bool | None = None
+
+
+class PartiesForm(_Versioned):
+    names: list[str] = Field(default_factory=list, max_length=50)
+
+
+class LinkForm(_Versioned):
+    related_id: str
+    kind: str = 'addendum'
+
+
+async def _write(user: Any, reader: contract_access.Access, action: str, contract_id: str, call: Any) -> Any:
+    _require_review(user, reader, action, contract=contract_id)
+    try:
+        result = await run_in_threadpool(call)
+    except LookupError:
+        audit('contract_review', user=user.id, action=action, contract=contract_id, result='refused', code='not_found')
+        raise HTTPException(status_code=404, detail={'code': 'not_found', 'message': 'No such contract.'})
+    except contract_review.Conflict:
+        audit('contract_review', user=user.id, action=action, contract=contract_id, result='refused', code='conflict')
+        raise HTTPException(
+            status_code=409,
+            detail={'code': 'conflict', 'message': 'Kartu ini sudah berubah sejak dibuka. Muat ulang lalu ulangi.'},
+        )
+    except contract_review.Invalid as error:
+        audit('contract_review', user=user.id, action=action, contract=contract_id, result='refused', code='invalid')
+        raise HTTPException(status_code=422, detail={'code': 'invalid', 'message': str(error)})
+    audit(
+        'contract_review',
+        user=user.id,
+        action=action,
+        contract=contract_id,
+        version=result.get('version'),
+        result='recorded',
+    )
+    return result
+
+
+@router.patch('/review/{contract_id}/field')
+async def review_edit_field(
+    contract_id: str,
+    form: FieldForm,
+    user=Depends(get_verified_user),
+    reader: contract_access.Access = Depends(contract_reader),
+    engine: Any = Depends(contracts_engine),
+) -> Any:
+    return await _write(
+        user,
+        reader,
+        'field',
+        contract_id,
+        lambda: contract_review.edit_field(
+            engine,
+            contract_id,
+            form.field,
+            text=form.text,
+            pages=form.pages,
+            expected_version=form.version,
+            actor=user.id,
+        ),
+    )
+
+
+@router.post('/review/{contract_id}/approve')
+async def review_approve(
+    contract_id: str,
+    form: ApproveForm,
+    user=Depends(get_verified_user),
+    reader: contract_access.Access = Depends(contract_reader),
+    engine: Any = Depends(contracts_engine),
+) -> Any:
+    return await _write(
+        user,
+        reader,
+        'approve',
+        contract_id,
+        lambda: contract_review.approve(
+            engine, contract_id, card_sha256=form.card_sha256, expected_version=form.version, actor=user.id
+        ),
+    )
+
+
+@router.post('/review/{contract_id}/return')
+async def review_return(
+    contract_id: str,
+    form: ReturnForm,
+    user=Depends(get_verified_user),
+    reader: contract_access.Access = Depends(contract_reader),
+    engine: Any = Depends(contracts_engine),
+) -> Any:
+    return await _write(
+        user,
+        reader,
+        'return',
+        contract_id,
+        lambda: contract_review.return_card(
+            engine, contract_id, reason=form.reason, expected_version=form.version, actor=user.id
+        ),
+    )
+
+
+@router.put('/review/{contract_id}/units')
+async def review_units(
+    contract_id: str,
+    form: UnitsForm,
+    user=Depends(get_verified_user),
+    reader: contract_access.Access = Depends(contract_reader),
+    engine: Any = Depends(contracts_engine),
+) -> Any:
+    return await _write(
+        user,
+        reader,
+        'units',
+        contract_id,
+        lambda: contract_review.set_units(
+            engine, contract_id, form.units, expected_version=form.version, actor=user.id
+        ),
+    )
+
+
+@router.put('/review/{contract_id}/dates')
+async def review_dates(
+    contract_id: str,
+    form: DatesForm,
+    user=Depends(get_verified_user),
+    reader: contract_access.Access = Depends(contract_reader),
+    engine: Any = Depends(contracts_engine),
+) -> Any:
+    return await _write(
+        user,
+        reader,
+        'dates',
+        contract_id,
+        lambda: contract_review.set_dates(
+            engine,
+            contract_id,
+            start=form.start,
+            end=form.end,
+            auto_renewal=form.auto_renewal,
+            expected_version=form.version,
+            actor=user.id,
+        ),
+    )
+
+
+@router.put('/review/{contract_id}/parties')
+async def review_parties(
+    contract_id: str,
+    form: PartiesForm,
+    user=Depends(get_verified_user),
+    reader: contract_access.Access = Depends(contract_reader),
+    engine: Any = Depends(contracts_engine),
+) -> Any:
+    """Setting names needs `names` too: a reviewer who cannot see names cannot write them."""
+    if reader.review and not reader.names:
+        audit(
+            'contract_review',
+            user=user.id,
+            action='parties',
+            contract=contract_id,
+            result='refused',
+            code='names_required',
+        )
+        raise HTTPException(
+            status_code=403,
+            detail={'code': 'names_required', 'message': 'Mengubah daftar perorangan memerlukan akses nama.'},
+        )
+    return await _write(
+        user,
+        reader,
+        'parties',
+        contract_id,
+        lambda: contract_review.set_parties(
+            engine, contract_id, form.names, expected_version=form.version, actor=user.id
+        ),
+    )
+
+
+@router.post('/review/{contract_id}/links')
+async def review_link(
+    contract_id: str,
+    form: LinkForm,
+    user=Depends(get_verified_user),
+    reader: contract_access.Access = Depends(contract_reader),
+    engine: Any = Depends(contracts_engine),
+) -> Any:
+    return await _write(
+        user,
+        reader,
+        'link',
+        contract_id,
+        lambda: contract_review.link(
+            engine, contract_id, form.related_id, kind=form.kind, expected_version=form.version, actor=user.id
+        ),
+    )
+
+
+@router.delete('/review/{contract_id}/links/{related_id}')
+async def review_unlink(
+    contract_id: str,
+    related_id: str,
+    version: int,
+    user=Depends(get_verified_user),
+    reader: contract_access.Access = Depends(contract_reader),
+    engine: Any = Depends(contracts_engine),
+) -> Any:
+    return await _write(
+        user,
+        reader,
+        'unlink',
+        contract_id,
+        lambda: contract_review.unlink(engine, contract_id, related_id, expected_version=version, actor=user.id),
     )

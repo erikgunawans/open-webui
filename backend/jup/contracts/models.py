@@ -103,3 +103,17 @@ party_link = Table(
     _id('contract_id', ForeignKey('jup_contract.id'), primary_key=True),
     _id('party_id', ForeignKey('jup_contract_party.id'), primary_key=True),
 )
+
+# A related document tied to a contract, set by Legal in the review screen: `related_id` amends
+# (`addendum`) or otherwise relates to (`related`) `contract_id`. One row per pair.
+LINK_KINDS: tuple[str, ...] = ('addendum', 'related')
+
+contract_link = Table(
+    'jup_contract_link',
+    metadata,
+    _id('contract_id', ForeignKey('jup_contract.id'), primary_key=True),
+    _id('related_id', ForeignKey('jup_contract.id'), primary_key=True),
+    Column('kind', String(32), nullable=False),
+    Column('actor', String(_USER), nullable=False),
+    Column('created_at', BigInteger, nullable=False),
+)

@@ -15,7 +15,7 @@ pytest.importorskip('alembic', reason='the runtime tree is not installed')
 
 from jup.contracts import migrate, models  # noqa: E402
 
-HEAD = 'jc0001'
+HEAD = 'jc0002'
 
 
 @pytest.fixture
