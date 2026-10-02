@@ -1,3 +1,36 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-02-v39)
+
+> Prepended by /wrap 2026-10-02 (checkpoint 2026-10-02-v39). Supersedes v38's anchor and its "do next"; v38's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-02-v39), then `.planning/contract-kb-full-plan-2026-10-02.md` (the approved plan + Erik's decisions D1–D5).
+Anchor: `origin/main` at `bba891f7b` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-10-02-v39`). Verify with `git log --oneline bba891f7b..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live **`ent-os-00067-qqm`** (image `434be2e4e`, Ruang Pimpinan redesign); rollback `00066-5tn`. Contract cards: 1,033 of 1,035 drafted in `gs://jup-ops-legal-kb/full/` (`summary.json`); nothing in the app reads them yet. The contract KB full version is planned and approved, not built.
+
+**Do next, in order:**
+1. **Build contract KB phase 1** per the plan (TDD, thin tool wrapper → tested `backend/jup/contracts/` module):
+   a. **Title-group column in Admin → Pengguna** (D3): Direksi / Legal / Manager / Staff, one per user, backed by four managed groups carrying `jup.contracts.*` boolean grants (Staff: cards; Manager: + money; Legal: + full text, names, review; Direksi: + full text, names). An admin-only fork endpoint moves the user between the four groups. The user list is a vendor screen: one column only, a VENDOR-PATCHES entry, a source-presence test. Admin ≠ Direksi (ADR-0012).
+   b. **Tables on their own alembic graph** (leadership pattern; `jup/migrations.py` head guard): `jup_contract` (draft card, current card, state draft/approved/returned, structured start/end/auto-renewal, units, source pointers, draft hash), `jup_contract_event` (append-only), `jup_contract_party` (stable "Perorangan A" codes).
+   c. **Admin import** of the `full` run from the bucket. Needs D5 first: `roles/storage.objectViewer` on `gs://jup-ops-legal-kb` for the Cloud Run SA `1001937491646-compute@developer.gserviceaccount.com` (save the before-policy to `.planning/`). Then a dates pass for "ends within N days".
+   d. **Access + masking module:** permissions via `get_permissions` (tools only get the role); strip money fields / pages before the model; mask individual parties; unmask after the answer for Legal + Direksi only (D2).
+   e. **Tool `jup_contracts`** (`risk_class: read`): search / get card / read pages; every answer states the card's approval state (D1: drafts answer too). Attach to **Asisten JUP and Asisten JUP - Suara** (save the model JSON before). A PDF endpoint with the same access check.
+   f. Local full suite (`.venv/bin/python -m pytest tests`), PR, CI, then deploy + sync + grants + live check, each with Erik's OK.
+2. **Phase 2:** the "Kartu Kontrak" review tab in Tinjauan Pengetahuan (Legal: per-field edit, approve/return with a reason, set unit, link addenda; hash-guarded approve).
+3. Tell Rully (via Erik) that file 0594/0639 is truncated in OneDrive and needs a re-scan; ask who on her team reviews and how many cards a week.
+4. Carried from v38: Rully's app login + #46 (non-admin KB answer check), #47 live proof, Notion #41/#42 once the token exists, #38 GPT-Live call, UI copy/config leftovers, CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- **D1 replaces the proposal's "approved cards only" rule** — drafts answer, labelled; never re-add an approved-only gate without Erik.
+- **Access is enforced in the tool code, before the model**, never by instructions in the prompt (memory `tool-docstring-must-not-gate-on-identity`). Grants are exact-`True` booleans; a unit is one boolean key per unit.
+- **Contract data stays in Jakarta** (bucket + DB); never in the repo, on local disk, in an artifact, or in logs (logs carry numbers only).
+- **gcloud reauth** stops every gcloud call, deploys included. Only Erik can `! gcloud auth login`; stop long jobs at once.
+- **Forge is unavailable** (its pinned gpt-5.4 is refused on the ChatGPT login) — build with full tests yourself unless Erik fixed Codex.
+- After a deploy, prove the served entry hash = the running one in the tab before believing any UI check (memory `deployed-ui-stale-html-shell`).
+
+**Open items waiting on Erik:** who goes in Direksi / Legal / Manager / Staff (he sets it in the new column once built); OK for the D5 IAM grant at build time; tell Rully about the truncated file + reviewers; Rully's app account; Notion token; delete the "Uji kecepatan" test chats and two O1 test .docx?; Daftar Perkara grant from JUP IT; Gmail send scope; #38 GPT-Live call; keep or drop `docker-compose.dev.yaml`.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-02-v38)
 
 > Prepended by /wrap 2026-10-02 (checkpoint 2026-10-02-v38). Supersedes v37's anchor and its "do next"; v37's and older blocks' constraints still hold unless noted.
