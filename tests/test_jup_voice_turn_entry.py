@@ -90,7 +90,7 @@ def test_a_voice_chat_turn_is_forced_onto_the_voice_model(caplog) -> None:
     form = _forged()
     assert _enforce(form, store) is True
     assert form['model'] == voice.VOICE_MODEL_ID
-    assert form['tool_ids'] == ['portfolio_status']
+    assert form['tool_ids'] == ['portfolio_status', 'jup_contracts']
     assert form['features'] == {}
     assert _turn_lines(caplog) == [
         {'event': 'voice_turn', 'user': ERIK, 'chat': CHAT, 'changed': ['model', 'tool_ids', 'features']}

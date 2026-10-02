@@ -1,4 +1,4 @@
-"""#27: a voice-chat turn runs on "Asisten JUP — Suara" and reaches only the named document set.
+"""#27: a voice-chat turn runs on "Asisten JUP — Suara" and reaches only the voice knowledge scope.
 
 Runs under `--only-group dev`: `jup.voice_turn` imports the standard library only. The vendor
 inserts that call it are pinned in `test_jup_voice_turn_presence.py`.
@@ -71,7 +71,7 @@ def test_a_forged_model_id_runs_on_the_voice_model() -> None:
 def test_forged_tool_ids_are_replaced_by_the_voice_tools() -> None:
     form = _forged_request()
     voice_turn.rewrite(form)
-    assert form['tool_ids'] == list(voice_turn.VOICE_TOOL_IDS) == ['portfolio_status']
+    assert form['tool_ids'] == list(voice_turn.VOICE_TOOL_IDS) == ['portfolio_status', 'jup_contracts']
 
 
 def test_forged_features_are_dropped() -> None:
@@ -155,14 +155,14 @@ def test_an_honest_voice_request_changes_nothing_worth_reporting() -> None:
     form = {
         'model': VOICE_MODEL_ID,
         'chat_id': 'chat-1',
-        'tool_ids': ['portfolio_status'],
+        'tool_ids': list(voice_turn.VOICE_TOOL_IDS),
         'features': {'voice': True},
         'message_ids': [{'model_id': VOICE_MODEL_ID, 'message_id': 'a-1'}],
         'user_message': {'id': 'u-1', 'content': 'hi', 'models': [VOICE_MODEL_ID]},
         'messages': [],
     }
     assert voice_turn.rewrite(form) == []
-    assert form['tool_ids'] == ['portfolio_status']
+    assert form['tool_ids'] == list(voice_turn.VOICE_TOOL_IDS)
 
 
 def test_a_request_without_optional_fields_is_still_forced() -> None:
@@ -171,37 +171,51 @@ def test_a_request_without_optional_fields_is_still_forced() -> None:
     assert form == {
         'model': VOICE_MODEL_ID,
         'messages': [],
-        'tool_ids': ['portfolio_status'],
+        'tool_ids': list(voice_turn.VOICE_TOOL_IDS),
         'features': {},
         'params': {'function_calling': 'native'},
     }
 
 
-# --- The document set -------------------------------------------------------------------
+# --- The voice scope ---------------------------------------------------------------------
+
+KB = 'kb-strategy'
+OTHER_KB = 'kb-test'
+IN_KB = 'file-in-strategy-kb'
 
 
-def test_the_document_set_is_the_models_file_items() -> None:
-    assert voice_turn.document_set(_voice_model()) == frozenset({IN_SET, ALSO_IN_SET})
+def _collection_model() -> dict:
+    return _voice_model([{'type': 'collection', 'id': KB, 'name': 'JUP Strategy KB'}])
+
+
+async def _resolve(collections):
+    return {IN_KB} if KB in collections else set()
+
+
+def test_the_scope_is_the_models_files_and_collections() -> None:
+    assert voice_turn.voice_scope(_voice_model()) == voice_turn.Scope(frozenset({IN_SET, ALSO_IN_SET}), frozenset())
+    mixed = _voice_model([{'type': 'file', 'id': IN_SET}, {'type': 'collection', 'id': KB}])
+    assert voice_turn.voice_scope(mixed) == voice_turn.Scope(frozenset({IN_SET}), frozenset({KB}))
 
 
 @pytest.mark.parametrize(
     'knowledge',
     [
         [],
-        [{'type': 'file', 'id': IN_SET}, {'type': 'collection', 'id': 'kb-all'}],
         [{'type': 'file', 'id': IN_SET}, {'type': 'note', 'id': 'note-1'}],
+        [{'type': 'collection', 'id': KB}, {'type': 'folder', 'id': 'f'}],
         [{'type': 'file', 'id': ''}],
         ['not-a-dict'],
     ],
 )
-def test_a_set_that_is_not_only_named_files_is_no_set(knowledge) -> None:
-    """Empty knowledge makes the vendor offer every KB; a collection widens it to a whole KB."""
-    assert voice_turn.document_set(_voice_model(knowledge)) is None
+def test_knowledge_that_is_not_only_files_and_collections_is_no_scope(knowledge) -> None:
+    """Empty knowledge makes the vendor offer every KB; a note or folder is not a reviewed source."""
+    assert voice_turn.voice_scope(_voice_model(knowledge)) is None
 
 
-def test_a_model_without_knowledge_has_no_set() -> None:
-    assert voice_turn.document_set({'id': VOICE_MODEL_ID}) is None
-    assert voice_turn.document_set({'info': {'meta': {'knowledge': None}}}) is None
+def test_a_model_without_knowledge_has_no_scope() -> None:
+    assert voice_turn.voice_scope({'id': VOICE_MODEL_ID}) is None
+    assert voice_turn.voice_scope({'info': {'meta': {'knowledge': None}}}) is None
 
 
 # --- The tools offered ------------------------------------------------------------------
@@ -280,9 +294,51 @@ def test_a_tool_is_matched_by_its_id_not_only_its_name() -> None:
     assert voice_turn.offered_tools(tools, _voice_model()) == {}
 
 
-def test_without_a_document_set_no_retrieval_tool_is_offered() -> None:
-    offered = voice_turn.offered_tools(_offered(), _voice_model([{'type': 'collection', 'id': 'kb-all'}]))
+def test_without_a_scope_no_retrieval_tool_is_offered() -> None:
+    offered = voice_turn.offered_tools(_offered(), _voice_model([{'type': 'note', 'id': 'note-1'}]))
     assert set(offered) == {'portfolio_status'}
+
+
+def test_a_collection_scope_offers_retrieval() -> None:
+    offered = voice_turn.offered_tools(_offered(), _collection_model(), _resolve)
+    assert 'query_knowledge_files' in offered and 'view_knowledge_file' in offered
+
+
+@pytest.mark.parametrize('name', ['view_knowledge_file', 'view_file', 'grep_knowledge_files'])
+def test_a_file_in_a_scope_collection_opens_and_one_outside_does_not(name: str) -> None:
+    tools = _offered()
+    underlying = tools[name]['callable']
+    offered = voice_turn.offered_tools(tools, _collection_model(), _resolve)
+    assert _run(offered, name, file_id=IN_KB, pattern='x') == 'ran'
+    assert _refused(_run(offered, name, file_id=OUTSIDE, pattern='x', __user__={'role': 'admin'}))
+    assert underlying.calls == [{'file_id': IN_KB, 'pattern': 'x'}]
+
+
+@pytest.mark.parametrize(
+    'kwargs',
+    [
+        {'query': 'q', 'knowledge_ids': [KB]},
+        {'query': 'q', 'knowledge_ids': f'["{KB}"]'},
+        {'query': 'q', 'knowledge_ids': KB},
+    ],
+)
+def test_a_search_may_name_a_scope_collection(kwargs: dict) -> None:
+    offered = voice_turn.offered_tools(_offered(), _collection_model(), _resolve)
+    assert _run(offered, 'query_knowledge_files', **kwargs) == 'ran'
+
+
+def test_a_search_may_not_name_a_collection_outside_the_scope() -> None:
+    tools = _offered()
+    offered = voice_turn.offered_tools(tools, _collection_model(), _resolve)
+    assert _refused(_run(offered, 'query_knowledge_files', query='q', knowledge_ids=[KB, OTHER_KB]))
+    assert _refused(_run(offered, 'list_knowledge', knowledge_id=OTHER_KB))
+    assert tools['query_knowledge_files']['callable'].calls == []
+
+
+def test_contracts_is_a_voice_tool() -> None:
+    assert voice_turn.VOICE_TOOL_IDS == ('portfolio_status', 'jup_contracts')
+    tools = {'jup_contracts': {'tool_id': 'jup_contracts', 'callable': Recorder(), 'spec': {}}}
+    assert set(voice_turn.offered_tools(tools, _collection_model(), _resolve)) == {'jup_contracts'}
 
 
 def _run(tools: dict, name: str, **kwargs):

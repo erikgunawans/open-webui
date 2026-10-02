@@ -11,28 +11,21 @@ from jup import voice, voice_turn
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = (ROOT / 'deploy' / 'gcp' / 'sync-voice-model.ts').read_text(encoding='utf-8')
-PLAN = (ROOT / '.planning' / 'agent-depth-plan.md').read_text(encoding='utf-8')
 VENDOR_TOOLS = (ROOT / 'backend' / 'open_webui' / 'utils' / 'tools.py').read_text(encoding='utf-8')
 
 
-def _script_documents() -> list[str]:
-    block = SCRIPT[SCRIPT.index('const VOICE_DOCUMENTS') : SCRIPT.index('];', SCRIPT.index('const VOICE_DOCUMENTS'))]
-    return [f'{path}/{name}' for path, name in re.findall(r'path: "([^"]+)", filename: "([^"]+)"', block)]
+def _script_collections() -> list[str]:
+    block = SCRIPT[
+        SCRIPT.index('const VOICE_COLLECTIONS') : SCRIPT.index('];', SCRIPT.index('const VOICE_COLLECTIONS'))
+    ]
+    return re.findall(r'"([^"]+)"', block)
 
 
-def _plan_documents() -> list[str]:
-    at = PLAN.index('**Named voice document set')
-    block = PLAN[at : PLAN.index('Out:', at)]
-    return [f'{name}.md' for name in re.findall(r'`([a-z0-9/-]+)`', block)]
-
-
-def test_the_script_names_exactly_the_plans_eight_documents():
-    assert len(_plan_documents()) == 8
-    assert sorted(_script_documents()) == sorted(_plan_documents())
-
-
-def test_none_of_the_documents_the_plan_leaves_out_is_named():
-    assert not any('partners' in d or 'DECISIONS' in d or 'engagements' in d for d in _script_documents())
+def test_voice_reads_the_jup_knowledge_bases_as_whole_collections():
+    """Erik 2026-10-02: voice reads every JUP knowledge base (it was eight named documents)."""
+    assert _script_collections() == ['JUP Strategy KB', 'JUP Staff Contributions']
+    assert "meta.knowledge = collections.map((c) => ({ type: 'collection', id: c.id, name: c.name }));" in SCRIPT
+    assert 'VOICE_DOCUMENTS' not in SCRIPT
 
 
 def test_the_model_id_and_tools_match_what_the_code_enforces():
@@ -58,17 +51,15 @@ def test_a_dry_run_writes_nothing():
     """Every write sits after the `P.check` return."""
     program = SCRIPT[SCRIPT.index('const PROGRAM = `') :]
     stop = program.index("if (P.check || action === 'unmodified') return out;")
-    assert "method: 'POST', headers: json, body: JSON.stringify({ manifest })" in program[:stop]  # sync/diff only
     assert '/api/v1/models/create' not in program[:stop]
     assert '/api/v1/models/model/update' not in program[:stop]
 
 
-def test_a_missing_document_refuses_before_any_write():
+def test_a_missing_or_ambiguous_knowledge_base_refuses_before_any_write():
     program = SCRIPT[SCRIPT.index('const PROGRAM = `') :]
-    assert program.index("return { refused: 'named voice documents missing from the KB', missing }") < program.index(
-        '/api/v1/models/create'
-    )
-    assert 'process.exit(1)' in SCRIPT[: SCRIPT.index('const PROGRAM')]  # the local check
+    refusal = program.index('if (hits.length !== 1) return { refused:')
+    assert refusal < program.index('/api/v1/models/create')
+    assert refusal < program.index('/api/v1/models/model/update')
 
 
 def test_a_new_model_is_admin_only_and_an_update_keeps_its_grants():

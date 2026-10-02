@@ -1,56 +1,42 @@
 #!/usr/bin/env bun
 /**
- * Create "Asisten JUP — Suara" and keep it in step (#27, ADR-0006, ADR-0017).
+ * Create "Asisten JUP — Suara" and keep it in step (#27, ADR-0006, ADR-0017, ADR-0018).
  *
- * The voice model is Asisten JUP narrowed to the named voice document set: the same base model and
- * params (the operating contract rides in the system prompt and is attached again at the funnel),
- * `meta.knowledge` = the eight named files as `{type:'file'}` items resolved from the JUP Strategy
- * KB, tools = `portfolio_status` plus the knowledge builtins, every other builtin category off and
- * the web, image and code capabilities off. `jup.voice_turn` enforces the same scope in code on
- * every voice turn; this script makes the stored model say what the code enforces.
+ * The voice model is Asisten JUP with a voice scope: the same base model and params (the operating
+ * contract rides in the system prompt and is attached again at the funnel), `meta.knowledge` = the
+ * JUP knowledge bases below as `{type:'collection'}` items (Erik 2026-10-02: voice reads every JUP
+ * knowledge base, replacing the eight named documents of 2026-09-27), tools = `portfolio_status`
+ * and `jup_contracts` plus the knowledge builtins, every other builtin category off and the web,
+ * image and code capabilities off. `jup.voice_turn` enforces the same scope in code on every voice
+ * turn, for both call modes (GPT-Live delegates to this model); this script makes the stored model
+ * say what the code enforces.
  *
- * Files are resolved by path through the vendor's `sync/diff`, which computes and writes nothing:
- * a manifest of just the eight entries with a checksum no stored file has comes back with each
- * present file under `modified` (with its id) and each absent one under `added`. Any absent file,
- * locally in ~/jup or in the KB, stops the script before it writes.
+ * Each knowledge base is resolved by exact name and must be unique; a missing or ambiguous name
+ * stops the script before it writes.
  *
  * A new model is created with empty access grants, so it is admin-only; an update never sends
  * `access_grants`, so grants given later (widening voice, ADR-0017) survive a re-sync.
  *
  * The app sits behind IAP, so the calls run inside Erik's signed-in tab (`lib/in-tab.ts`).
- * Running it without `--dry-run` is a DB write and needs Erik's OK (the go-live ticket, #30).
+ * Running it without `--dry-run` is a DB write and needs Erik's OK.
  *
  *   bun deploy/gcp/sync-voice-model.ts --dry-run   # resolve and print; writes nothing
  *   bun deploy/gcp/sync-voice-model.ts             # create or update the model
  */
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import { runInTab } from "./lib/in-tab";
 
-const JUP_TREE = process.env.JUP_TREE ?? join(process.env.HOME ?? "", "jup");
-const KB_NAME = "JUP Strategy KB";
 /** Asisten JUP is an override of its base model, so it carries the base model's id. */
 const ASISTEN_JUP_ID = "xiaomi/mimo-v2.6-pro-ultraspeed";
 const VOICE_MODEL_ID = "asisten-jup-suara"; // jup.voice.VOICE_MODEL_ID
 const VOICE_MODEL_NAME = "Asisten JUP — Suara";
-const VOICE_TOOL_IDS = ["portfolio_status"]; // jup.voice_turn.VOICE_TOOL_IDS
-const PROBE_CHECKSUM = "voice-scope-probe";
+const VOICE_TOOL_IDS = ["portfolio_status", "jup_contracts"]; // jup.voice_turn.VOICE_TOOL_IDS
 
 /**
- * The named voice document set: dated 2026-09-27, named by Erik (ADR-0006; the plan's Track V).
- * Adding one needs a date and Erik's name there first. `tests/test_jup_voice_model_sync.py` holds
- * this list to the plan's.
+ * The JUP knowledge bases voice answers from (Erik, 2026-10-02: "all of the knowledge base").
+ * The same two Asisten JUP has; contracts come through `jup_contracts`, per caller.
+ * `tests/test_jup_voice_model_sync.py` holds this list to Asisten JUP's.
  */
-const VOICE_DOCUMENTS: { path: string; filename: string }[] = [
-  { path: "kb", filename: "strategy.md" },
-  { path: "kb", filename: "gas.md" },
-  { path: "kb", filename: "portfolio.md" },
-  { path: "kb", filename: "rued.md" },
-  { path: "kb", filename: "governance.md" },
-  { path: "kb", filename: "faq.md" },
-  { path: "records/projects", filename: "gas-spbg-reactivation.md" },
-  { path: "records/gate-assessments", filename: "gas-spbg-reactivation-g1.md" },
-];
+const VOICE_COLLECTIONS = ["JUP Strategy KB", "JUP Staff Contributions"];
 
 /** Every builtin category the vendor knows (`utils/tools.py`); only `knowledge` stays on. */
 const BUILTIN_CATEGORIES = [
@@ -94,7 +80,7 @@ const VOICE_INSTRUCTIONS = [
 // Staff read this on the voice chat's home screen, so it speaks to them, in Indonesian. This model
 // is generated from Asisten JUP by this script (ADR-0006): edit here, never in the admin UI.
 const DESCRIPTION =
-  "Khusus panggilan suara. Jawaban hanya diambil dari delapan dokumen suara yang ditetapkan.";
+  "Khusus panggilan suara. Jawaban diambil dari basis pengetahuan JUP dan kartu kontrak sesuai akses Anda.";
 
 const mode = process.argv[2] === "--dry-run" ? "dry-run" : process.argv[2] ? "usage" : "sync";
 if (mode === "usage") {
@@ -102,41 +88,25 @@ if (mode === "usage") {
   process.exit(2);
 }
 
-const missingLocally = VOICE_DOCUMENTS.filter((d) => !existsSync(join(JUP_TREE, d.path, d.filename)));
-if (missingLocally.length) {
-  console.error(`refused: named voice documents missing from ${JUP_TREE}:`);
-  for (const d of missingLocally) console.error(`  ${d.path}/${d.filename}`);
-  process.exit(1);
-}
-
 type Result = {
   refused?: string;
-  missing?: string[];
-  files?: { path: string; filename: string; id: string }[];
+  collections?: { name: string; id: string }[];
   tools?: string[];
   builtinTools?: Record<string, boolean>;
   action?: "create" | "update" | "unmodified";
   changed?: string[];
 };
 
-// Runs in the tab with P = { documents, check, ... }. Nothing is written before every named file
-// has resolved, and nothing at all when P.check.
+// Runs in the tab with P = { collections, check, ... }. Nothing is written before every named
+// knowledge base has resolved to exactly one, and nothing at all when P.check.
 const PROGRAM = `
-  const list = await call('/api/v1/knowledge/search?query=' + encodeURIComponent(P.kbName), { headers: h });
-  const kb = (list.items || []).find((k) => k.name === P.kbName);
-  if (!kb) return { refused: 'knowledge base "' + P.kbName + '" not found' };
-
-  const manifest = P.documents.map((d) => ({ ...d, checksum: P.probe, size: 0 }));
-  const diff = await call('/api/v1/knowledge/' + kb.id + '/sync/diff', {
-    method: 'POST', headers: json, body: JSON.stringify({ manifest }),
-  });
-  const key = (d) => d.path + '/' + d.filename;
-  const found = new Map(diff.modified.map((m) => [key(m), m.stale_file_id]));
-  const missing = P.documents.filter((d) => !found.has(key(d))).map(key);
-  if (missing.length || found.size !== P.documents.length) {
-    return { refused: 'named voice documents missing from the KB', missing };
+  const collections = [];
+  for (const name of P.collections) {
+    const list = await call('/api/v1/knowledge/search?query=' + encodeURIComponent(name), { headers: h });
+    const hits = (list.items || []).filter((k) => k.name === name);
+    if (hits.length !== 1) return { refused: 'knowledge base "' + name + '" matched ' + hits.length + ', not 1' };
+    collections.push({ name, id: hits[0].id });
   }
-  const files = P.documents.map((d) => ({ ...d, id: found.get(key(d)) }));
 
   const base = await call('/api/v1/models/model?id=' + encodeURIComponent(P.baseId), { headers: h });
   if (!base || !base.id) return { refused: 'Asisten JUP (' + P.baseId + ') not found' };
@@ -146,7 +116,7 @@ const PROGRAM = `
   const meta = { ...(base.meta || {}) };
   delete meta.suggestion_prompts;
   meta.description = P.description;
-  meta.knowledge = files.map((f) => ({ type: 'file', id: f.id, name: f.filename }));
+  meta.knowledge = collections.map((c) => ({ type: 'collection', id: c.id, name: c.name }));
   meta.toolIds = P.toolIds;
   meta.skillIds = [];
   meta.builtinTools = Object.fromEntries(P.categories.map((c) => [c, c === 'knowledge']));
@@ -170,7 +140,7 @@ const PROGRAM = `
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const changed = current ? fields.filter((f) => !same(current[f], form[f])) : fields;
   const action = !current ? 'create' : changed.length ? 'update' : 'unmodified';
-  const out = { files, tools: P.toolIds, builtinTools: meta.builtinTools, action, changed };
+  const out = { collections, tools: P.toolIds, builtinTools: meta.builtinTools, action, changed };
   if (P.check || action === 'unmodified') return out;
 
   if (action === 'create') {
@@ -183,13 +153,11 @@ const PROGRAM = `
   return out;
 `;
 
-console.log(`${mode}: ${VOICE_DOCUMENTS.length} named voice documents from ${JUP_TREE}`);
+console.log(`${mode}: ${VOICE_COLLECTIONS.length} knowledge bases`);
 const result = await runInTab<Result>(
   {
-    documents: VOICE_DOCUMENTS,
+    collections: VOICE_COLLECTIONS,
     check: mode === "dry-run",
-    probe: PROBE_CHECKSUM,
-    kbName: KB_NAME,
     baseId: ASISTEN_JUP_ID,
     voiceId: VOICE_MODEL_ID,
     name: VOICE_MODEL_NAME,
@@ -203,11 +171,10 @@ const result = await runInTab<Result>(
 
 if (result.refused) {
   console.error(`refused: ${result.refused}`);
-  for (const m of result.missing ?? []) console.error(`  ${m}`);
   process.exit(1);
 }
-console.log("files:");
-for (const f of result.files ?? []) console.log(`  ${f.path}/${f.filename}  ${f.id}`);
+console.log("knowledge bases:");
+for (const c of result.collections ?? []) console.log(`  ${c.name}  ${c.id}`);
 console.log(`tools: ${(result.tools ?? []).join(", ")}`);
 const on = Object.entries(result.builtinTools ?? {}).filter(([, v]) => v).map(([k]) => k);
 console.log(`builtin categories on: ${on.join(", ")}`);

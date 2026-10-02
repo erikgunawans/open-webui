@@ -183,3 +183,12 @@ def test_a_long_answer_is_sent_in_parts_under_gpt_lives_limit() -> None:
 def test_tool_and_reasoning_blocks_are_not_relayed() -> None:
     answer = '<details type="tool_calls">x</details>Proyek masih di G1.'
     assert voice_live.commentary_parts(answer) == ['Proyek masih di G1.']
+
+
+def test_the_backend_is_described_as_every_jup_knowledge_base_and_the_contracts():
+    """Erik 2026-10-02: voice reads all of it. GPT-Live decides whether to delegate from this text,
+    so describing eight strategy documents made it keep contract and company questions to itself."""
+    assert 'delapan dokumen' not in voice_live.INSTRUCTIONS
+    assert 'seluruh basis pengetahuan JUP' in voice_live.INSTRUCTIONS
+    assert 'kartu kontrak JUP' in voice_live.INSTRUCTIONS
+    assert 'kontrak atau perjanjian' in voice_live.INSTRUCTIONS

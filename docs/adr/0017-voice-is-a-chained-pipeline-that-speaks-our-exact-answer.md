@@ -80,3 +80,17 @@ Indonesian speech still transcribe; a whole question spoken in English is the ca
   message id. Not yet built.
 - **ADR-0018 / D24:** GPT-Live is added as an opt-in second call mode. This ADR stays the default
   call, and "every word heard is the governed answer" holds in it alone.
+
+## Amendment 2026-10-02 — voice reads every JUP knowledge base
+
+Erik: both call modes must read all of the knowledge base. The voice scope is no longer the eight
+named documents of 2026-09-27: `Asisten JUP — Suara` carries the JUP knowledge bases as whole
+collections (JUP Strategy KB, JUP Staff Contributions) and the `jup_contracts` tool, which decides per
+caller what of a contract they may hear. `jup.voice_turn` still holds every voice turn to that scope
+in code: file ids must belong to a scope collection, a search may name only a scope collection, and
+no other tool, folder, skill or feature reaches a voice turn. GPT-Live delegates to the same model,
+and its instructions now describe the backend as every JUP knowledge base plus the contract cards.
+
+Found while making the change: since the 10-02 latency fix attached the two collections to the voice
+model, `voice_turn` treated the scope as misconfigured and offered no retrieval tool, so both modes
+answered from `portfolio_status` alone until this amendment shipped.
