@@ -1,6 +1,21 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-10-03-v41 (latest) — contract review (phase 2) LIVE (00070); GPT-Live call 1 done + turn-grouping fix live (00071); JUP Design System imported as a plan, 3 decisions settled
+## Checkpoint 2026-10-03-v42 (latest) — JUP Design System interface layer BUILT (draft PR #59, CI green); not yet seen live, not deployed
+
+- **Session (10-03):** `/next` → kit imported with DesignSync in the main session → tokens → skin (outer + inner) → fork pages → format/i18n gates → local build OOM → draft PR #59 → CI green → live preview blocked on the hourly IAP sign-in → Erik corrected the host (`non-jupe.jup.co.id`, not the retired `ops.axiara.ai`; memories fixed) → wrap.
+- **Live unchanged:** `ent-os-00071-6qw` (image `814dee6b5`); rollback `00070-xl4`.
+- **Branch `feat/jup-ds-ui-layer`, draft PR #59** (`9e099c6fc` import, `8cb70b6ad` layer). CI: Format & Build pass (5m8s), Unit Tests pass, Result pass; Suite skipped by its own rules.
+  - `design/jup-design-system/`: reference copy (tokens, base, DESIGN.md, readme, SKILL, component prompts, logos/patterns/sector/Lucide). `IMPORT.md` = provenance (live text via DesignSync; unchanged files + binaries from the 09-14 export) and the kit's three self-contradictions. Prettier re-wraps it (CI-enforced).
+  - `src/jup-tokens.css`: `--jup-ui-*` light + dark (inverse alphas flattened over Rich Black); old names re-pointed (`--jup-action` = Rich Black ink, dark = Anti-flash White; new `--jup-nav` blue for navigation; `--jup-radius` 24, `-sm` 18, new `-nested` 10, `-modal` 24). `tailwind.css`: rounded lg→10, xl/2xl→18, 3xl/4xl→24; shadow-lg/xl → `--jup-ui-shadow-pop`.
+  - `src/jup-skin.css`: pill segmented tabs, tonal search fields, sidebar current item + Settings edge in `--jup-nav`, kit tables in answers, blockquote, composer, GPT-Live card, new `.jup-eyebrow` (diamond + hairline, green-700).
+  - `leadership.css` (Ruang Pimpinan + Tinjauan Pengetahuan) and Portfolio: kit cards, StatBlock-style figures (500, -0.045em), tonal fields, kit tables, 14px notices, eyebrow "Jakarta Utilitas Propertindo" above each page title.
+- **Deviations from the kit (measured):** brand text green-700 (kit `#008A43` = 4.45:1 white / 3.93:1 canvas); keyboard focus stays a solid ink outline, focused fields get a muted-ink edge (5.92:1) + soft halo (kit ring ≈ 1.3:1); no lift/press motion.
+- **Not done:** step 6 (pattern band — recommended skip, Erik to decide); step 7 Interceptor check on live (needs Erik's sign-in); merge + deploy (needs Erik's OK).
+- **Local machine:** `bun run build` heap-OOMs (swap 9.9/10 GB, disk fell to ~600 MB) — use CI as the build gate.
+- **Tests:** vitest + build green in CI on #59; no backend change.
+- **Next:** Erik signs in at non-jupe.jup.co.id → preview #59 live by injection (light/dark, desktop/mobile) → fix in one batch → Erik OK → merge + deploy → prove served = running entry hash.
+
+## Checkpoint 2026-10-03-v41 — contract review (phase 2) LIVE (00070); GPT-Live call 1 done + turn-grouping fix live (00071); JUP Design System imported as a plan, 3 decisions settled
 
 - **Session (10-02 → 10-03):** `/next` → items 1–3 blocked on Erik → phase 2 built: backend #56 → Kartu Kontrak tab #57 → Erik: "merge #57 and deploy" → **00070** → GPT-Live call 1 (#38) → audit showed turn splitting → fix #58 → Erik OK → **00071** → Erik: implement the "JUP Design System" claude.ai/design project across the whole app → diff + plan, 3 decisions settled → wrap.
 - **Deploys:** `ent-os-00070-xl4` (image `aa103778b`, #56+#57; `jc0002` migrated, no failure logged) → **`ent-os-00071-6qw` live (image `814dee6b5`, #58, 100%)**; rollback `00070-xl4`. 00070 proven in a tab (served = running `entry/app.FmDj6OJi.js`); 00071 server-side only (the tab hit the hourly IAP sign-in).

@@ -1,3 +1,31 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-03-v42)
+
+> Prepended by /wrap 2026-10-03 (checkpoint 2026-10-03-v42). Supersedes v41's anchor and its "do next"; v41's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-03-v42), then `.planning/jup-ds-ui-layer-plan-2026-10-03.md` and `design/jup-design-system/IMPORT.md` (on the PR branch).
+Anchor: `origin/main` at `10c3df452` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-10-03-v42`). Verify with `git log --oneline 10c3df452..origin/main`; any other commit there is a parallel push. The work itself is on **`feat/jup-ds-ui-layer` at `8cb70b6ad`, draft PR #59** (CI green).
+
+**Current state:** live **`ent-os-00071-6qw`** (image `814dee6b5`), rollback `00070-xl4` — the design system is NOT deployed. PR #59 = kit import + `--jup-ui-*` tokens (light/dark) + skin + Ruang Pimpinan / Tinjauan Pengetahuan / Portfolio restyle; Format & Build, Unit Tests, Result all pass. Never seen rendered yet.
+
+**Do next, in order:**
+1. **Live preview of PR #59** (`git switch feat/jup-ds-ui-layer`). Ask Erik to sign in at **https://non-jupe.jup.co.id** first (hourly IAP; a tab on `iap-gcip-hosted-ui-…` = expired). Inject the branch's `src/jup-tokens.css` + `src/jup-skin.css` + the `tailwind.css` `--radius-*`/`--shadow-*` overrides as ONE `<style>` appended last in `<head>` via `interceptor eval --main` (chunk onto `window` — eval stops at ~8 KB; `style inject` lands early in the cascade and loses). The `leadership.css` / Portfolio changes are compiled into page CSS, so preview those by injecting their rules too. Check chat home, a chat with a table, Workspace lists, Settings, Ruang Pimpinan, Tinjauan Pengetahuan (Kartu Kontrak), Portfolio — light + dark, desktop + mobile (iframe or media-rule mimic). Fix everything in one batch, push, CI.
+2. **Erik's OK → merge #59 → deploy** (`gcloud auth login` check first; df first — disk was ~600 MB) → prove served = running `entry/app.*.js` in a tab → measure contrast live.
+3. **GPT-Live call 2 with Erik** (#38): website, strategy, contract, small talk + one interruption → audit lines + `meta.jup_voice_live` → write up on #38, close, ledger V4 → live. Ask: voice/Indonesian quality, Zero Data Retention, Usage-page cost.
+4. **Kartu Kontrak with the Legal account** (edit, approve, return one card).
+5. Step-6 contract live check (staff vs Direksi) once a Staff account exists; `jup_contracts` all-users read grant needs Erik's OK.
+6. Tell Rully (via Erik): file 0594/0639 truncated in OneDrive; who reviews, how many cards/week.
+7. Carried: Rully's app login + #46, #47 live proof, Notion #41/#42 when the token exists, UI copy/config leftovers, CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- **The live host is `non-jupe.jup.co.id`.** `ops.axiara.ai` is retired (302s there); never open or verify against it.
+- **Design calls settled:** Rich Black pill primary, blue = navigation only (`--jup-nav`), green = selected tab / switch / one brand CTA; radii 18/24/10/6; dark from `.jup-inverse`. Brand-coloured text is green-700/green-300, never `#008A43`. Keyboard focus = solid ink outline; no lift/press motion. Change values in `jup-tokens.css`, not per-rule.
+- **The kit reference copy is Prettier-formatted** (CI runs `npm run format` + `git diff --exit-code`). DesignSync is main-session only.
+- **Local `bun run build` OOMs** on this Mac (swap ~10 GB full); CI is the build gate. Check `df -h /` and `sysctl vm.swapusage` before anything heavy.
+
+**Open items waiting on Erik:** sign in at non-jupe.jup.co.id for the preview; OK to merge + deploy #59; step-6 pattern band (recommended: skip); eyebrow text "Jakarta Utilitas Propertindo" vs section names; Impeccable v4.5.0 update (its updater uses npx); GPT-Live call 2 + answers (voice quality, ZDR, cost); Legal-account Kartu Kontrak check; Staff titles; `jup_contracts` all-users read grant; tell Rully about the truncated file + reviewers; Rully's app account; Notion token; delete "Uji kecepatan" chats and two O1 test .docx?; Daftar Perkara grant from JUP IT; Gmail send scope; keep or drop `docker-compose.dev.yaml`; delete the "Test" knowledge collection?
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-03-v41)
 
 > Prepended by /wrap 2026-10-03 (checkpoint 2026-10-03-v41). Supersedes v40's anchor and its "do next"; v40's and older blocks' constraints still hold unless noted.
