@@ -1,0 +1,43 @@
+{
+  "bindings": [
+    {
+      "members": [
+        "projectEditor:jup-ops",
+        "projectOwner:jup-ops"
+      ],
+      "role": "roles/storage.legacyBucketOwner"
+    },
+    {
+      "members": [
+        "projectViewer:jup-ops"
+      ],
+      "role": "roles/storage.legacyBucketReader"
+    },
+    {
+      "members": [
+        "projectEditor:jup-ops",
+        "projectOwner:jup-ops"
+      ],
+      "role": "roles/storage.legacyObjectOwner"
+    },
+    {
+      "members": [
+        "projectViewer:jup-ops"
+      ],
+      "role": "roles/storage.legacyObjectReader"
+    },
+    {
+      "members": [
+        "serviceAccount:service-1001937491646@gcp-sa-prod-dai-core.iam.gserviceaccount.com"
+      ],
+      "role": "roles/storage.objectAdmin"
+    },
+    {
+      "members": [
+        "user:erik@axiara.ai"
+      ],
+      "role": "roles/storage.objectViewer"
+    }
+  ],
+  "etag": "CAM="
+}
