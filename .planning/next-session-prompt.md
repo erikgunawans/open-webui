@@ -1,3 +1,33 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-02-v40)
+
+> Prepended by /wrap 2026-10-02 (checkpoint 2026-10-02-v40). Supersedes v39's anchor and its "do next"; v39's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-02-v40), then `.planning/contract-kb-full-plan-2026-10-02.md` (plan + D1–D5).
+Anchor: `origin/main` at `c51936364` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-10-02-v40`). Verify with `git log --oneline c51936364..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live **`ent-os-00069-wzj`** (image `c51936364`); rollback `00068-rt7`. Contract KB phase 1 is LIVE: 1,033 cards in the Jakarta DB as drafts (753 with end dates), `jup_contracts` attached to Asisten JUP + Asisten JUP — Suara, legal-kb bucket mounted at `/srv/legal-kb`. **No one holds a title yet**, so every account gets "Akses kartu kontrak belum diberikan". Voice (both modes) reads JUP Strategy KB + JUP Staff Contributions + contracts again (#55) — **not yet proven on a real call**.
+
+**Do next, in order:**
+1. **Step 5 (needs Erik):** titles — Erik sets Jabatan in Admin → Pengguna (or gives me the list; `PUT /api/v1/contracts/titles/{user_id}` via his tab); and his OK to grant the `jup_contracts` tool read to all users (`user:*` read, like O1; save the before-value). The tool itself decides what each title sees.
+2. **Step 6 live check** (fresh tab, `/auths/` 200 first): one staff account (money withheld, "Perorangan X", no PDF link) and Erik as Direksi/Legal (money, PDF opens as `kontrak-<ref>.pdf`, names beside codes on display). Questions: "kontrak apa saja dengan PAM Jaya?", "kontrak yang berakhir dalam 6 bulan".
+3. **Voice proof with Erik:** one normal call and one GPT-Live call asking a web-KB question ("siapa direktur utama JUP?") and a strategy question; "di luar cakupan suara" = the guard blocked it → trace.
+4. **Phase 2 — "Kartu Kontrak" tab in Tinjauan Pengetahuan** (`review` grant): queue filters (perorangan 43 / manual 218 / low-OCR 74 / state / keyword), card beside OCR pages (Legal sees names), per-field edit with version check (editing an approved card → draft), hash-guarded approve, return with reason, dates edit (`kind='dates_edited'` already honoured by import), units (D4), party-list fix (re-masks), addendum links (new table `jc0002`), events + governance audit. Backend first (`jup.contracts.review` + routes), TDD.
+5. Tell Rully (via Erik): file 0594/0639 is truncated in OneDrive → re-scan; who reviews and how many cards/week.
+6. Carried: Rully's app login + #46, #47 live proof, Notion #41/#42 when the token exists, #38 GPT-Live call, UI copy/config leftovers, CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- **Voice scope lives in code:** `jup.voice_turn` (scope = files + collections; `VOICE_TOOL_IDS`) + `deploy/gcp/sync-voice-model.ts`. Never change the voice model's knowledge/tools in the admin UI — an unrecognised shape silently removes ALL retrieval (memory `voice-scope-collections-trap`). Dry-run until `unmodified`.
+- **`deploy.sh` refuses unless the runtime SA can read `gs://jup-ops-legal-kb`** — keep that grant; a revision whose mount fails may not start.
+- **`deploy.sh` refuses a dirty tree:** commit before-values first.
+- **Masking:** the model never reads an individual's name (Legal included); names only on display via `/parties/resolve` (`names` grant). Never return OneDrive folder/file names. Contract data stays in Jakarta — counts only in logs and here.
+- **Runtime-only tests use `pytest.importorskip`**, not a `pytestmark` skip (CI `--only-group dev` errors at collection otherwise).
+- Local `bun run build` OOMs at default heap; with < 5 GB free, let CI's Frontend Build compile it.
+- After every deploy: prove served `entry/app.*` = running in a fresh tab (`fetch('/',{cache:'reload'}).then(()=>location.reload())`); live host is `non-jupe.jup.co.id`; interceptor needs `--context 75e09d94-bc12-4b76-9688-c1f1dedec559`.
+
+**Open items waiting on Erik:** who is Direksi / Legal / Manager / Staff; OK for the `jup_contracts` all-users read grant; the two voice test calls; whether the "Test" knowledge collection can be deleted; tell Rully about the truncated file + reviewers; Rully's app account; Notion token; delete "Uji kecepatan" chats and two O1 test .docx?; Daftar Perkara grant from JUP IT; Gmail send scope; #38 GPT-Live call; keep or drop `docker-compose.dev.yaml`.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-02-v39)
 
 > Prepended by /wrap 2026-10-02 (checkpoint 2026-10-02-v39). Supersedes v38's anchor and its "do next"; v38's and older blocks' constraints still hold unless noted.
