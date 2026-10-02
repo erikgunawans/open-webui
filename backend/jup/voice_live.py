@@ -116,6 +116,12 @@ def commentary_parts(answer: str) -> list[str]:
     return speech_parts(speakable_text(answer), limit=COMMENTARY_BYTES)
 
 
+#: GPT-Live's own pause longer than this ends an utterance.
+UTTERANCE_GAP_MS = 1200
+#: A shorter pause ends it too if the caller started speaking in it; below this it is a breath.
+CALLER_PAUSE_MS = 250
+
+
 class LiveLedger:
     """One live session's transcript, on the session timeline (milliseconds from its start).
 
@@ -158,14 +164,43 @@ class LiveLedger:
             return ('delegation', last_delegation[1])
         return ('heard', last_heard)
 
+    def _utterances(self) -> list[tuple[int, str]]:
+        """GPT-Live's speech joined into utterances: (start, text).
+
+        Transcript deltas carry no item id and no end-of-turn event (OpenAI's live guide), so an
+        utterance is cut by timing alone: a pause longer than `UTTERANCE_GAP_MS`, or a pause of at
+        least `CALLER_PAUSE_MS` in which the caller started speaking. Caller sound that overlaps
+        GPT-Live's own speech (echo, a cough, talking over it) never cuts an utterance: on the
+        2026-10-02 acceptance call it split one sentence into five turns and labelled the tail of a
+        relayed answer `self_answered`.
+        """
+        utterances: list[tuple[int, str]] = []
+        last_end: int | None = None
+        for start_ms, end_ms, text in sorted(self._said):
+            gap = None if last_end is None else start_ms - last_end
+            caller_in_pause = (
+                gap is not None
+                and gap >= CALLER_PAUSE_MS
+                and any(last_end <= heard_start < start_ms for heard_start, _, _ in self._heard)
+            )
+            if utterances and gap is not None and gap <= UTTERANCE_GAP_MS and not caller_in_pause:
+                utterances[-1] = (utterances[-1][0], utterances[-1][1] + text)
+            else:
+                utterances.append((start_ms, text))
+            last_end = end_ms if last_end is None else max(last_end, end_ms)
+        return utterances
+
     def turns(self) -> list[dict[str, Any]]:
-        """GPT-Live's speech grouped into turns, each `relayed`, `pending` or `self_answered`."""
+        """GPT-Live's utterances grouped into turns, each `relayed`, `pending` or `self_answered`.
+
+        An utterance answers whatever came last before it began: a delegation, or the caller.
+        """
         turns: list[dict[str, Any]] = []
         anchor_of_last: tuple[str, Any] | None = None
-        for start_ms, _, text in sorted(self._said):
+        for start_ms, text in self._utterances():
             anchor = self._anchor(start_ms)
             if turns and anchor == anchor_of_last:
-                turns[-1]['spoken'] += text
+                turns[-1]['spoken'] += ' ' + text
                 continue
             anchor_of_last = anchor
             if anchor[0] == 'delegation':
@@ -175,5 +210,5 @@ class LiveLedger:
             else:
                 turns.append({'kind': 'self_answered', 'delegation': None, 'message_id': None, 'spoken': text})
         for turn in turns:
-            turn['spoken'] = turn['spoken'].strip()
+            turn['spoken'] = ' '.join(turn['spoken'].split())
         return turns

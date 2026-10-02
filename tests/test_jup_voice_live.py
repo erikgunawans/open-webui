@@ -172,6 +172,66 @@ def test_a_new_question_ends_the_previous_turn() -> None:
     assert [turn['kind'] for turn in ledger.turns()] == ['relayed', 'self_answered']
 
 
+def test_caller_sound_over_a_relayed_answer_does_not_cut_it() -> None:
+    # The 2026-10-02 acceptance call: echo or the caller talking over the relay split its tail off
+    # as `self_answered`.
+    ledger = _ledger()
+    ledger.heard(100, 900, 'Siapa direktur utamanya?')
+    ledger.question('d1', 1000)
+    ledger.relayed('d1', 'm-1')
+    ledger.said(1500, 3000, 'Direktur utamanya Budi. ')
+    ledger.heard(2800, 3100, 'oh')
+    ledger.said(3000, 4500, 'Kalau ada pergantian, konfirmasi ke sekretaris perusahaan.')
+    assert ledger.turns() == [
+        {
+            'kind': 'relayed',
+            'delegation': 'd1',
+            'message_id': 'm-1',
+            'spoken': 'Direktur utamanya Budi. Kalau ada pergantian, konfirmasi ke sekretaris perusahaan.',
+        }
+    ]
+
+
+def test_one_sentence_heard_over_stays_one_turn() -> None:
+    ledger = _ledger()
+    ledger.heard(100, 900, 'Apa kabar?')
+    ledger.said(1000, 1600, 'Saya di sini untuk bantu ')
+    ledger.heard(1500, 1700, 'mm')
+    ledger.said(1600, 1800, 'soal ')
+    ledger.heard(1750, 1900, 'ya')
+    ledger.said(1800, 2600, 'pertanyaan kerja.')
+    assert ledger.turns() == [
+        {
+            'kind': 'self_answered',
+            'delegation': None,
+            'message_id': None,
+            'spoken': 'Saya di sini untuk bantu soal pertanyaan kerja.',
+        }
+    ]
+
+
+def test_a_long_pause_starts_a_new_utterance_even_without_the_caller() -> None:
+    ledger = _ledger()
+    ledger.heard(100, 900, 'Siapa direktur utamanya?')
+    ledger.question('d1', 1000)
+    ledger.relayed('d1', 'm-1')
+    ledger.said(1500, 2500, 'Direktur utamanya Budi.')
+    ledger.heard(2600, 3000, 'oke')
+    ledger.said(5000, 6000, 'Ada lagi yang bisa saya bantu?')
+    assert [turn['kind'] for turn in ledger.turns()] == ['relayed', 'self_answered']
+
+
+def test_a_breath_with_the_caller_in_it_does_not_cut_the_utterance() -> None:
+    ledger = _ledger()
+    ledger.heard(100, 900, 'Siapa direktur utamanya?')
+    ledger.question('d1', 1000)
+    ledger.relayed('d1', 'm-1')
+    ledger.said(1500, 2500, 'Direktur utamanya Budi.')
+    ledger.heard(2550, 2600, 'hm')
+    ledger.said(2600, 3500, ' Ditunjuk September.')
+    assert [turn['kind'] for turn in ledger.turns()] == ['relayed']
+
+
 def test_a_long_answer_is_sent_in_parts_under_gpt_lives_limit() -> None:
     answer = ('Kalimat yang cukup panjang untuk diuji di sini. ' * 120).strip()
     parts = voice_live.commentary_parts(answer)
