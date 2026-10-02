@@ -1,3 +1,31 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-03-v41)
+
+> Prepended by /wrap 2026-10-03 (checkpoint 2026-10-03-v41). Supersedes v40's anchor and its "do next"; v40's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-03-v41), then `.planning/jup-ds-ui-layer-plan-2026-10-03.md` (the design plan + Erik's three settled decisions).
+Anchor: `origin/main` at `814dee6b5` **as this was written**, or one commit ahead at this checkpoint's own wrap commit (subject begins `chore(session): checkpoint — 2026-10-03-v41`). Verify with `git log --oneline 814dee6b5..origin/main`; any other commit in that range is a parallel push.
+
+**Current state:** live **`ent-os-00071-6qw`** (image `814dee6b5`); rollback `00070-xl4`. Contract review phase 2 is live (#56 backend + `jc0002`, #57 Kartu Kontrak tab; `review` grant = Legal title only; not yet seen by a Legal account). Titles set: 1 Direksi (Erik), 1 Legal, 1 Manager. GPT-Live call 1 done; turn-grouping fix (#58) live; call 2 pending. Backend 1834 / 22 skipped; vitest 213.
+
+**Do next, in order:**
+1. **Build the JUP Design System across the whole app** (Erik: "the whole layer"; plan steps 1–7). Load the `impeccable` skill (run its `context.mjs`, load `craft-floor.md` before editing). Step 1: import the kit with **DesignSync in the main session** (`get_file` on project `7e98d0d9-8cf7-450f-a44f-e02efed2743a`; subagents do not get the tool) into `design/jup-design-system/` — tokens/*.css, base/*.css, DESIGN.md, readme.md, SKILL.md, components/*.prompt.md, and the logo/pattern/sector PNGs needed (fonts are already in `static/assets/fonts/`). Then tokens (`--jup-ui-*` light + dark in `src/jup-tokens.css`, old names kept as aliases) → outer layer → inner layer via `jup-skin.css` → `.jlp-*` pages → brand moments → Interceptor verify (light/dark, desktop/mobile) → PR, both CI workflows → deploy with Erik's OK.
+2. **GPT-Live call 2 with Erik** (#38): website, strategy, contract, small-talk questions + one interruption → pull `voice_live*` audit lines + `meta.jup_voice_live` → delegation rate, drift, self-answered → write up on #38, close it, ledger V4 → live. Ask him: questions asked on call 1, voice/Indonesian quality, Zero Data Retention on the OpenAI org (fix the 30-day disclosure if yes), cost from the Usage page (estimate US$0.67 for call 1).
+3. **Kartu Kontrak with the Legal account:** whoever holds Legal opens Tinjauan Pengetahuan → one card: edit, approve, return; or Erik asks to be moved to Legal temporarily (a title change = his OK).
+4. Step-6 contract live check (staff vs Direksi) once a Staff account exists; `jup_contracts` all-users read grant still needs Erik's OK.
+5. Tell Rully (via Erik): file 0594/0639 truncated in OneDrive → re-scan; who reviews and how many cards/week.
+6. Carried: Rully's app login + #46, #47 live proof, Notion #41/#42 when the token exists, UI copy/config leftovers, CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- **Design decisions are settled (Erik 10-03):** Rich Black pill primary (blue = navigation only, green = one brand CTA per view), radii 18/24/10/6 for interface, dark mode kept and re-derived from the kit's `.jup-inverse`. This supersedes D18's "square, controls 4" for UI only. Memory `jup-design-system-ui-layer`.
+- **Restyle vendor UI only via `src/jup-skin.css` hooks/selectors and tokens**; keep the gray ramp's OKLCH lightness; measure every new colour pair (≥ 4.5:1).
+- **GPT-Live transcript deltas carry no item id** — any further audit change groups by timing (`backend/jup/voice_live.py` `LiveLedger._utterances`).
+- **The IAP sign-in expires hourly**: Interceptor checks bounce to the `iap-gcip-hosted-ui` host — guard `location.host` and ask Erik to sign in.
+- Local `uv run --only-group dev pytest` fails to collect `test_contract_tool.py` (sqlalchemy present locally); CI is green — not a regression.
+
+**Open items waiting on Erik:** GPT-Live call 2 + his answers (questions asked, voice quality, ZDR, cost); a Legal-account check of Kartu Kontrak; Staff titles; OK for the `jup_contracts` all-users read grant; tell Rully about the truncated file + reviewers; Rully's app account; Notion token; delete "Uji kecepatan" chats and two O1 test .docx?; Daftar Perkara grant from JUP IT; Gmail send scope; keep or drop `docker-compose.dev.yaml`; whether the "Test" knowledge collection can be deleted.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-02-v40)
 
 > Prepended by /wrap 2026-10-02 (checkpoint 2026-10-02-v40). Supersedes v39's anchor and its "do next"; v39's and older blocks' constraints still hold unless noted.

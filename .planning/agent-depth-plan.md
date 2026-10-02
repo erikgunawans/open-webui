@@ -39,7 +39,7 @@ design. The sandbox work for terminal and browser is needed on either path.
 | V1  | Voice boundary on the server (ADR-0017)                 | live    | voice (holaOS has none)            | closed by Erik 2026-10-01 (#31 call waived)  |
 | V2  | Voice call UI, disclosure and voice chats               | live    | voice                              | closed by Erik 2026-10-01 (#31 call waived)  |
 | V3  | Voice speaks with Google Chirp3-HD Kore (D23)           | live    | voice                              | live 00057; #32 closed 2026-10-01            |
-| V4  | GPT-Live as an opt-in call mode (ADR-0018, D24)         | in-progress | voice                              | UI live 00058, Erik granted; #38 first call  |
+| V4  | GPT-Live as an opt-in call mode (ADR-0018, D24)         | in-progress | voice                              | call 1 10-02 + grouping fix 00071; #38 call 2  |
 | E2  | Sandbox host: private VM, gVisor containers, egress proxy | parked  | the fence for E3 and E4            | Erik deferred 2026-09-26; reopens it         |
 | E3  | Terminal via Open Terminal in the sandbox, admin-only   | planned | terminal, files                    | E1, E2, E5                                   |
 | E4  | Browser automation via Playwright MCP in the sandbox    | planned | browser                            | A5, E2, E5                                   |
