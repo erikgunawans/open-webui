@@ -1,3 +1,28 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-03-v43)
+
+> Prepended 2026-10-03 (checkpoint 2026-10-03-v43). Supersedes v42's anchor and its "do next" (PR #59 is merged and live); v42's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-03-v43).
+Anchor: `origin/main` at `8879fab40` **as this was written**, or one commit ahead at this checkpoint's own commit (subject begins `chore(session): checkpoint — 2026-10-03-v43`). Verify with `git log --oneline 8879fab40..origin/main`; any other commit there is a parallel push.
+
+**Current state:** live **`ent-os-00072-fd4`** (image `8879fab40`, PR #59: JUP Design System interface layer), rollback `00071-6qw`. Proven in a tab: served = running `entry/app.BkjXy56a.js`. Contract review phase 2 live; GPT-Live grouping fix live; call 2 pending.
+
+**Do next, in order:**
+1. **GPT-Live call 2 with Erik** (#38): website, strategy, contract, small talk + one interruption → `voice_live*` audit lines + `meta.jup_voice_live` → delegation rate, drift, self-answered → write up on #38, close it, ledger V4 → live. Ask: voice/Indonesian quality, Zero Data Retention, cost from the Usage page.
+2. **Kartu Kontrak with the Legal account** (edit, approve, return one card), or Erik moves himself to Legal temporarily (title change = his OK).
+3. If Erik answers: pattern band (recommended skip) and eyebrow copy ("Jakarta Utilitas Propertindo" in `ruang-pimpinan/+layout.svelte`, `KbReviewPage.svelte`, `portfolio/+page.svelte`).
+4. Step-6 contract live check once a Staff account exists; `jup_contracts` all-users read grant needs Erik's OK.
+5. Tell Rully (via Erik): file 0594/0639 truncated in OneDrive; who reviews, how many cards/week.
+6. Carried: Rully's app login + #46, #47 live proof, Notion #41/#42, UI copy/config leftovers, CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- **UI values live in `src/jup-tokens.css` (`--jup-ui-*`)**; old names are aliases. On the Anti-flash canvas the kit's tonal fill is invisible — step up (hairline neutral or paper + hairline). Measure every new pair.
+- **Live preview = one `<style>` appended last in `<head>` + a MutationObserver keeping it last**; a full reload clears it.
+
+**Open items waiting on Erik:** GPT-Live call 2 + answers (voice quality, ZDR, cost); Legal-account Kartu Kontrak check; pattern band; eyebrow copy; Impeccable v4.5.0 update (npx); Staff titles; `jup_contracts` all-users read grant; Rully (truncated file, reviewers, app account); Notion token; delete "Uji kecepatan" chats + two O1 test .docx?; Daftar Perkara grant; Gmail send scope; `docker-compose.dev.yaml`; "Test" collection.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-03-v42)
 
 > Prepended by /wrap 2026-10-03 (checkpoint 2026-10-03-v42). Supersedes v41's anchor and its "do next"; v41's and older blocks' constraints still hold unless noted.

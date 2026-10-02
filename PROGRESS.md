@@ -1,6 +1,16 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-10-03-v42 (latest) — JUP Design System interface layer BUILT (draft PR #59, CI green); not yet seen live, not deployed
+## Checkpoint 2026-10-03-v43 (latest) — JUP Design System interface layer LIVE (00072)
+
+- **Session (10-03, after v42):** `/next`-continue → Erik signed in → live preview of #59 by injection (light/dark, five surfaces, 390px iframe per page) → 4 defects fixed (`885d3608f`) → CI green → Erik: "OK to merge PR #59 and deploy" → squash-merged **`8879fab40`** → `deploy.sh` → **`ent-os-00072-fd4` live, 100%**; rollback `00071-6qw`. No ERROR logs in the first 15 min.
+- **Proven in Erik's tab:** served = running `entry/app.BkjXy56a.js`; on Ruang Pimpinan the eyebrow renders ("Jakarta Utilitas Propertindo", `rgb(0,108,52)`, hairline rule), title weight 500, primary button Rich Black 18px pill. Screenshot tool timed out on the deployed page; evidence is computed style.
+- **Preview fixes (`885d3608f`):** the tonal fill vanished on the Anti-flash canvas → board tab track steps up to the hairline neutral (labels 4.73:1), Portfolio fields are paper + hairline; switches Pigment Green when on (white thumb, 3.23:1); dark count chips one step above the track (7.15:1); native file picker = tonal pill (was white on white in dark).
+- **Mobile (390px iframe):** no page-level overflow on chat home, Ruang Pimpinan, Tinjauan Pengetahuan, Portfolio; the Workspace tab row runs 11px past the edge with or without the new CSS (pre-existing, inside a scroll row).
+- **Preview technique that worked:** one `<style>` appended last in `<head>`, chunked through `eval --main`, plus a MutationObserver that keeps it last (SvelteKit route CSS loads after it and otherwise wins). Scoped Svelte styles need the page's root class prefixed.
+- **Open:** pattern band (recommend skip) and eyebrow copy (company name vs section names) — Erik's call.
+- **Next:** GPT-Live call 2 (#38) → Legal-account Kartu Kontrak check → carried items.
+
+## Checkpoint 2026-10-03-v42 — JUP Design System interface layer BUILT (draft PR #59, CI green); not yet seen live, not deployed
 
 - **Session (10-03):** `/next` → kit imported with DesignSync in the main session → tokens → skin (outer + inner) → fork pages → format/i18n gates → local build OOM → draft PR #59 → CI green → live preview blocked on the hourly IAP sign-in → Erik corrected the host (`non-jupe.jup.co.id`, not the retired `ops.axiara.ai`; memories fixed) → wrap.
 - **Live unchanged:** `ent-os-00071-6qw` (image `814dee6b5`); rollback `00070-xl4`.
