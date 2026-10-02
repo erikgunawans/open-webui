@@ -1,0 +1,16 @@
+/* ── JUP radii ────────────────────────────────────────────────────────────────
+   The identity is built from square-cut bars and 45° diamonds; the only curve
+   in the logogram is the single elbow radius. So JUP surfaces are square by
+   default and curvature is reserved for things you touch. */
+
+:root {
+	--jup-radius-none: 0px;
+	--jup-radius-xs: 2px; /* chips, swatches, tags */
+	--jup-radius-sm: 4px; /* inputs, buttons, controls */
+	--jup-radius-md: 6px; /* cards that sit on photography */
+	--jup-radius-lg: 10px; /* modals, sheets */
+	--jup-radius-pill: 999px;
+	--jup-border-width: 1px;
+	--jup-border-width-strong: 2px;
+	--jup-rule-width: 1px; /* hairline rules under eyebrows and table heads */
+}

@@ -1,0 +1,72 @@
+/* ── JUP typography ───────────────────────────────────────────────────────────
+   Space Grotesk is the identity typeface for every JUP application (GSM p.28).
+   It does all the work: display, headings, UI and body. Space Mono is used only
+   for figures, codes and metadata. */
+
+:root {
+	--jup-font-sans:
+		'Space Grotesk', 'Space Grotesk Fallback', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+		system-ui, sans-serif;
+	--jup-font-display: var(--jup-font-sans);
+	--jup-font-mono: 'Space Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+	--jup-weight-light: 300;
+	--jup-weight-regular: 400;
+	--jup-weight-medium: 500;
+	--jup-weight-bold: 700;
+
+	/* Size ramp (px) */
+	--jup-size-3xs: 11px;
+	--jup-size-2xs: 12px;
+	--jup-size-xs: 13px;
+	--jup-size-sm: 14px;
+	--jup-size-base: 16px;
+	--jup-size-md: 18px;
+	--jup-size-lg: 20px;
+	--jup-size-xl: 24px;
+	--jup-size-2xl: 30px;
+	--jup-size-3xl: 38px;
+	--jup-size-4xl: 48px;
+	--jup-size-5xl: 60px;
+	--jup-size-6xl: 76px;
+
+	/* Line heights */
+	--jup-leading-flat: 1;
+	--jup-leading-tight: 1.12;
+	--jup-leading-snug: 1.28;
+	--jup-leading-normal: 1.5;
+	--jup-leading-relaxed: 1.62;
+
+	/* Tracking. The wide setting is the identity's signature — it comes straight
+     off the "J A K A R T A   U T I L I T A S" line in the logotype. */
+	--jup-tracking-display: -0.025em;
+	--jup-tracking-heading: -0.015em;
+	--jup-tracking-normal: 0em;
+	--jup-tracking-wide: 0.08em;
+	--jup-tracking-wider: 0.18em;
+	--jup-tracking-widest: 0.34em;
+
+	--jup-measure: 68ch;
+
+	/* Composite roles */
+	--jup-type-display: var(--jup-weight-bold) var(--jup-size-5xl)/var(--jup-leading-tight)
+		var(--jup-font-display);
+	--jup-type-h1: var(--jup-weight-bold) var(--jup-size-4xl)/var(--jup-leading-tight)
+		var(--jup-font-display);
+	--jup-type-h2: var(--jup-weight-bold) var(--jup-size-3xl)/var(--jup-leading-snug)
+		var(--jup-font-display);
+	--jup-type-h3: var(--jup-weight-medium) var(--jup-size-2xl)/var(--jup-leading-snug)
+		var(--jup-font-display);
+	--jup-type-h4: var(--jup-weight-medium) var(--jup-size-xl)/var(--jup-leading-snug)
+		var(--jup-font-display);
+	--jup-type-lead: var(--jup-weight-regular) var(--jup-size-lg)/var(--jup-leading-relaxed)
+		var(--jup-font-sans);
+	--jup-type-body: var(--jup-weight-regular) var(--jup-size-base)/var(--jup-leading-relaxed)
+		var(--jup-font-sans);
+	--jup-type-small: var(--jup-weight-regular) var(--jup-size-sm)/var(--jup-leading-normal)
+		var(--jup-font-sans);
+	--jup-type-eyebrow: var(--jup-weight-medium) var(--jup-size-2xs)/var(--jup-leading-normal)
+		var(--jup-font-sans);
+	--jup-type-mono: var(--jup-weight-regular) var(--jup-size-sm)/var(--jup-leading-normal)
+		var(--jup-font-mono);
+}

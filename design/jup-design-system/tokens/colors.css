@@ -1,0 +1,115 @@
+/* ── JUP colour system ────────────────────────────────────────────────────────
+   Four identity colours are fixed by the Graphic Standard Manual 2023 (p.23):
+     Pigment Green   #00A550   Polynesian Blue  #004999
+     Rich Black      #011627   Anti-flash White #F0F1F1
+   Everything else on this page is a tint/shade ramp derived from those four so
+   that interfaces have enough steps to work with. Ramps are NOT identity
+   colours — never re-colour the logo with them. */
+
+:root {
+	/* Identity — exact, do not alter */
+	--jup-pigment-green: #00a550;
+	--jup-polynesian-blue: #004999;
+	--jup-rich-black: #011627;
+	--jup-antiflash-white: #f0f1f1;
+
+	/* Green ramp (Pigment Green = 500) */
+	--jup-green-50: #e6f6ee;
+	--jup-green-100: #c0e9d4;
+	--jup-green-200: #86d6ae;
+	--jup-green-300: #4ac287;
+	--jup-green-400: #16b168;
+	--jup-green-500: #00a550;
+	--jup-green-600: #008a43;
+	--jup-green-700: #006c34;
+	--jup-green-800: #004f26;
+	--jup-green-900: #00351a;
+
+	/* Blue ramp (Polynesian Blue = 500) */
+	--jup-blue-50: #e6edf5;
+	--jup-blue-100: #c0d3e8;
+	--jup-blue-200: #85aad2;
+	--jup-blue-300: #4a80bc;
+	--jup-blue-400: #1a5ba6;
+	--jup-blue-500: #004999;
+	--jup-blue-600: #003e82;
+	--jup-blue-700: #003066;
+	--jup-blue-800: #00234a;
+	--jup-blue-900: #001830;
+
+	/* Neutral ramp (Rich Black = 900, Anti-flash White = 50) */
+	--jup-neutral-0: #ffffff;
+	--jup-neutral-50: #f0f1f1;
+	--jup-neutral-100: #e3e6e9;
+	--jup-neutral-200: #ced4da;
+	--jup-neutral-300: #a7b2bc;
+	--jup-neutral-400: #7a8996;
+	--jup-neutral-500: #536679;
+	--jup-neutral-600: #35485c;
+	--jup-neutral-700: #1c3348;
+	--jup-neutral-800: #0b2135;
+	--jup-neutral-900: #011627;
+
+	/* Status — an intentional addition; the GSM defines no state palette.
+     Success and info reuse the identity hues so state never invents a colour. */
+	--jup-success: #00a550;
+	--jup-success-bg: #e6f6ee;
+	--jup-info: #004999;
+	--jup-info-bg: #e6edf5;
+	--jup-warning: #8a5200;
+	--jup-warning-bg: #fbf0de;
+	--jup-danger: #b3261e;
+	--jup-danger-bg: #fbe9e7;
+
+	/* ── Semantic aliases — use these in components ───────────────────────── */
+	--jup-text-primary: var(--jup-rich-black);
+	--jup-text-secondary: var(--jup-neutral-600);
+	--jup-text-muted: var(--jup-neutral-500);
+	--jup-text-inverse: var(--jup-neutral-0);
+	--jup-text-brand: var(--jup-green-600);
+	--jup-text-brand-alt: var(--jup-blue-500);
+	--jup-text-on-brand: var(--jup-neutral-0);
+
+	--jup-surface-page: var(--jup-antiflash-white);
+	--jup-surface-card: var(--jup-neutral-0);
+	--jup-surface-sunken: var(--jup-neutral-100);
+	--jup-surface-inverse: var(--jup-rich-black);
+	--jup-surface-brand: var(--jup-pigment-green);
+	--jup-surface-brand-alt: var(--jup-polynesian-blue);
+	--jup-surface-brand-subtle: var(--jup-green-50);
+	--jup-surface-alt-subtle: var(--jup-blue-50);
+
+	--jup-border-subtle: var(--jup-neutral-100);
+	--jup-border-default: var(--jup-neutral-200);
+	--jup-border-strong: var(--jup-neutral-400);
+	--jup-border-inverse: rgba(255, 255, 255, 0.24);
+	--jup-border-brand: var(--jup-pigment-green);
+
+	--jup-link: var(--jup-blue-500);
+	--jup-link-hover: var(--jup-green-600);
+	--jup-focus-ring: var(--jup-pigment-green);
+	--jup-overlay: rgba(1, 22, 39, 0.62);
+}
+
+/* Inverse scope — dark sections (covers, footers, board slides).
+   Apply on any container: <section class="jup-inverse"> */
+.jup-inverse {
+	--jup-text-primary: var(--jup-neutral-0);
+	--jup-text-secondary: rgba(255, 255, 255, 0.76);
+	--jup-text-muted: rgba(255, 255, 255, 0.56);
+	--jup-text-inverse: var(--jup-rich-black);
+	--jup-text-brand: var(--jup-green-300);
+	--jup-text-brand-alt: var(--jup-blue-200);
+	--jup-surface-page: var(--jup-rich-black);
+	--jup-surface-card: var(--jup-neutral-800);
+	--jup-surface-sunken: #08192b;
+	--jup-surface-inverse: var(--jup-neutral-0);
+	--jup-surface-brand-subtle: rgba(0, 165, 80, 0.14);
+	--jup-surface-alt-subtle: rgba(0, 73, 153, 0.28);
+	--jup-border-subtle: rgba(255, 255, 255, 0.12);
+	--jup-border-default: rgba(255, 255, 255, 0.2);
+	--jup-border-strong: rgba(255, 255, 255, 0.4);
+	--jup-link: var(--jup-green-300);
+	--jup-link-hover: var(--jup-neutral-0);
+	color: var(--jup-text-primary);
+}

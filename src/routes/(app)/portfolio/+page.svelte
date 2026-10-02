@@ -269,6 +269,7 @@
 		<div class="mx-auto w-full max-w-4xl px-5 pt-8 pb-16">
 			<MobileSidebarToggle />
 			<header class="mb-7">
+				<p class="jup-eyebrow">Jakarta Utilitas Propertindo</p>
 				<h1 class="jup-title text-2xl font-semibold">{$i18n.t('Portfolio')}</h1>
 				<p class="jup-subtitle mt-1.5 text-sm">
 					{$i18n.t(
@@ -669,6 +670,9 @@
 
 	.jup-title {
 		color: var(--jup-ink);
+		font-family: var(--jup-font-display);
+		font-weight: var(--jup-ui-weight-display);
+		letter-spacing: -0.035em;
 	}
 
 	.jup-subtitle,
@@ -685,10 +689,11 @@
 	}
 
 	.jup-card {
-		background: var(--jup-surface);
-		border: 1px solid var(--jup-line);
+		background: var(--jup-ui-paper);
+		border: 1px solid var(--jup-ui-hairline);
 		border-radius: var(--jup-radius);
-		padding: 1.15rem 1.25rem;
+		box-shadow: var(--jup-ui-shadow-card);
+		padding: 1.25rem;
 	}
 
 	/* A card reached by a deep link says so, without moving anything. */
@@ -697,7 +702,7 @@
 	}
 
 	.jup-card-target {
-		outline: 2px solid var(--jup-brand-text);
+		outline: 2px solid var(--jup-ring);
 		outline-offset: 2px;
 	}
 
@@ -724,18 +729,28 @@
 		font-weight: 500;
 	}
 
+	/* The page is the canvas, where the kit's tonal fill (also Anti-flash White) would vanish, so a
+	 * field steps up to paper with a hairline. Focus: a muted-ink edge (5.92:1) and the soft halo. */
 	.jup-input {
-		background: var(--jup-surface);
+		min-height: 2.25rem;
+		background: var(--jup-ui-paper);
 		color: var(--jup-ink);
-		border: 1px solid var(--jup-line);
+		border: 1px solid var(--jup-ui-hairline-strong);
 		border-radius: var(--jup-radius-sm);
-		padding: 0.4rem 0.6rem;
+		padding: 0.4rem 0.875rem;
 		font-size: 0.875rem;
+		transition: var(--jup-ui-transition);
+	}
+
+	.jup-input:hover {
+		border-color: var(--jup-ui-muted);
 	}
 
 	.jup-input:focus-visible {
-		outline: 2px solid var(--jup-brand-text);
-		outline-offset: 1px;
+		outline: none;
+		background: var(--jup-ui-paper);
+		border-color: var(--jup-ui-muted);
+		box-shadow: var(--jup-ui-ring);
 	}
 
 	.jup-count {
@@ -745,7 +760,7 @@
 	.jup-link,
 	.jup-anchor,
 	.jup-cite-link {
-		color: var(--jup-brand-text);
+		color: var(--jup-link-text);
 		text-decoration: underline;
 		text-underline-offset: 2px;
 	}
@@ -766,7 +781,7 @@
 		background: var(--jup-neu-bg);
 		color: var(--jup-neu-text);
 		border: 1px solid var(--jup-line);
-		border-radius: var(--jup-radius);
+		border-radius: 14px;
 		padding: 1.15rem 1.25rem;
 	}
 
@@ -865,7 +880,7 @@
 		margin-top: 0.95rem;
 		background: var(--jup-down-bg);
 		color: var(--jup-down-text);
-		border-radius: var(--jup-radius-sm);
+		border-radius: var(--jup-radius-nested);
 		padding: 0.6rem 0.75rem;
 	}
 
@@ -1026,13 +1041,14 @@
 		gap: 0.5rem;
 	}
 
-	/* The one number the Director acts on: larger than the project name, set in the mono face
-	 * with tabular figures so amounts align across tiers. */
+	/* The one number the Director acts on: larger than the project name, set in the display face
+	 * at 500 with tabular figures (the kit's StatBlock), so amounts align across tiers. */
 	.jup-figure-value {
 		color: var(--jup-ink);
-		font-family: var(--jup-font-mono);
-		font-size: 1.25rem;
-		font-weight: 700;
+		font-family: var(--jup-font-display);
+		font-size: 1.375rem;
+		font-weight: 500;
+		letter-spacing: -0.03em;
 		font-variant-numeric: tabular-nums;
 	}
 
@@ -1046,7 +1062,7 @@
 		background: var(--jup-neu-bg);
 		color: var(--jup-neu-text);
 		border: 1px solid var(--jup-line);
-		border-radius: var(--jup-radius);
+		border-radius: 14px;
 		padding: 0.9rem 1.1rem;
 	}
 

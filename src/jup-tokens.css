@@ -73,37 +73,82 @@
 	--jup-text-on-brand: #ffffff; /* 3.23:1: button labels >=14px/500 only */
 	--jup-text-on-blue: #ffffff; /* 8.70:1 */
 
-	/* ── The inner layer (2026-09-26, "None-JUPe Inner Layer" proposal, tabs option B) ──
-	   Actions are Polynesian Blue: white on it is 8.70:1, where white on Pigment Green is 3.23:1.
-	   Green stays the brand's fill (the mark, the active marker, "approved"). */
-	--jup-action: #004999;
-	--jup-action-hover: #003d80;
-	--jup-on-action: #ffffff; /* 8.70:1 */
+	/* ── The interface layer: JUP Design System kit, tokens/ui.css (Erik, 2026-10-03) ──
+	   Chrome is achromatic. The filled primary is Rich Black ink; Polynesian Blue is navigation,
+	   governance and institutional weight only; Pigment Green is one brand CTA per view, the
+	   selected tab underline and the switch. Copied in design/jup-design-system/tokens/ui.css. */
+	--jup-ui-canvas: #f0f1f1; /* Anti-flash White */
+	--jup-ui-surface-alt: #f7f8f8;
+	--jup-ui-paper: #ffffff;
+	--jup-ui-fill: #f0f1f1; /* inputs, tonal buttons, soft badges */
+	--jup-ui-fill-hover: #e3e6e9; /* neutral-100 */
+	--jup-ui-hairline: #e3e6e9;
+	--jup-ui-hairline-strong: #ced4da;
+	--jup-ui-ink: #011627; /* 18.33:1 on paper, 16.20:1 on canvas */
+	--jup-ui-ink-hover: #0b2135; /* neutral-800 */
+	--jup-ui-on-ink: #f0f1f1; /* 16.20:1 */
+	--jup-ui-muted: #536679; /* 5.92:1 on paper, 5.24:1 on canvas */
+	--jup-ui-destructive: #b3261e;
+	--jup-ui-radius-control: 18px; /* pill at 36px */
+	--jup-ui-radius-card: 24px;
+	--jup-ui-radius-nested: 10px;
+	--jup-ui-radius-small: 6px;
+	--jup-ui-shadow-card:
+		0 0 0 1px rgba(1, 22, 39, 0.04), 0 1px 3px rgba(1, 22, 39, 0.08),
+		0 1px 2px -1px rgba(1, 22, 39, 0.08);
+	--jup-ui-shadow-pop:
+		0 0 0 1px rgba(1, 22, 39, 0.05), 0 4px 12px -2px rgba(1, 22, 39, 0.1),
+		0 2px 4px -2px rgba(1, 22, 39, 0.06);
+	--jup-ui-shadow-segment: 0 1px 2px rgba(1, 22, 39, 0.1), 0 0 0 1px rgba(1, 22, 39, 0.04);
+	/* The kit's soft ring (12% ink) is about 1.3:1 against paper, under the 3:1 a focus
+	   indicator needs. It stays as the halo on focused inputs, which also change fill and border;
+	   keyboard focus elsewhere is a solid ink outline (--jup-ring). */
+	--jup-ui-ring: 0 0 0 3px rgba(1, 22, 39, 0.12);
+	--jup-ui-ring-brand: 0 0 0 3px rgba(0, 165, 80, 0.28);
+	--jup-ui-tracking-display: -0.045em;
+	--jup-ui-tracking-heading: -0.025em;
+	--jup-ui-tracking-caption: 0.05em;
+	--jup-ui-tracking-eyebrow: 0.18em;
+	--jup-ui-weight-display: 500;
+	/* Colour, border and shadow move; geometry does not (kit DESIGN.md §3). The kit's own
+	   2px lift and 98% press contradict that rule and are not carried. */
+	--jup-ui-transition:
+		color 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+		background-color 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+		border-color 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+		box-shadow 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+	/* ── The names the skin already consumes, re-pointed at the interface layer ── */
+	--jup-action: var(--jup-ui-ink);
+	--jup-action-hover: var(--jup-ui-ink-hover);
+	--jup-on-action: var(--jup-ui-on-ink);
+	--jup-nav: #004999; /* selected navigation: 7.69:1 on canvas */
 	--jup-link-text: #004999; /* 8.70:1 on surface */
-	--jup-ring: #004999;
-	--jup-hover: #f1f4f6;
-	--jup-panel-ring: #dde2e6;
+	--jup-ring: var(--jup-ui-ink); /* 18.33:1 on paper */
+	--jup-hover: var(--jup-ui-fill);
+	--jup-panel-ring: var(--jup-ui-hairline);
 	/* The inner panel's edge: a hairline of Pigment Green (Erik, 2026-09-26). Decorative, so no
 	   contrast floor applies; the fill it frames carries the content. */
 	--jup-panel-edge: #00a550;
-	--jup-panel-shadow: 0 1px 2px rgba(1, 22, 39, 0.05), 0 8px 24px -12px rgba(1, 22, 39, 0.12);
-	--jup-seg-track: #eef1f3;
-	--jup-seg-on: #ffffff;
-	--jup-seg-shadow: 0 1px 2px rgba(1, 22, 39, 0.08), 0 0 0 1px rgba(1, 22, 39, 0.06);
-	--jup-seg-ink: #5b6d7e; /* 4.86:1 on the track */
-	--jup-chip-bg: #e6eaed;
-	--jup-chip-text: #35485c; /* 7.4:1 on chip */
+	--jup-panel-shadow: var(--jup-ui-shadow-card);
+	--jup-seg-track: var(--jup-ui-fill);
+	--jup-seg-on: var(--jup-ui-paper);
+	--jup-seg-shadow: var(--jup-ui-shadow-segment);
+	--jup-seg-ink: var(--jup-ui-muted); /* 5.24:1 on the track */
+	--jup-chip-bg: var(--jup-ui-fill-hover);
+	--jup-chip-text: #35485c; /* 7.51:1 on chip */
 
 	/* elevation: flat and print-derived; shadows are a last resort (GSM 4.6) */
 	--jup-shadow: 0 1px 2px rgba(1, 22, 39, 0.06);
 	--jup-shadow-md: 0 2px 8px rgba(1, 22, 39, 0.08);
 	--jup-shadow-lg: 0 10px 30px rgba(1, 22, 39, 0.12);
 
-	/* geometry: one shape language inside the panel. Square corners read as print on screen;
-	   Erik chose the rounded inner layer on 2026-09-26. */
-	--jup-radius: 12px; /* structural: cards, surfaces */
-	--jup-radius-sm: 8px; /* controls */
-	--jup-radius-modal: 14px;
+	/* geometry: the kit's interface radii (Erik, 2026-10-03). Print formats stay square-cut;
+	   this app is interface, so it is soft: controls 18, containers 24, nested 10, tooltips 6. */
+	--jup-radius: var(--jup-ui-radius-card); /* cards, surfaces */
+	--jup-radius-sm: var(--jup-ui-radius-control); /* controls */
+	--jup-radius-nested: var(--jup-ui-radius-nested); /* rows and items inside a container */
+	--jup-radius-modal: var(--jup-ui-radius-card);
 
 	/* type: Space Grotesk does all the work; Space Mono only for figures and code */
 	--jup-font-sans:
@@ -149,20 +194,41 @@
 	--jup-text-on-brand: #011627; /* dark label on the fill in dark */
 	--jup-text-on-blue: #ffffff;
 
-	--jup-action: #2f72c4; /* 4.86:1 with white; 3.78:1 against the panel */
-	--jup-action-hover: #2a68b5; /* 5.61:1 with white */
-	--jup-on-action: #ffffff;
+	/* The interface layer from the kit's .jup-inverse block, each white alpha flattened over
+	   Rich Black (the panel) so a border or label does not shift with what is behind it. */
+	--jup-ui-canvas: #00101d;
+	--jup-ui-surface-alt: #08192b;
+	--jup-ui-paper: #0b2135; /* neutral-800: cards sit one step above the panel */
+	--jup-ui-fill: #152938; /* white 8% */
+	--jup-ui-fill-hover: #253745; /* white 14% */
+	--jup-ui-hairline: #1f3241; /* white 12% */
+	--jup-ui-hairline-strong: #394957; /* white 22% */
+	--jup-ui-ink: #f0f1f1; /* 16.20:1 on the panel */
+	--jup-ui-ink-hover: #e3e6e9;
+	--jup-ui-on-ink: #011627; /* 16.20:1 */
+	--jup-ui-muted: #9ea6ad; /* white 62%: 7.43:1 on the panel, 6.05:1 on fill */
+	--jup-ui-destructive: #ee8b80;
+	--jup-ui-shadow-card: 0 0 0 1px #1f3241;
+	--jup-ui-shadow-pop: 0 0 0 1px #1f3241, 0 10px 30px rgba(0, 0, 0, 0.45);
+	--jup-ui-shadow-segment: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.5);
+	--jup-ui-ring: 0 0 0 3px rgba(255, 255, 255, 0.24);
+
+	--jup-action: var(--jup-ui-ink);
+	--jup-action-hover: var(--jup-ui-ink-hover);
+	--jup-on-action: var(--jup-ui-on-ink);
+	--jup-nav: #85aad2; /* blue-200: 7.95:1 on the canvas */
 	--jup-link-text: #8db4e2; /* 8.52:1 on surface */
-	--jup-ring: #85aad2;
-	--jup-hover: #0c2338;
-	--jup-panel-ring: #1b3145;
+	--jup-ring: var(--jup-ui-ink);
+	--jup-hover: var(--jup-ui-fill);
+	--jup-panel-ring: var(--jup-ui-hairline);
 	--jup-panel-shadow: 0 16px 40px -20px rgba(0, 0, 0, 0.7);
-	--jup-seg-track: #0a2034;
-	--jup-seg-on: #173049;
-	--jup-seg-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.5);
-	--jup-seg-ink: #95a2ae; /* 6.35:1 on the track */
-	--jup-chip-bg: #0f263b;
-	--jup-chip-text: #b6c0c9; /* 8.36:1 */
+	--jup-seg-track: var(--jup-ui-fill);
+	--jup-seg-on: var(--jup-ui-fill-hover);
+	--jup-seg-shadow: var(--jup-ui-shadow-segment);
+	--jup-seg-ink: var(--jup-ui-muted); /* 6.05:1 on the track */
+	/* One step above the track (fill), so a count still reads as a chip on an inactive segment. */
+	--jup-chip-bg: var(--jup-ui-hairline);
+	--jup-chip-text: #b6c0c9; /* 7.15:1 on chip */
 
 	/* a shadow on near-black lifts nothing and only darkens what is around it */
 	--jup-shadow: none;

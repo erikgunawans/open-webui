@@ -1,0 +1,88 @@
+/* ── JUP interface layer ──────────────────────────────────────────────────────
+   Foundations (identity colours, Space Grotesk, logo, patterns, layout formats)
+   come from the Graphic Standard Manual and are unchanged. This file defines
+   how INTERFACE components are drawn, following the "clinical blueprint on
+   frosted paper" reference (uploads/DESIGN.md): achromatic surfaces, hairline
+   borders, pill controls, 24px containers, whisper-quiet elevation.
+   Every neutral below is taken from the GSM-derived neutral ramp — no new
+   greys are invented. Colour (green/blue) is reserved for brand moments and
+   meaning, never for chrome. */
+
+:root {
+	/* Surface stack: canvas → sidebar → card. Canvas IS Anti-flash White. */
+	--jup-ui-canvas: var(--jup-antiflash-white);
+	--jup-ui-surface-alt: #f7f8f8;
+	--jup-ui-paper: #ffffff;
+	--jup-ui-fill: var(--jup-antiflash-white); /* inputs, tonal buttons, soft badges */
+	--jup-ui-fill-hover: var(--jup-neutral-100);
+	--jup-ui-hairline: var(--jup-neutral-100);
+	--jup-ui-hairline-strong: var(--jup-neutral-200);
+	--jup-ui-ink: var(--jup-rich-black); /* filled primary, text, icons */
+	--jup-ui-ink-hover: var(--jup-neutral-800);
+	--jup-ui-muted: var(--jup-neutral-500); /* placeholder, helper, separators */
+	--jup-ui-destructive: var(--jup-danger);
+
+	/* Radius hierarchy — interactive 18 (pill at 36px), containers 24, nested 10 */
+	--jup-ui-radius-control: 18px;
+	--jup-ui-radius-card: 24px;
+	--jup-ui-radius-nested: 10px;
+	--jup-ui-radius-small: 6px;
+
+	/* Control metrics — compact density */
+	--jup-ui-h-sm: 32px;
+	--jup-ui-h-md: 36px;
+	--jup-ui-h-lg: 44px;
+	--jup-ui-font-control: 14px;
+	--jup-ui-font-body: 14px;
+	--jup-ui-font-caption: 12px;
+	--jup-ui-card-pad: 20px;
+	--jup-ui-gap: 8px;
+
+	/* Elevation — hairline + barely-there lift */
+	--jup-ui-shadow-card:
+		0 0 0 1px rgba(1, 22, 39, 0.04), 0 1px 3px rgba(1, 22, 39, 0.08),
+		0 1px 2px -1px rgba(1, 22, 39, 0.08);
+	--jup-ui-shadow-pop:
+		0 0 0 1px rgba(1, 22, 39, 0.05), 0 4px 12px -2px rgba(1, 22, 39, 0.1),
+		0 2px 4px -2px rgba(1, 22, 39, 0.06);
+	--jup-ui-shadow-segment: 0 1px 2px rgba(1, 22, 39, 0.1), 0 0 0 1px rgba(1, 22, 39, 0.04);
+	--jup-ui-ring: 0 0 0 3px rgba(1, 22, 39, 0.12);
+	--jup-ui-ring-brand: 0 0 0 3px rgba(0, 165, 80, 0.28);
+
+	/* Display scale — Space Grotesk at 500, tight. Lighter weight + tighter
+     tracking at large sizes is what reads "current"; the face is unchanged. */
+	--jup-ui-display-xl: clamp(48px, 6.4vw, 84px); /* @kind font */
+	--jup-ui-display-lg: clamp(36px, 4.6vw, 60px); /* @kind font */
+	--jup-ui-display-md: clamp(30px, 3.4vw, 44px); /* @kind font */
+	--jup-ui-weight-display: 500;
+
+	/* Tinted tiles — ramp step 50 of each identity hue */
+	--jup-ui-tint-green: var(--jup-green-50);
+	--jup-ui-tint-blue: var(--jup-blue-50);
+
+	/* Motion — a 2px lift and a soft spring-out ease for touchables */
+	--jup-ui-ease: cubic-bezier(0.2, 0.8, 0.2, 1); /* @kind other */
+	--jup-ui-lift: -2px;
+	--jup-ui-transition:
+		color 160ms var(--jup-ui-ease), background-color 160ms var(--jup-ui-ease),
+		border-color 160ms var(--jup-ui-ease), box-shadow 220ms var(--jup-ui-ease),
+		transform 220ms var(--jup-ui-ease);
+
+	/* Display tracking for UI headings (Space Grotesk, tight) */
+	--jup-ui-tracking-display: -0.045em;
+	--jup-ui-tracking-heading: -0.025em;
+	--jup-ui-tracking-caption: 0.05em;
+}
+
+.jup-inverse {
+	--jup-ui-paper: var(--jup-neutral-800);
+	--jup-ui-surface-alt: #08192b;
+	--jup-ui-fill: rgba(255, 255, 255, 0.08);
+	--jup-ui-fill-hover: rgba(255, 255, 255, 0.14);
+	--jup-ui-hairline: rgba(255, 255, 255, 0.12);
+	--jup-ui-hairline-strong: rgba(255, 255, 255, 0.22);
+	--jup-ui-ink: #ffffff;
+	--jup-ui-ink-hover: var(--jup-neutral-100);
+	--jup-ui-muted: rgba(255, 255, 255, 0.62);
+	--jup-ui-ring: 0 0 0 3px rgba(255, 255, 255, 0.24);
+}

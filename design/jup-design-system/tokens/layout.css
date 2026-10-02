@@ -1,0 +1,23 @@
+/* ── JUP layout ───────────────────────────────────────────────────────────────
+   The GSM lays every format out on a margin equal to the logo clear zone (4x
+   the logogram bar). In screen terms that becomes a fixed page gutter and a
+   1200px measure for content. */
+
+:root {
+	--jup-container: 1200px;
+	--jup-container-narrow: 820px;
+	--jup-container-wide: 1440px;
+	--jup-gutter: 24px;
+	--jup-gutter-lg: 40px;
+	--jup-header-h: 72px;
+	--jup-clearzone: 4; /* @kind other */ /* multiples of the logogram bar width */
+	--jup-grid-cols: 12; /* @kind other */
+	--jup-slide-w: 1280px;
+	--jup-slide-h: 720px;
+	--jup-z-base: 0; /* @kind other */
+	--jup-z-sticky: 100; /* @kind other */
+	--jup-z-header: 200; /* @kind other */
+	--jup-z-overlay: 800; /* @kind other */
+	--jup-z-modal: 900; /* @kind other */
+	--jup-z-toast: 1000; /* @kind other */
+}

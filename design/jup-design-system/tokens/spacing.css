@@ -1,0 +1,27 @@
+/* ── JUP spacing ladder ───────────────────────────────────────────────────────
+   A 4px base. Steps 1–7 are component spacing; 8–11 are layout spacing.
+   Pick a step, never an arbitrary pixel value. */
+
+:root {
+	--jup-space-0: 0px;
+	--jup-space-1: 4px;
+	--jup-space-2: 8px;
+	--jup-space-3: 12px;
+	--jup-space-4: 16px;
+	--jup-space-5: 20px;
+	--jup-space-6: 24px;
+	--jup-space-7: 32px;
+	--jup-space-8: 40px;
+	--jup-space-9: 56px;
+	--jup-space-10: 80px;
+	--jup-space-11: 120px;
+
+	/* Named roles */
+	--jup-gap-inline: var(--jup-space-2);
+	--jup-gap-stack: var(--jup-space-4);
+	--jup-gap-grid: var(--jup-space-6);
+	--jup-pad-control: var(--jup-space-3);
+	--jup-pad-card: var(--jup-space-6);
+	--jup-pad-panel: var(--jup-space-8);
+	--jup-section-y: var(--jup-space-11);
+}

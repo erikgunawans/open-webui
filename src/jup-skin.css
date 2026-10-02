@@ -11,6 +11,12 @@
    Everything below is unlayered on purpose: Tailwind utilities live in
    @layer utilities, and an unlayered rule outranks any layered one, so these win
    without !important.
+
+   2026-10-03: the interface layer of the JUP Design System kit (Erik: "the whole
+   layer"). Chrome is achromatic: the primary action is a Rich Black pill, Polynesian
+   Blue marks navigation, Pigment Green is the selected-tab underline and one brand
+   moment per view. Controls 18, containers 24, nested 10. Reference copy in
+   design/jup-design-system/; the values are in jup-tokens.css (--jup-ui-*).
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── The inner panel: a fine Pigment Green edge and a soft lift ────────────
@@ -31,7 +37,7 @@
 	align-items: center;
 	gap: 2px;
 	padding: 3px;
-	border-radius: 10px;
+	border-radius: var(--jup-ui-radius-control);
 	background: var(--jup-seg-track);
 	max-width: 100%;
 	overflow-x: auto;
@@ -44,17 +50,14 @@
 	align-items: center;
 	gap: 0.45rem;
 	min-width: fit-content;
-	padding: 0.375rem 0.75rem;
-	border-radius: 7px;
-	font-size: 0.84375rem;
+	padding: 0.3125rem 0.75rem;
+	border-radius: 15px;
+	font-size: 0.8125rem;
 	font-weight: 500;
 	line-height: 1.25rem;
 	white-space: nowrap;
 	color: var(--jup-seg-ink);
-	transition:
-		color 150ms ease,
-		background-color 150ms ease,
-		box-shadow 150ms ease;
+	transition: var(--jup-ui-transition);
 }
 
 .jup-seg > :is(a, button):hover {
@@ -87,9 +90,10 @@
 	font-variant-numeric: tabular-nums;
 }
 
-/* ── Primary actions: Polynesian Blue, not black ───────────────────────────
-   The vendor's primary buttons inside the panel are black pills that flip to
-   white in dark. Blue carries the action in both themes at >=4.86:1 with white.
+/* ── Primary actions: the Rich Black ink pill ──────────────────────────────
+   The vendor's primary buttons inside the panel are pure-black pills that flip to
+   white in dark. They take the kit's ink instead: Rich Black with Anti-flash White
+   (16.20:1), and the reverse in dark. Blue is navigation, not action.
    Scoped to the panel and the Settings pane (the sibling of its nav), so image viewers and
    overlays elsewhere keep their black. */
 :is(#main-content, #settings-tabs-container ~ *) :is(button, a).bg-black.text-white {
@@ -140,8 +144,8 @@
    instead of an underline, and their meta text is lifted to a readable contrast. */
 #main-content div.group.min-h-8.rounded-xl[role='button'] {
 	padding: 0.5rem 0.75rem;
-	border-radius: 10px;
-	transition: background-color 150ms ease;
+	border-radius: var(--jup-radius-nested);
+	transition: var(--jup-ui-transition);
 }
 
 #main-content div.group.min-h-8.rounded-xl[role='button']:hover {
@@ -171,20 +175,24 @@
 #main-content div.flex.min-w-0.flex-1:has(> input.outline-hidden.bg-transparent) {
 	align-items: center;
 	height: 2.25rem;
-	padding-inline: 0.25rem 0.5rem;
-	border-radius: 10px;
-	background: var(--jup-hover);
+	padding-inline: 0.5rem 0.75rem;
+	border-radius: var(--jup-ui-radius-control);
+	background: var(--jup-ui-fill);
 	box-shadow: inset 0 0 0 1px transparent;
-	transition:
-		background-color 150ms ease,
-		box-shadow 150ms ease;
+	transition: var(--jup-ui-transition);
 }
 
+#main-content div.flex.min-w-0.flex-1:has(> input.outline-hidden.bg-transparent):hover {
+	background: var(--jup-ui-fill-hover);
+}
+
+/* The kit's tonal pill: filled at rest, no border; focus turns it to paper with a muted-ink edge
+   (5.92:1, where the kit's hairline would be 1.5:1) and the soft halo. */
 #main-content div.flex.min-w-0.flex-1:has(> input.outline-hidden.bg-transparent):focus-within {
-	background: var(--jup-surface);
+	background: var(--jup-ui-paper);
 	box-shadow:
-		inset 0 0 0 1px var(--jup-ring),
-		0 0 0 3px color-mix(in srgb, var(--jup-ring) 18%, transparent);
+		inset 0 0 0 1px var(--jup-ui-muted),
+		var(--jup-ui-ring);
 }
 
 #main-content div.flex.min-w-0.flex-1 > input.outline-hidden.bg-transparent::placeholder {
@@ -198,7 +206,7 @@
 #settings-tabs-container [role='tab'] {
 	height: 2rem;
 	padding-inline: 0.625rem;
-	border-radius: 8px;
+	border-radius: var(--jup-radius-nested);
 	background: transparent;
 	color: var(--jup-ink-soft);
 	transition:
@@ -217,10 +225,11 @@
 	font-weight: 500;
 }
 
-/* The vertical list marks its active item with an action-blue edge; the phone row keeps the fill. */
+/* The vertical list marks its active item with a navigation-blue edge; the phone row keeps the
+   fill. */
 @media (min-width: 768px) {
 	#settings-tabs-container [role='tab'][aria-selected='true'] {
-		box-shadow: inset 2px 0 0 var(--jup-action);
+		box-shadow: inset 2px 0 0 var(--jup-nav);
 	}
 }
 
@@ -246,8 +255,8 @@
 /* ── Sidebar wayfinding ───────────────────────────────────────────────────
    The vendor marks the current page with bg-black/[0.035], barely visible on paper, and its
    hover (gray-100) is lighter than the paper itself. The current page becomes a raised surface
-   pill, like a segmented tab, with its icon in brand green: the tokens' "green is the active
-   marker". Our entries set aria-current; the vendor ones only carry the faint fill class. */
+   pill, like a segmented tab, with its icon in Polynesian Blue: blue is navigation (kit,
+   2026-10-03). Our entries set aria-current; the vendor ones only carry the faint fill class. */
 #sidebar :is(a, button).hover\:bg-gray-100:hover {
 	background-color: var(--jup-surface-2);
 }
@@ -260,7 +269,7 @@
 }
 
 #sidebar a:is([aria-current='page'], .bg-black\/\[0\.035\]) > div:first-child {
-	color: var(--jup-brand-text);
+	color: var(--jup-nav);
 }
 
 /* Actions (New Chat, Search) above, destinations below. */
@@ -337,6 +346,56 @@
 	#settings-tabs-container [role='tab'] {
 		transition: none;
 	}
+}
+
+/* ── The switch: Pigment Green when on (kit DESIGN.md §3) ─────────────────
+   The vendor Switch is a bits-ui button[role=switch] drawn gray-900 / dark:white when on. On, it
+   takes the brand fill with a white thumb in both themes (3.23:1, over the 3:1 a control's state
+   needs); off is unchanged. */
+button[role='switch'][data-state='checked'] {
+	background-color: var(--jup-brand);
+}
+
+button[role='switch'][data-state='checked'] > span {
+	background-color: #ffffff;
+}
+
+button[role='switch']:focus-visible {
+	outline: none;
+	box-shadow: var(--jup-ui-ring-brand);
+}
+
+/* ── The section eyebrow (kit SectionHeading) ──────────────────────────────
+   Our own markup on the fork pages' headers. Uppercase, wide-tracked, a 45° diamond lifted from
+   the logogram, and a hairline running right: the system's signature. Green-700 as text (5.81:1
+   on the canvas; the kit's green-600 is 3.93:1 there), green-300 in dark. */
+.jup-eyebrow {
+	display: flex;
+	align-items: center;
+	gap: 0.625rem;
+	margin-bottom: 0.75rem;
+	font-size: 0.75rem;
+	line-height: 1.5;
+	font-weight: 500;
+	letter-spacing: var(--jup-ui-tracking-eyebrow);
+	text-transform: uppercase;
+	color: var(--jup-brand-text);
+}
+
+.jup-eyebrow::before {
+	content: '';
+	flex: none;
+	width: 6px;
+	height: 6px;
+	background: currentColor;
+	transform: rotate(45deg);
+}
+
+.jup-eyebrow::after {
+	content: '';
+	flex: 1 1 auto;
+	height: 1px;
+	background: var(--jup-ui-hairline);
 }
 
 /* ── The approval card's Risk Class label (#22, ADR-0013 §3) ────────────────
@@ -549,16 +608,14 @@
 	gap: 0.875rem;
 	min-height: 44px;
 	padding: 0.875rem 1rem;
-	border: 1px solid var(--jup-line-soft);
+	border: 1px solid var(--jup-ui-hairline);
 	border-radius: var(--jup-radius-sm);
 	text-align: left;
-	transition:
-		border-color 150ms ease,
-		background-color 150ms ease;
+	transition: var(--jup-ui-transition);
 }
 
 .jup-voice-mode:hover {
-	border-color: var(--jup-action);
+	border-color: var(--jup-ui-hairline-strong);
 	background-color: var(--jup-hover);
 }
 
@@ -574,7 +631,7 @@
 	flex-shrink: 0;
 	width: 2.5rem;
 	height: 2.5rem;
-	border-radius: var(--jup-radius-sm);
+	border-radius: var(--jup-radius-nested);
 	background: var(--jup-surface-2);
 	color: var(--jup-link-text);
 }
@@ -616,13 +673,13 @@
 	max-width: 24rem;
 	margin-left: auto;
 	padding: 1.125rem 1.25rem 1.25rem;
-	border: 1px solid var(--jup-line-soft);
-	border-radius: 1rem;
+	border: 1px solid var(--jup-ui-hairline);
+	border-radius: var(--jup-radius);
 	background: var(--jup-surface);
 	color: var(--jup-ink);
 	font-size: 0.875rem;
 	line-height: 1.5;
-	box-shadow: var(--jup-shadow-lg);
+	box-shadow: var(--jup-ui-shadow-pop);
 }
 
 /* The panel mounts as a direct child of #main-content, where app.css's `#main-content > *`
@@ -732,8 +789,8 @@
 	min-height: 4.5rem;
 	margin-top: 1rem;
 	padding: 0.75rem;
-	border-radius: var(--jup-radius-sm);
-	background: var(--jup-surface-2);
+	border-radius: var(--jup-radius-nested);
+	background: var(--jup-ui-fill);
 	overflow-y: auto;
 	align-content: start;
 }
@@ -835,12 +892,14 @@
 	color: var(--jup-ink);
 }
 
-/* Tables: a hairline card with a quiet header band, like the Portfolio cards. */
+/* Tables: the kit's table — a hairline card, a quiet surface-alt head with uppercase labels,
+   hairline rows, no zebra and no vertical rules. */
 #response-content-container div.overflow-x-auto:has(> table) {
 	margin-block: 0.75rem;
-	border: 1px solid var(--jup-line);
+	border: 1px solid var(--jup-ui-hairline);
 	border-radius: var(--jup-radius);
-	background: var(--jup-surface);
+	background: var(--jup-ui-paper);
+	box-shadow: var(--jup-ui-shadow-card);
 }
 
 #response-content-container table {
@@ -849,16 +908,17 @@
 }
 
 #response-content-container thead {
-	background: var(--jup-surface-2);
+	background: var(--jup-ui-surface-alt);
 }
 
 #response-content-container thead th {
 	padding: 0.625rem 0.875rem !important;
-	border-bottom: 1px solid var(--jup-line) !important;
-	color: var(--jup-ink-soft) !important;
+	border-bottom: 1px solid var(--jup-ui-hairline) !important;
+	color: var(--jup-ui-muted) !important;
 	font-size: 0.75rem;
-	font-weight: 600;
-	letter-spacing: 0.04em;
+	font-weight: 500;
+	letter-spacing: var(--jup-ui-tracking-caption);
+	text-transform: uppercase;
 }
 
 #response-content-container tbody td {
@@ -877,9 +937,9 @@
 #response-content-container blockquote {
 	margin-block: 0.75rem;
 	padding: 0.625rem 0.875rem;
-	border-inline-start: 3px solid var(--jup-action);
-	border-radius: 0 var(--jup-radius-sm) var(--jup-radius-sm) 0;
-	background: color-mix(in srgb, var(--jup-action) 7%, var(--jup-surface));
+	border-inline-start: 3px solid var(--jup-nav);
+	border-radius: 0 var(--jup-radius-nested) var(--jup-radius-nested) 0;
+	background: var(--jup-ui-surface-alt);
 	color: var(--jup-ink);
 	font-style: normal;
 }
@@ -909,12 +969,10 @@
 /* The composer: a lifted card. The editor takes focus on every page load, so a full focus ring
    would never go away; focus darkens the edge instead, and the caret does the rest. */
 #message-input-container {
-	border-color: var(--jup-line) !important;
-	background-color: var(--jup-surface) !important;
-	box-shadow: var(--jup-shadow-md) !important;
-	transition:
-		border-color 150ms ease,
-		box-shadow 150ms ease;
+	border-color: var(--jup-ui-hairline-strong) !important;
+	background-color: var(--jup-ui-paper) !important;
+	box-shadow: var(--jup-ui-shadow-pop) !important;
+	transition: var(--jup-ui-transition);
 }
 
 #message-input-container:focus-within {

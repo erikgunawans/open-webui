@@ -74,17 +74,19 @@
 	--color-blue-600: #003e82;
 	--color-blue-700: #003066;
 
-	/* Geometry — the GSM is square-cut: structure is 0, controls 4, modals 10
-	   (tokens/radius.css). Here `rounded-lg` is the workhorse control radius
-	   (485 uses) and `rounded-xl` mostly menus and inputs (402), so both are
-	   controls. Structural surfaces opt out explicitly with `rounded-none`.
-	   `rounded-full` is untouched: pills and avatars keep it. */
+	/* Geometry — the kit's interface radii (tokens/ui.css; Erik, 2026-10-03):
+	   controls 18, containers 24, nested 10. The vendor uses `rounded-lg` (484)
+	   for rows and items that sit inside a container, so it takes nested 10.
+	   `rounded-xl` (367) is inputs and list rows, `rounded-2xl` (40) menus and
+	   popovers: both are controls at 18. `rounded-3xl`/`4xl` are the composer
+	   and modals: containers at 24. `rounded-full` is untouched: pills and
+	   avatars keep it. */
 	--radius-sm: 2px;
-	--radius-md: 4px;
-	--radius-lg: var(--jup-radius-sm);
+	--radius-md: 6px;
+	--radius-lg: var(--jup-radius-nested);
 	--radius-xl: var(--jup-radius-sm);
-	--radius-2xl: 6px;
-	--radius-3xl: 6px;
+	--radius-2xl: var(--jup-radius-sm);
+	--radius-3xl: var(--jup-radius-modal);
 	--radius-4xl: var(--jup-radius-modal);
 
 	/* Elevation — almost absent (GSM 4.6). If a JUP page looks like it has drop
@@ -93,8 +95,8 @@
 	--shadow-xs: 0 1px 1px rgba(1, 22, 39, 0.04);
 	--shadow-sm: var(--jup-shadow);
 	--shadow-md: var(--jup-shadow);
-	--shadow-lg: var(--jup-shadow-md);
-	--shadow-xl: var(--jup-shadow-lg);
+	--shadow-lg: var(--jup-ui-shadow-pop);
+	--shadow-xl: var(--jup-ui-shadow-pop);
 	--shadow-2xl: var(--jup-shadow-lg);
 }
 

@@ -38,6 +38,7 @@
 			<MobileSidebarToggle />
 			<header class="jlp-header">
 				<div>
+					<p class="jup-eyebrow">Jakarta Utilitas Propertindo</p>
 					<h1 class="jlp-title">Ruang Pimpinan</h1>
 					<p class="jlp-subtitle">
 						{$i18n.t('Performance, direction and follow-up in one room.')}
