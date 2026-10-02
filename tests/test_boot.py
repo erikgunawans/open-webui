@@ -37,6 +37,8 @@ VERSIONS_DIR = BACKEND_DIR / 'open_webui' / 'migrations' / 'versions'
 # Ruang Pimpinan's tables migrate on their own graph and version table (ADR-0014), so a fork
 # revision never shares a head with upstream. The same four checks hold for it.
 LEADERSHIP_VERSIONS_DIR = BACKEND_DIR / 'jup' / 'leadership' / 'migrations' / 'versions'
+# The contract KB's graph, separate again so a broken contract migration disables only contracts.
+CONTRACTS_VERSIONS_DIR = BACKEND_DIR / 'jup' / 'contracts' / 'migrations' / 'versions'
 # The tracked tree `config.py` wipes at import. `tests/conftest.py` redirects STATIC_DIR away
 # from it before pytest imports any test module; the last test in this file asserts that.
 TRACKED_STATIC_DIR = BACKEND_DIR / 'open_webui' / 'static'
@@ -59,12 +61,19 @@ _BOOT_SCRIPT = textwrap.dedent(
     from jup.leadership.migrate import schema_ready
 
     assert schema_ready(), 'the Ruang Pimpinan graph did not reach its head during boot (ADR-0014)'
+    from jup.contracts.migrate import schema_ready as contracts_ready
+
+    assert contracts_ready(), 'the contract KB graph did not reach its head during boot'
     print('BOOTED', len(app.routes))
     """
 )
 
 
-@pytest.fixture(scope='module', params=[VERSIONS_DIR, LEADERSHIP_VERSIONS_DIR], ids=['vendor', 'leadership'])
+@pytest.fixture(
+    scope='module',
+    params=[VERSIONS_DIR, LEADERSHIP_VERSIONS_DIR, CONTRACTS_VERSIONS_DIR],
+    ids=['vendor', 'leadership', 'contracts'],
+)
 def revisions(request: pytest.FixtureRequest) -> tuple[Revision, ...]:
     """One whole revision graph, read once for every assertion in this file."""
     return read_revisions(request.param)

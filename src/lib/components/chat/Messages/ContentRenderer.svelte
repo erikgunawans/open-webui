@@ -15,6 +15,9 @@
 	} from '$lib/stores';
 	import FloatingButtons from '../ContentRenderer/FloatingButtons.svelte';
 	import { createMessagesList, replaceOutsideCode } from '$lib/utils';
+	// JUP: individual parties' names beside their codes, for readers allowed them (contract KB D2).
+	import { user } from '$lib/stores';
+	import { contractNames, loadContractNames, withContractNames } from '$lib/stores/contractNames';
 
 	/**
 	 * Extracts all top-level <details>...</details> blocks from content,
@@ -124,13 +127,18 @@
 		sourceIds = [...new Set(result)];
 	};
 
+	$: loadContractNames($user?.id);
+
 	/** @param {string} messageContent */
-	const formatMessageContent = (messageContent) =>
-		model?.info?.meta?.capabilities?.citations == false
-			? replaceOutsideCode(messageContent, (segment) =>
-					segment.replace(/\s*(\[(?:\d+(?:#[^,\]\s]+)?(?:,\s*\d+(?:#[^,\]\s]+)?)*)\])+/g, '')
-				)
-			: messageContent;
+	$: formatMessageContent = (messageContent) =>
+		withContractNames(
+			$contractNames,
+			model?.info?.meta?.capabilities?.citations == false
+				? replaceOutsideCode(messageContent, (segment) =>
+						segment.replace(/\s*(\[(?:\d+(?:#[^,\]\s]+)?(?:,\s*\d+(?:#[^,\]\s]+)?)*)\])+/g, '')
+					)
+				: messageContent
+		);
 
 	let autoOpenedArtifactIds = new Set();
 

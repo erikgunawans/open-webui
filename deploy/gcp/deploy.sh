@@ -52,6 +52,8 @@ STORAGE_PROVIDER: "gcs"
 GCS_BUCKET_NAME: "jup-ops-data"
 JUP_RECORDS_DIR: "/srv/jup/records"
 JUP_ARTEFACT_ROOT: "/srv/jup"
+# The contract KB bucket (Jakarta), mounted read-only: drafted cards, OCR text and PDFs (D5).
+JUP_CONTRACTS_DIR: "/srv/legal-kb"
 ENABLE_SIGNUP: "False"
 DEFAULT_USER_ROLE: "pending"
 ENV: "prod"
@@ -120,6 +122,21 @@ JUP_VOICE_ENABLED: "true"
 WHISPER_LANGUAGE: "id"
 EOF
 
+# The legal-kb volume mounts with the runtime service account. Without its read grant (D5) the new
+# revision cannot mount the bucket, so stop here rather than ship a revision that may not start.
+RUNTIME_SA="$(gcloud run services describe "$SERVICE" --project="$PROJECT" --region="$REGION" \
+  --format='value(spec.template.spec.serviceAccountName)')"
+if [[ -z "$RUNTIME_SA" ]]; then
+  echo "!! could not read the runtime service account of $SERVICE; not deploying." >&2
+  exit 1
+fi
+if ! gcloud storage buckets get-iam-policy gs://jup-ops-legal-kb --project="$PROJECT" --format=json \
+  | grep -q "serviceAccount:${RUNTIME_SA}"; then
+  echo "!! ${RUNTIME_SA:-the runtime service account} has no grant on gs://jup-ops-legal-kb (contract KB D5)." >&2
+  echo "!! Grant roles/storage.objectViewer first; not deploying." >&2
+  exit 1
+fi
+
 echo "==> deploying to Cloud Run"
 # --timeout=3600: a GPT-Live call is one request held open for the whole call, so Cloud Run keeps CPU
 # allocated for its sideband without always-on CPU billing (ADR-0018, Option A, Erik 2026-09-28).
@@ -134,6 +151,8 @@ gcloud run deploy "$SERVICE" \
   --network=default --subnet=default --vpc-egress=private-ranges-only \
   --add-volume="name=jup,type=cloud-storage,bucket=jup-ops-records,readonly=true" \
   --add-volume-mount="volume=jup,mount-path=/srv/jup" \
+  --add-volume="name=legal-kb,type=cloud-storage,bucket=jup-ops-legal-kb,readonly=true" \
+  --add-volume-mount="volume=legal-kb,mount-path=/srv/legal-kb" \
   --set-secrets="WEBUI_SECRET_KEY=webui-secret-key:latest,DATABASE_URL=database-url:latest,JUP_VOICE_OPENAI_API_KEY=openai-live-key:latest" \
   --env-vars-file="$ENVFILE"
 

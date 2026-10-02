@@ -20,7 +20,7 @@ written to local disk or to this repo.
 worker pool. It is resumable: any stage whose output already exists is skipped, so re-running after a crash or a
 Mac restart only redoes the documents in flight. Failures land in `full/errors/NNNN.json` and are retried on the next
 run; scans with under 200 OCR characters get a card with `skipped: "no-ocr-text"` instead of a guessed one. Logs
-carry numbers only. `bun summary.ts full` totals the cards into `full/summary.json`. Prompt, schema and model live in `lib.ts`, Graph access in `graph.ts`, shared by both paths.
+carry numbers only. `bun summary.ts full` totals the cards into `full/summary.json`. `bun dates.ts full` adds structured start/end/auto-renewal dates per card (`full/dates/NN.json`, same model and region as drafting), which the app's contract import (`POST /api/v1/contracts/import`) reads with the cards. Prompt, schema and model live in `lib.ts`, Graph access in `graph.ts`, shared by both paths.
 
 `ocr.ts`, `draft-cards.ts` and `preview.ts` read the `pilot` run (`BUCKET` constant at the
 top). Install once with `bun install` in this directory.

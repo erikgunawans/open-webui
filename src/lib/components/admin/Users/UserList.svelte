@@ -34,6 +34,8 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ProfilePreview from '$lib/components/channel/Messages/Message/ProfilePreview.svelte';
 	import UserPreviewModal from '$lib/components/admin/UserPreviewModal.svelte';
+	// JUP: the contract title column (D3). See deploy/gcp/VENDOR-PATCHES.md.
+	import ContractTitleSelect from '$lib/components/contracts/ContractTitleSelect.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -270,6 +272,9 @@
 							{/if}
 						</button>
 					</th>
+					<th scope="col" class="font-normal select-none px-2.5 py-1.5">
+						{$i18n.t('Title group')}
+					</th>
 					<th scope="col" class="font-normal select-none" aria-sort={sortState('email')}>
 						<button
 							type="button"
@@ -389,6 +394,7 @@
 								{$i18n.t(user.role)}
 							</button>
 						</td>
+						<td class="px-3 py-1"><ContractTitleSelect userId={user.id} userName={user.name} /></td>
 						<td class=" px-3 py-1 max-w-48 truncate"> {user.email} </td>
 
 						<td class=" px-3 py-1">

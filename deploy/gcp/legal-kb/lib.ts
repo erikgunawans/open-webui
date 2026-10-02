@@ -144,3 +144,40 @@ export async function draftCard(pages: Page[]) {
   if (!part) throw new Error(`no card: finishReason=${j.candidates?.[0]?.finishReason} block=${j.promptFeedback?.blockReason}`);
   return { card: JSON.parse(part), tokens: j.usageMetadata?.promptTokenCount as number };
 }
+
+// Dates pass (contract KB phase 1): structured start / end / auto-renewal from a drafted card's own
+// fields, so "which contracts end within 6 months" is a query. Same model and region as drafting.
+const DATES_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    tanggal_mulai: { type: "STRING" },
+    tanggal_berakhir: { type: "STRING" },
+    perpanjangan_otomatis: { type: "STRING", enum: ["ya", "tidak", "tidak jelas"] },
+    dasar: { type: "STRING" },
+    keyakinan: { type: "STRING", enum: ["tinggi", "rendah"] },
+  },
+  required: ["tanggal_mulai", "tanggal_berakhir", "perpanjangan_otomatis", "dasar", "keyakinan"],
+};
+
+const DATES_PROMPT = `Dari isian kartu kontrak berikut, tentukan tanggal mulai dan tanggal berakhir kontrak.
+Aturan:
+- Format tanggal YYYY-MM-DD. Kosongkan ("") bila tidak dapat ditentukan dari teks.
+- Tanggal berakhir boleh dihitung dari tanggal mulai dan jangka waktu yang tertulis (misalnya "5 tahun sejak ditandatangani"), dengan tanggal mulai = tanggal tanda tangan bila teks menyatakan demikian. Jangan menebak di luar teks.
+- Bila hanya bulan/tahun yang diketahui, kosongkan tanggal tersebut.
+- "perpanjangan_otomatis": "ya" hanya bila teks menyatakan kontrak diperpanjang otomatis; "tidak" bila perpanjangan memerlukan kesepakatan/adendum; selain itu "tidak jelas".
+- "dasar": satu kalimat singkat, kutip frasa sumbernya.
+- "keyakinan": "rendah" bila ada perhitungan, ketidakjelasan, atau teks bertentangan.`;
+
+export const DATE_FIELDS = ["judul", "jenis_dokumen", "tanggal_tanda_tangan", "jangka_waktu_perpanjangan", "pengakhiran", "hubungan_dokumen"];
+
+export async function extractDates(card: any) {
+  const body = DATE_FIELDS.map((f) => `${f}: ${card?.[f]?.isi ?? "tidak tercantum"}`).join("\n");
+  const j = await post(MODEL_URL, {
+    systemInstruction: { parts: [{ text: DATES_PROMPT }] },
+    contents: [{ role: "user", parts: [{ text: body }] }],
+    generationConfig: { temperature: 0, responseMimeType: "application/json", responseSchema: DATES_SCHEMA },
+  });
+  const part = j.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!part) throw new Error(`no dates: finishReason=${j.candidates?.[0]?.finishReason}`);
+  return JSON.parse(part);
+}

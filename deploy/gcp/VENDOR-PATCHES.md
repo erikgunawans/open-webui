@@ -872,3 +872,46 @@ the user the board of directors was not in the knowledge base (live, 2026-10-02)
 `tests/test_kb_grep_inline_flags.py` notices.
 
 **Conflict risk:** low. Two lines appended to one boolean expression.
+
+## `src/lib/components/admin/Users/UserList.svelte` — the contract title column (2026-10-02, contract KB D3)
+
+**What:** one import, one header (`Title group` / "Jabatan") and one cell rendering the fork component
+`src/lib/components/contracts/ContractTitleSelect.svelte`, which reads and sets the user's title through
+`/api/v1/contracts/titles` (`routers/jup_contracts.py`).
+
+**Why:** Erik's decision D3: contract access comes from one place, a title per user (Direksi, Legal,
+Manager, Staff). Each title is a managed group (`group.data.jup_contract_title`) whose `jup.contracts`
+grants are fixed in `jup.contracts.titles`; the endpoint moves the user so exactly one remains.
+
+**If dropped:** silent — the API still works and nobody can set a title from the UI.
+`tests/test_admin_user_list_contract_title.py` notices.
+
+**Conflict risk:** low. Three added lines; the cell sits between the role and email cells.
+
+## `backend/open_webui/main.py` — the contract KB's migration graph and router (2026-10-02)
+
+**What:** `run_contract_migrations(engine)` beside `run_leadership_migrations` under
+`ENABLE_DB_MIGRATIONS`, and `jup_contracts.router` mounted at `/api/v1/contracts`.
+
+**Why:** the contract tables (`jup_contract`, `jup_contract_event`, `jup_contract_party`,
+`jup_contract_party_link`) sit on their own graph and version table (`jup_contracts_alembic_version`),
+so a broken contract migration disables only contracts — not chat and not Ruang Pimpinan.
+
+**If dropped:** the app boots; contract routes and the tool refuse with "schema not ready" or 404.
+`tests/test_contract_migration_seam.py`, `tests/test_jup_router_registration.py` and the boot test notice.
+
+**Conflict risk:** low. Two lines next to the leadership ones.
+
+## `src/lib/components/chat/Messages/ContentRenderer.svelte` — names beside contract codes (2026-10-02, D2)
+
+**What:** `formatMessageContent` becomes reactive and passes its result through `withContractNames`
+(`src/lib/stores/contractNames.ts`); `loadContractNames($user?.id)` asks `/api/v1/contracts/capabilities`
+once per account. Both render paths (plain markdown and structured `output`) use that function.
+
+**Why:** the model only ever reads "Perorangan A". Erik's D2: Legal and Direksi see the name. The
+server returns names from `/parties/resolve` only to a reader holding `jup.contracts.names`; everyone
+else gets an empty map and sees the code. Display only — the stored message keeps the code.
+
+**If dropped:** silent — Legal and Direksi see codes. `tests/test_admin_user_list_contract_title.py` notices.
+
+**Conflict risk:** medium. The vendor expression is wrapped, not changed; re-wrap it after a rebase.

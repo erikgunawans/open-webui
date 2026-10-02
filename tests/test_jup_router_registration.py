@@ -17,6 +17,7 @@ ROUTERS = {
     'jup_portfolio': '/api/v1/portfolio',
     'jup_leadership': '/api/v1/leadership',
     'jup_kb_review': '/api/v1/kb-review',
+    'jup_contracts': '/api/v1/contracts',
     'jup_voice': '/api/v1/voice',
 }
 

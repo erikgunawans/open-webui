@@ -44,6 +44,7 @@ from starsessions.stores.redis import RedisStore
 
 from jup.admin_allowlist import AdminAllowlistMiddleware
 from jup.iap_identity import IapIdentityHeaderMiddleware
+from jup.contracts.migrate import run_contract_migrations
 from jup.leadership.migrate import run_leadership_migrations
 from open_webui.config import (
     BYPASS_ADMIN_ACCESS_CONTROL,
@@ -161,6 +162,7 @@ from open_webui.routers import (
     functions,
     groups,
     images,
+    jup_contracts,
     jup_kb_review,
     jup_leadership,
     jup_portfolio,
@@ -884,9 +886,12 @@ app.include_router(calendar.router, prefix='/api/v1/calendars', tags=['calendars
 # VENDOR-PATCHES.md. A failure is logged and leaves only that section unavailable.
 if ENABLE_DB_MIGRATIONS:
     run_leadership_migrations(engine)
+    # JUP: the contract KB's tables, on their own graph too; a failure disables only contracts.
+    run_contract_migrations(engine)
 app.include_router(jup_portfolio.router, prefix='/api/v1/portfolio', tags=['portfolio'])
 app.include_router(jup_leadership.router, prefix='/api/v1/leadership', tags=['leadership'])
 app.include_router(jup_kb_review.router, prefix='/api/v1/kb-review', tags=['kb-review'])
+app.include_router(jup_contracts.router, prefix='/api/v1/contracts', tags=['contracts'])
 app.include_router(jup_voice.router, prefix='/api/v1/voice', tags=['voice'])
 
 # SCIM 2.0 API for identity management
