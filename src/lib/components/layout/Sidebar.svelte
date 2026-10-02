@@ -237,7 +237,7 @@
 
 	// JUP: the knowledge-base review queue (ADR-0015). Shown to a holder of the submit grant and to
 	// admins, who review. Presentation only: the server re-checks both on every request.
-	$: showKbReview = $kbReviewAccess.submit || $user?.role === 'admin';
+	$: showKbReview = $kbReviewAccess.submit || $kbReviewAccess.contracts || $user?.role === 'admin';
 	$: kbReviewActive =
 		$page.url.pathname === '/kb-review' || $page.url.pathname.startsWith('/kb-review/');
 

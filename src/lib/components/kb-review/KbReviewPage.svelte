@@ -10,6 +10,7 @@
 	import '$lib/components/leadership/leadership.css';
 	import SubmitSection from './SubmitSection.svelte';
 	import ReviewQueue from './ReviewQueue.svelte';
+	import ContractReview from './ContractReview.svelte';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
 
@@ -39,7 +40,7 @@
 
 			{#if $kbReviewAccess.loading}
 				<div class="flex justify-center py-16"><Spinner className="size-5" /></div>
-			{:else if !$kbReviewAccess.submit && !$kbReviewAccess.review}
+			{:else if !$kbReviewAccess.submit && !$kbReviewAccess.review && !$kbReviewAccess.contracts}
 				<div class="jlp-notice mt-4">
 					<p class="font-medium">{$i18n.t('You do not have access to the review queue')}</p>
 					<p class="mt-1 text-sm">
@@ -54,6 +55,9 @@
 				{/if}
 				{#if $kbReviewAccess.review}
 					<ReviewQueue />
+				{/if}
+				{#if $kbReviewAccess.contracts}
+					<ContractReview />
 				{/if}
 			{/if}
 		</div>

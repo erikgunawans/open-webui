@@ -17,10 +17,13 @@ def _source() -> str:
     return SIDEBAR.read_text(encoding='utf-8')
 
 
-def test_the_entry_is_shown_to_a_submitter_or_an_admin() -> None:
+def test_the_entry_is_shown_to_a_submitter_a_contract_reviewer_or_an_admin() -> None:
     source = _source()
     assert "import { kbReviewAccess } from '$lib/stores/kbReview';" in source
-    assert "$: showKbReview = $kbReviewAccess.submit || $user?.role === 'admin';" in source
+    assert re.search(
+        r"\$: showKbReview =\s+\$kbReviewAccess\.submit \|\| \$kbReviewAccess\.contracts \|\| \$user\?\.role === 'admin';",
+        source,
+    )
 
 
 def test_the_entry_is_in_both_the_rail_and_the_list() -> None:

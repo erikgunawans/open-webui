@@ -549,8 +549,9 @@ rail and one in the expanded list, both right after Ruang Pimpinan. Each carries
 `aria-label`, `aria-current` and a Tooltip. The Portfolio and Ruang Pimpinan entries beside it are
 the same kind of patch; this entry covers only the new one.
 
-**Why:** the queue (ADR-0015) needs an entry point for staff with the `jup.kb.submit` grant and for
-admins, who review. The entry is presentation only. The server re-checks the grant and the role on
+**Why:** the queue (ADR-0015) needs an entry point for staff with the `jup.kb.submit` grant, for
+admins, who review, and (since 2026-10-02) for Legal, who review contract cards with the
+`jup.contracts.review` grant in the "Kartu Kontrak" section. The entry is presentation only. The server re-checks the grant and the role on
 every request.
 
 **If dropped:** silent. `/kb-review` still works for anyone who types it, and nobody else finds it.

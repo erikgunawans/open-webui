@@ -1,5 +1,6 @@
 import { derived, writable, type Readable } from 'svelte/store';
 
+import { getContractCapabilities } from '$lib/apis/contracts';
 import { getKbReviewCapabilities } from '$lib/apis/kb-review';
 import { user } from '$lib/stores';
 
@@ -11,9 +12,17 @@ export type KbReviewAccess = {
 	loading: boolean;
 	submit: boolean;
 	review: boolean;
+	// The contract cards tab: the `jup.contracts.review` grant (Legal), not the admin role.
+	contracts: boolean;
 };
 
-const EMPTY: KbReviewAccess = { userId: null, loading: false, submit: false, review: false };
+const EMPTY: KbReviewAccess = {
+	userId: null,
+	loading: false,
+	submit: false,
+	review: false,
+	contracts: false
+};
 
 const state = writable<KbReviewAccess>(EMPTY);
 
@@ -25,13 +34,18 @@ const load = async (userId: string) => {
 	controller = own;
 	state.set({ ...EMPTY, userId, loading: true });
 	try {
-		const capabilities = await getKbReviewCapabilities(localStorage.token, own.signal);
+		// Each source fails on its own: no contract tables must not hide the document queue.
+		const [capabilities, contracts] = await Promise.all([
+			getKbReviewCapabilities(localStorage.token, own.signal).catch(() => null),
+			getContractCapabilities(localStorage.token, own.signal).catch(() => null)
+		]);
 		if (own.signal.aborted) return;
 		state.set({
 			userId,
 			loading: false,
-			submit: capabilities.submit === true,
-			review: capabilities.review === true
+			submit: capabilities?.submit === true,
+			review: capabilities?.review === true,
+			contracts: contracts?.review === true
 		});
 	} catch {
 		// A failure hides the entry. It must never disturb chat.
