@@ -300,7 +300,8 @@ def test_the_call_ui_learns_how_many_parts_an_answer_has(jup_voice, store) -> No
     count = asyncio.run(
         jup_voice.speech_part_count(VOICE_CHAT, 'a-long', _user(), store=store, secret=SECRET, permissions=GRANTED)
     )
-    assert count == 3
+    # A short first part (≤ 300 bytes) so the caller hears it start within seconds, then ≤ 1,200.
+    assert count == 10
 
 
 def test_the_raw_openai_speech_proxy_is_closed(jup_voice, caplog) -> None:

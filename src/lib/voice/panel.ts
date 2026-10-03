@@ -91,10 +91,14 @@ export type SpeakSteps<A> = {
  */
 export const speakSealedAnswer = async <A>(steps: SpeakSteps<A>, signal: AbortSignal) => {
 	const count = await sealedAnswerParts(steps.parts, steps.wait ? { wait: steps.wait } : {});
+	if (count === 0 || signal.aborted) return;
+	// The next part is synthesised while this one plays, so the parts follow without a gap.
+	let next: Promise<A> | null = steps.part(0);
 	for (let n = 0; n < count; n++) {
+		const audio: A = await next!;
 		if (signal.aborted) return;
-		const audio = await steps.part(n);
-		if (signal.aborted) return;
+		next = n + 1 < count ? steps.part(n + 1) : null;
+		next?.catch(() => {});
 		await steps.play(audio);
 	}
 };
