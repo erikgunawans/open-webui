@@ -916,3 +916,26 @@ else gets an empty map and sees the code. Display only — the stored message ke
 **If dropped:** silent — Legal and Direksi see codes. `tests/test_admin_user_list_contract_title.py` notices.
 
 **Conflict risk:** medium. The vendor expression is wrapped, not changed; re-wrap it after a rebase.
+
+## `ChatControls.svelte`, `FileItem.svelte`, `Chat.svelte` — office files open in the chat column (2026-10-03, O4)
+
+**What:** three small hooks into the fork module `src/lib/office/preview.ts` and the fork component
+`src/lib/components/jup/OfficePreviewPanel.svelte`:
+
+- `ChatControls.svelte`: marks the column available while mounted, shows the panel when
+  `$officePreview` belongs to the open chat (beside the vendor's Artifacts/Embeds branches, in both
+  the desktop column and the phone drawer), and closes it in `closeHandler`.
+- `FileItem.svelte`: a click on a stored .docx/.xlsx/.pptx calls `openOfficePreview(item)` first;
+  it returns false outside a chat column (knowledge, workspace), for composer chips (`dismissible`)
+  and in edit mode, and then the vendor modal opens as before.
+- `Chat.svelte`: in the `files` event handler, a newly attached office file on an assistant
+  message opens by itself on a large screen (`autoOpenOfficePreview`).
+
+**Why:** Erik's call 10-03: a generated file should open beside the chat, as in other assistants,
+view-only with Download, showing its Draf status and classification. The renderers are the
+vendor's own (SheetJS + `excelToTable`, `DocxPreview`, `pptxToImages`).
+
+**If dropped:** silent — office files open in the vendor modal again and nothing auto-opens.
+`src/lib/office/preview.test.ts` still passes (it tests the module, not the hooks).
+
+**Conflict risk:** low. Additive lines; the `files` branch keeps the vendor assignment.
