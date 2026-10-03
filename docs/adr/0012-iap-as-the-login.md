@@ -144,3 +144,62 @@ access use `@jakarta-utilitas.com` addresses, which run on Microsoft 365, so a J
 by itself let them in. That is a separate decision: sign-in
 with their Entra accounts through Identity Platform behind IAP, or a Google account per person on
 their work address.
+
+## Amendment 2026-10-04 — the channel gateway acts on behalf of a mapped user
+
+**Accepted 2026-10-04 — Erik Gunawan Supriatna.** Agent-depth plan E7.
+
+Directors will ask Asisten JUP from Teams first and WhatsApp later. Neither channel can carry an
+IAP login. So a separate Cloud Run service, `jup-gateway`, receives the channel message and calls
+ent-os itself. ent-os keeps `--ingress=internal-and-cloud-load-balancing`. The gateway reaches it
+through the same load balancer and IAP as everyone else, authenticated as its own service account
+(an `iap.httpsResourceAccessor` binding, OIDC token). That means IAP's verified header names the
+**gateway**, not the director. Under this ADR as written, the trusted-header mechanism would create
+an app account for the service account and answer as it. This amendment exists to rule that out.
+
+**The rule: the gateway identity may act only on behalf of a mapped user, never as itself.**
+
+- **One principal is recognised.** The gateway's service-account email is fixed configuration
+  (`JUP_GATEWAY_PRINCIPAL`). `backend/jup/iap_identity.py` already normalises the IAP header once,
+  before routing. It gains one more step. When the normalised identity equals that principal, it
+  reads `X-JUP-On-Behalf-Of` and rewrites the trusted email to that address. Every vendor read
+  site then sees the director, exactly as if the director had signed in. No vendor file is patched,
+  which keeps this ADR's reason for option 3.
+- **Anyone else's `X-JUP-On-Behalf-Of` is stripped.** For any other principal the header is
+  removed before routing. A signed-in person cannot become someone else by sending it.
+- **The gateway never has an account of its own.** A gateway request that carries no
+  on-behalf-of value, an unknown address, or an account that is `pending` or lacks
+  `jup.channel.use` is refused with 403 at the middleware. It never reaches `auths.py:736`.
+  Creating an account from a gateway request is impossible by construction: the account must
+  already exist. That keeps the signup rule settled above intact.
+- **The mapping happens in the gateway; the authority stays in ent-os.** The gateway turns a
+  verified channel sender into a JUP email. For Teams that means the Bot Framework JWT, JUP's
+  tenant id only, then the Entra object id resolved to an email through Graph. An unknown sender
+  gets the fixed "akun ini belum terhubung ke Asisten JUP" reply and is never forwarded. ent-os
+  still applies the caller's own RBAC, the funnel, fail-closed, and the tool-call audit. The gateway
+  can make a turn arrive. It cannot widen what that turn may see.
+- **Every such turn is marked.** The audit line carries `channel=<teams|whatsapp>` and a hash of
+  the channel user id, and the chat meta carries `channel`. A turn the gateway made is never
+  indistinguishable from one the director typed.
+- **Unattended means fail-closed (ADR-0013).** A tool of class `external` is refused in a channel
+  turn, because no one is present to approve it.
+- **TERBATAS never leaves as text.** Decided by Erik 2026-10-04. Restricted content in a channel
+  answer is replaced by a link to `non-jupe.jup.co.id`, which sits behind IAP.
+- **Two switches.** `JUP_CHANNELS_ENABLED` turns the path off for everyone. The per-user grant
+  `jup.channel.use` starts with Erik only.
+
+**What this does not change.** ent-os ingress stays internal plus load balancer, so the dormant
+password reasoning above still holds. The gateway is the one public, non-IAP endpoint, and it
+answers only cryptographically verified channel requests. The admin allowlist is untouched: a
+gateway turn on behalf of an admin carries that admin's role. This is the one place the role passes
+through a machine, and it is the reason for the per-user grant and the Erik-only start.
+
+**Tests the implementation must carry**, under this ADR's own consequence that a lost auth rule
+must fail a test rather than production:
+
+1. The gateway principal with no on-behalf-of value gets 403 and no user row.
+2. The gateway principal on behalf of an unknown, `pending` or ungranted address gets 403.
+3. Any other principal sending `X-JUP-On-Behalf-Of` has it stripped and stays itself.
+4. The kill switch off means the gateway principal gets 403 for everyone.
+5. A client-supplied `X-Goog-Authenticated-User-Email` cannot reach the app unreplaced. IAP must
+   be shown to overwrite it; this is checked on the live load balancer, not assumed.
