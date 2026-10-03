@@ -4,6 +4,8 @@ Runs under `--only-group dev`: the module imports the standard library only. The
 `test_jup_voice_audio_endpoint.py`.
 """
 
+from pathlib import Path
+
 import pytest
 
 from jup import voice_audio
@@ -119,6 +121,28 @@ def test_a_sentence_longer_than_the_limit_is_cut_hard_rather_than_dropped() -> N
     parts = voice_audio.speech_parts(text, limit=500)
     assert [len(part) for part in parts] == [500, 500, 200]
     assert ''.join(parts) == text
+
+
+def test_a_call_answer_starts_with_a_short_part() -> None:
+    """Erik's panel call (2026-10-03): one 1,962-character part took 28 s to synthesise in silence."""
+    sentence = 'Target pendapatan RKA 2027 adalah Rp347,17 miliar dan naik 38 persen. '
+    text = (sentence * 30).strip()
+    parts = voice_audio.speech_parts(text, limit=voice_audio.LATER_SPEECH_PART, first=voice_audio.FIRST_SPEECH_PART)
+    assert len(parts[0].encode()) <= voice_audio.FIRST_SPEECH_PART
+    assert all(len(part.encode()) <= voice_audio.LATER_SPEECH_PART for part in parts)
+    assert len(parts[1].encode()) > voice_audio.FIRST_SPEECH_PART
+    assert ' '.join(parts) == text
+
+
+def test_an_opening_sentence_longer_than_first_is_kept_whole() -> None:
+    long_sentence = 'Kata ' * 100 + 'akhir.'
+    parts = voice_audio.speech_parts(f'{long_sentence} Dua.', limit=1200, first=300)
+    assert parts[0] == long_sentence
+
+
+def test_the_server_reads_call_answers_in_ramped_parts() -> None:
+    source = (Path(__file__).parent.parent / 'backend/open_webui/routers/jup_voice.py').read_text()
+    assert 'first=voice_audio.FIRST_SPEECH_PART' in source
 
 
 def test_the_default_limit_is_under_openais_4096() -> None:

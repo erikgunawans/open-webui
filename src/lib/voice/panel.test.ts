@@ -144,7 +144,7 @@ describe('speakSealedAnswer', () => {
 		expect(played).toEqual(['audio-0', 'audio-1']);
 	});
 
-	it('stops fetching once aborted', async () => {
+	it('fetches at most one part ahead once aborted', async () => {
 		const controller = new AbortController();
 		const part = vi.fn(async (n: number) => `audio-${n}`);
 		await speakSealedAnswer(
@@ -155,7 +155,30 @@ describe('speakSealedAnswer', () => {
 			},
 			controller.signal
 		);
-		expect(part).toHaveBeenCalledTimes(1);
+		expect(part).toHaveBeenCalledTimes(2);
+	});
+
+	it('asks for the next part while the current one plays (no silent gap)', async () => {
+		const events: string[] = [];
+		await speakSealedAnswer(
+			{
+				parts: async () => 3,
+				part: async (n) => (events.push(`fetch ${n}`), `audio-${n}`),
+				play: async (audio) => {
+					events.push(`play ${audio}`);
+					await Promise.resolve();
+					events.push(`end ${audio}`);
+				}
+			},
+			new AbortController().signal
+		);
+		expect(events.indexOf('fetch 1')).toBeLessThan(events.indexOf('end audio-0'));
+		expect(events.indexOf('fetch 2')).toBeLessThan(events.indexOf('end audio-1'));
+		expect(events.filter((e) => e.startsWith('play'))).toEqual([
+			'play audio-0',
+			'play audio-1',
+			'play audio-2'
+		]);
 	});
 
 	it('retries while the answer is not sealed yet', async () => {

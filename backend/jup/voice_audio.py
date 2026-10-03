@@ -34,6 +34,13 @@ from jup.voice import Refusal, access_refusal
 #: bytes; a part is at most this many UTF-8 bytes, under both.
 SPEECH_PART_LIMIT = 4000
 
+#: A call's answer is read in short parts so the caller hears it start within seconds: Google's
+#: Chirp3-HD voice takes about 14 ms per character, so one 2,000-character part was 28 s of silence
+#: before anything played (Erik's panel call, 2026-10-03). The first part is a sentence or two; each
+#: later part is synthesised while the one before it plays.
+FIRST_SPEECH_PART = 300
+LATER_SPEECH_PART = 1200
+
 OPENAI = 'openai'
 #: Google Cloud Text-to-Speech (#32, D23). The vendor has no such engine; `jup_voice.tts_google` is it.
 GOOGLE = 'google'
@@ -189,11 +196,16 @@ def _head(text: str, limit: int) -> str:
     return text.encode('utf-8')[:limit].decode('utf-8', errors='ignore')
 
 
-def speech_parts(text: str, limit: int = SPEECH_PART_LIMIT) -> list[str]:
-    """`text` split into parts of at most `limit` UTF-8 bytes, at sentence ends where it can be."""
+def speech_parts(text: str, limit: int = SPEECH_PART_LIMIT, first: int | None = None) -> list[str]:
+    """`text` split into parts of at most `limit` UTF-8 bytes, at sentence ends where it can be.
+
+    With `first`, sentences are packed into the first part only while it stays within `first`
+    bytes, so it is quick to synthesise; its opening sentence is never cut to fit `first`.
+    """
     parts: list[str] = []
     current = ''
     for sentence in _SENTENCE_END.split(text.strip()):
+        pack = first if first is not None and not parts else limit
         while _size(sentence) > limit:
             if current:
                 parts.append(current)
@@ -203,7 +215,7 @@ def speech_parts(text: str, limit: int = SPEECH_PART_LIMIT) -> list[str]:
             sentence = sentence[len(head) :]
         if not current:
             current = sentence
-        elif _size(current) + 1 + _size(sentence) <= limit:
+        elif _size(current) + 1 + _size(sentence) <= pack:
             current = f'{current} {sentence}'
         else:
             parts.append(current)

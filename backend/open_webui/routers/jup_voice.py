@@ -697,7 +697,11 @@ async def _answer_parts(
     )
     if refusal is not None:
         raise _refuse(refusal)
-    return voice_audio.speech_parts(voice_audio.speakable_text(message['content']))
+    return voice_audio.speech_parts(
+        voice_audio.speakable_text(message['content']),
+        limit=voice_audio.LATER_SPEECH_PART,
+        first=voice_audio.FIRST_SPEECH_PART,
+    )
 
 
 async def speech_cached(body: bytes, engine: str) -> bool:
