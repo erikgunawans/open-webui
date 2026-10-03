@@ -44,7 +44,7 @@ describe('the GPT-Live disclosure text (ADR-0018)', () => {
 	const en = LIVE_DISCLOSURE.en.join(' ');
 
 	it('is versioned like the server', () => {
-		expect(LIVE_DISCLOSURE_VERSION).toBe('2026-09-28');
+		expect(LIVE_DISCLOSURE_VERSION).toBe('2026-10-03');
 	});
 
 	it('says what is heard is a paraphrase that may differ in figures or caveats (a)', () => {
@@ -54,7 +54,18 @@ describe('the GPT-Live disclosure text (ADR-0018)', () => {
 		expect(en).toMatch(/figures or caveats/);
 	});
 
-	it('says the assistant may answer itself, outside the documents (b)', () => {
+	it('names the real sources, within access rights, and never "strategy documents" (Erik 10-03)', () => {
+		expect(id).toMatch(
+			/basis pengetahuan JUP, kartu kontrak, dan Ruang Pimpinan, sesuai hak akses Anda/
+		);
+		expect(en).toMatch(
+			/knowledge base, contract cards and Ruang Pimpinan, within your access rights/
+		);
+		expect(id).not.toMatch(/dokumen strategi/);
+		expect(en).not.toMatch(/strategy documents/);
+	});
+
+	it('says the assistant may answer itself, without those sources (b)', () => {
 		expect(id).toMatch(/menjawab sebagian pertanyaan sendiri/);
 		expect(en).toMatch(/answer some questions itself/);
 	});

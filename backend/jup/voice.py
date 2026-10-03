@@ -45,7 +45,7 @@ DISCLOSURE_VERSION = '2026-10-03'  # sources: knowledge base, contract cards, Ru
 VOICE_MODEL_ID = 'asisten-jup-suara'
 
 #: The GPT-Live disclosure's version (ADR-0018); bumped with its text in the call UI.
-LIVE_DISCLOSURE_VERSION = '2026-09-28'
+LIVE_DISCLOSURE_VERSION = '2026-10-03'  # sources: knowledge base, contract cards, Ruang Pimpinan (Erik 10-03)
 
 DEFAULT_PERMISSIONS: dict[str, Any] = {'jup': {'voice': {'call': False, 'live': False}}}
 
