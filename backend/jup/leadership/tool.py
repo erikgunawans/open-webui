@@ -13,6 +13,10 @@
 - **Citations travel with the figures.** Each metric and assumption names its source file and slides,
   and the status line says the figures are a draft and unverified, so the model can say so.
 
+In a Ruang Pimpinan panel call the tool is also told which tab is open beside it (`chat_id`): the
+chat's signed `jup.voice` mark names the view, and when it is genuine, on the caller's own chat, and
+the caller may read that view, the text names it first. It is a hint, never a grant.
+
 Every call writes one `leadership_read` audit line with `surface='assistant'` (ids only).
 """
 
@@ -25,6 +29,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from jup import voice
 from jup.governance import audit
 from jup.leadership import policy
 from jup.leadership.reader import ACTIONS_SOURCES, DatasetUnavailable, load_dataset, read_overview
@@ -57,10 +62,31 @@ class Source:
         dataset: Callable[[], dict[str, Any]] | None = None,
         permissions: Callable[[str], Any] | None = None,
         recorded: Callable[[], list[dict[str, Any]] | None] | None = None,
+        chat: Callable[[str], Any] | None = None,
+        secret: Callable[[], str] | None = None,
     ) -> None:
         self._dataset = dataset
         self._permissions = permissions
         self._recorded = recorded
+        self._chat = chat
+        self._secret = secret
+
+    async def chat(self, chat_id: str) -> tuple[Any, str | None]:
+        """`(meta, owner id)` of a chat, or `(None, None)` when it does not exist."""
+        if self._chat is not None:
+            found = self._chat(chat_id)
+            return (await found) if asyncio.iscoroutine(found) else found
+        from open_webui.models.chats import Chats
+
+        chat = await Chats.get_chat_by_id(chat_id)
+        return (chat.meta, chat.user_id) if chat is not None else (None, None)
+
+    def secret(self) -> str:
+        if self._secret is not None:
+            return self._secret()
+        from open_webui.env import WEBUI_SECRET_KEY
+
+        return WEBUI_SECRET_KEY
 
     def dataset(self) -> dict[str, Any]:
         """The configured dataset; raises `DatasetUnavailable` when it is off, missing or untrusted."""
@@ -166,7 +192,22 @@ def _view_text(view: str, overview: dict[str, Any], sources: dict[str, dict[str,
     return '\n'.join(lines)
 
 
-async def read_leadership(user: dict | None, view: str = '', source: Source | None = None) -> str:
+async def _open_view(source: Source, chat_id: Any, user_id: str) -> str | None:
+    """The tab open beside the caller's own panel call, when its mark is genuine."""
+    if not isinstance(chat_id, str) or not chat_id:
+        return None
+    try:
+        meta, owner = await source.chat(chat_id)
+    except Exception:
+        return None
+    if owner != user_id:
+        return None
+    return voice.leadership_context_view(meta, chat_id=chat_id, user_id=user_id, secret=source.secret())
+
+
+async def read_leadership(
+    user: dict | None, view: str = '', source: Source | None = None, *, chat_id: str | None = None
+) -> str:
     """The views of Ruang Pimpinan this user may read (or just `view`), as text for the model."""
     source = source or Source()
     user_id = (user or {}).get('id')
@@ -186,8 +227,19 @@ async def read_leadership(user: dict | None, view: str = '', source: Source | No
         audit('leadership_read', user=user_id, surface='assistant', view=wanted or None, result='unavailable')
         return UNAVAILABLE
     sources = {s['id']: s for s in dataset['sources']}
+    open_view = await _open_view(source, chat_id, user_id)
+    if open_view not in views:
+        open_view = None
+    else:
+        views = [open_view, *(v for v in views if v != open_view)]
     parts = [_view_text(v, read_overview(dataset, v, recorded), sources) for v in views]
-    audit('leadership_read', user=user_id, surface='assistant', views=views, result='served')
+    audit('leadership_read', user=user_id, surface='assistant', views=views, open_view=open_view, result='served')
+    if open_view:
+        parts.insert(
+            0,
+            f'Pengguna sedang membuka tab "{VIEW_NAMES[open_view]}" di Ruang Pimpinan; '
+            '"ini", "tab ini" atau "halaman ini" merujuk ke tab tersebut.',
+        )
     parts.append(
         'Sebutkan sumber (nama berkas dan slide) dan bahwa angka masih draft/belum terverifikasi. '
         'Jangan menambah angka yang tidak ada di sini.'

@@ -18,6 +18,10 @@ GPT-Live (ADR-0018, #34) is a second call mode with its own grant, `jup.voice.li
 acknowledgement under its own key and version, signed with a different tag so neither
 acknowledgement can stand in for the other.
 
+A Ruang Pimpinan panel call (`LEADERSHIP_CONTEXT_KEY`) also records which tab the caller is looking
+at, in `chat.meta`, signed over the chat, the owner and the view, so the leadership tool can trust
+it as a hint. It never grants anything: the tool re-checks the caller's grants on every read.
+
 Only the start-call route creates voice chats; everything that treats a chat as voice asks
 `is_voice_chat`, never the raw meta.
 """
@@ -51,6 +55,9 @@ CHAT_KEY = 'jup_voice'
 #: In `message.meta` of an answer a voice turn wrote: a seal over the chat, the message and its
 #: content. `meta`, because the vendor's `chat_message` table keeps only its own columns.
 SEAL_KEY = 'jup_voice_seal'
+#: In `chat.meta` of a panel call: the Ruang Pimpinan tab open beside it, signed.
+LEADERSHIP_CONTEXT_KEY = 'jup_leadership_context'
+LEADERSHIP_VIEWS = ('board', 'rka')
 
 
 @dataclass(frozen=True)
@@ -60,6 +67,18 @@ class Refusal:
     status: int
     code: str
     message: str
+
+
+#: A typed or transcribed turn from the panel; longer is not a spoken question.
+PANEL_TURN_MAX_CHARS = 2000
+PANEL_TURN_INVALID = Refusal(422, 'voice_turn_invalid', 'Type or say a question first.')
+
+
+def panel_turn_refusal(text: Any) -> Refusal | None:
+    """Why a panel turn's text cannot be asked, or `None` when it can."""
+    if not isinstance(text, str) or not text.strip() or len(text) > PANEL_TURN_MAX_CHARS:
+        return PANEL_TURN_INVALID
+    return None
 
 
 def enabled(env: Mapping[str, str] | None = None) -> bool:
@@ -177,6 +196,23 @@ def is_voice_chat(meta: Any, *, chat_id: str, user_id: str, secret: str) -> bool
     if not isinstance(mark, dict) or mark.get('user_id') != user_id:
         return False
     return _matches(mark.get('sig'), secret, 'voice', chat_id, user_id, mark.get('at'))
+
+
+def leadership_context_mark(chat_id: str, user_id: str, view: str, *, at: int, secret: str) -> dict[str, Any]:
+    """The record stored under `chat.meta[LEADERSHIP_CONTEXT_KEY]` when the panel's tab changes."""
+    if view not in LEADERSHIP_VIEWS:
+        raise ValueError(f'unknown Ruang Pimpinan view: {view!r}')
+    return {'view': view, 'at': at, 'sig': _sign(secret, 'leadership_context', chat_id, user_id, view, at)}
+
+
+def leadership_context_view(meta: Any, *, chat_id: str, user_id: str, secret: str) -> str | None:
+    """The tab the panel call is beside, or `None` when there is no genuine mark for this chat and owner."""
+    mark = meta.get(LEADERSHIP_CONTEXT_KEY) if isinstance(meta, dict) else None
+    if not isinstance(mark, dict) or mark.get('view') not in LEADERSHIP_VIEWS:
+        return None
+    if not _matches(mark.get('sig'), secret, 'leadership_context', chat_id, user_id, mark['view'], mark.get('at')):
+        return None
+    return mark['view']
 
 
 def _digest(content: Any) -> str:
