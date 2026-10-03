@@ -1000,37 +1000,125 @@ button[role='switch']:focus-visible {
 }
 
 /* ── Chat home (Placeholder.svelte + jup/Home*.svelte) ─────────────────────────────────────
-   The composer sits in a tray with the shortcut chips above it; the JUP areas and the recent
-   conversations follow at the composer's width. Layout from Erik's references (10-03), tokens
-   from the JUP Design System: tray = surface-alt, card = paper, controls pill, ink primary. */
+   The shortcut chips float above one composer card; the JUP areas and the recent conversations
+   follow at the composer's width. Layout from Erik's references (10-03: a tall card with a mark
+   before the prompt and labelled controls under it), colours from the JUP Design System: paper
+   card, hairline edge, the identity green only on the mark, ink for sending. */
 
 .jup-composer-tray {
-	padding: 0.5rem;
-	border-radius: calc(var(--jup-ui-radius-card) + 0.5rem);
-	background: var(--jup-ui-surface-alt);
-	box-shadow: 0 0 0 1px var(--jup-ui-hairline);
+	padding: 0;
+	background: transparent;
 }
 
-/* Inside the tray the card needs no lift of its own: the tray already frames it. */
+.jup-composer-tray .jup-shortcuts {
+	padding: 0 0 0.75rem;
+}
+
 .jup-composer-tray #message-input-container {
-	box-shadow: 0 1px 2px rgba(1, 22, 39, 0.06) !important;
-	border-color: var(--jup-ui-hairline) !important;
+	padding: 0.375rem 0.375rem 0.125rem;
+	border-radius: var(--jup-ui-radius-card) !important;
+	border-color: var(--jup-ui-hairline-strong) !important;
+	box-shadow: var(--jup-ui-shadow-card) !important;
 }
 
 .jup-composer-tray #message-input-container:focus-within {
-	border-color: var(--jup-ui-hairline-strong) !important;
+	border-color: var(--jup-ink-faint) !important;
 }
 
-/* The vendor's composer row adds its own outer padding; in the tray it would double up. */
+/* The vendor's composer row adds its own outer padding; around the card it would double up. */
 .jup-composer-tray > div:last-child {
 	padding-inline: 0 !important;
 }
 
-/* The secondary composer controls read as outlined circles beside the ink send button. */
-.jup-composer-tray #input-menu-button,
-.jup-composer-tray #voice-input-button {
-	box-shadow: 0 0 0 1px var(--jup-ui-hairline-strong);
+/* A taller writing area, with the mark before the first line. The mark is decoration: the
+   prompt's own placeholder says what the field is for. */
+.jup-composer-tray div:has(> #chat-input-container) {
+	position: relative;
+}
+
+.jup-composer-tray div:has(> #chat-input-container)::before {
+	content: '';
+	position: absolute;
+	top: 1rem;
+	inset-inline-start: 0.875rem;
+	width: 1.125rem;
+	height: 1.125rem;
+	background-color: var(--jup-brand);
+	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.5c.5 4.9 2.2 8 5.1 9.4 1.3.6 2.9 1 4.9 1.1-4.9.5-8 2.2-9.4 5.1-.6 1.3-1 2.9-1.1 4.9-.5-4.9-2.2-8-5.1-9.4-1.3-.6-2.9-1-4.9-1.1 4.9-.5 8-2.2 9.4-5.1.6-1.3 1-2.9 1.1-4.9z'/%3E%3C/svg%3E")
+		center / contain no-repeat;
+	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.5c.5 4.9 2.2 8 5.1 9.4 1.3.6 2.9 1 4.9 1.1-4.9.5-8 2.2-9.4 5.1-.6 1.3-1 2.9-1.1 4.9-.5-4.9-2.2-8-5.1-9.4-1.3-.6-2.9-1-4.9-1.1 4.9-.5 8-2.2 9.4-5.1.6-1.3 1-2.9 1.1-4.9z'/%3E%3C/svg%3E")
+		center / contain no-repeat;
+	pointer-events: none;
+}
+
+.jup-composer-tray #chat-input-container {
+	min-height: 4.75rem;
+	padding-inline-start: 2.25rem !important;
+}
+
+/* The two menus under the prompt read as labelled text buttons, split by a hairline. The label
+   is the menu's job (attach a file, choose tools), in the two languages JUP uses. */
+.jup-composer-tray :is(#input-menu-button, #integration-menu-button) {
+	width: auto;
+	height: 2rem;
+	gap: 0.375rem;
+	padding-inline: 0.5rem 0.625rem;
+	border-radius: var(--jup-ui-radius-control);
+	box-shadow: none;
+	color: var(--jup-ink-soft);
+	font-size: 0.875rem;
+	font-weight: 500;
+}
+
+.jup-composer-tray :is(#input-menu-button, #integration-menu-button) svg {
+	width: 1.125rem;
+	height: 1.125rem;
+}
+
+.jup-composer-tray :is(#input-menu-button, #integration-menu-button):hover {
+	background-color: var(--jup-ui-fill);
+	color: var(--jup-ui-ink);
+}
+
+.jup-composer-tray #input-menu-button::after {
+	content: 'Attach';
+}
+
+.jup-composer-tray #integration-menu-button::after {
+	content: 'Tools';
+}
+
+:lang(id) .jup-composer-tray #input-menu-button::after {
+	content: 'Lampirkan';
+}
+
+:lang(id) .jup-composer-tray #integration-menu-button::after {
+	content: 'Alat';
+}
+
+.jup-composer-tray div.w-\[0\.0625rem\].h-4 {
+	height: 1.125rem;
+	background-color: var(--jup-ui-hairline-strong);
+}
+
+/* Dictation and sending sit at the right as two 36px circles: outlined, then ink. */
+.jup-composer-tray #voice-input-button,
+.jup-composer-tray button.jup-voice {
+	width: 2.25rem;
+	height: 2.25rem;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	border-radius: 999px;
+	box-shadow: 0 0 0 1px var(--jup-ui-hairline-strong);
+}
+
+.jup-composer-tray #send-message-button {
+	width: 2.25rem;
+	height: 2.25rem;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .jup-shortcuts {
