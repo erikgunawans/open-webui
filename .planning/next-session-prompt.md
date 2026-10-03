@@ -1,3 +1,31 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-03-v47)
+
+> Prepended by /wrap 2026-10-03 (checkpoint 2026-10-03-v47). Supersedes v46's anchor and its "do next" (pattern band and eyebrow are decided and live); v46's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-03-v47).
+Anchor: `origin/main` at `645394cbc` **as this was written**, or one commit ahead at this checkpoint's own commit (subject begins `chore(session): checkpoint — 2026-10-03-v47`). Verify with `git log --oneline 645394cbc..origin/main`; any other commit there is a parallel push.
+
+**Current state:** live **`ent-os-00084-5mz`** (image `f5d835781`), rollback `00083-q8c`. Today: #72 eyebrows name the audience (Direksi / Admin / Basis Pengetahuan; pattern band skipped), #74 **O2 Excel output live and accepted** (+ the TERBATAS floor from contract reads, which O1 never had), #75 **O4 office preview panel live** (click + auto-open confirmed by Erik), ledger #73/#76 (O3 next; E7 core → E8 Teams → E9 WhatsApp). `jup_documents` is now on Asisten JUP's default tools. No open PRs.
+
+**Do next, in order:**
+1. **Erik's phone check** of `/ruang-pimpinan`: DIREKSI eyebrow, KPI tiles 2×2 → 1 column, module tiles stack, no sideways scroll (Board and RKA). #72 was never verified in a browser.
+2. **O3 slides** (`.planning/agent-depth-plan.md` Track O): copy Presentasi v1.5-r2 (.pptx) from `~/NEW-JUP/deliverables/JUP-Enterprise-Document-Templates-2026-09-17/` into `backend/jup/office_templates/pptx/` + manifest of layouts 01–20 with placeholder idx; renderer `jup.office_slides` (fill by idx, native charts, caps); `create_presentation` in `tools/jup_documents.py` (same `_store`, `office_floor`, audit); TDD; then deploy + `sync-tools` (Erik's OKs). O4 already previews .pptx.
+3. **E7 decisions with Erik** before any code: ADR-0012 amendment (gateway's on-behalf-of identity), the rule "TERBATAS content in a channel becomes a link", the JUP IT requests (Azure Bot single-tenant + Teams app in the org catalogue, Graph `User.ReadBasic.All` consent), a JUP WhatsApp business number (for E9).
+4. **`xlsx` 0.18.5 advisories** (prototype pollution, ReDoS on hostile files, reachable via the vendor modal on uploaded files): SheetJS 0.20.x needs `package-lock.json` regenerated with npm (Docker runs `npm ci`) — ask Erik for a one-off exception or record it as accepted risk.
+5. Carried: Kartu Kontrak with the Legal account; staff-account checks (O1/O2 404 on Erik's files, step-6 contract check); `jup_contracts` all-users grant; Rully items (truncated 0594/0639, reviewers, app login, #46); #47; Notion #41/#42; CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- **A staff grant is not a model default:** a new tool must also be added to Asisten JUP's `meta.toolIds` (before-copy, no `access_grants` in the body); accept live in a fresh chat without the 🔧 toggle.
+- **After a capability fix, retest in a NEW chat:** the model repeats its own earlier refusal; `admitted` with no `tool_call` = it declined.
+- **`deploy.sh` refuses any untracked file** (`git status --porcelain`): park scratch files outside the repo; build feature branches in a `git worktree` while a deploy runs (the image tag is HEAD's sha).
+- **The classification floor lives in `chat.meta.jup_restricted_source`** (`jup.office_floor`); any new source of restricted text (Daftar Perkara, leadership if classified) must call `mark_restricted`, and any new file tool must read `chat_floor`. Failure on either side refuses.
+- **The O4 preview is view-only;** editing in place is the parked "edit an uploaded file" item. Vendor hooks: ChatControls, FileItem, Chat.svelte `files` event (VENDOR-PATCHES.md).
+- Interceptor: the isolated world is CSP-blocked on prod — use `eval --main`; the extension can drop ("no extensions connected") and reconnect on its own.
+
+**Open items waiting on Erik:** phone check; npm exception for `xlsx`; TERBATAS-as-link rule; ADR-0012 amendment; JUP IT requests for Teams; WhatsApp business number; Legal-account Kartu Kontrak check; share the "None-JUPe vs holaboss-ai" doc if it goes to the board; deck owner to fix GPM 11,3% vs 12,6% and CFO Rp7,81 M vs Rp9,73 M (before O3 decks from the RKA); Staff titles; `jup_contracts` all-users grant; Rully items; Notion token; Impeccable update; delete "Uji kecepatan" chats + test .docx/.xlsx?; Daftar Perkara grant; Gmail send scope; keep or drop `docker-compose.dev.yaml`; delete the "Test" knowledge collection?
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-03-v46)
 
 > Prepended by /wrap 2026-10-03 (checkpoint 2026-10-03-v46). Supersedes v45's anchor and its "do next" (00078 landed; panel test, disclosure and Erik's four calls are all done); v45's and older blocks' constraints still hold unless noted.
