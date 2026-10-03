@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getContext, onMount } from 'svelte';
+	import { getContext, onDestroy, onMount } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
 
@@ -8,6 +8,10 @@
 	import { leadershipAccess, refreshLeadershipAccess } from '$lib/stores/leadership';
 	import '$lib/components/leadership/leadership.css';
 	import MobileSidebarToggle from '$lib/components/jup/MobileSidebarToggle.svelte';
+	import AssistantPanel from '$lib/components/jup/AssistantPanel.svelte';
+	import VoiceDisclosure from '$lib/components/jup/VoiceDisclosure.svelte';
+	import LiveDisclosure from '$lib/components/jup/LiveDisclosure.svelte';
+	import { assistantPanelOpen } from '$lib/voice/panel';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
 
@@ -26,37 +30,51 @@
 		$page.url.pathname === href || $page.url.pathname.startsWith(`${href}/`);
 
 	onMount(refreshLeadershipAccess);
+
+	// The assistant panel lives here, not in a page, so its call survives Board ↔ RKA. Leaving the
+	// section ends it.
+	onDestroy(() => assistantPanelOpen.set(false));
 </script>
 
 <svelte:head>
 	<title>Ruang Pimpinan / {$WEBUI_NAME}</title>
 </svelte:head>
 
-<div class="jlp-root jlp-section jlp-board">
-	<div class="jlp-scroll">
-		<div class="jlp-container">
-			<MobileSidebarToggle />
-			<header class="jlp-header">
-				<div>
-					<p class="jup-eyebrow">Jakarta Utilitas Propertindo</p>
-					<h1 class="jlp-title">Ruang Pimpinan</h1>
-					<p class="jlp-subtitle">
-						{$i18n.t('Performance, direction and follow-up in one room.')}
-					</p>
-				</div>
-			</header>
+<div class="jlp-shell">
+	<div class="jlp-root jlp-section jlp-board">
+		<div class="jlp-scroll">
+			<div class="jlp-container">
+				<MobileSidebarToggle />
+				<header class="jlp-header">
+					<div>
+						<p class="jup-eyebrow">Jakarta Utilitas Propertindo</p>
+						<h1 class="jlp-title">Ruang Pimpinan</h1>
+						<p class="jlp-subtitle">
+							{$i18n.t('Performance, direction and follow-up in one room.')}
+						</p>
+					</div>
+				</header>
 
-			{#if tabs.length > 0}
-				<nav class="jlp-tabs jup-seg" aria-label={$i18n.t('Ruang Pimpinan views')}>
-					{#each tabs as tab (tab.view)}
-						<a class="jlp-tab" href={tab.href} aria-current={active(tab.href) ? 'page' : undefined}
-							>{tab.label}</a
-						>
-					{/each}
-				</nav>
-			{/if}
+				{#if tabs.length > 0}
+					<nav class="jlp-tabs jup-seg" aria-label={$i18n.t('Ruang Pimpinan views')}>
+						{#each tabs as tab (tab.view)}
+							<a
+								class="jlp-tab"
+								href={tab.href}
+								aria-current={active(tab.href) ? 'page' : undefined}>{tab.label}</a
+							>
+						{/each}
+					</nav>
+				{/if}
 
-			<slot />
+				<slot />
+			</div>
 		</div>
 	</div>
+	{#if $assistantPanelOpen}
+		<AssistantPanel />
+	{/if}
 </div>
+
+<VoiceDisclosure />
+<LiveDisclosure />
