@@ -9,14 +9,41 @@ import asyncio
 import io
 from pathlib import Path
 
-from docx import Document
+import pytest
 
-from jup import office_tool
-from jup.office_tool import NO_CHAT, NO_USER, NOT_CREATED, STORE_FAILED, create_document, document_templates
+from docx import Document
+from openpyxl import load_workbook
+
+from jup import office_floor, office_tool
+from jup.office_tool import (
+    FLOOR_FAILED,
+    NO_CHAT,
+    NO_USER,
+    NOT_CREATED,
+    SHEET_NOT_CREATED,
+    STORE_FAILED,
+    create_document,
+    create_spreadsheet,
+    document_templates,
+)
 
 TOOL_SOURCE = Path(__file__).resolve().parent.parent / 'tools' / 'jup_documents.py'
 USER = {'id': 'u-1', 'name': 'Staf JUP', 'role': 'user'}
 BLOCKS = [{'type': 'heading', 'level': 2, 'text': 'Agenda'}, {'type': 'bullets', 'items': ['Status SPBG']}]
+SHEETS = [{'name': 'Kontrak', 'columns': [{'header': 'Mitra'}, {'header': 'Nilai', 'type': 'idr'}], 'rows': [['A', 5]]}]
+
+
+def floor_of(level):
+    async def lookup(chat_id):
+        lookup.asked.append(chat_id)
+        return level
+
+    lookup.asked = []
+    return lookup
+
+
+async def broken_floor(chat_id):
+    raise RuntimeError('database unavailable')
 
 
 class Recorder:
@@ -46,9 +73,26 @@ def _run(recorder: Recorder, **overrides) -> str:
         'blocks': BLOCKS,
         'emit': recorder.emit,
         'store': recorder.store,
+        'floor_lookup': floor_of(None),
     }
     kwargs.update(overrides)
     return asyncio.run(create_document(**kwargs))
+
+
+def _sheet(recorder: Recorder, **overrides) -> str:
+    kwargs = {
+        'request': 'REQ',
+        'user': USER,
+        'chat_id': 'chat-1',
+        'message_id': 'msg-1',
+        'title': 'Daftar kontrak',
+        'sheets': SHEETS,
+        'emit': recorder.emit,
+        'store': recorder.store,
+        'floor_lookup': floor_of(None),
+    }
+    kwargs.update(overrides)
+    return asyncio.run(create_spreadsheet(**kwargs))
 
 
 def test_a_document_is_stored_for_the_asking_user_and_attached_to_the_answer():
@@ -120,8 +164,75 @@ def test_a_floor_from_the_caller_raises_the_classification():
 
 
 def test_every_refusal_is_unmistakable():
-    for message in (NO_CHAT, NO_USER, STORE_FAILED):
+    for message in (NO_CHAT, NO_USER, STORE_FAILED, FLOOR_FAILED):
         assert message.startswith(NOT_CREATED)
+
+
+def test_a_chat_that_read_restricted_material_raises_the_documents_classification():
+    recorder = Recorder()
+    lookup = floor_of('TERBATAS')
+    text = _run(recorder, classification='INTERNAL', floor_lookup=lookup)
+    assert lookup.asked == ['chat-1']
+    assert recorder.stored[0][1].classification == 'TERBATAS'
+    assert 'Classification: TERBATAS' in text
+
+
+def test_the_higher_of_the_callers_floor_and_the_chats_wins():
+    recorder = Recorder()
+    _run(recorder, floor='RAHASIA', floor_lookup=floor_of('TERBATAS'))
+    assert recorder.stored[0][1].classification == 'RAHASIA'
+
+
+def test_no_document_when_the_chats_floor_cannot_be_read():
+    recorder = Recorder()
+    assert _run(recorder, floor_lookup=broken_floor) == FLOOR_FAILED
+    assert recorder.stored == [] and recorder.events == []
+
+
+# -- create_spreadsheet ------------------------------------------------------------------------
+
+
+def test_a_spreadsheet_is_stored_for_the_asking_user_and_attached():
+    recorder = Recorder()
+    text = _sheet(recorder, classification='terbatas')
+    (request, rendered, user, chat_id, message_id) = recorder.stored[0]
+    assert (request, user, chat_id, message_id) == ('REQ', USER, 'chat-1', 'msg-1')
+    assert rendered.classification == 'TERBATAS'
+    item = recorder.events[0]['data']['files'][0]
+    assert item['content_type'] == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    assert item['name'] == 'JUP-XLS-Daftar-kontrak-Draf.xlsx'
+    assert load_workbook(io.BytesIO(rendered.data))['Kontrak']['B2'].value == 5
+    assert text.startswith('Created "JUP-XLS-Daftar-kontrak-Draf.xlsx" with 1 sheet(s) and 1 row(s).')
+    assert 'Status: Draf. Classification: TERBATAS.' in text
+
+
+def test_the_stored_spreadsheet_records_what_it_is():
+    recorder = Recorder()
+    _sheet(recorder)
+    rendered = recorder.stored[0][1]
+    assert office_tool.file_metadata(rendered, 'chat-1', 'msg-1') == {
+        'chat_id': 'chat-1',
+        'message_id': 'msg-1',
+        'jup_office': {'kind': 'xlsx', 'classification': 'INTERNAL', 'status': 'Draf'},
+    }
+
+
+def test_a_chat_that_read_restricted_material_raises_the_spreadsheets_classification():
+    recorder = Recorder()
+    text = _sheet(recorder, classification='INTERNAL', floor_lookup=floor_of('TERBATAS'))
+    assert recorder.stored[0][1].classification == 'TERBATAS'
+    assert 'Classification: TERBATAS' in text
+
+
+def test_spreadsheet_refusals_are_unmistakable_and_store_nothing():
+    recorder = Recorder()
+    assert _sheet(recorder, chat_id=None).startswith(SHEET_NOT_CREATED)
+    assert _sheet(recorder, user=None).startswith(SHEET_NOT_CREATED)
+    assert _sheet(recorder, floor_lookup=broken_floor).startswith(SHEET_NOT_CREATED)
+    refused = _sheet(recorder, sheets=[{'name': 'X', 'columns': [{'header': 'N', 'type': 'idr'}], 'rows': [['Rp 5']]}])
+    assert refused.startswith(SHEET_NOT_CREATED) and 'must be a number' in refused
+    assert recorder.stored == [] and recorder.events == []
+    assert _sheet(Recorder(fail=True)).startswith(SHEET_NOT_CREATED)
 
 
 def test_document_templates_lists_or_outlines():
@@ -137,19 +248,20 @@ def test_the_stored_wrapper_holds_no_logic_of_its_own():
     tree = ast.parse(source)
     tools = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'Tools')
     methods = [n for n in tools.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
-    assert [m.name for m in methods] == ['document_templates', 'create_document']
-    for method, target in zip(methods, ('_document_templates(', '_create_document(')):
+    assert [m.name for m in methods] == ['document_templates', 'create_document', 'create_spreadsheet']
+    for method, target in zip(methods, ('_document_templates(', '_create_document(', '_create_spreadsheet(')):
         body = [n for n in method.body if not (isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant))]
         assert len(body) == 1 and isinstance(body[0], ast.Return), method.name
         assert target in ast.unparse(body[0])
 
 
-def test_the_wrapper_passes_the_callers_identity_and_chat_through():
+@pytest.mark.parametrize('target', ['_create_document', '_create_spreadsheet'])
+def test_the_wrapper_passes_the_callers_identity_and_chat_through(target):
     call = ast.unparse(
         next(
             n
             for n in ast.walk(ast.parse(TOOL_SOURCE.read_text()))
-            if isinstance(n, ast.Call) and getattr(n.func, 'id', '') == '_create_document'
+            if isinstance(n, ast.Call) and getattr(n.func, 'id', '') == target
         )
     )
     for wire in (
@@ -160,13 +272,14 @@ def test_the_wrapper_passes_the_callers_identity_and_chat_through():
         'emit=__event_emitter__',
     ):
         assert wire in call
-    # The wrapper must not choose a floor: that comes from the tools that read restricted data.
+    # The wrapper must not choose a floor: that comes from the chat (`jup.office_floor`).
     assert 'floor' not in call
 
 
-def test_the_module_loads_without_the_app():
-    """Vendor imports live inside `_store`, so CI's `--only-group dev` can import the module."""
-    tree = ast.parse(Path(office_tool.__file__).read_text(encoding='utf-8'))
+@pytest.mark.parametrize('module', [office_tool, office_floor])
+def test_the_module_loads_without_the_app(module):
+    """Vendor imports live inside the I/O functions, so CI's `--only-group dev` can import the module."""
+    tree = ast.parse(Path(module.__file__).read_text(encoding='utf-8'))
     top_level = {
         (node.module if isinstance(node, ast.ImportFrom) else alias.name).split('.')[0]
         for node in tree.body

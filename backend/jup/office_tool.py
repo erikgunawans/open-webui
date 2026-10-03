@@ -1,4 +1,5 @@
-"""The office chat tools (Track O, O1 2/3, #45): `document_templates` and `create_document`.
+"""The office chat tools (Track O): `document_templates`, `create_document` (O1, #45) and
+`create_spreadsheet` (O2).
 
 `tools/jup_documents.py` is the copy stored in the app's DB and exec'd there untested, so it only
 delegates here. Everything with a rule in it is in this module or in `jup.office_doc`.
@@ -11,6 +12,11 @@ file to its owner (or an admin), so another staff member gets a 404.
 **What the model is told** is written so it cannot mistake a refusal for a document: every
 refusal starts `Document not created:`, and a success names the file, says it is a **Draf** and
 asks the model to tell the user to review it before use.
+
+**The classification floor:** before rendering, both tools read the chat's floor
+(`jup.office_floor`): a chat that has read contract money terms or contract full text makes every
+file created in it at least TERBATAS, whatever the model asks for. If the floor cannot be read,
+no file is created.
 
 **Risk class `write_own`** (ADR-0013): the call only creates a file in the caller's own space, so
 it is not gated; the E1 audit line records the call like any other.
@@ -27,7 +33,9 @@ import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+from jup import office_floor
 from jup.office_doc import DOCX_MIME, OfficeDocError, Rendered, catalogue, outline, render, template_for
+from jup.office_sheet import SheetRendered, render_sheet
 
 log = logging.getLogger(__name__)
 
@@ -35,9 +43,21 @@ NOT_CREATED = 'Document not created: '
 NO_CHAT = NOT_CREATED + 'documents can only be created inside a chat.'
 NO_USER = NOT_CREATED + 'the asking user could not be identified.'
 STORE_FAILED = NOT_CREATED + 'the server could not save the file. Tell the user to try again later.'
+FLOOR_FAILED = (
+    NOT_CREATED + "the server could not check the classification of this chat's sources. Tell the user to try again."
+)
+
+SHEET_NOT_CREATED = 'Spreadsheet not created: '
 
 # (request, rendered, user, chat_id, message_id) -> the message file item for the chat.
-Store = Callable[[Any, Rendered, dict, str, str], Awaitable[dict]]
+Store = Callable[[Any, Rendered | SheetRendered, dict, str, str], Awaitable[dict]]
+# chat_id -> the classification floor its files inherit.
+FloorLookup = Callable[[str], Awaitable[str | None]]
+
+
+async def _floor(chat_id: str, floor: str | None, lookup: FloorLookup | None) -> str | None:
+    """The caller's floor raised to the chat's; raises when the chat's floor cannot be read."""
+    return office_floor.higher(floor, await (lookup or office_floor.chat_floor)(chat_id))
 
 
 def document_templates(template: str = '') -> str:
@@ -67,12 +87,18 @@ async def create_document(
     floor: str | None = None,
     emit: Callable[[dict], Awaitable[Any]] | None = None,
     store: Store | None = None,
+    floor_lookup: FloorLookup | None = None,
 ) -> str:
     """Render, store, attach. Returns the text the model reads."""
     if not user or not user.get('id'):
         return NO_USER
     if not chat_id or not message_id:
         return NO_CHAT
+    try:
+        floor = await _floor(chat_id, floor, floor_lookup)
+    except Exception:
+        log.exception('create_document: reading the floor of chat %s failed', chat_id)
+        return FLOOR_FAILED
     try:
         rendered = await asyncio.to_thread(
             render,
@@ -107,32 +133,89 @@ async def create_document(
     )
 
 
-def file_item(file_id: str, rendered: Rendered) -> dict:
+async def create_spreadsheet(
+    *,
+    request: Any,
+    user: dict | None,
+    chat_id: str | None,
+    message_id: str | None,
+    title: str,
+    sheets: Any,
+    classification: str = '',
+    floor: str | None = None,
+    emit: Callable[[dict], Awaitable[Any]] | None = None,
+    store: Store | None = None,
+    floor_lookup: FloorLookup | None = None,
+) -> str:
+    """Render a workbook, store it, attach it. Returns the text the model reads."""
+    if not user or not user.get('id'):
+        return NO_USER.replace(NOT_CREATED, SHEET_NOT_CREATED)
+    if not chat_id or not message_id:
+        return SHEET_NOT_CREATED + 'spreadsheets can only be created inside a chat.'
+    try:
+        floor = await _floor(chat_id, floor, floor_lookup)
+    except Exception:
+        log.exception('create_spreadsheet: reading the floor of chat %s failed', chat_id)
+        return FLOOR_FAILED.replace(NOT_CREATED, SHEET_NOT_CREATED)
+    try:
+        rendered = await asyncio.to_thread(
+            render_sheet,
+            title,
+            sheets,
+            classification=classification or None,
+            floor=floor,
+            author=str(user.get('name') or ''),
+        )
+    except OfficeDocError as error:
+        return SHEET_NOT_CREATED + str(error)
+
+    try:
+        item = await (store or _store)(request, rendered, user, chat_id, message_id)
+    except Exception:
+        log.exception('create_spreadsheet: storing %s failed', rendered.filename)
+        return STORE_FAILED.replace(NOT_CREATED, SHEET_NOT_CREATED)
+
+    if emit is not None:
+        await emit({'type': 'files', 'data': {'files': [item]}})
+
+    return (
+        f'Created "{rendered.filename}" with {rendered.sheets} sheet(s) and {rendered.rows} row(s). '
+        f'Status: Draf. Classification: {rendered.classification}. '
+        'It is attached to this answer; only the user who asked can download it. '
+        'Tell the user it is a draft to check before use, and do not repeat the table in the answer.'
+    )
+
+
+def _content_type(rendered: Rendered | SheetRendered) -> str:
+    return rendered.content_type if isinstance(rendered, SheetRendered) else DOCX_MIME
+
+
+def file_item(file_id: str, rendered: Rendered | SheetRendered) -> dict:
     """The message file entry the chat UI shows with its preview and download."""
     return {
         'type': 'file',
         'id': file_id,
         'name': rendered.filename,
         'size': len(rendered.data),
-        'content_type': DOCX_MIME,
+        'content_type': _content_type(rendered),
     }
 
 
-def file_metadata(rendered: Rendered, chat_id: str, message_id: str) -> dict:
+def file_metadata(rendered: Rendered | SheetRendered, chat_id: str, message_id: str) -> dict:
     """What the stored File records about itself (`meta.data`)."""
-    return {
-        'chat_id': chat_id,
-        'message_id': message_id,
-        'jup_office': {
+    if isinstance(rendered, SheetRendered):
+        office = {'kind': 'xlsx', 'classification': rendered.classification, 'status': rendered.status}
+    else:
+        office = {
             'kind': 'docx',
             'template': rendered.template.code,
             'classification': rendered.classification,
             'status': rendered.status,
-        },
-    }
+        }
+    return {'chat_id': chat_id, 'message_id': message_id, 'jup_office': office}
 
 
-async def _store(request: Any, rendered: Rendered, user: dict, chat_id: str, message_id: str) -> dict:
+async def _store(request: Any, rendered: Rendered | SheetRendered, user: dict, chat_id: str, message_id: str) -> dict:
     """Save through the app's own upload path, owned by `user`, and link it to the message."""
     from fastapi import UploadFile
     from starlette.datastructures import Headers
@@ -147,7 +230,7 @@ async def _store(request: Any, rendered: Rendered, user: dict, chat_id: str, mes
     upload = UploadFile(
         file=io.BytesIO(rendered.data),
         filename=rendered.filename,
-        headers=Headers({'content-type': DOCX_MIME}),
+        headers=Headers({'content-type': _content_type(rendered)}),
     )
     stored = await upload_file_handler(
         request,
@@ -163,11 +246,14 @@ async def _store(request: Any, rendered: Rendered, user: dict, chat_id: str, mes
 
 
 __all__ = [
+    'FLOOR_FAILED',
     'NOT_CREATED',
     'NO_CHAT',
     'NO_USER',
+    'SHEET_NOT_CREATED',
     'STORE_FAILED',
     'create_document',
+    'create_spreadsheet',
     'document_templates',
     'file_item',
     'file_metadata',

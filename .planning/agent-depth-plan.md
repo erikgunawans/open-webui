@@ -45,12 +45,12 @@ design. The sandbox work for terminal and browser is needed on either path.
 | E4  | Browser automation via Playwright MCP in the sandbox    | planned | browser                            | A5, E2, E5                                   |
 | E5  | Approval step for risky tool calls (ADR-0013)           | live    | long autonomous runs               | —                                            |
 | E6  | Skill proposals: agent drafts, admin approves, sync     | planned | self-improving skills              | E1                                           |
-| E7  | Channel gateway core: one machine identity, channel user → JUP user | planned | chat channels           | ADR-0012 amendment (Erik); channel order (Erik) |
+| E7  | Channel gateway core: one machine identity, channel user → JUP user | planned | chat channels           | ADR-0012 amendment (Erik); order set 10-03: Teams, then WhatsApp |
 | E8  | Microsoft Teams channel: Asisten JUP bot in JUP's tenant | planned | chat channels                      | E7; JUP IT registers the bot; D-decision     |
 | E9  | WhatsApp channel: Business Cloud API, verified numbers   | planned | chat channels                      | E7, E8 proven; JUP business number; D-decision |
 | I1  | Integrations via MCP (Notion first)                     | in-progress | integrations                   | live 00060, admin-only, off until #41 token |
 | O1  | Office output: Word documents (.docx) in the JUP template | in-progress | docs (holaOS: `doc-coauthoring` skill + bash) | live 00060, all staff; staff-account check open |
-| O2  | Office output: spreadsheets (.xlsx)                      | ready   | sheets (holaOS: `xlsx` skill + bash) | Erik's go-ahead; O1's file path is live      |
+| O2  | Office output: spreadsheets (.xlsx)                      | in-progress | sheets (holaOS: `xlsx` skill + bash) | go-ahead 10-03; PR open, then deploy + tool sync (Erik's OK) |
 | O3  | Office output: slide decks (.pptx) in the JUP template   | planned | slides (holaOS: `pptx` skill + bash) | O2 (shared tool shape); copy Presentasi v1.5-r2 into the repo |
 | X1  | Hermes as an admin-only lab runtime                     | parked  | runtime experiments                | Erik reopens it                              |
 
@@ -195,8 +195,8 @@ is the governed answer, word for word. Spec: issue #25.
 - **E7–E9 Channels (re-planned 2026-10-03 from the holaboss-ai comparison).** Directors will not
   open a web app for one question; they are in Teams and WhatsApp all day. holaboss-ai has eight
   channels, none of them JUP's, and maps no channel user to a company identity. That mapping is the
-  hard part and the part we must get right. **Recommended order: Teams first, then WhatsApp; Telegram
-  dropped** (JUP staff do not use it). Erik decides the order.
+  hard part and the part we must get right. **Order decided by Erik 2026-10-03: Teams first, then
+  WhatsApp; Telegram dropped** (JUP staff do not use it).
   - **E7 Gateway core.** A separate Cloud Run service, `jup-gateway`, in `asia-southeast2`. It is
     the only public, non-IAP endpoint, so it verifies every inbound request cryptographically (Bot
     Framework JWT for Teams, Meta's `X-Hub-Signature-256` for WhatsApp) and rejects anything else.
@@ -277,6 +277,13 @@ there is no code sandbox to build and no new egress, hence no D-decision under D
      Excel with number-typed amounts, it belongs to the caller, another user gets 404, and a staff
      account cannot export amounts its grant hides.
   Ad-hoc analysis stays in A3 (Pyodide, browser-side, already has openpyxl).
+  **Built 2026-10-03:** `jup.office_sheet` + `create_spreadsheet` in the existing "JUP documents"
+  tool (already on Asisten JUP and granted to all staff, so no new grant). **Also fixed O1:** the
+  classification floor existed but nothing set it. Now `jup.office_floor` keeps a sticky
+  `chat.meta.jup_restricted_source`: `get_contract` (when the reader holds `money`) and
+  `read_contract_pages` raise it to TERBATAS, both file tools read it, and if either write or read
+  fails the tool refuses. After deploy, `sync-tools.ts` must push `jup_documents` 1.1.0 and
+  `jup_contracts` 1.1.0 (a DB write, Erik's OK).
 - **O3 Slides (plan 2026-10-03).** Use cases: "make this RKA summary into 5 slides", a
   board-pack draft from Ruang Pimpinan, a project profile. Three tickets:
   1. **Template in the repo + renderer `jup.office_slides`.** Copy Presentasi v1.5-r2 (.pptx,
@@ -341,10 +348,10 @@ touching staff or records, and its model calls go through our funnel with no fal
 2. **V2:** the named voice set was named 2026-09-27 (8 files, Track V); each addition is dated and
    named. Also the TTS voice and the OpenAI budget limit.
 3. **E2:** deferred 2026-09-26; a VM budget when Erik reopens it. E3 and E4 wait on it.
-4. **E7–E9:** channel order (recommended: Teams, then WhatsApp; Telegram dropped); the ADR-0012
+4. **E7–E9:** channel order decided 2026-10-03 (Teams, then WhatsApp; Telegram dropped); still open: the ADR-0012
    amendment for the gateway's on-behalf-of identity; the rule that TERBATAS content in a
    channel becomes a link; the JUP IT requests (Azure Bot + Teams app, Graph consent); a JUP
    WhatsApp business number.
 5. **E7/I1:** one D-decision per new egress (channel, integration); third-party MCP only after E5 (D20).
 6. **O1–O3:** decided 2026-09-29: all staff; JUP Template Dokumen 2.0 + Presentasi v1.5-r2.
-   O2 needs only the go-ahead; "no formulas in v1" is a recommendation, his to overrule.
+   O2: go-ahead 2026-10-03, with no formulas in v1.

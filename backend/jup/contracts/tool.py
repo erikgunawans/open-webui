@@ -7,17 +7,23 @@ its card state (D1). Source folder and file names are never returned: they often
 name, which for an individual is the person.
 
 Each call writes one `jup.governance` line with the user, the operation and the references returned.
+
+**Restricted reads mark the chat** (`jup.office_floor`): a card shown with its money fields, or
+contract page text, makes every file later created in that chat at least TERBATAS. If the mark
+cannot be written the read is refused, so no restricted text reaches a chat without its label.
 """
 
 import asyncio
 import datetime as dt
 import json
+import logging
 import re
 from pathlib import Path
 from typing import Any, Callable
 
 from sqlalchemy import or_, select
 
+from jup import office_floor
 from jup.contracts import access, cards
 from jup.contracts.access import Access, Withheld
 from jup.contracts.models import contract, party, party_link
@@ -29,6 +35,12 @@ MAX_PAGE_CHARS = 12000
 MAIN_RUN = 'full'
 
 UNAVAILABLE = 'Basis kontrak belum tersedia: skema basis datanya belum siap. Laporkan ke admin.'
+MARK_FAILED = 'Kontrak tidak dapat ditampilkan saat ini: server gagal mencatat klasifikasi percakapan. Coba lagi.'
+
+log = logging.getLogger(__name__)
+
+# (chat_id, source) -> None; raises when the mark cannot be written.
+Marker = Callable[[str, str], Any]
 
 LABELS: dict[str, str] = {
     'mitra': 'Mitra',
@@ -340,7 +352,14 @@ def _pages_text(source: Source, reader: Access, ref: str, spec: str) -> tuple[st
 
 
 async def _run(
-    operation: str, user: dict | None, source: Source | None, work: Callable[[Source, Access], tuple[str, list[str]]]
+    operation: str,
+    user: dict | None,
+    source: Source | None,
+    work: Callable[[Source, Access], tuple[str, list[str]]],
+    *,
+    chat_id: str | None = None,
+    restricted: Callable[[Access], bool] | None = None,
+    marker: Marker | None = None,
 ) -> str:
     source = source or Source()
     user_id = (user or {}).get('id')
@@ -358,6 +377,13 @@ async def _run(
     except Withheld as refused:
         audit('contract_read', user=user_id, operation=operation, result='withheld')
         return str(refused)
+    if chat_id and refs and restricted is not None and restricted(reader):
+        try:
+            await (marker or office_floor.mark_restricted)(chat_id, 'contracts')
+        except Exception:
+            log.exception('contract_read: marking chat %s restricted failed', chat_id)
+            audit('contract_read', user=user_id, operation=operation, result='mark_failed')
+            return MARK_FAILED
     audit('contract_read', user=user_id, operation=operation, result='ok', refs=refs)
     return text
 
@@ -372,9 +398,40 @@ async def search_contracts(
     return await _run('search', user, source, lambda s, r: _search(s, r, query, ends_within_days, state or None))
 
 
-async def get_contract(user: dict | None, ref: str, source: Source | None = None) -> str:
-    return await _run('card', user, source, lambda s, r: _card_text(s, r, ref))
+async def get_contract(
+    user: dict | None,
+    ref: str,
+    source: Source | None = None,
+    chat_id: str | None = None,
+    marker: Marker | None = None,
+) -> str:
+    # A card shows its money fields only to a reader holding `money`.
+    return await _run(
+        'card',
+        user,
+        source,
+        lambda s, r: _card_text(s, r, ref),
+        chat_id=chat_id,
+        restricted=lambda reader: reader.money,
+        marker=marker,
+    )
 
 
-async def read_contract_pages(user: dict | None, ref: str, pages: str, source: Source | None = None) -> str:
-    return await _run('pages', user, source, lambda s, r: _pages_text(s, r, ref, pages))
+async def read_contract_pages(
+    user: dict | None,
+    ref: str,
+    pages: str,
+    source: Source | None = None,
+    chat_id: str | None = None,
+    marker: Marker | None = None,
+) -> str:
+    # Page text is contract full text, which is TERBATAS for every reader.
+    return await _run(
+        'pages',
+        user,
+        source,
+        lambda s, r: _pages_text(s, r, ref, pages),
+        chat_id=chat_id,
+        restricted=lambda reader: True,
+        marker=marker,
+    )

@@ -1,7 +1,7 @@
 """
 title: Kontrak JUP (read-only)
 author: JUP operating layer (ent-os-new-jup)
-version: 1.0.0
+version: 1.1.0
 risk_class: read
 description: Read-only. Searches and reads JUP's contract cards (drafted from the scanned agreements in SCAN PERJANJIAN) and, where allowed, their OCR pages.
 """
@@ -33,19 +33,21 @@ class Tools:
         """
         return await _search_contracts(__user__, query, ends_within_days, state)
 
-    async def get_contract(self, ref: str, __user__: dict | None = None) -> str:
+    async def get_contract(self, ref: str, __user__: dict | None = None, __chat_id__: str | None = None) -> str:
         """
         Read one contract card: partner, number, title, dates, rights and obligations, value and payment, term and renewal, termination, default and damages, confidentiality, force majeure, dispute resolution, validity, and related documents, each with its source page. Always tell the user the card's review state, and cite the reference and page numbers. Fields the tool marks as withheld must be reported as withheld, never guessed.
         :param ref: The contract reference from search_contracts, for example "0042".
         :return: The card, or a message saying why it cannot be shown.
         """
-        return await _get_contract(__user__, ref)
+        return await _get_contract(__user__, ref, chat_id=__chat_id__)
 
-    async def read_contract_pages(self, ref: str, pages: str, __user__: dict | None = None) -> str:
+    async def read_contract_pages(
+        self, ref: str, pages: str, __user__: dict | None = None, __chat_id__: str | None = None
+    ) -> str:
         """
         Read the OCR text of up to five pages of one contract, to quote a clause or check a card field against its source. Cite the page numbers.
         :param ref: The contract reference, for example "0042".
         :param pages: The pages, for example "3" or "3-5".
         :return: The page text, or a message saying why it cannot be shown.
         """
-        return await _read_contract_pages(__user__, ref, pages)
+        return await _read_contract_pages(__user__, ref, pages, chat_id=__chat_id__)
