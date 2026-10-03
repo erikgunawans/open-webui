@@ -89,6 +89,11 @@ but it is credential-gated and currently skips; see `drift-gates.md` for what to
 ./deploy.sh        # build on Cloud Build, deploy to Cloud Run
 ```
 
+If a `deploy.sh` run dies after Cloud Build finished but before Cloud Run took the image (the
+terminal closed, the session restarted), check `gcloud builds list` and deploy that image without
+rebuilding: `SKIP_BUILD=1 ./deploy.sh` from the same commit. It refuses when the registry has no
+image for that commit.
+
 IAP and the load balancer are the last step and need a domain — see `iap.md`.
 The drift gates that watch this deployment are in `drift-gates.md`.
 

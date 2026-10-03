@@ -30,9 +30,19 @@ SHA="$(git rev-parse --short HEAD)"
 
 [ -z "$(git status --porcelain)" ] || { echo "refusing to deploy a dirty tree" >&2; git status --short >&2; exit 1; }
 
-echo "==> building $REPO:$SHA"
-gcloud builds submit --project="$PROJECT" --region="$BUILD_REGION" \
-  --tag="$REPO:$SHA" --timeout=3600s --machine-type="$BUILD_MACHINE"
+# SKIP_BUILD=1 deploys the image already built for this commit instead of building it again: the
+# recovery when a run died after Cloud Build finished but before the Cloud Run step (closing the
+# terminal or a session restart kills this script; Cloud Build carries on without it). The image
+# must exist for this exact commit, or nothing is deployed.
+if [ "${SKIP_BUILD:-}" = "1" ]; then
+  echo "==> SKIP_BUILD=1: deploying the existing $REPO:$SHA"
+  gcloud artifacts docker images describe "$REPO:$SHA" --project="$PROJECT" --format='value(image_summary.digest)' >/dev/null \
+    || { echo "no image $REPO:$SHA in the registry; run without SKIP_BUILD" >&2; exit 1; }
+else
+  echo "==> building $REPO:$SHA"
+  gcloud builds submit --project="$PROJECT" --region="$BUILD_REGION" \
+    --tag="$REPO:$SHA" --timeout=3600s --machine-type="$BUILD_MACHINE"
+fi
 
 # DATABASE_URL is NOT assembled here. The whole connection string lives in the `database-url`
 # secret and reaches the service as a secret reference (#11). Building it here from `db-password`
