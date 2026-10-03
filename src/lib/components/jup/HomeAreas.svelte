@@ -24,21 +24,21 @@
 				id: 'leadership',
 				href: '/ruang-pimpinan',
 				title: 'Ruang Pimpinan',
-				action: $i18n.t('Open Ruang Pimpinan'),
+				action: $i18n.t('Open'),
 				show: $leadershipAccess.enabled && $leadershipAccess.views.length > 0
 			},
 			{
 				id: 'review',
 				href: '/kb-review',
 				title: $i18n.t('Knowledge review'),
-				action: $i18n.t('Open knowledge review'),
+				action: $i18n.t('Open'),
 				show: $kbReviewAccess.submit || $kbReviewAccess.contracts || $user?.role === 'admin'
 			},
 			{
 				id: 'portfolio',
 				href: '/portfolio',
 				title: $i18n.t('Portfolio'),
-				action: $i18n.t('Open the portfolio'),
+				action: $i18n.t('Open'),
 				show: $user?.role === 'admin'
 			}
 		].filter((area) => area.show);
