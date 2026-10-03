@@ -171,3 +171,60 @@ def test_the_card_carries_structured_dates_when_known(world) -> None:
     repository.set_dates(engine, row['id'], start='2020-01-01', end='2027-01-31', auto_renewal=False, actor='t')
     text = _run(tool.get_contract(USER, '0002', source=source('staff')))
     assert 'mulai 2020-01-01, berakhir 2027-01-31, perpanjangan otomatis: tidak' in text
+
+
+# -- restricted reads mark the chat (O2: the files' classification floor) ----------------------
+
+
+class Marks:
+    def __init__(self, fail: bool = False):
+        self.fail = fail
+        self.calls: list[tuple[str, str]] = []
+
+    async def __call__(self, chat_id: str, source: str) -> None:
+        if self.fail:
+            raise RuntimeError('database unavailable')
+        self.calls.append((chat_id, source))
+
+
+def test_a_card_with_money_marks_the_chat(world) -> None:
+    _, source = world
+    marks = Marks()
+    text = _run(tool.get_contract(USER, '0001', source=source('legal'), chat_id='chat-1', marker=marks))
+    assert 'Kartu kontrak [0001]' in text
+    assert marks.calls == [('chat-1', 'contracts')]
+
+
+def test_a_card_without_money_does_not_mark_the_chat(world) -> None:
+    _, source = world
+    marks = Marks()
+    _run(tool.get_contract(USER, '0001', source=source('staff'), chat_id='chat-1', marker=marks))
+    assert marks.calls == []
+
+
+def test_page_text_marks_the_chat(world) -> None:
+    _, source = world
+    marks = Marks()
+    _run(tool.read_contract_pages(USER, '0001', '1', source=source('direksi'), chat_id='chat-1', marker=marks))
+    assert marks.calls == [('chat-1', 'contracts')]
+
+
+def test_searches_refusals_and_misses_do_not_mark(world) -> None:
+    _, source = world
+    marks = Marks()
+    _run(tool.search_contracts(USER, 'Rorotan', source=source('legal')))
+    _run(tool.read_contract_pages(USER, '0001', '1', source=source('manager'), chat_id='chat-1', marker=marks))
+    _run(tool.get_contract(USER, '9999', source=source('legal'), chat_id='chat-1', marker=marks))
+    assert marks.calls == []
+
+
+def test_restricted_text_is_withheld_when_the_mark_cannot_be_written(world) -> None:
+    _, source = world
+    text = _run(tool.get_contract(USER, '0001', source=source('legal'), chat_id='chat-1', marker=Marks(fail=True)))
+    assert text == tool.MARK_FAILED
+
+
+def test_the_stored_wrapper_passes_the_chat_through() -> None:
+    wrapper = (Path(__file__).resolve().parent.parent / 'tools' / 'jup_contracts.py').read_text(encoding='utf-8')
+    assert '_get_contract(__user__, ref, chat_id=__chat_id__)' in wrapper
+    assert '_read_contract_pages(__user__, ref, pages, chat_id=__chat_id__)' in wrapper
