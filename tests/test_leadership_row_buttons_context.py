@@ -13,7 +13,11 @@ from pathlib import Path
 
 LEADERSHIP = Path(__file__).parent.parent / 'src' / 'lib' / 'components' / 'leadership'
 LABELS = ('Select', 'Source', 'Details')
-BUTTON = re.compile(r"<button\b((?:=>|[^>])*?)>\s*\{\$i18n\.t\('(" + '|'.join(LABELS) + r")'\)\}", re.S)
+# A label may sit behind a count ternary: `{ids.length > 1 ? $i18n.t('Source {{n}}', …) : …}`.
+BUTTON = re.compile(
+    r"<button\b((?:=>|[^>])*?)>\s*\{(?:[^{}?]*\?\s*)?\$i18n\.t\('(" + '|'.join(LABELS) + r")(?: \{\{n\}\})?'",
+    re.S,
+)
 
 
 def test_row_buttons_name_their_record() -> None:
