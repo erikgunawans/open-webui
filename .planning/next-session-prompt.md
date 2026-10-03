@@ -1,3 +1,31 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-03-v48)
+
+> Prepended by /wrap 2026-10-03 (checkpoint 2026-10-03-v48). Supersedes v47's anchor and its "do next" (O3 is built, deployed and synced); v47's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-03-v48).
+Anchor: `origin/main` at `68bd0b3eb` **as this was written**, or one commit ahead at this checkpoint's own commit (subject begins `chore(session): checkpoint — 2026-10-03-v48`). Verify with `git log --oneline 68bd0b3eb..origin/main`; any other commit there is a parallel push.
+
+**Current state:** live **`ent-os-00086-6f7`** (image `68bd0b3eb`), rollback `00085-lll`. O3 slides live: `create_presentation` / `presentation_layouts` in `jup_documents` 1.2.0 (synced, on Asisten JUP's default tools) — **not yet accepted by Erik**. Home composer restyled after Erik's reference (#78) and chips aligned with the card (#79), both verified live. No open PRs.
+
+**Do next, in order:**
+1. **Erik's O3 acceptance:** fresh chat → "Buatkan 5 slide ringkasan RKA 2027" → deck in the O4 panel on the JUP template, Draf + classification in footers → download → open in **PowerPoint and Keynote** (no repair prompt; charts editable). Then check the audit line (`tool_call create_presentation ok`) and the stored file's `jup_office` = `pptx / … / Draf`. If the model refuses, see constraint "retest in a NEW chat". Mark O3 live in `.planning/agent-depth-plan.md` (row says "built, not deployed").
+2. **Erik's phone check** of `/ruang-pimpinan` (DIREKSI eyebrow, KPI 2×2 → 1 column, no sideways scroll) and now also the home composer on a phone (chips wrap, card full width).
+3. **E7 decisions with Erik** before any code: ADR-0012 amendment (gateway on-behalf-of identity), "TERBATAS content in a channel becomes a link", JUP IT requests (Azure Bot single-tenant + Teams app, Graph `User.ReadBasic.All`), a JUP WhatsApp business number (E9).
+4. **`xlsx` 0.18.5 advisories:** npm exception for SheetJS 0.20.x (lockfile needs npm) or record as accepted risk — Erik.
+5. Carried: Kartu Kontrak with the Legal account; staff-account checks (O1/O2/O3 404 on Erik's files); `jup_contracts` all-users grant; Rully items (truncated 0594/0639, reviewers, app login, #46); #47; Notion #41/#42; CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- **Interceptor: guard `location.host` before every write or reload, every time.** On 10-03 a reload hit Erik's WhatsApp Web: after a Chrome restart the pinned tab id no longer existed and commands fell through to the front tab. Re-list `interceptor tabs`, open your own tab (`interceptor open https://non-jupe.jup.co.id/ --no-wait`), export `INTERCEPTOR_CONTEXT=75e09d94-bc12-4b76-9688-c1f1dedec559 INTERCEPTOR_TAB=<new id>`. Never navigate Erik's own tabs.
+- **`interceptor screenshot` fails on the home page** ("dom render failed"); verify with `eval --main` geometry/computed-style probes and show Erik a live preview by `style inject` in a tab of your own.
+- **Home styling lives in `.jup-composer-tray` rules in `src/jup-skin.css`** (no vendor patch). The tray wrapper `.max-w-[58rem].px-2` is the vendor's padding; the in-thread composer is unscoped and unchanged.
+- **The slides template is the source of truth:** never edit `JUP-Enterprise-Template-v1.5-r2.pptx` (sha256 in the manifest); fix template quirks in `jup.office_slides` at load time. Table layouts are capped at the example's row count.
+- **`uv lock` online can hang > 10 min;** `uv lock --offline` works when the pin is cached. Run edits and slow commands as separate calls (a backgrounded chain hides earlier failures).
+- **Merging two PRs branched at different points:** re-run the affected tests + prettier on merged `main` before `deploy.sh`.
+
+**Open items waiting on Erik:** O3 acceptance in PowerPoint + Keynote; phone check; npm exception for `xlsx`; TERBATAS-as-link rule; ADR-0012 amendment; JUP IT requests for Teams; WhatsApp business number; Legal-account Kartu Kontrak check; deck owner to fix GPM 11,3% vs 12,6% and CFO Rp7,81 M vs Rp9,73 M (an O3 RKA deck repeats them); share the "None-JUPe vs holaboss-ai" doc?; Staff titles; `jup_contracts` all-users grant; Rully items; Notion token; Impeccable update; delete "Uji kecepatan" chats + test .docx/.xlsx/.pptx?; Daftar Perkara grant; Gmail send scope; keep or drop `docker-compose.dev.yaml`; delete the "Test" knowledge collection?; RAHASIA decks and the two footer-less layouts (section, closing) — fine as is?
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-03-v47)
 
 > Prepended by /wrap 2026-10-03 (checkpoint 2026-10-03-v47). Supersedes v46's anchor and its "do next" (pattern band and eyebrow are decided and live); v46's and older blocks' constraints still hold unless noted.
