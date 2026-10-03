@@ -3151,6 +3151,7 @@
 	"Tags Generation Prompt": "Treoir Giniúna Clibeanna",
 	"Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting.": "Úsáidtear sampláil saor ó eireabaill chun tionchar na n-chomharthaí ón aschur nach bhfuil chomh dóchúil céanna a laghdú. Laghdóidh luach níos airde (m.sh., 2.0) an tionchar níos mó, agus díchumasaíonn luach 1.0 an socrú seo. (réamhshocraithe: 1)",
 	"Talk to Model": "Labhair leis an tSamhail",
+	"Talk with the Assistant": "",
 	"Tap to interrupt": "Tapáil chun cur isteach",
 	"Target": "",
 	"Target {{before}} → {{after}}": "",

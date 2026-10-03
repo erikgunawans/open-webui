@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getContext, onDestroy } from 'svelte';
+	import { getContext, onDestroy, onMount } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
 	import ServerText from './ServerText.svelte';
@@ -29,8 +29,17 @@
 	import ImportReview from './ImportReview.svelte';
 	import SourceDetails from './SourceDetails.svelte';
 	import ContextPreview from './ContextPreview.svelte';
+	import { callButton } from '$lib/voice/call';
+	import { refreshVoiceCapabilities, voiceCapabilities } from '$lib/voice/session';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
+
+	// Voice from Ruang Pimpinan: the same start-call route as the main chat (`/?call=true`), so the
+	// disclosure, mode choice (normal or GPT-Live) and grants are the chat's own. What the assistant
+	// may say about this page is decided by the `jup_leadership` tool against the page's grants.
+	onMount(() => {
+		if (localStorage.token) refreshVoiceCapabilities(localStorage.token);
+	});
 
 	export let view: LeadershipView;
 
@@ -251,6 +260,23 @@
 			{$i18n.t('Discuss with the Assistant')}
 			<span class="jlp-meta">· {$i18n.t('Context preview')}</span>
 		</button>
+		{#if callButton($voiceCapabilities) !== 'hidden'}
+			<button type="button" class="jlp-button" on:click={() => goto('/?call=true')}>
+				<svg
+					viewBox="0 0 24 24"
+					aria-hidden="true"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					><rect x="9" y="3" width="6" height="11" rx="3" /><path
+						d="M5 11a7 7 0 0 0 14 0M12 18v3"
+					/></svg
+				>
+				{$i18n.t('Talk with the Assistant')}
+			</button>
+		{/if}
 	</div>
 
 	{#if recordMissing}

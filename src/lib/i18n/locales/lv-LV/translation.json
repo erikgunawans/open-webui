@@ -3176,6 +3176,7 @@
 	"Tags Generation Prompt": "Tagu ģenerēšanas uzvedne",
 	"Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting.": "Astes brīvā paraugu ņemšana tiek izmantota, lai samazinātu mazāk iespējamo tokenu ietekmi uz izvadi. Augstāka vērtība (piem., 2.0) vairāk samazinās ietekmi, bet vērtība 1.0 atspējo šo iestatījumu.",
 	"Talk to Model": "Runāt ar modeli",
+	"Talk with the Assistant": "",
 	"Tap to interrupt": "Pieskarieties, lai pārtrauktu",
 	"Target": "",
 	"Target {{before}} → {{after}}": "",

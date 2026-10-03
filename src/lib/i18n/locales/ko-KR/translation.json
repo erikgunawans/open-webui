@@ -3129,6 +3129,7 @@
 	"Tags Generation Prompt": "태그 생성 프롬프트",
 	"Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting.": "꼬리 자유 샘플링은 출력에서 확률이 낮은 토큰의 영향을 줄이기 위해 사용됩니다. 값이 클수록(예: 2.0) 이러한 토큰의 영향이 더 줄어들며, 1.0으로 설정하면 이 기능은 비활성화됩니다.",
 	"Talk to Model": "모델과 대화",
+	"Talk with the Assistant": "",
 	"Tap to interrupt": "탭하여 중단",
 	"Target": "",
 	"Target {{before}} → {{after}}": "",

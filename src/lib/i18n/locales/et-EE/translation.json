@@ -3151,6 +3151,7 @@
 	"Tags Generation Prompt": "Siltide genereerimise sisend",
 	"Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting.": "Saba vaba valimit kasutatakse väljundis vähem tõenäoliste tokenite mõju vähendamiseks. Kõrgem väärtus (nt 2,0) vähendab mõju rohkem, samas kui väärtus 1,0 keelab selle seade.",
 	"Talk to Model": "Räägi mudeliga",
+	"Talk with the Assistant": "",
 	"Tap to interrupt": "Puuduta katkestamiseks",
 	"Target": "",
 	"Target {{before}} → {{after}}": "",

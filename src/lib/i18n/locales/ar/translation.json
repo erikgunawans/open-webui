@@ -3251,6 +3251,7 @@
 	"Tags Generation Prompt": "توجيه إنشاء الوسوم",
 	"Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting.": "يتم استخدام أخذ العينات بدون ذيل لتقليل تأثير الرموز الأقل احتمالًا. القيمة الأعلى (مثل 2.0) تقلل التأثير أكثر، والقيمة 1.0 تعطل هذا الإعداد.",
 	"Talk to Model": "",
+	"Talk with the Assistant": "",
 	"Tap to interrupt": "اضغط للمقاطعة",
 	"Target": "",
 	"Target {{before}} → {{after}}": "",

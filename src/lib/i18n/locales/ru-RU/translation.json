@@ -3201,6 +3201,7 @@
 	"Tags Generation Prompt": "Промпт для генерации тегов",
 	"Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting.": "Выборка без хвостов используется для уменьшения влияния менее вероятных токенов на выходные данные. Более высокое значение (например, 2.0) еще больше уменьшит влияние, в то время как значение 1.0 отключает эту настройку.",
 	"Talk to Model": "Говорить с моделью",
+	"Talk with the Assistant": "",
 	"Tap to interrupt": "Нажмите, чтобы прервать",
 	"Target": "",
 	"Target {{before}} → {{after}}": "",

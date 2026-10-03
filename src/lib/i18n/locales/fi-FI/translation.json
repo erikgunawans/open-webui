@@ -3151,6 +3151,7 @@
 	"Tags Generation Prompt": "Tagien luontikehote",
 	"Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting.": "Tail free -otantaa käytetään vähentämään vähemmän todennäköisten tokenien vaikutusta tulosteessa. Korkeampi arvo (esim. 2.0) vähentää vaikutusta enemmän, kun taas arvo 1.0 poistaa tämän asetuksen käytöstä.",
 	"Talk to Model": "Puhu mallille",
+	"Talk with the Assistant": "",
 	"Tap to interrupt": "Napauta keskeyttääksesi",
 	"Target": "",
 	"Target {{before}} → {{after}}": "",

@@ -3201,6 +3201,7 @@
 	"Tags Generation Prompt": "Prompt generowania tagów",
 	"Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting.": "Tail free sampling redukuje wpływ mało prawdopodobnych tokenów. Wyższa wartość (np. 2.0) = silniejsza redukcja. 1.0 wyłącza.",
 	"Talk to Model": "Rozmawiaj z modelem",
+	"Talk with the Assistant": "",
 	"Tap to interrupt": "Dotknij by przerwać",
 	"Target": "",
 	"Target {{before}} → {{after}}": "",

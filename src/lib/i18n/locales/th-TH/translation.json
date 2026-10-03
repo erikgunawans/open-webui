@@ -3126,6 +3126,7 @@
 	"Tags Generation Prompt": "พรอมต์สำหรับสร้างแท็ก",
 	"Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting.": "Tail free sampling ใช้เพื่อลดผลกระทบของโทเค็นที่มีความน่าจะเป็นต่ำจากผลลัพธ์ ค่าเท่าที่สูงกว่า (เช่น 2.0) จะลดผลกระทบได้มากกว่า ในขณะที่ค่า 1.0 จะปิดการตั้งค่านี้",
 	"Talk to Model": "คุยกับโมเดล",
+	"Talk with the Assistant": "",
 	"Tap to interrupt": "แตะเพื่อขัดจังหวะ",
 	"Target": "",
 	"Target {{before}} → {{after}}": "",

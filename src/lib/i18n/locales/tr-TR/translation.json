@@ -3151,6 +3151,7 @@
 	"Tags Generation Prompt": "Etiketler Oluşturma Promptu",
 	"Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting.": "Tail free örnekleme, daha az olası tokenlerin çıktı üzerindeki etkisini azaltmak için kullanılır. Daha yüksek bir değer (örneğin 2,0) etkiyi daha fazla azaltırken, 1,0 değeri bu ayarı devre dışı bırakır.",
 	"Talk to Model": "Modelle Konuş",
+	"Talk with the Assistant": "",
 	"Tap to interrupt": "Durdurmak için dokunun",
 	"Target": "",
 	"Target {{before}} → {{after}}": "",

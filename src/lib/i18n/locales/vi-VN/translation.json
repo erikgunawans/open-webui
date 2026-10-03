@@ -3126,6 +3126,7 @@
 	"Tags Generation Prompt": "Prompt Tạo Thẻ",
 	"Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting.": "Lấy mẫu không đuôi (tail free sampling) được sử dụng để giảm tác động của các token ít có khả năng xuất hiện trong đầu ra. Giá trị cao hơn (ví dụ: 2.0) sẽ giảm tác động nhiều hơn, trong khi giá trị 1.0 sẽ tắt cài đặt này.",
 	"Talk to Model": "",
+	"Talk with the Assistant": "",
 	"Tap to interrupt": "Chạm để ngừng",
 	"Target": "",
 	"Target {{before}} → {{after}}": "",

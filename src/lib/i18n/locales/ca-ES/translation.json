@@ -3176,6 +3176,7 @@
 	"Tags Generation Prompt": "Indicació per a la generació d'etiquetes",
 	"Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting.": "El mostreig sense cua s'utilitza per reduir l'impacte de tokens menys probables de la sortida. Un valor més alt (p. ex., 2,0) reduirà més l'impacte, mentre que un valor d'1,0 desactiva aquesta configuració.",
 	"Talk to Model": "Parlar amb el model",
+	"Talk with the Assistant": "",
 	"Tap to interrupt": "Prem per interrompre",
 	"Target": "",
 	"Target {{before}} → {{after}}": "",

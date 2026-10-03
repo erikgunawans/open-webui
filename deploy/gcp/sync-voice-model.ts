@@ -29,7 +29,7 @@ import { runInTab } from "./lib/in-tab";
 const ASISTEN_JUP_ID = "xiaomi/mimo-v2.6-pro-ultraspeed";
 const VOICE_MODEL_ID = "asisten-jup-suara"; // jup.voice.VOICE_MODEL_ID
 const VOICE_MODEL_NAME = "Asisten JUP — Suara";
-const VOICE_TOOL_IDS = ["portfolio_status", "jup_contracts"]; // jup.voice_turn.VOICE_TOOL_IDS
+const VOICE_TOOL_IDS = ["portfolio_status", "jup_contracts", "jup_leadership"]; // jup.voice_turn.VOICE_TOOL_IDS
 
 /**
  * The JUP knowledge bases voice answers from (Erik, 2026-10-02: "all of the knowledge base").

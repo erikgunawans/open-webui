@@ -3151,6 +3151,7 @@
 	"Tags Generation Prompt": "குறிச்சொற்கள் தலைமுறை உடனடியாக",
 	"Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting.": "டெயில் ஃப்ரீ மாதிரியானது வெளியீட்டிலிருந்து குறைவான சாத்தியமான டோக்கன்களின் தாக்கத்தைக் குறைக்கப் பயன்படுகிறது. அதிக மதிப்பு (எ.கா., 2.0) தாக்கத்தை மேலும் குறைக்கும், அதே சமயம் 1.0 மதிப்பு இந்த அமைப்பை முடக்கும்.",
 	"Talk to Model": "மாதிரியுடன் பேசுங்கள்",
+	"Talk with the Assistant": "",
 	"Tap to interrupt": "குறுக்கிட தட்டவும்",
 	"Target": "",
 	"Target {{before}} → {{after}}": "",

@@ -48,8 +48,9 @@ from jup.voice import VOICE_MODEL_ID
 METADATA_KEY = 'jup_voice'
 
 #: The model's own tools, forced as the turn's `tool_ids` and the only non-builtin tools offered.
-#: `jup_contracts` decides per caller what of a contract they may hear (`jup.contracts.access`).
-VOICE_TOOL_IDS: tuple[str, ...] = ('portfolio_status', 'jup_contracts')
+#: `jup_contracts` decides per caller what of a contract they may hear (`jup.contracts.access`);
+#: `jup_leadership` serves only the Ruang Pimpinan views the caller's page grants allow.
+VOICE_TOOL_IDS: tuple[str, ...] = ('portfolio_status', 'jup_contracts', 'jup_leadership')
 
 #: The builtin retrieval tools that stay scoped to the model's knowledge (checked against
 #: `open_webui/tools/builtin.py` on 2026-09-27). The KB-wide variants (`*_knowledge_bases`) and

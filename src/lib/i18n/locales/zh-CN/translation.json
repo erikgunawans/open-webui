@@ -3140,6 +3140,7 @@
 	"Tags Generation Prompt": "标签生成提示词",
 	"Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting.": "无尾采样用于减少输出中出现概率较小的 Token 的影响。较高的值（例如 2.0）将进一步减少影响，而值 1.0 则禁用此设置。",
 	"Talk to Model": "与模型对话",
+	"Talk with the Assistant": "",
 	"Tap to interrupt": "点击以中断",
 	"Target": "",
 	"Target {{before}} → {{after}}": "",

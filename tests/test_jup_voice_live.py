@@ -329,3 +329,10 @@ def test_the_backend_is_described_as_every_jup_knowledge_base_and_the_contracts(
     assert 'seluruh basis pengetahuan JUP' in voice_live.INSTRUCTIONS
     assert 'kartu kontrak JUP' in voice_live.INSTRUCTIONS
     assert 'kontrak atau perjanjian' in voice_live.INSTRUCTIONS
+
+
+def test_the_backend_is_described_as_answering_ruang_pimpinan_too():
+    """Erik 2026-10-03: voice talks about Ruang Pimpinan; GPT-Live only delegates what this text names."""
+    assert 'Ruang Pimpinan' in voice_live.INSTRUCTIONS
+    assert 'RKA 2027' in voice_live.INSTRUCTIONS
+    assert 'RKA,' in voice_live.INSTRUCTIONS

@@ -3176,6 +3176,7 @@
 	"Tags Generation Prompt": "Indicador para la Generación de Etiquetas",
 	"Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting.": "El Muestreo de cola libre(TFS_Z) es usado para reducir el impacto de los tokens menos probables en la salida. Un valor más alto (p.ej. 2.0) reduce más fuertemente el impacto, mientras que un valor de 1.0 deshabilita este ajuste.",
 	"Talk to Model": "Hablar al Modelo",
+	"Talk with the Assistant": "",
 	"Tap to interrupt": "Toca para interrumpir",
 	"Target": "",
 	"Target {{before}} → {{after}}": "",

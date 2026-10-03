@@ -3151,6 +3151,7 @@
 	"Tags Generation Prompt": "Prompt för tagggenerering",
 	"Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting.": "Svansfri sampling används för att minska effekten av mindre sannolika token från utdata. Ett högre värde (t.ex. 2,0) minskar effekten mer, medan värdet 1,0 inaktiverar den här inställningen.",
 	"Talk to Model": "Prata med modellen",
+	"Talk with the Assistant": "",
 	"Tap to interrupt": "Tryck för att avbryta",
 	"Target": "",
 	"Target {{before}} → {{after}}": "",

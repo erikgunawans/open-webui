@@ -3126,6 +3126,7 @@
 	"Tags Generation Prompt": "Arahan Penjanaan Tag",
 	"Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting.": "Persampelan bebas ekor digunakan untuk mengurangkan kesan token yang kurang berkemungkinan daripada output. Nilai yang lebih tinggi (cth., 2.0) akan mengurangkan kesan lebih banyak, manakala nilai 1.0 menyahaktifkan tetapan ini.",
 	"Talk to Model": "Bual dengan Model",
+	"Talk with the Assistant": "",
 	"Tap to interrupt": "Sentuh untuk mengganggu",
 	"Target": "",
 	"Target {{before}} → {{after}}": "",

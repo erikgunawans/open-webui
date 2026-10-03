@@ -3151,6 +3151,7 @@
 	"Tags Generation Prompt": "تەغ ھاسىل قىلىش تۈرتكەسى",
 	"Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting.": "ئىھتىماللىقى تۆۋەن ئىملەرنىڭ تەسىرىنى ئازايتىش ئۈچۈن tail free sampling ئىشلىتىلىدۇ. چوڭ قىممەت (مەسىلەن: 2.0) تەسىرىنى تېخىمۇ ئازايتىدۇ، 1.0 بولسا چەكلەنگەن.",
 	"Talk to Model": "",
+	"Talk with the Assistant": "",
 	"Tap to interrupt": "توختاتماقچى بولسىڭىز چېكىڭ",
 	"Target": "",
 	"Target {{before}} → {{after}}": "",

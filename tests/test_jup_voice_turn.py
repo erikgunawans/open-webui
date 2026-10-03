@@ -71,7 +71,9 @@ def test_a_forged_model_id_runs_on_the_voice_model() -> None:
 def test_forged_tool_ids_are_replaced_by_the_voice_tools() -> None:
     form = _forged_request()
     voice_turn.rewrite(form)
-    assert form['tool_ids'] == list(voice_turn.VOICE_TOOL_IDS) == ['portfolio_status', 'jup_contracts']
+    assert (
+        form['tool_ids'] == list(voice_turn.VOICE_TOOL_IDS) == ['portfolio_status', 'jup_contracts', 'jup_leadership']
+    )
 
 
 def test_forged_features_are_dropped() -> None:
@@ -336,7 +338,7 @@ def test_a_search_may_not_name_a_collection_outside_the_scope() -> None:
 
 
 def test_contracts_is_a_voice_tool() -> None:
-    assert voice_turn.VOICE_TOOL_IDS == ('portfolio_status', 'jup_contracts')
+    assert voice_turn.VOICE_TOOL_IDS == ('portfolio_status', 'jup_contracts', 'jup_leadership')
     tools = {'jup_contracts': {'tool_id': 'jup_contracts', 'callable': Recorder(), 'spec': {}}}
     assert set(voice_turn.offered_tools(tools, _collection_model(), _resolve)) == {'jup_contracts'}
 

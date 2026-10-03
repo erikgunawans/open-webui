@@ -3151,6 +3151,7 @@
 	"Tags Generation Prompt": "Prompt til gerð av merkjum",
 	"Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting.": "Tail-free sampling verður nýtt til at minka ávirkanina av minni sannlíkum tokens í úttakinum. Eitt hægri virði (t.d. 2,0) minkar ávirkanina meira, meðan virðið 1,0 sløkkir stillingina.",
 	"Talk to Model": "Tosa við modellið",
+	"Talk with the Assistant": "",
 	"Tap to interrupt": "Trýst fyri at bróta av",
 	"Target": "",
 	"Target {{before}} → {{after}}": "",
