@@ -1,3 +1,34 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-03-v45)
+
+> Prepended by /wrap 2026-10-03 (checkpoint 2026-10-03-v45). Supersedes v44's anchor and its "do next" (the side panel is built and live); v44's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-03-v45).
+Anchor: `origin/main` at `9c68a7d7a` **as this was written**, or one commit ahead at this checkpoint's own commit (subject begins `chore(session): checkpoint — 2026-10-03-v45`). Verify with `git log --oneline 9c68a7d7a..origin/main`; any other commit there is a parallel push.
+
+**Current state:** live **`ent-os-00077-4l5`** (image `0bb6cc340`), rollback `00076-5bh`. The Ruang Pimpinan assistant side panel is live (#63) and the chat home is redesigned (#64, #65). **`9c68a7d7a` (#66 chip trailing space + #67 `SKIP_BUILD=1`) was still in Cloud Build at wrap** (build `bf4e808f-278a-4e6f-bc5b-707baea0cf2a`), and the wrap may have killed the local `deploy.sh`.
+
+**Do next, in order:**
+1. **Land `9c68a7d7a`.** Check `gcloud builds describe bf4e808f-278a-4e6f-bc5b-707baea0cf2a --project jup-ops --format='value(status)'` and the live image (`gcloud run services describe ent-os --region asia-southeast2 --project jup-ops --format='value(status.latestReadyRevisionName,spec.template.spec.containers[0].image)'`).
+   - If the build SUCCEEDED but live is still `0bb6cc340`: `git checkout 9c68a7d7a` (clean tree), then `SKIP_BUILD=1 bash deploy/gcp/deploy.sh`, then `git checkout main` (Erik already OK'd this deploy).
+   - If the build FAILED: re-run `bash deploy/gcp/deploy.sh` from `9c68a7d7a`.
+   - Then verify on prod in a fresh managed tab: Kontrak chip → type "PT" → composer reads "Carikan kartu kontrak untuk PT"; clear the composer afterwards (it keeps drafts).
+2. **Erik's test call from the panel** on `/ruang-pimpinan/rka`: "berapa target pendapatan RKA 2027 dan apa asumsi utamanya?", once normal and once GPT-Live. Check `voice_panel_turn`, `leadership_context` and `leadership_read` (`surface='assistant'`, `open_view='rka'`) lines; for GPT-Live, a relayed `voice_live_delegation`.
+3. **Disclosure wording (Erik):** the normal-call text says "Asisten suara hanya menjawab dari dokumen strategi yang ditetapkan", which is untrue. Proposed: "Asisten suara menjawab dari basis pengetahuan JUP, kartu kontrak, dan Ruang Pimpinan, sesuai hak akses Anda." Needs his OK, a `DISCLOSURE_VERSION` bump in both `backend/jup/voice.py` and `src/lib/voice/call.ts`, and everyone re-acknowledges.
+4. Erik's calls: keep push-to-talk in the panel's normal call (vs the chat's hands-free VAD)? Keep suggestions behind "Lainnya"? The "what is logged / 30 days" statement is gone from the UI since #65; does he want it anywhere (e.g. Settings)?
+5. Kartu Kontrak with the Legal account; pattern band and eyebrow copy (carried).
+6. Carried: step-6 contract live check (Staff account), `jup_contracts` all-users read grant (Erik), Rully items (truncated file 0594/0639, reviewers, app login, #46), #47, Notion #41/#42 (ledger I1 waits on the token), O1 staff-account check, CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- **`SKIP_BUILD=1` deploys the image tagged with HEAD's short sha.** Recover from the exact built commit, never from a later one (a wrap commit moves HEAD).
+- **Locally, `bun run test:frontend` is watch mode and never exits.** Use `bunx vitest run`.
+- **Interceptor tabs get taken over by Erik's own browsing** (a pinned tab went to dribbble.com): guard `location.host` and open a fresh managed tab with `interceptor open … --no-wait`, never navigate a tab he is using.
+- **Panel turns and GPT-Live delegations both branch from the chat's `currentId`.** A typed turn during a live call can create a sibling message; harmless, but known.
+- Every new assistant tool goes in `VOICE_TOOL_IDS`, `sync-voice-model.ts` and the GPT-Live `INSTRUCTIONS` (v44); a changed tool wrapper needs `sync-tools.ts` after deploy, with the app tab pinned.
+
+**Open items waiting on Erik:** test call from the panel; disclosure wording; push-to-talk OK?; suggestions behind Lainnya OK?; logging statement anywhere?; Legal-account Kartu Kontrak check; pattern band; eyebrow copy; deck owner to fix GPM 11,3% vs 12,6% and CFO Rp7,81 M vs Rp9,73 M; Staff titles; `jup_contracts` all-users grant; Rully items; Notion token; Impeccable update; delete "Uji kecepatan" chats + two O1 test .docx?; Daftar Perkara grant; Gmail send scope; keep or drop `docker-compose.dev.yaml`; delete the "Test" knowledge collection?
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-03-v44)
 
 > Prepended by /wrap 2026-10-03 (checkpoint 2026-10-03-v44). Supersedes v43's anchor and its "do next" (#38 is closed); v43's and older blocks' constraints still hold unless noted.
