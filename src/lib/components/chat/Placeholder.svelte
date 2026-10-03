@@ -31,7 +31,6 @@
 	import { getKnowledgeById } from '$lib/apis/knowledge';
 	import HomeShortcuts from '$lib/components/jup/HomeShortcuts.svelte';
 	import HomeAreas from '$lib/components/jup/HomeAreas.svelte';
-	import HomeRecent from '$lib/components/jup/HomeRecent.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -401,7 +400,6 @@
 				{/if}
 
 				<HomeAreas />
-				<HomeRecent />
 			</div>
 		</div>
 	{/if}
