@@ -31,12 +31,14 @@
 	import ContextPreview from './ContextPreview.svelte';
 	import { callButton } from '$lib/voice/call';
 	import { refreshVoiceCapabilities, voiceCapabilities } from '$lib/voice/session';
+	import { assistantPanelOpen } from '$lib/voice/panel';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
 
-	// Voice from Ruang Pimpinan: the same start-call route as the main chat (`/?call=true`), so the
-	// disclosure, mode choice (normal or GPT-Live) and grants are the chat's own. What the assistant
-	// may say about this page is decided by the `jup_leadership` tool against the page's grants.
+	// Voice from Ruang Pimpinan opens the assistant panel beside the page (`$lib/voice/panel`): the
+	// same start-call route, disclosures and grants as the main chat, without leaving the section.
+	// What the assistant may say about this page is decided by the `jup_leadership` tool against
+	// the page's grants.
 	onMount(() => {
 		if (localStorage.token) refreshVoiceCapabilities(localStorage.token);
 	});
@@ -261,7 +263,12 @@
 			<span class="jlp-meta">· {$i18n.t('Context preview')}</span>
 		</button>
 		{#if callButton($voiceCapabilities) !== 'hidden'}
-			<button type="button" class="jlp-button" on:click={() => goto('/?call=true')}>
+			<button
+				type="button"
+				class="jlp-button"
+				on:click={() => assistantPanelOpen.set(true)}
+				aria-expanded={$assistantPanelOpen}
+			>
 				<svg
 					viewBox="0 0 24 24"
 					aria-hidden="true"

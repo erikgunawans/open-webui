@@ -112,3 +112,33 @@ export const synthesizeAnswerPart = async (
 	});
 	return res.blob();
 };
+
+/** Records which Ruang Pimpinan tab is open beside the caller's own panel call. */
+export const setCallContext = async (
+	token: string,
+	chatId: string,
+	view: 'board' | 'rka'
+): Promise<{ view: string }> =>
+	(
+		await request(
+			token,
+			`${WEBUI_API_BASE_URL}/voice/calls/${encodeURIComponent(chatId)}/context`,
+			{
+				method: 'PUT',
+				body: JSON.stringify({ view })
+			}
+		)
+	).json();
+
+/** Asks a typed or transcribed question in the caller's own voice call; resolves with the sealed answer. */
+export const askInCall = async (
+	token: string,
+	chatId: string,
+	text: string
+): Promise<{ message_id: string; content: string }> =>
+	(
+		await request(token, `${WEBUI_API_BASE_URL}/voice/calls/${encodeURIComponent(chatId)}/turns`, {
+			method: 'POST',
+			body: JSON.stringify({ text })
+		})
+	).json();

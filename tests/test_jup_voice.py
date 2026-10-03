@@ -298,3 +298,50 @@ def test_the_call_ui_holds_the_same_call_disclosure_version() -> None:
     call_ts = (Path(__file__).resolve().parent.parent / 'src' / 'lib' / 'voice' / 'call.ts').read_text(encoding='utf-8')
     ui = re.search(r"export const DISCLOSURE_VERSION = '([^']+)';", call_ts).group(1)
     assert ui == voice.DISCLOSURE_VERSION
+
+
+# --- The Ruang Pimpinan tab a panel call is looking at ----------------------------------
+
+
+def test_the_tab_mark_reads_back_for_its_chat_and_owner() -> None:
+    mark = voice.leadership_context_mark(CHAT, ERIK, 'rka', at=1, secret=SECRET)
+    meta = {voice.LEADERSHIP_CONTEXT_KEY: mark}
+    assert voice.leadership_context_view(meta, chat_id=CHAT, user_id=ERIK, secret=SECRET) == 'rka'
+
+
+@pytest.mark.parametrize(
+    'chat_id, user_id, secret',
+    [('chat-2', ERIK, SECRET), (CHAT, OTHER, SECRET), (CHAT, ERIK, 'other-secret'), (CHAT, ERIK, '')],
+)
+def test_a_tab_mark_from_another_chat_owner_or_secret_reads_as_none(chat_id, user_id, secret) -> None:
+    meta = {voice.LEADERSHIP_CONTEXT_KEY: voice.leadership_context_mark(CHAT, ERIK, 'board', at=1, secret=SECRET)}
+    assert voice.leadership_context_view(meta, chat_id=chat_id, user_id=user_id, secret=secret) is None
+
+
+def test_an_edited_tab_mark_reads_as_none() -> None:
+    mark = {**voice.leadership_context_mark(CHAT, ERIK, 'board', at=1, secret=SECRET), 'view': 'rka'}
+    meta = {voice.LEADERSHIP_CONTEXT_KEY: mark}
+    assert voice.leadership_context_view(meta, chat_id=CHAT, user_id=ERIK, secret=SECRET) is None
+
+
+@pytest.mark.parametrize('meta', [None, {}, {voice.LEADERSHIP_CONTEXT_KEY: 'rka'}, []])
+def test_no_tab_mark_reads_as_none(meta) -> None:
+    assert voice.leadership_context_view(meta, chat_id=CHAT, user_id=ERIK, secret=SECRET) is None
+
+
+def test_only_the_two_views_can_be_marked() -> None:
+    with pytest.raises(ValueError):
+        voice.leadership_context_mark(CHAT, ERIK, 'admin', at=1, secret=SECRET)
+
+
+# --- A typed or spoken turn from the panel ----------------------------------------------
+
+
+@pytest.mark.parametrize('text', ['', '   ', None, 7, 'x' * (voice.PANEL_TURN_MAX_CHARS + 1)])
+def test_an_empty_odd_or_overlong_panel_turn_is_refused(text) -> None:
+    refusal = voice.panel_turn_refusal(text)
+    assert refusal is not None and refusal.status == 422 and refusal.code == 'voice_turn_invalid'
+
+
+def test_a_plain_question_is_a_valid_panel_turn() -> None:
+    assert voice.panel_turn_refusal('Berapa target pendapatan RKA 2027?') is None

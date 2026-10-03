@@ -50,6 +50,12 @@ class _Directory:
         grants = {'call': value} if live is None else {'call': value, 'live': live}
         self.groups[user_id] = [SimpleNamespace(permissions={'jup': {'voice': grants}})]
 
+    def grant_leadership(self, user_id: str, *views: str) -> None:
+        grants = {view: {'view': True} for view in views}
+        self.groups.setdefault(user_id, []).append(
+            SimpleNamespace(permissions={'jup': {'ruang_pimpinan': {**grants, 'scopes': {'jup_consolidated': True}}}})
+        )
+
     async def get_groups_by_member_id(self, user_id: str, db=None) -> list[SimpleNamespace]:
         return list(self.groups.get(user_id, []))
 
@@ -73,6 +79,9 @@ class _Store:
     async def get_chat(self, chat_id: str) -> Any:
         chat = self.chats.get(chat_id)
         return None if chat is None else SimpleNamespace(id=chat_id, user_id=chat['user_id'], meta=chat['meta'])
+
+    async def set_chat_meta_key(self, chat_id: str, key: str, value: Any) -> None:
+        self.chats[chat_id]['meta'] = {**self.chats[chat_id]['meta'], key: value}
 
 
 @pytest.fixture
@@ -611,3 +620,109 @@ def test_a_network_failure_reaching_openai_is_a_502_and_audited(
     assert response.status_code == 502 and response.json()['detail']['code'] == 'voice_live_upstream'
     line = _live_lines(caplog)[-1]
     assert line['outcome'] == 'voice_live_upstream' and line['upstream_status'] is None
+
+
+# --- The Ruang Pimpinan panel: the open tab and typed turns ------------------------------
+
+
+def _panel_call(client, directory, *views: str) -> str:
+    directory.grant(ERIK)
+    directory.grant_leadership(ERIK, *views)
+    _as(client, 'user')
+    assert _ack(client).status_code == 200
+    return client.post(f'{BASE}/calls').json()['chat_id']
+
+
+def test_the_open_tab_is_stored_signed_on_the_callers_chat(client, directory, store, caplog) -> None:
+    from jup import voice
+
+    chat_id = _panel_call(client, directory, 'board', 'rka')
+    res = client.put(f'{BASE}/calls/{chat_id}/context', json={'view': 'rka'})
+    assert res.status_code == 200 and res.json() == {'view': 'rka'}
+    meta = store.chats[chat_id]['meta']
+    assert voice.leadership_context_view(meta, chat_id=chat_id, user_id=ERIK, secret=SECRET) == 'rka'
+    assert _audit(caplog, 'leadership_context')[-1]['outcome'] == 'stored'
+
+
+def test_a_tab_the_caller_may_not_read_is_refused_and_not_stored(client, directory, store, caplog) -> None:
+    from jup import voice
+
+    chat_id = _panel_call(client, directory, 'rka')
+    res = client.put(f'{BASE}/calls/{chat_id}/context', json={'view': 'board'})
+    assert res.status_code == 403 and res.json()['detail']['code'] == 'leadership_view_refused'
+    assert voice.LEADERSHIP_CONTEXT_KEY not in store.chats[chat_id]['meta']
+    assert _audit(caplog, 'leadership_context')[-1]['outcome'] == 'leadership_view_refused'
+
+
+def test_the_tab_cannot_be_set_on_someone_elses_call(client, directory) -> None:
+    chat_id = _panel_call(client, directory, 'rka')
+    directory.grant(OTHER)
+    directory.grant_leadership(OTHER, 'rka')
+    _as(client, 'admin', OTHER)
+    res = client.put(f'{BASE}/calls/{chat_id}/context', json={'view': 'rka'})
+    assert res.status_code == 404 and res.json()['detail']['code'] == 'voice_call_not_found'
+
+
+def test_an_unknown_view_is_refused(client, directory) -> None:
+    chat_id = _panel_call(client, directory, 'rka')
+    assert client.put(f'{BASE}/calls/{chat_id}/context', json={'view': 'admin'}).status_code == 403
+
+
+def _fake_turn(monkeypatch, answer=('m-1', 'Target pendapatan Rp347,17 miliar.')):
+    from open_webui.routers import jup_voice
+
+    asked: list[tuple] = []
+
+    async def _turn(app, user, chat_id, text, *, store, secret):
+        asked.append((user.id, chat_id, text))
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+    monkeypatch.setattr(jup_voice, '_panel_turn', _turn)
+    return asked
+
+
+def test_a_typed_turn_runs_in_the_callers_voice_chat(client, directory, caplog, monkeypatch) -> None:
+    asked = _fake_turn(monkeypatch)
+    chat_id = _panel_call(client, directory, 'rka')
+    res = client.post(f'{BASE}/calls/{chat_id}/turns', json={'text': 'Berapa target pendapatan?'})
+    assert res.status_code == 200
+    assert res.json() == {'message_id': 'm-1', 'content': 'Target pendapatan Rp347,17 miliar.'}
+    assert asked == [(ERIK, chat_id, 'Berapa target pendapatan?')]
+    line = _audit(caplog, 'voice_panel_turn')[-1]
+    assert line['outcome'] == 'answered' and line['chars'] == len('Berapa target pendapatan?')
+    assert 'Berapa' not in str(line)
+
+
+def test_a_turn_without_the_grant_is_refused(client, directory, monkeypatch) -> None:
+    asked = _fake_turn(monkeypatch)
+    chat_id = _panel_call(client, directory, 'rka')
+    directory.grant(ERIK, False)
+    res = client.post(f'{BASE}/calls/{chat_id}/turns', json={'text': 'Halo'})
+    assert res.status_code == 403 and asked == []
+
+
+def test_a_turn_in_someone_elses_call_is_refused(client, directory, monkeypatch) -> None:
+    asked = _fake_turn(monkeypatch)
+    chat_id = _panel_call(client, directory, 'rka')
+    directory.grant(OTHER)
+    _as(client, 'admin', OTHER)
+    client.post(f'{BASE}/acknowledge', json={'version': __import__('jup.voice').voice.DISCLOSURE_VERSION})
+    res = client.post(f'{BASE}/calls/{chat_id}/turns', json={'text': 'Halo'})
+    assert res.status_code == 404 and asked == []
+
+
+def test_an_empty_turn_is_refused_before_anything_runs(client, directory, monkeypatch) -> None:
+    asked = _fake_turn(monkeypatch)
+    chat_id = _panel_call(client, directory, 'rka')
+    res = client.post(f'{BASE}/calls/{chat_id}/turns', json={'text': '   '})
+    assert res.status_code == 422 and res.json()['detail']['code'] == 'voice_turn_invalid' and asked == []
+
+
+def test_a_turn_with_no_answer_in_time_says_so(client, directory, caplog, monkeypatch) -> None:
+    _fake_turn(monkeypatch, TimeoutError('slow'))
+    chat_id = _panel_call(client, directory, 'rka')
+    res = client.post(f'{BASE}/calls/{chat_id}/turns', json={'text': 'Halo'})
+    assert res.status_code == 504 and res.json()['detail']['code'] == 'voice_turn_timeout'
+    assert _audit(caplog, 'voice_panel_turn')[-1]['outcome'] == 'voice_turn_timeout'

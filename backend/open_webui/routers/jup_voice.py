@@ -20,6 +20,11 @@ voice chat (ADR-0017, spec #25).
   from `speech_body` (OpenAI or Google reads a stored assistant answer from the caller's own voice
   chat, never free text; `voice_tts`). `GET /speech/parts` tells the call UI how many parts an
   answer has. `tts_google` is the `google` engine the vendor lacks (#32, D23).
+- **The Ruang Pimpinan panel** asks in the caller's own voice call without leaving the page: a
+  typed or transcribed question runs through the same governed turn GPT-Live delegations use
+  (`jup_voice_live.live_turn`), so `enforce_voice_turn` holds it to the voice model and scope
+  (`voice_panel_turn`). The panel also records which tab is open (`leadership_context`), signed on
+  the chat, once the caller's own leadership grant for that tab is checked.
 - **A turn in a voice chat** (#27): `main.py`'s completion entry calls `enforce_voice_turn`, which
   forces the request onto the voice model and tools (`jup.voice_turn`) and writes a `voice_turn`
   audit line naming what it changed.
@@ -52,6 +57,7 @@ from pydantic import BaseModel
 
 from jup import voice, voice_audio, voice_live, voice_turn
 from jup.governance import audit
+from jup.leadership import policy as leadership_policy
 from open_webui.utils.access_control import get_permissions
 from open_webui.utils.auth import get_verified_user
 from open_webui.utils.chat_id import is_saved_chat_id
@@ -152,6 +158,20 @@ class VoiceStore:
             meta = dict(chat.meta or {})
             meta[key] = [*(meta.get(key) or []), *items]
             chat.meta = meta
+            flag_modified(chat, 'meta')
+            await session.commit()
+
+    async def set_chat_meta_key(self, chat_id: str, key: str, value: Any) -> None:
+        """Sets `chat.meta[key]`, under a row lock, keeping every other key (the voice mark above all)."""
+        from open_webui.internal.db import get_async_db_context
+        from open_webui.models.chats import Chat
+        from sqlalchemy.orm.attributes import flag_modified
+
+        async with get_async_db_context() as session:
+            chat = await session.get(Chat, chat_id, with_for_update=session.bind.dialect.name == 'postgresql')
+            if chat is None:
+                return
+            chat.meta = {**(chat.meta or {}), key: value}
             flag_modified(chat, 'meta')
             await session.commit()
 
@@ -410,6 +430,107 @@ async def start_call(
     await store.create_chat(chat_id, user.id, CALL_TITLE, [voice.VOICE_MODEL_ID], {voice.CHAT_KEY: mark})
     audit('voice_call', user=user.id, outcome='started', chat=chat_id)
     return {'chat_id': chat_id, 'model': voice.VOICE_MODEL_ID}
+
+
+# --- The Ruang Pimpinan panel ----------------------------------------------------------
+
+CALL_NOT_FOUND = voice.Refusal(404, 'voice_call_not_found', 'This is not your voice call.')
+VIEW_REFUSED = voice.Refusal(403, 'leadership_view_refused', 'You cannot read this Ruang Pimpinan view.')
+TURN_TIMEOUT = voice.Refusal(504, 'voice_turn_timeout', 'The answer took too long. Try again.')
+
+#: The leadership view the panel's tab hint names (`jup.leadership.policy.SCOPES`).
+LEADERSHIP_SCOPE = 'jup-consolidated'
+
+
+async def leadership_permissions(user=Depends(get_verified_user)) -> dict[str, Any]:
+    return await get_permissions(user.id, copy.deepcopy(leadership_policy.DEFAULT_PERMISSIONS))
+
+
+class ContextForm(BaseModel):
+    view: str
+
+
+class TurnForm(BaseModel):
+    text: Any = None
+
+
+@router.put('/calls/{chat_id}/context')
+async def set_call_context(
+    chat_id: str,
+    form: ContextForm,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    store: VoiceStore = Depends(voice_store),
+    secret: str = Depends(voice_secret),
+) -> dict[str, Any]:
+    """Records which Ruang Pimpinan tab is open beside the caller's own panel call.
+
+    Only a view the caller may read is recorded; the leadership tool still re-checks the grant on
+    every read, so the mark is a hint, never a grant.
+    """
+    view = form.view
+    refusal = None
+    if not secret:
+        refusal = _MISCONFIGURED
+    elif await _own_voice_chat(chat_id, user.id, store, secret) is None:
+        refusal = CALL_NOT_FOUND
+    elif view not in voice.LEADERSHIP_VIEWS or not leadership_policy.may_read(permissions, view, LEADERSHIP_SCOPE):
+        refusal = VIEW_REFUSED
+    if refusal is not None:
+        audit('leadership_context', user=user.id, chat=chat_id, view=None, outcome=refusal.code)
+        raise _refuse(refusal)
+    mark = voice.leadership_context_mark(chat_id, user.id, view, at=int(time.time()), secret=secret)
+    await store.set_chat_meta_key(chat_id, voice.LEADERSHIP_CONTEXT_KEY, mark)
+    audit('leadership_context', user=user.id, chat=chat_id, view=view, outcome='stored')
+    return {'view': view}
+
+
+async def _panel_turn(app: Any, user: Any, chat_id: str, text: str, *, store: Any, secret: str) -> tuple[str, str]:
+    from open_webui.routers import jup_voice_live
+
+    return await jup_voice_live.live_turn(
+        app, user, chat_id, text, store=store, secret=secret, session_id=f'voice-panel:{chat_id}'
+    )
+
+
+@router.post('/calls/{chat_id}/turns')
+async def ask_in_call(
+    chat_id: str,
+    form: TurnForm,
+    request: Request,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(voice_permissions),
+    store: VoiceStore = Depends(voice_store),
+    secret: str = Depends(voice_secret),
+) -> dict[str, Any]:
+    """Asks a typed or transcribed question in the caller's own voice call; the sealed answer comes back.
+
+    The turn is the one GPT-Live delegations run, so the voice model, its tools and its scope are
+    forced by `enforce_voice_turn` and the answer is sealed for speech. Sizes are audited, never text.
+    """
+    text = form.text
+    switched_on = voice.enabled()
+    granted = switched_on and voice.may_call(permissions)
+    if granted and not secret:
+        refusal = _MISCONFIGURED
+    else:
+        acknowledged = granted and voice.acknowledged(await store.user_info(user.id), user.id, secret=secret)
+        refusal = voice.start_refusal(switched_on=switched_on, granted=granted, acknowledged=acknowledged)
+    if refusal is None and await _own_voice_chat(chat_id, user.id, store, secret) is None:
+        refusal = CALL_NOT_FOUND
+    if refusal is None:
+        refusal = voice.panel_turn_refusal(text)
+    chars = len(text) if isinstance(text, str) else 0
+    if refusal is not None:
+        audit('voice_panel_turn', user=user.id, chat=chat_id, outcome=refusal.code, chars=chars, message_id=None)
+        raise _refuse(refusal)
+    try:
+        message_id, content = await _panel_turn(request.app, user, chat_id, text.strip(), store=store, secret=secret)
+    except TimeoutError:
+        audit('voice_panel_turn', user=user.id, chat=chat_id, outcome=TURN_TIMEOUT.code, chars=chars, message_id=None)
+        raise _refuse(TURN_TIMEOUT)
+    audit('voice_panel_turn', user=user.id, chat=chat_id, outcome='answered', chars=chars, message_id=message_id)
+    return {'message_id': message_id, 'content': content}
 
 
 async def enforce_voice_turn(

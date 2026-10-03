@@ -175,3 +175,58 @@ def test_the_stored_wrapper_holds_no_logic_of_its_own() -> None:
 
 def test_the_stored_wrapper_declares_a_read_risk_class() -> None:
     assert 'risk_class: read' in TOOL_SOURCE.read_text()
+
+
+# --- The tab open beside a panel call (a hint, never a grant) -----------------------------
+
+from jup import voice  # noqa: E402
+
+SECRET = 'test-secret'
+CHAT = 'chat-panel'
+
+
+def _chat_source(permissions: dict, view: str, owner: str = USER['id'], secret: str = SECRET) -> Source:
+    meta = {voice.LEADERSHIP_CONTEXT_KEY: voice.leadership_context_mark(CHAT, owner, view, at=1, secret=SECRET)}
+    return Source(
+        dataset=lambda: json.loads(SEED.read_text(encoding='utf-8')),
+        permissions=lambda _user_id: permissions,
+        recorded=lambda: None,
+        chat=lambda _chat_id: (meta, owner),
+        secret=lambda: secret,
+    )
+
+
+def _read_in_chat(source: Source, view: str = '') -> str:
+    return asyncio.run(read_leadership(USER, view, source, chat_id=CHAT))
+
+
+def test_the_open_tab_is_named_first_when_the_mark_is_genuine() -> None:
+    text = _read_in_chat(_chat_source(_grants(True, True), 'rka'))
+    assert text.startswith('Pengguna sedang membuka tab "RKA & Realisasi"')
+    assert text.index('## RKA & Realisasi') < text.index('## Direksi & Komisaris')
+
+
+def test_the_open_tab_never_widens_the_grants() -> None:
+    assert _read_in_chat(_chat_source(_grants(rka=True), 'board')) == _read(_grants(rka=True))
+
+
+def test_a_mark_on_someone_elses_chat_is_ignored() -> None:
+    text = _read_in_chat(_chat_source(_grants(True, True), 'rka', owner='u-2'))
+    assert 'sedang membuka tab' not in text
+
+
+def test_a_mark_signed_with_another_secret_is_ignored() -> None:
+    text = _read_in_chat(_chat_source(_grants(True, True), 'rka', secret='rotated'))
+    assert 'sedang membuka tab' not in text
+
+
+def test_the_served_line_names_the_open_tab(caplog) -> None:
+    caplog.set_level(logging.INFO)
+    _read_in_chat(_chat_source(_grants(True, True), 'board'))
+    assert "'open_view': 'board'" in _audit(caplog)[-1]
+
+
+def test_the_wrapper_passes_the_chat_id() -> None:
+    tree = ast.parse(TOOL_SOURCE.read_text(encoding='utf-8'))
+    method = next(n for n in ast.walk(tree) if isinstance(n, ast.AsyncFunctionDef) and n.name == 'read_ruang_pimpinan')
+    assert '__chat_id__' in [a.arg for a in method.args.args]

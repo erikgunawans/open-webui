@@ -77,6 +77,7 @@ async def live_turn(
     build_request: Callable[[Any], Any] | None = None,
     wait_seconds: float = TURN_SECONDS,
     poll_seconds: float = 0.5,
+    session_id: str | None = None,
 ) -> tuple[str, str]:
     """Runs `question` as a turn in the caller's voice chat and returns `(message_id, sealed answer)`.
 
@@ -107,7 +108,7 @@ async def live_turn(
         'id': message_id,
         'parent_id': parent_id,
         'user_message': user_message,
-        'session_id': f'voice-live:{chat_id}',
+        'session_id': session_id or f'voice-live:{chat_id}',
         'background_tasks': {},
     }
     run = handler or app.state.CHAT_COMPLETION_HANDLER
