@@ -6,7 +6,8 @@ built from contract cards with money terms or from contract full text is at leas
 
 **How:** when a source tool returns restricted material into a chat, it calls `mark_restricted`,
 which records the level under `chat.meta[KEY]`. The file tools (`create_document`,
-`create_spreadsheet`) read it back with `chat_floor` and pass it as the floor. The mark is sticky
+`create_spreadsheet`, `create_presentation`) read it back with `chat_floor` and pass it as the
+floor. The mark is sticky
 for the chat and only ever rises: a later, less restricted read never lowers it.
 
 **Server-side only.** The mark is written here under a row lock and read here; the client never

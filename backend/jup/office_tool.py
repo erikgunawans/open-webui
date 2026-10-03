@@ -1,5 +1,5 @@
-"""The office chat tools (Track O): `document_templates`, `create_document` (O1, #45) and
-`create_spreadsheet` (O2).
+"""The office chat tools (Track O): `document_templates`, `create_document` (O1, #45),
+`create_spreadsheet` (O2), and `presentation_layouts` with `create_presentation` (O3).
 
 `tools/jup_documents.py` is the copy stored in the app's DB and exec'd there untested, so it only
 delegates here. Everything with a rule in it is in this module or in `jup.office_doc`.
@@ -13,7 +13,7 @@ file to its owner (or an admin), so another staff member gets a 404.
 refusal starts `Document not created:`, and a success names the file, says it is a **Draf** and
 asks the model to tell the user to review it before use.
 
-**The classification floor:** before rendering, both tools read the chat's floor
+**The classification floor:** before rendering, every file tool reads the chat's floor
 (`jup.office_floor`): a chat that has read contract money terms or contract full text makes every
 file created in it at least TERBATAS, whatever the model asks for. If the floor cannot be read,
 no file is created.
@@ -36,6 +36,7 @@ from typing import Any
 from jup import office_floor
 from jup.office_doc import DOCX_MIME, OfficeDocError, Rendered, catalogue, outline, render, template_for
 from jup.office_sheet import SheetRendered, render_sheet
+from jup.office_slides import SlidesRendered, layout_guide, render_slides
 
 log = logging.getLogger(__name__)
 
@@ -48,9 +49,11 @@ FLOOR_FAILED = (
 )
 
 SHEET_NOT_CREATED = 'Spreadsheet not created: '
+DECK_NOT_CREATED = 'Presentation not created: '
 
+Office = Rendered | SheetRendered | SlidesRendered
 # (request, rendered, user, chat_id, message_id) -> the message file item for the chat.
-Store = Callable[[Any, Rendered | SheetRendered, dict, str, str], Awaitable[dict]]
+Store = Callable[[Any, Office, dict, str, str], Awaitable[dict]]
 # chat_id -> the classification floor its files inherit.
 FloorLookup = Callable[[str], Awaitable[str | None]]
 
@@ -186,11 +189,73 @@ async def create_spreadsheet(
     )
 
 
-def _content_type(rendered: Rendered | SheetRendered) -> str:
-    return rendered.content_type if isinstance(rendered, SheetRendered) else DOCX_MIME
+def presentation_layouts(layout: str = '') -> str:
+    """The slide layout list, or one layout's fields and how much text each holds."""
+    return layout_guide(layout)
 
 
-def file_item(file_id: str, rendered: Rendered | SheetRendered) -> dict:
+async def create_presentation(
+    *,
+    request: Any,
+    user: dict | None,
+    chat_id: str | None,
+    message_id: str | None,
+    title: str,
+    slides: Any,
+    cover: Any = None,
+    classification: str = '',
+    floor: str | None = None,
+    emit: Callable[[dict], Awaitable[Any]] | None = None,
+    store: Store | None = None,
+    floor_lookup: FloorLookup | None = None,
+) -> str:
+    """Render a deck on the JUP template, store it, attach it. Returns the text the model reads."""
+    if not user or not user.get('id'):
+        return NO_USER.replace(NOT_CREATED, DECK_NOT_CREATED)
+    if not chat_id or not message_id:
+        return DECK_NOT_CREATED + 'presentations can only be created inside a chat.'
+    try:
+        floor = await _floor(chat_id, floor, floor_lookup)
+    except Exception:
+        log.exception('create_presentation: reading the floor of chat %s failed', chat_id)
+        return FLOOR_FAILED.replace(NOT_CREATED, DECK_NOT_CREATED)
+    try:
+        rendered = await asyncio.to_thread(
+            render_slides,
+            title,
+            slides,
+            cover=cover,
+            classification=classification or None,
+            floor=floor,
+            author=str(user.get('name') or ''),
+        )
+    except OfficeDocError as error:
+        return DECK_NOT_CREATED + str(error)
+
+    try:
+        item = await (store or _store)(request, rendered, user, chat_id, message_id)
+    except Exception:
+        log.exception('create_presentation: storing %s failed', rendered.filename)
+        return STORE_FAILED.replace(NOT_CREATED, DECK_NOT_CREATED)
+
+    if emit is not None:
+        await emit({'type': 'files', 'data': {'files': [item]}})
+
+    unfilled = ', '.join(rendered.unfilled)
+    return (
+        f'Created "{rendered.filename}" with {rendered.slides} slides, including the cover, on the JUP template. '
+        f'Status: Draf. Classification: {rendered.classification}. '
+        'It is attached to this answer; only the user who asked can download it. '
+        + (f'Left for the user to fill: {unfilled}. ' if unfilled else '')
+        + 'Tell the user it is a draft to review before use, and do not repeat the slides in the answer.'
+    )
+
+
+def _content_type(rendered: Office) -> str:
+    return DOCX_MIME if isinstance(rendered, Rendered) else rendered.content_type
+
+
+def file_item(file_id: str, rendered: Office) -> dict:
     """The message file entry the chat UI shows with its preview and download."""
     return {
         'type': 'file',
@@ -201,10 +266,12 @@ def file_item(file_id: str, rendered: Rendered | SheetRendered) -> dict:
     }
 
 
-def file_metadata(rendered: Rendered | SheetRendered, chat_id: str, message_id: str) -> dict:
+def file_metadata(rendered: Office, chat_id: str, message_id: str) -> dict:
     """What the stored File records about itself (`meta.data`)."""
     if isinstance(rendered, SheetRendered):
         office = {'kind': 'xlsx', 'classification': rendered.classification, 'status': rendered.status}
+    elif isinstance(rendered, SlidesRendered):
+        office = {'kind': 'pptx', 'classification': rendered.classification, 'status': rendered.status}
     else:
         office = {
             'kind': 'docx',
@@ -215,7 +282,7 @@ def file_metadata(rendered: Rendered | SheetRendered, chat_id: str, message_id: 
     return {'chat_id': chat_id, 'message_id': message_id, 'jup_office': office}
 
 
-async def _store(request: Any, rendered: Rendered | SheetRendered, user: dict, chat_id: str, message_id: str) -> dict:
+async def _store(request: Any, rendered: Office, user: dict, chat_id: str, message_id: str) -> dict:
     """Save through the app's own upload path, owned by `user`, and link it to the message."""
     from fastapi import UploadFile
     from starlette.datastructures import Headers
@@ -246,6 +313,7 @@ async def _store(request: Any, rendered: Rendered | SheetRendered, user: dict, c
 
 
 __all__ = [
+    'DECK_NOT_CREATED',
     'FLOOR_FAILED',
     'NOT_CREATED',
     'NO_CHAT',
@@ -253,8 +321,10 @@ __all__ = [
     'SHEET_NOT_CREATED',
     'STORE_FAILED',
     'create_document',
+    'create_presentation',
     'create_spreadsheet',
     'document_templates',
     'file_item',
     'file_metadata',
+    'presentation_layouts',
 ]
