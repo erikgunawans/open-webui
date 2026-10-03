@@ -1,6 +1,6 @@
 ---
 description: Show the agent-depth phases (holaOS gap, Asisten JUP harness enhancements, ChatGPT Live voice) and what each waits on
-argument-hint: '[A|E|V|I|P|X] — optional track filter'
+argument-hint: '[A|E|V|I|O|P|X] — optional track filter'
 allowed-tools: Bash(bun scripts/agent-depth.ts:*)
 ---
 
