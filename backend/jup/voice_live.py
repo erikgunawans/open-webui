@@ -18,6 +18,7 @@ Standard library only, so the rules run under `--only-group dev`. The HTTP seam 
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from jup.voice import Refusal
@@ -120,6 +121,18 @@ def commentary_parts(answer: str) -> list[str]:
 UTTERANCE_GAP_MS = 1200
 #: A shorter pause ends it too if the caller started speaking in it; below this it is a breath.
 CALLER_PAUSE_MS = 250
+#: Speech the timing calls `self_answered` is relayed if this share of its content words come from
+#: one answer already handed over, and it has at least `GROUNDED_MIN_WORDS` of them.
+GROUNDED_SHARE = 0.5
+GROUNDED_MIN_WORDS = 3
+#: Words too common in spoken Indonesian to show where a sentence came from.
+_COMMON_WORDS = frozenset(
+    'ada adalah agar akan anda apa atau bagi baik bahwa banyak beberapa belum bisa boleh bukan '
+    'dalam dan dari dengan dia dulu hanya harus ingin ini itu iya jadi juga kalau kami kita '
+    'lagi lain lalu lebih mana masih mau maaf nanti oke pada para saat saja sama sangat saya '
+    'sebagai sedang sekarang semua sih silakan soal sudah supaya tadi tapi tentang terima kasih '
+    'tersebut tidak untuk yang'.split()
+)
 
 
 class LiveLedger:
@@ -134,6 +147,7 @@ class LiveLedger:
         self._said: list[tuple[int, int, str]] = []
         self._delegations: list[tuple[int, str]] = []
         self._answers: dict[str, str] = {}
+        self._answer_words: dict[str, frozenset[str]] = {}
         self._cut = 0
 
     def heard(self, start_ms: int, end_ms: int, text: str) -> None:
@@ -152,9 +166,30 @@ class LiveLedger:
         self._cut = max(self._cut, until_ms)
         return ''.join(text for _, _, text in fragments).strip()
 
-    def relayed(self, delegation_id: str, message_id: str) -> None:
-        """The governed answer `message_id` was handed to GPT-Live for this delegation."""
+    def relayed(self, delegation_id: str, message_id: str, answer: str = '') -> None:
+        """The governed answer `message_id` (text `answer`) was handed to GPT-Live for this delegation."""
         self._answers[delegation_id] = message_id
+        self._answer_words[delegation_id] = frozenset(_content_words(answer))
+
+    def _grounded_in(self, start_ms: int, text: str) -> str | None:
+        """The relayed delegation this speech repeats, by its words, among those asked before it began.
+
+        Timing alone cannot tell: GPT-Live says its filler at once and the answer seconds later,
+        often after the caller has said something, and it answers follow-ups from an answer it
+        already holds.
+        """
+        words = set(_content_words(text))
+        if len(words) < GROUNDED_MIN_WORDS:
+            return None
+        best: tuple[float, int, str] | None = None
+        for at_ms, delegation_id in self._delegations:
+            answer_words = self._answer_words.get(delegation_id)
+            if at_ms > start_ms or not answer_words:
+                continue
+            share = len(words & answer_words) / len(words)
+            if share >= GROUNDED_SHARE and (best is None or (share, at_ms) > best[:2]):
+                best = (share, at_ms, delegation_id)
+        return best[2] if best else None
 
     def _anchor(self, start_ms: int) -> tuple[str, Any]:
         """The latest caller fragment or delegation before `start_ms`: what this speech answers."""
@@ -193,22 +228,39 @@ class LiveLedger:
     def turns(self) -> list[dict[str, Any]]:
         """GPT-Live's utterances grouped into turns, each `relayed`, `pending` or `self_answered`.
 
-        An utterance answers whatever came last before it began: a delegation, or the caller.
+        An utterance answers whatever came last before it began: a delegation, or the caller. One
+        that would be `self_answered` is `relayed` instead when its words come from an answer
+        already handed over; such turns carry `matched: 'content'`.
         """
         turns: list[dict[str, Any]] = []
-        anchor_of_last: tuple[str, Any] | None = None
+        key_of_last: tuple[str, Any] | None = None
         for start_ms, text in self._utterances():
             anchor = self._anchor(start_ms)
-            if turns and anchor == anchor_of_last:
+            matched = False
+            if anchor[0] != 'delegation':
+                grounded = self._grounded_in(start_ms, text)
+                if grounded is not None:
+                    anchor, matched = ('delegation', grounded), True
+            if turns and anchor == key_of_last:
                 turns[-1]['spoken'] += ' ' + text
+                if matched:
+                    turns[-1]['matched'] = 'content'
                 continue
-            anchor_of_last = anchor
+            key_of_last = anchor
             if anchor[0] == 'delegation':
                 message_id = self._answers.get(anchor[1])
                 kind = 'relayed' if message_id else 'pending'
                 turns.append({'kind': kind, 'delegation': anchor[1], 'message_id': message_id, 'spoken': text})
+                if matched:
+                    turns[-1]['matched'] = 'content'
             else:
                 turns.append({'kind': 'self_answered', 'delegation': None, 'message_id': None, 'spoken': text})
         for turn in turns:
             turn['spoken'] = ' '.join(turn['spoken'].split())
         return turns
+
+
+def _content_words(text: str) -> list[str]:
+    """The words of `text` that say what it is about: lower-cased, three letters or more, not common."""
+    words = re.findall(r'[0-9a-zà-ÿ]+', text.lower())
+    return [w for w in words if len(w) >= 3 and w not in _COMMON_WORDS]

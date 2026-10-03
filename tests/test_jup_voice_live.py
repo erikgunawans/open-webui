@@ -232,6 +232,83 @@ def test_a_breath_with_the_caller_in_it_does_not_cut_the_utterance() -> None:
     assert [turn['kind'] for turn in ledger.turns()] == ['relayed']
 
 
+ANSWER = (
+    'Proyek SPBG Pulogadung masih di Gate G1. Alokasi gas lima mmscfd belum secured, '
+    'mitra pembiayaan belum dipilih, dan reaktivasi menunggu persetujuan direksi.'
+)
+
+
+def test_an_answer_spoken_after_a_long_wait_is_still_relayed() -> None:
+    # The 2026-10-03 acceptance call: the filler is spoken at once, the governed answer arrives
+    # seconds later, and the answer itself was recorded as `self_answered`.
+    ledger = _ledger()
+    ledger.heard(100, 900, 'Apa status SPBG Pulogadung?')
+    ledger.question('d1', 1000)
+    ledger.relayed('d1', 'm-1', ANSWER)
+    ledger.said(1100, 1800, 'Sedang saya cek ya.')
+    ledger.heard(5000, 5300, 'oke')
+    ledger.said(9000, 13000, 'Proyek SPBG Pulogadung masih di Gate G1, alokasi gas belum secured.')
+    assert ledger.turns() == [
+        {
+            'kind': 'relayed',
+            'delegation': 'd1',
+            'message_id': 'm-1',
+            'spoken': 'Sedang saya cek ya. Proyek SPBG Pulogadung masih di Gate G1, alokasi gas belum secured.',
+            'matched': 'content',
+        }
+    ]
+
+
+def test_a_follow_up_answered_from_an_earlier_answer_is_relayed_to_it() -> None:
+    ledger = _ledger()
+    ledger.heard(100, 900, 'Apa status SPBG Pulogadung?')
+    ledger.question('d1', 1000)
+    ledger.relayed('d1', 'm-1', ANSWER)
+    ledger.said(1500, 3000, 'Masih di Gate G1.')
+    ledger.heard(4000, 4800, 'Mitranya siapa?')
+    ledger.said(5000, 7000, 'Mitra pembiayaan belum dipilih, reaktivasi menunggu persetujuan direksi.')
+    assert ledger.turns() == [
+        {
+            'kind': 'relayed',
+            'delegation': 'd1',
+            'message_id': 'm-1',
+            'spoken': 'Masih di Gate G1. Mitra pembiayaan belum dipilih, reaktivasi menunggu persetujuan direksi.',
+            'matched': 'content',
+        }
+    ]
+
+
+def test_small_talk_after_an_answer_stays_self_answered() -> None:
+    ledger = _ledger()
+    ledger.heard(100, 900, 'Apa status SPBG Pulogadung?')
+    ledger.question('d1', 1000)
+    ledger.relayed('d1', 'm-1', 'Saya cek dulu ya. Ada yang bisa saya bantu lagi? ' + ANSWER)
+    ledger.said(1500, 3000, 'Masih di Gate G1.')
+    ledger.heard(4000, 4800, 'Terima kasih.')
+    ledger.said(5000, 6000, 'Sama-sama, ada lagi yang bisa saya bantu?')
+    assert [t['kind'] for t in ledger.turns()] == ['relayed', 'self_answered']
+
+
+def test_speech_that_matches_no_answer_stays_self_answered() -> None:
+    ledger = _ledger()
+    ledger.heard(100, 900, 'Apa status SPBG Pulogadung?')
+    ledger.question('d1', 1000)
+    ledger.relayed('d1', 'm-1', ANSWER)
+    ledger.said(1500, 3000, 'Masih di Gate G1.')
+    ledger.heard(4000, 4800, 'Berapa harga LPG?')
+    ledger.said(5000, 7000, 'Harga LPG tabung dua belas kilogram naik bulan lalu.')
+    assert [t['kind'] for t in ledger.turns()] == ['relayed', 'self_answered']
+
+
+def test_an_answer_is_only_matched_once_it_was_relayed() -> None:
+    ledger = _ledger()
+    ledger.heard(100, 900, 'Apa status SPBG Pulogadung?')
+    ledger.said(1000, 3000, 'Proyek SPBG Pulogadung masih di Gate G1, alokasi gas belum secured.')
+    ledger.question('d1', 4000)
+    ledger.relayed('d1', 'm-1', ANSWER)
+    assert [t['kind'] for t in ledger.turns()] == ['self_answered']
+
+
 def test_a_long_answer_is_sent_in_parts_under_gpt_lives_limit() -> None:
     answer = ('Kalimat yang cukup panjang untuk diuji di sini. ' * 120).strip()
     parts = voice_live.commentary_parts(answer)

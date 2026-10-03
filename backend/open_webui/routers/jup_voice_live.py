@@ -197,7 +197,7 @@ class LiveRelay:
         parts = voice_live.commentary_parts(answer)
         for part in parts:
             await self._commentary(delegation_id, part)
-        self.ledger.relayed(delegation_id, message_id)
+        self.ledger.relayed(delegation_id, message_id, answer)
         audit(
             'voice_live_delegation',
             **base,
@@ -227,6 +227,7 @@ class LiveRelay:
                 delegation=turn['delegation'],
                 message_id=turn['message_id'],
                 spoken_chars=len(turn['spoken']),
+                matched=turn.get('matched', 'timing'),
             )
             entry = {'session': self.session_id, 'delegation': turn['delegation'], 'spoken': turn['spoken']}
             if turn['kind'] == 'relayed':
