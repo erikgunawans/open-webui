@@ -10,6 +10,8 @@
 	import Spinner from './Spinner.svelte';
 	import Tooltip from './Tooltip.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
+	// JUP O4: in a chat, Word/Excel/PowerPoint files open in the right-hand column (VENDOR-PATCHES.md).
+	import { openOfficePreview } from '$lib/office/preview';
 
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -61,6 +63,8 @@
 
 		if (filesystemPath) {
 			showFileNavPath.set(filesystemPath);
+		} else if (!edit && !dismissible && openOfficePreview(item)) {
+			// opened in the chat column
 		} else if (item?.file?.data?.content || item?.type === 'file' || item?.content || modal) {
 			showModal = !showModal;
 		} else {

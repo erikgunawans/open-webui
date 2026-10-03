@@ -27,6 +27,9 @@
 	import PyodideFileNav from './PyodideFileNav.svelte';
 	import Overview from './Overview.svelte';
 	import { isSavedChatId } from '$lib/utils/chatId';
+	// JUP O4: office files open in this column (VENDOR-PATCHES.md).
+	import OfficePreviewPanel from '$lib/components/jup/OfficePreviewPanel.svelte';
+	import { closeOfficePreview, officePreview, officePreviewAvailable } from '$lib/office/preview';
 
 	const i18n = getContext('i18n');
 
@@ -145,6 +148,7 @@
 	};
 
 	onMount(() => {
+		officePreviewAvailable.set(true);
 		const mediaQuery = window.matchMedia('(min-width: 1024px)');
 		mediaQuery.addEventListener('change', handleMediaQuery);
 		handleMediaQuery(mediaQuery);
@@ -168,6 +172,8 @@
 		return () => {
 			isDestroyed = true;
 			mounted = false;
+			officePreviewAvailable.set(false);
+			closeOfficePreview();
 			if (!largeScreen) {
 				showControls.set(false);
 			}
@@ -183,13 +189,15 @@
 		}
 		showArtifacts.set(false);
 		showEmbeds.set(false);
+		closeOfficePreview();
 		if ($showCallOverlay) showCallOverlay.set(false);
 	};
 
 	$: if (mounted && !chatId) closeHandler();
 
 	// Helper: is a "special" full-screen panel active?
-	$: specialPanel = $showCallOverlay || $showArtifacts || $showEmbeds;
+	$: showOfficePreview = !!$officePreview && $officePreview.chatId === (chatId ?? '');
+	$: specialPanel = $showCallOverlay || $showArtifacts || $showEmbeds || showOfficePreview;
 </script>
 
 {#if !largeScreen}
@@ -214,6 +222,8 @@
 							on:close={() => showControls.set(false)}
 						/>
 					</div>
+				{:else if showOfficePreview && $officePreview}
+					<OfficePreviewPanel preview={$officePreview} />
 				{:else if $showEmbeds}
 					<Embeds />
 				{:else if $showArtifacts}
@@ -337,6 +347,8 @@
 							on:close={() => showControls.set(false)}
 						/>
 					</div>
+				{:else if showOfficePreview && $officePreview}
+					<OfficePreviewPanel preview={$officePreview} />
 				{:else if $showEmbeds}
 					<Embeds overlay={dragged} />
 				{:else if $showArtifacts}

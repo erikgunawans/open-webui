@@ -50,8 +50,9 @@ design. The sandbox work for terminal and browser is needed on either path.
 | E9  | WhatsApp channel: Business Cloud API, verified numbers   | planned | chat channels                      | E7, E8 proven; JUP business number; D-decision |
 | I1  | Integrations via MCP (Notion first)                     | in-progress | integrations                   | live 00060, admin-only, off until #41 token |
 | O1  | Office output: Word documents (.docx) in the JUP template | in-progress | docs (holaOS: `doc-coauthoring` skill + bash) | live 00060, all staff; staff-account check open |
-| O2  | Office output: spreadsheets (.xlsx)                      | in-progress | sheets (holaOS: `xlsx` skill + bash) | go-ahead 10-03; PR open, then deploy + tool sync (Erik's OK) |
+| O2  | Office output: spreadsheets (.xlsx)                      | live    | sheets (holaOS: `xlsx` skill + bash) | live 00083 10-03; accepted: card 0003 → TERBATAS .xlsx; tool attached to Asisten JUP |
 | O3  | Office output: slide decks (.pptx) in the JUP template   | planned | slides (holaOS: `pptx` skill + bash) | O2 (shared tool shape); copy Presentasi v1.5-r2 into the repo |
+| O4  | Office preview panel: files open in the chat column, view-only | in-progress | in-app preview (holaOS: desktop preview) | PR open; Erik's OK to merge + deploy |
 | X1  | Hermes as an admin-only lab runtime                     | parked  | runtime experiments                | Erik reopens it                              |
 
 ## Where the gap is (holaOS `a6b58be` vs Asisten JUP `254da9640`)
@@ -328,6 +329,13 @@ there is no code sandbox to build and no new egress, hence no D-decision under D
   - Spreadsheets: the set has no Excel template, so O2 uses the same fonts and the brand tokens.
 - **Access:** all staff via a grant on the tools at go-live (a DB write, its own OK); the content
   still comes only from what the caller may see (contract/perkara access matrix).
+- **O4 Preview panel (Erik 2026-10-03).** Clicking a .docx/.xlsx/.pptx in a chat opens it in the
+  right-hand column (phone: the drawer) instead of a modal, with the file's Draf status and
+  classification badges, sheet tabs and Download. A file the assistant just made opens by itself
+  on a large screen. View-only (editing stays under "Later"). Reuses the vendor's renderers; loads
+  through the owner-only content route, so access is unchanged. **Not done here:** the installed
+  `xlsx` 0.18.5 has published advisories (prototype pollution, ReDoS) for hostile files; upgrading
+  to SheetJS 0.20.x means regenerating `package-lock.json` with npm, which needs Erik's OK.
 - **Later, not in O1–O3:** editing an uploaded file in place (read → new version), Google
   Docs/Sheets/Slides output (that is I1-style egress and needs its own D-decision).
 - **Governance kept:** each call goes through the gate and the E1 audit; content comes only from

@@ -113,6 +113,7 @@
 	import VoiceModeChoice from '$lib/components/jup/VoiceModeChoice.svelte';
 	import LiveDisclosure from '$lib/components/jup/LiveDisclosure.svelte';
 	import LiveCallPanel from '$lib/components/jup/LiveCallPanel.svelte';
+	import { autoOpenOfficePreview } from '$lib/office/preview';
 	import {
 		liveCallChat,
 		pendingCallMode,
@@ -1310,7 +1311,13 @@
 				} else if (type === 'chat:message' || type === 'replace') {
 					message.content = data.content;
 				} else if (type === 'chat:message:files' || type === 'files') {
+					// JUP O4: a Word/Excel/PowerPoint file the assistant just made opens in the
+					// right-hand column on a large screen (VENDOR-PATCHES.md).
+					const previousFiles = message.files;
 					message.files = data.files;
+					if (message.role === 'assistant') {
+						autoOpenOfficePreview(previousFiles, data.files);
+					}
 				} else if (type === 'chat:message:tasks') {
 					chatTasks = data.tasks;
 				} else if (type === 'chat:message:embeds' || type === 'embeds') {
