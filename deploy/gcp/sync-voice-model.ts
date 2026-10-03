@@ -5,8 +5,8 @@
  * The voice model is Asisten JUP with a voice scope: the same base model and params (the operating
  * contract rides in the system prompt and is attached again at the funnel), `meta.knowledge` = the
  * JUP knowledge bases below as `{type:'collection'}` items (Erik 2026-10-02: voice reads every JUP
- * knowledge base, replacing the eight named documents of 2026-09-27), tools = `portfolio_status`
- * and `jup_contracts` plus the knowledge builtins, every other builtin category off and the web,
+ * knowledge base, replacing the eight named documents of 2026-09-27), tools = `portfolio_status`,
+ * `jup_contracts` and `jup_leadership` plus the knowledge builtins, every other builtin category off and the web,
  * image and code capabilities off. `jup.voice_turn` enforces the same scope in code on every voice
  * turn, for both call modes (GPT-Live delegates to this model); this script makes the stored model
  * say what the code enforces.
