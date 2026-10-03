@@ -6,23 +6,23 @@
  */
 
 /** The server's `voice.LIVE_DISCLOSURE_VERSION`. Bump both whenever the text below changes. */
-export const LIVE_DISCLOSURE_VERSION = '2026-09-28';
+export const LIVE_DISCLOSURE_VERSION = '2026-10-03';
 
 /** The GPT-Live disclosure, Indonesian first. Fixed text, not translated per locale: it is what was acknowledged. */
 export const LIVE_DISCLOSURE = {
 	id: [
 		'Mode GPT-Live memakai model suara OpenAI untuk bercakap langsung dengan Anda. Seluruh sesi, termasuk suara Anda, diproses OpenAI di Amerika Serikat dan dapat disimpan hingga 30 hari untuk pemantauan penyalahgunaan.',
-		'Yang Anda dengar adalah parafrase asisten atas jawaban dari dokumen strategi. Kata-kata, angka, atau catatan kehati-hatiannya bisa berbeda dari jawaban tertulis.',
-		'Asisten dapat menjawab sebagian pertanyaan sendiri, di luar dokumen strategi. Jawaban itu ditandai dalam catatan audit, tetapi tidak diperiksa terhadap dokumen.',
-		'Pertanyaan yang diteruskan ke dokumen juga melewati OpenRouter dan Xiaomi, penyedia model yang menyusun jawaban.',
+		'Yang Anda dengar adalah parafrase asisten atas jawaban dari basis pengetahuan JUP, kartu kontrak, dan Ruang Pimpinan, sesuai hak akses Anda. Kata-kata, angka, atau catatan kehati-hatiannya bisa berbeda dari jawaban tertulis.',
+		'Asisten dapat menjawab sebagian pertanyaan sendiri, tanpa sumber tersebut. Jawaban itu ditandai dalam catatan audit, tetapi tidak diperiksa terhadap sumber.',
+		'Pertanyaan yang diteruskan ke sumber tersebut juga melewati OpenRouter dan Xiaomi, penyedia model yang menyusun jawaban.',
 		'Untuk jawaban yang dibacakan kata demi kata, pakai panggilan suara biasa.',
 		'Apa pun yang Anda ucapkan tetap terkirim. Jangan sebutkan angka atau informasi yang belum publik.'
 	],
 	en: [
 		"GPT-Live uses OpenAI's voice model to talk with you directly. The whole session, your voice included, is processed by OpenAI in the United States and may be kept for up to 30 days for abuse monitoring.",
-		"What you hear is the assistant's paraphrase of the answer from the strategy documents. Its wording, figures or caveats may differ from the written answer.",
-		'The assistant may answer some questions itself, outside the strategy documents. Those answers are flagged in the audit log but not checked against the documents.',
-		'Questions passed to the documents also go through OpenRouter and Xiaomi, the providers of the model that writes the answer.',
+		"What you hear is the assistant's paraphrase of the answer from the JUP knowledge base, contract cards and Ruang Pimpinan, within your access rights. Its wording, figures or caveats may differ from the written answer.",
+		'The assistant may answer some questions itself, without those sources. Those answers are flagged in the audit log but not checked against a source.',
+		'Questions passed to those sources also go through OpenRouter and Xiaomi, the providers of the model that writes the answer.',
 		'For answers read word for word, use the standard voice call.',
 		'Whatever you say is sent regardless. Do not speak figures or information that are not public.'
 	]
