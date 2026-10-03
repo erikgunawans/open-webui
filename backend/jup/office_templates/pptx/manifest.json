@@ -23,12 +23,7 @@
 				"kind": 2,
 				"unit_date": 3
 			},
-			"fixed": [
-				89,
-				1,
-				90,
-				91
-			],
+			"fixed": [89, 1, 90, 91],
 			"footer": 98
 		},
 		"korporat": {
@@ -39,11 +34,7 @@
 				"kind": 2,
 				"unit_date": 3
 			},
-			"fixed": [
-				1,
-				90,
-				91
-			],
+			"fixed": [1, 90, 91],
 			"footer": 98
 		}
 	},
@@ -350,20 +341,8 @@
 					"idx": 12
 				}
 			},
-			"fixed": [
-				3,
-				5,
-				7,
-				9,
-				11
-			],
-			"min_filled": [
-				"solar",
-				"electricity",
-				"gas",
-				"water",
-				"parking"
-			],
+			"fixed": [3, 5, 7, 9, 11],
+			"min_filled": ["solar", "electricity", "gas", "water", "parking"],
 			"source": {
 				"idx": 97
 			}
@@ -531,11 +510,7 @@
 					"required": true
 				}
 			},
-			"fixed": [
-				4,
-				6,
-				8
-			],
+			"fixed": [4, 6, 8],
 			"source": {
 				"idx": 97
 			}
@@ -573,12 +548,7 @@
 					"list": true
 				}
 			},
-			"fixed": [
-				1,
-				90,
-				91,
-				92
-			]
+			"fixed": [1, 90, 91, 92]
 		}
 	}
 }
