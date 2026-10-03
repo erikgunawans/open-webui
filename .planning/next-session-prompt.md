@@ -1,3 +1,37 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-03-v44)
+
+> Prepended by /wrap 2026-10-03 (checkpoint 2026-10-03-v44). Supersedes v43's anchor and its "do next" (#38 is closed); v43's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-03-v44).
+Anchor: `origin/main` at `ecfde2a82` **as this was written**, or one commit ahead at this checkpoint's own commit (subject begins `chore(session): checkpoint — 2026-10-03-v44`). Verify with `git log --oneline ecfde2a82..origin/main`; any other commit there is a parallel push.
+
+**Current state:** live **`ent-os-00074-pdk`** (built from `d0e8fe5c8`), rollback `00073-zn7`. #38 closed, ledger V4 live. RKA tab = Jakpro Final deck (seed in the bucket). Asisten JUP default + visible to all. `jup_leadership` tool live on Asisten JUP and the voice model; "Bicara dengan Asisten" exists but navigates to Chat — Erik rejected that.
+
+**Do next, in order:**
+1. **Build the Ruang Pimpinan assistant side panel** (Erik's sketch 10-03; decisions settled):
+   - Click "Bicara dengan Asisten" → stay on Ruang Pimpinan; a right panel opens that **pushes** the content narrower (bottom sheet on a phone). Top: the voice orb. Below: the chat (live transcript + a text box to the same assistant).
+   - **User picks normal or GPT-Live each time**, inside the panel.
+   - **Panel and call survive Board ↔ RKA switching** (mount it in `src/routes/(app)/ruang-pimpinan/+layout.svelte`, not the page), and **the assistant knows which tab is open**: server-side, e.g. `POST /voice/calls` (or a leadership-chat route) takes `{view}`, checks `policy.may_read`, stores a signed `meta.jup_leadership_context` on the chat; `jup_leadership` reads it via `__chat_id__` and re-checks grants; tab switches update it. GPT-Live `session_config(instructions)` may take a one-line tab hint.
+   - The call UI today lives only in `Chat.svelte` (modals `VoiceDisclosure`, `VoiceModeChoice`, `LiveDisclosure`, `LiveCallPanel`, `CallOverlay`; `runVoiceCall` waits on `modeRequest`). Extract what the panel needs into fork-owned components under `src/lib/components/jup/` and reuse them in both places; keep the main chat's behaviour unchanged (VENDOR-PATCHES if `Chat.svelte` changes).
+   - Typed turns in the panel go to the same voice chat via the governed path (`enforce_voice_turn`), never a client-set system prompt.
+   - TDD backend first; vitest for the panel state; preview live by injection before merge; Erik's OK to merge + deploy; prove served = running.
+2. **Erik's test call from the panel** on the RKA tab ("berapa target pendapatan RKA 2027 dan apa asumsi utamanya?") → check `leadership_read` lines with `surface='assistant'` and, for GPT-Live, a `voice_live_delegation` relayed.
+3. **Disclosure wording (Erik):** normal-call text still says "Asisten suara hanya menjawab dari dokumen strategi yang ditetapkan" — untrue now. Proposed: "Asisten suara menjawab dari basis pengetahuan JUP, kartu kontrak, dan Ruang Pimpinan, sesuai hak akses Anda." Needs his OK + `DISCLOSURE_VERSION` bump (everyone re-acknowledges).
+4. Kartu Kontrak with the Legal account (carried from v43).
+5. Pattern band (recommended skip) and eyebrow copy — Erik.
+6. Carried: step-6 contract live check (Staff account), `jup_contracts` all-users read grant (Erik), Rully (truncated file 0594/0639, reviewers, app login, #46), #47, Notion #41/#42, CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- **Every new assistant tool must be added in BOTH `backend/jup/voice_turn.py` `VOICE_TOOL_IDS` and `deploy/gcp/sync-voice-model.ts`**, and named in GPT-Live `INSTRUCTIONS`, or voice silently loses it / GPT-Live never delegates it.
+- **New tools sync admin-only**; give the tool `user:*:read` only when the tool itself enforces access; attach to Asisten JUP by updating `meta.toolIds` WITHOUT `access_grants` in the body (omitting keeps grants).
+- **Sync scripts need the app tab pinned:** `INTERCEPTOR_CONTEXT=75e09d94-bc12-4b76-9688-c1f1dedec559 INTERCEPTOR_TAB=<tab id>`; the active tab is often WhatsApp/Teams. Open one with `interceptor open https://non-jupe.jup.co.id/ --no-wait`, find its id with `interceptor tabs`.
+- **The leadership seed lives in the bucket** (`gs://jup-ops-records/leadership/illustrative-seed.json`), not the image: a seed change = repo PR + upload (Erik's OK), save the before-copy.
+- **A wrap/clear kills a local `deploy.sh` mid-run** but Cloud Build/Run may still finish — check `gcloud builds list` and the revision before re-running.
+
+**Open items waiting on Erik:** test call from the panel once built; disclosure wording; Legal-account Kartu Kontrak check; pattern band; eyebrow copy; deck owner to fix GPM 11,3% vs 12,6% and CFO Rp7,81 M vs Rp9,73 M; Staff titles; `jup_contracts` all-users grant; Rully items; Notion token; Impeccable update; delete "Uji kecepatan" chats + two O1 test .docx?; Daftar Perkara grant; Gmail send scope; `docker-compose.dev.yaml`; "Test" collection.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-03-v43)
 
 > Prepended 2026-10-03 (checkpoint 2026-10-03-v43). Supersedes v42's anchor and its "do next" (PR #59 is merged and live); v42's and older blocks' constraints still hold unless noted.
