@@ -52,7 +52,7 @@ design. The sandbox work for terminal and browser is needed on either path.
 | O1  | Office output: Word documents (.docx) in the JUP template | in-progress | docs (holaOS: `doc-coauthoring` skill + bash) | live 00060, all staff; staff-account check open |
 | O2  | Office output: spreadsheets (.xlsx)                      | live    | sheets (holaOS: `xlsx` skill + bash) | live 00083 10-03; accepted: card 0003 → TERBATAS .xlsx; tool attached to Asisten JUP |
 | O3  | Office output: slide decks (.pptx) in the JUP template   | planned | slides (holaOS: `pptx` skill + bash) | O2 (shared tool shape); copy Presentasi v1.5-r2 into the repo |
-| O4  | Office preview panel: files open in the chat column, view-only | in-progress | in-app preview (holaOS: desktop preview) | PR open; Erik's OK to merge + deploy |
+| O4  | Office preview panel: files open in the chat column, view-only | live    | in-app preview (holaOS: desktop preview) | live 00084 10-03; click + auto-open confirmed by Erik |
 | X1  | Hermes as an admin-only lab runtime                     | parked  | runtime experiments                | Erik reopens it                              |
 
 ## Where the gap is (holaOS `a6b58be` vs Asisten JUP `254da9640`)
