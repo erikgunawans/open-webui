@@ -1,0 +1,450 @@
+{
+  "schema_version": 1,
+  "dataset_id": "jup-leadership-illustrative-2026-09-24",
+  "revision": "example-v1",
+  "data_mode": "illustrative",
+  "coverage": "partial",
+  "sources": [
+    {
+      "id": "board-financial",
+      "filename": "20260918 - BOD & BOC Meeting Review Agustus 2026.pptx",
+      "document_date": "2026-09-18",
+      "physical_slides": [
+        4
+      ],
+      "visibility": "visible",
+      "document_status": "presented",
+      "verification_status": "unverified"
+    },
+    {
+      "id": "board-margin",
+      "filename": "20260918 - BOD & BOC Meeting Review Agustus 2026.pptx",
+      "document_date": "2026-09-18",
+      "physical_slides": [
+        5
+      ],
+      "visibility": "visible",
+      "document_status": "presented",
+      "verification_status": "unverified"
+    },
+    {
+      "id": "board-directions",
+      "filename": "20260918 - BOD & BOC Meeting Review Agustus 2026.pptx",
+      "document_date": "2026-09-18",
+      "physical_slides": [
+        3
+      ],
+      "visibility": "visible",
+      "document_status": "presented",
+      "verification_status": "unverified"
+    },
+    {
+      "id": "board-gas",
+      "filename": "20260918 - BOD & BOC Meeting Review Agustus 2026.pptx",
+      "document_date": "2026-09-18",
+      "physical_slides": [
+        6
+      ],
+      "visibility": "visible",
+      "document_status": "presented",
+      "verification_status": "unverified"
+    },
+    {
+      "id": "rka-assumptions",
+      "filename": "20260923 - RKA 2027 - DRAFT 1.pptx",
+      "document_date": "2026-09-23",
+      "physical_slides": [
+        3
+      ],
+      "visibility": "visible",
+      "document_status": "draft",
+      "verification_status": "unverified"
+    },
+    {
+      "id": "rka-cash",
+      "filename": "20260923 - RKA 2027 - DRAFT 1.pptx",
+      "document_date": "2026-09-23",
+      "physical_slides": [
+        5
+      ],
+      "visibility": "visible",
+      "document_status": "draft",
+      "verification_status": "unverified"
+    }
+  ],
+  "actions": [
+    {
+      "id": "example-action-gas",
+      "title": "Finalisasi alokasi gas",
+      "owner_label": "SPBG / Petross · Pak Deco",
+      "due": {
+        "precision": "month",
+        "label": "September 2026",
+        "year": 2026,
+        "month": 9
+      },
+      "progress_summary": "Konsep PJBG disetujui; administrasi, pengaturan pipa, izin, dan modal kerja masih memerlukan tindak lanjut.",
+      "source_ids": [
+        "board-directions",
+        "board-gas"
+      ],
+      "state": "in_progress",
+      "source_as_of": "2026-09-18",
+      "verification_status": "unverified",
+      "history_complete": false,
+      "completion_evidence": [],
+      "closure": null
+    },
+    {
+      "id": "example-action-water",
+      "title": "Mutu air dan penyesuaian tarif PAM Jaya",
+      "owner_label": "WTP KBB / JMA · Pak Agus",
+      "due": {
+        "precision": "year_range",
+        "label": "2026–2027",
+        "start_year": 2026,
+        "end_year": 2027
+      },
+      "progress_summary": "Pengendalian mutu dan uji laboratorium; penyusunan formulasi tarif bersama PAM Jaya.",
+      "source_ids": [
+        "board-directions"
+      ],
+      "state": "in_progress",
+      "source_as_of": "2026-09-18",
+      "verification_status": "unverified",
+      "history_complete": false,
+      "completion_evidence": [],
+      "closure": null
+    },
+    {
+      "id": "example-action-transformation",
+      "title": "Transformasi bisnis dan organisasi",
+      "owner_label": "Direktur Bisnis & Operasional",
+      "due": {
+        "precision": "year",
+        "label": "2026",
+        "year": 2026
+      },
+      "progress_summary": "Penyusunan kajian internal tercantum sebagai tindak lanjut.",
+      "source_ids": [
+        "board-directions"
+      ],
+      "state": "in_progress",
+      "source_as_of": "2026-09-18",
+      "verification_status": "unverified",
+      "history_complete": false,
+      "completion_evidence": [],
+      "closure": null
+    }
+  ],
+  "views": {
+    "board": {
+      "context": {
+        "id": "example-board-2026-08",
+        "kind": "source_example",
+        "workspace": "board",
+        "scope_id": "jup-consolidated",
+        "period_start": "2026-01-01",
+        "period_end": "2026-08-31",
+        "label": "Januari–Agustus 2026 · contoh bahan rapat",
+        "report_status": "unverified_source",
+        "source_ids": [
+          "board-financial",
+          "board-margin",
+          "board-directions",
+          "board-gas"
+        ]
+      },
+      "metrics": [
+        {
+          "id": "example-revenue-ytd",
+          "label": "Pendapatan usaha",
+          "primary": {
+            "value": "144.47",
+            "unit": "IDR_billion",
+            "kind": "actual",
+            "period_start": "2026-01-01",
+            "period_end": "2026-08-31",
+            "scope_id": "jup-consolidated",
+            "missing_reason": null,
+            "definition_status": "candidate"
+          },
+          "baseline": {
+            "value": "158.47",
+            "unit": "IDR_billion",
+            "kind": "budget",
+            "period_start": "2026-01-01",
+            "period_end": "2026-08-31",
+            "scope_id": "jup-consolidated",
+            "missing_reason": null,
+            "definition_status": "candidate"
+          },
+          "comparison_kind": "same_period_budget",
+          "comparison_note": "Periode yang sama pada 2025: Rp124,02 miliar.",
+          "verification_status": "unverified",
+          "source_ids": [
+            "board-financial"
+          ]
+        },
+        {
+          "id": "example-net-result-ytd",
+          "label": "Laba / rugi bersih",
+          "primary": {
+            "value": "-2.65",
+            "unit": "IDR_billion",
+            "kind": "actual",
+            "period_start": "2026-01-01",
+            "period_end": "2026-08-31",
+            "scope_id": "jup-consolidated",
+            "missing_reason": null,
+            "definition_status": "candidate"
+          },
+          "baseline": {
+            "value": "-0.40",
+            "unit": "IDR_billion",
+            "kind": "budget",
+            "period_start": "2026-01-01",
+            "period_end": "2026-08-31",
+            "scope_id": "jup-consolidated",
+            "missing_reason": null,
+            "definition_status": "candidate"
+          },
+          "comparison_kind": "same_period_budget",
+          "comparison_note": "Nilai negatif menunjukkan rugi; persentase pencapaian tidak ditetapkan.",
+          "verification_status": "unverified",
+          "source_ids": [
+            "board-financial"
+          ]
+        },
+        {
+          "id": "example-gross-margin-ytd",
+          "label": "Margin laba kotor",
+          "primary": {
+            "value": "10.5",
+            "unit": "percent",
+            "kind": "actual",
+            "period_start": "2026-01-01",
+            "period_end": "2026-08-31",
+            "scope_id": "jup-consolidated",
+            "missing_reason": null,
+            "definition_status": "candidate"
+          },
+          "baseline": {
+            "value": "11.4",
+            "unit": "percent",
+            "kind": "budget",
+            "period_start": "2026-01-01",
+            "period_end": "2026-08-31",
+            "scope_id": "jup-consolidated",
+            "missing_reason": null,
+            "definition_status": "candidate"
+          },
+          "comparison_kind": "same_period_budget",
+          "comparison_note": "Selisih dinyatakan dalam poin persentase.",
+          "verification_status": "unverified",
+          "source_ids": [
+            "board-margin"
+          ]
+        }
+      ],
+      "action_ids": [
+        "example-action-gas",
+        "example-action-water",
+        "example-action-transformation"
+      ],
+      "assumptions": [],
+      "module_states": [
+        {
+          "id": "prior-meeting-change",
+          "label": "Perubahan sejak rapat sebelumnya",
+          "state": "unavailable",
+          "reason": "Riwayat rapat yang sebanding belum tersedia."
+        },
+        {
+          "id": "decisions",
+          "label": "Keputusan yang diperlukan",
+          "state": "suggested",
+          "reason": "Pokok pembahasan adalah usulan; belum menjadi keputusan."
+        },
+        {
+          "id": "drivers",
+          "label": "Penggerak kinerja",
+          "state": "source_example",
+          "reason": "Konteks dari presentasi; atribusi pengaruh belum direkonsiliasi."
+        },
+        {
+          "id": "cash-collections",
+          "label": "Kas dan penagihan",
+          "state": "unavailable",
+          "reason": "Rincian piutang dan kewajiban belum terhubung."
+        },
+        {
+          "id": "risks",
+          "label": "Risiko dan ketergantungan",
+          "state": "source_example",
+          "reason": "Topik dari presentasi; register lengkap belum tersedia."
+        }
+      ]
+    },
+    "rka": {
+      "context": {
+        "id": "example-rka-2027-draft-1",
+        "kind": "source_example",
+        "workspace": "rka",
+        "scope_id": "jup-consolidated",
+        "period_start": "2027-01-01",
+        "period_end": "2027-12-31",
+        "label": "Tahun 2027 · RKA Draft 1",
+        "report_status": "draft",
+        "source_ids": [
+          "rka-assumptions",
+          "rka-cash",
+          "board-directions"
+        ]
+      },
+      "metrics": [
+        {
+          "id": "example-rka-revenue",
+          "label": "Target pendapatan",
+          "primary": {
+            "value": "413",
+            "unit": "IDR_billion",
+            "kind": "budget",
+            "period_start": "2027-01-01",
+            "period_end": "2027-12-31",
+            "scope_id": "jup-consolidated",
+            "missing_reason": null,
+            "definition_status": "candidate"
+          },
+          "baseline": null,
+          "comparison_kind": "narrative_only",
+          "comparison_note": "Sekitar Rp413 miliar; narasi sumber menyebut +64% terhadap RKA 2026. Angka dibulatkan.",
+          "verification_status": "unverified",
+          "source_ids": [
+            "rka-assumptions"
+          ]
+        },
+        {
+          "id": "example-rka-margin",
+          "label": "Target margin laba kotor",
+          "primary": {
+            "value": "7.9",
+            "unit": "percent",
+            "kind": "budget",
+            "period_start": "2027-01-01",
+            "period_end": "2027-12-31",
+            "scope_id": "jup-consolidated",
+            "missing_reason": null,
+            "definition_status": "candidate"
+          },
+          "baseline": null,
+          "comparison_kind": "narrative_only",
+          "comparison_note": "Pembanding: prognosa 2026 sebesar 11,7%, bukan realisasi 2027.",
+          "verification_status": "unverified",
+          "source_ids": [
+            "rka-assumptions"
+          ]
+        },
+        {
+          "id": "example-rka-cash",
+          "label": "Asumsi arus kas operasi",
+          "primary": {
+            "value": "7.81",
+            "unit": "IDR_billion",
+            "kind": "budget",
+            "period_start": "2027-01-01",
+            "period_end": "2027-12-31",
+            "scope_id": "jup-consolidated",
+            "missing_reason": null,
+            "definition_status": "candidate"
+          },
+          "baseline": null,
+          "comparison_kind": "narrative_only",
+          "comparison_note": "Pembanding: prognosa 2026 sebesar Rp13,49 miliar. Status tetap asumsi draft.",
+          "verification_status": "unverified",
+          "source_ids": [
+            "rka-cash"
+          ]
+        }
+      ],
+      "action_ids": [
+        "example-action-water"
+      ],
+      "assumptions": [
+        {
+          "id": "example-assumption-wtp",
+          "label": "Produksi WTP KBB",
+          "target_note": "310 → 400 LPS",
+          "watch_note": "Kapasitas, mutu air, dan tarif; fokus pemantauan merupakan usulan.",
+          "source_ids": [
+            "rka-assumptions"
+          ],
+          "action_ids": [
+            "example-action-water"
+          ],
+          "verification_status": "unverified"
+        },
+        {
+          "id": "example-assumption-cng",
+          "label": "Pengembangan CNG",
+          "target_note": "Rp133,9 miliar",
+          "watch_note": "Volume, mitra, dan waktu operasi; fokus pemantauan merupakan usulan.",
+          "source_ids": [
+            "rka-assumptions"
+          ],
+          "action_ids": [],
+          "verification_status": "unverified"
+        },
+        {
+          "id": "example-assumption-ebt",
+          "label": "Energi baru terbarukan",
+          "target_note": "Rp30,2 miliar",
+          "watch_note": "Lokasi dan kesiapan inisiatif; fokus pemantauan merupakan usulan.",
+          "source_ids": [
+            "rka-assumptions"
+          ],
+          "action_ids": [],
+          "verification_status": "unverified"
+        }
+      ],
+      "module_states": [
+        {
+          "id": "phased-budget",
+          "label": "Realisasi dan anggaran per periode",
+          "state": "unavailable",
+          "reason": "Anggaran bertahap dan realisasi terverifikasi belum tersedia."
+        },
+        {
+          "id": "forecast-gap",
+          "label": "Kesenjangan prognosa tahunan",
+          "state": "unavailable",
+          "reason": "Prognosa tahun 2027 belum tersedia."
+        },
+        {
+          "id": "commitments",
+          "label": "Belanja dan komitmen",
+          "state": "unavailable",
+          "reason": "Realisasi belanja dan sisa komitmen belum terhubung."
+        },
+        {
+          "id": "benefits",
+          "label": "Tonggak kerja dan manfaat",
+          "state": "unavailable",
+          "reason": "Penyelesaian operasional dan manfaat aktual perlu data terpisah."
+        },
+        {
+          "id": "versions",
+          "label": "Perbandingan versi",
+          "state": "unavailable",
+          "reason": "Contoh hanya memuat Draft 1; belum ada acuan yang disetujui."
+        },
+        {
+          "id": "scenarios",
+          "label": "Skenario yang disiapkan pemilik model",
+          "state": "unavailable",
+          "reason": "Model dan hasil skenario belum diberikan."
+        }
+      ]
+    }
+  }
+}
