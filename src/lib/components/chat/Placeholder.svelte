@@ -30,6 +30,9 @@
 	import NoneJupeMark from './Placeholder/NoneJupeMark.svelte';
 	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
 	import { getKnowledgeById } from '$lib/apis/knowledge';
+	import HomeShortcuts from '$lib/components/jup/HomeShortcuts.svelte';
+	import HomeAreas from '$lib/components/jup/HomeAreas.svelte';
+	import HomeRecent from '$lib/components/jup/HomeRecent.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -152,6 +155,15 @@
 			});
 	}
 
+	// JUP: the home's layout (heading, composer in a tray with shortcut chips, JUP areas, recent
+	// conversations). A chip writes its opening words into the composer and never sends them;
+	// "More" opens the knowledge starters and the configured suggestions below the composer.
+	let moreOpen = false;
+	const insertStarter = async (text: string) => {
+		await messageInput?.setText(text);
+		messageInput?.focus();
+	};
+
 	// True when viewing a shared folder the current user doesn't own AND lacks write access
 	$: folderReadOnly =
 		$selectedFolder != null &&
@@ -245,69 +257,6 @@
 					</h1>
 				</div>
 
-				{#if jupKb}
-					<!-- JUP: what it knows, as starters, then what it does not. -->
-					<div class="mt-3 px-5 max-w-xl flex flex-col items-center gap-1.5 text-sm font-normal">
-						<div class="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1.5">
-							<span class="text-gray-600 dark:text-gray-400">{$i18n.t('Knows:')}</span>
-							{#each knowledgeTopics as topic}
-								<button
-									type="button"
-									class="rounded-full border border-gray-200 dark:border-gray-700 px-2.5 py-1 text-[13px] leading-none text-gray-700 dark:text-gray-200 hover:bg-gray-50 hover:border-gray-300 dark:hover:bg-gray-850 transition-colors"
-									on:click={() => onSelect({ type: 'prompt', data: topic.prompt })}
-								>
-									{topic.label}
-								</button>
-							{/each}
-							{#if kbUpdated}
-								<span class="text-xs text-gray-600 dark:text-gray-400"
-									>· {$i18n.t('updated {{date}}', { date: kbUpdated })}</span
-								>
-							{/if}
-						</div>
-						<p class="text-xs text-gray-600 dark:text-gray-400">
-							{$i18n.t('Not connected yet: email, live finance, BOD decisions.')}
-						</p>
-					</div>
-				{/if}
-
-				<!-- JUP: the operating contract as a stance (backend/jup/governance.py rules 1 and 2),
-				     and the logging stated exactly: jup.governance records who, when, model and tools
-				     (argument size only, never content) in Cloud Logging's 30-day _Default bucket.
-				     ENABLE_ADMIN_CHAT_ACCESS is off (deploy.sh), which is what makes the history line
-				     complete. Change any of those and this copy is wrong. -->
-				<div class="mt-3 px-5 max-w-xl text-sm font-normal text-gray-600 dark:text-gray-400">
-					<p>
-						{$i18n.t("Honest about what it doesn't know, and never presents revenue as profit.")}
-					</p>
-					<details class="group mt-1 text-xs">
-						<summary
-							class="mx-auto w-fit cursor-pointer list-none inline-flex items-center gap-1 rounded-sm underline decoration-gray-300 dark:decoration-gray-600 underline-offset-4 hover:text-gray-800 dark:hover:text-gray-200 [&::-webkit-details-marker]:hidden"
-						>
-							{$i18n.t('What is logged?')}
-							<ChevronDown
-								className="size-3 transition-transform group-open:rotate-180"
-								strokeWidth="2.5"
-							/>
-						</summary>
-						<ul
-							class="mt-2 mx-auto w-fit max-w-md text-left list-disc ps-4 space-y-1 leading-relaxed"
-						>
-							<li>
-								{$i18n.t(
-									'Who asked, when, which model, and which tools were used. What you ask is not part of this record.'
-								)}
-							</li>
-							<li>{$i18n.t('This record is kept for 30 days for governance audit.')}</li>
-							<li>
-								{$i18n.t(
-									'Conversations are saved in your history. Temporary chats are not saved to history.'
-								)}
-							</li>
-						</ul>
-					</details>
-				</div>
-
 				<div class="flex mt-1 mb-2">
 					<div in:fade={{ duration: 100, delay: 50 }}>
 						{#if models[selectedModelIdx]?.info?.meta?.description ?? null}
@@ -358,43 +307,52 @@
 
 			<div class="text-base font-normal @md:max-w-3xl w-full py-3 {atSelectedModel ? 'mt-2' : ''}">
 				{#if !($selectedFolder && folderReadOnly)}
-					<MessageInput
-						bind:this={messageInput}
-						{history}
-						bind:selectedModels
-						bind:files
-						bind:prompt
-						bind:autoScroll
-						bind:selectedToolIds
-						bind:selectedSkillIds
-						bind:selectedFilterIds
-						bind:imageGenerationEnabled
-						bind:codeInterpreterEnabled
-						bind:webSearchEnabled
-						bind:atSelectedModel
-						bind:showCommands
-						bind:dragged
-						{pendingOAuthTools}
-						{oauthRedirectHandler}
-						{toolApprovalMode}
-						{onToolApprovalModeChange}
-						{stopResponse}
-						{createMessagePair}
-						placeholder={$i18n.t('Attach a document or ask a question…')}
-						{onChange}
-						{onUpload}
-						{onUpdate}
-						{messageQueue}
-						{onQueueSendNow}
-						{onQueueEdit}
-						{onQueueDelete}
-						{askUser}
-						{onWebSearchToggle}
-						on:chatVariables
-						on:submit={(e) => {
-							dispatch('submit', e.detail);
-						}}
-					/>
+					<div class={$selectedFolder ? '' : 'jup-composer-tray'}>
+						{#if !$selectedFolder}
+							<HomeShortcuts
+								onInsert={insertStarter}
+								onMore={() => (moreOpen = !moreOpen)}
+								{moreOpen}
+							/>
+						{/if}
+						<MessageInput
+							bind:this={messageInput}
+							{history}
+							bind:selectedModels
+							bind:files
+							bind:prompt
+							bind:autoScroll
+							bind:selectedToolIds
+							bind:selectedSkillIds
+							bind:selectedFilterIds
+							bind:imageGenerationEnabled
+							bind:codeInterpreterEnabled
+							bind:webSearchEnabled
+							bind:atSelectedModel
+							bind:showCommands
+							bind:dragged
+							{pendingOAuthTools}
+							{oauthRedirectHandler}
+							{toolApprovalMode}
+							{onToolApprovalModeChange}
+							{stopResponse}
+							{createMessagePair}
+							placeholder={$i18n.t('Attach a document or ask a question…')}
+							{onChange}
+							{onUpload}
+							{onUpdate}
+							{messageQueue}
+							{onQueueSendNow}
+							{onQueueEdit}
+							{onQueueDelete}
+							{askUser}
+							{onWebSearchToggle}
+							on:chatVariables
+							on:submit={(e) => {
+								dispatch('submit', e.detail);
+							}}
+						/>
+					</div>
 				{/if}
 			</div>
 		</div>
@@ -405,17 +363,86 @@
 			<FolderPlaceholder folder={$selectedFolder} />
 		</div>
 	{:else}
-		<!-- JUP: the same width as the input above, so the suggestions share its left edge. -->
-		<div class="mx-auto w-full @md:max-w-3xl mt-2" in:fade={{ duration: 200, delay: 200 }}>
-			<div class="mx-2">
-				<Suggestions
-					suggestionPrompts={atSelectedModel?.info?.meta?.suggestion_prompts ??
-						models[selectedModelIdx]?.info?.meta?.suggestion_prompts ??
-						$config?.default_prompt_suggestions ??
-						[]}
-					inputValue={prompt}
-					{onSelect}
-				/>
+		<!-- JUP: the same width as the input above, so everything below shares its left edge. -->
+		<div
+			class="mx-auto w-full @md:max-w-3xl mt-1 text-left"
+			in:fade={{ duration: 200, delay: 200 }}
+		>
+			<div class="mx-2 flex flex-col gap-6">
+				{#if moreOpen}
+					<div id="jup-home-more" class="jup-home-more">
+						{#if jupKb}
+							<div class="jup-home-topics">
+								<span class="jup-home-topics-label">{$i18n.t('Knows:')}</span>
+								{#each knowledgeTopics as topic}
+									<button
+										type="button"
+										class="jup-chip jup-chip-small"
+										on:click={() => onSelect({ type: 'prompt', data: topic.prompt })}
+									>
+										{topic.label}
+									</button>
+								{/each}
+								{#if kbUpdated}
+									<span class="jup-home-topics-label"
+										>· {$i18n.t('updated {{date}}', { date: kbUpdated })}</span
+									>
+								{/if}
+							</div>
+						{/if}
+						<Suggestions
+							suggestionPrompts={atSelectedModel?.info?.meta?.suggestion_prompts ??
+								models[selectedModelIdx]?.info?.meta?.suggestion_prompts ??
+								$config?.default_prompt_suggestions ??
+								[]}
+							inputValue={prompt}
+							{onSelect}
+						/>
+					</div>
+				{/if}
+
+				<HomeAreas />
+				<HomeRecent />
+
+				<div class="jup-home-foot">
+					<p>{$i18n.t('Not connected yet: email, live finance, BOD decisions.')}</p>
+					<!-- JUP: the operating contract as a stance (backend/jup/governance.py rules 1 and 2),
+				     and the logging stated exactly: jup.governance records who, when, model and tools
+				     (argument size only, never content) in Cloud Logging's 30-day _Default bucket.
+				     ENABLE_ADMIN_CHAT_ACCESS is off (deploy.sh), which is what makes the history line
+				     complete. Change any of those and this copy is wrong. -->
+					<div class="text-sm font-normal text-gray-600 dark:text-gray-400">
+						<p>
+							{$i18n.t("Honest about what it doesn't know, and never presents revenue as profit.")}
+						</p>
+						<details class="group mt-1 text-xs">
+							<summary
+								class="mx-auto w-fit cursor-pointer list-none inline-flex items-center gap-1 rounded-sm underline decoration-gray-300 dark:decoration-gray-600 underline-offset-4 hover:text-gray-800 dark:hover:text-gray-200 [&::-webkit-details-marker]:hidden"
+							>
+								{$i18n.t('What is logged?')}
+								<ChevronDown
+									className="size-3 transition-transform group-open:rotate-180"
+									strokeWidth="2.5"
+								/>
+							</summary>
+							<ul
+								class="mt-2 mx-auto w-fit max-w-md text-left list-disc ps-4 space-y-1 leading-relaxed"
+							>
+								<li>
+									{$i18n.t(
+										'Who asked, when, which model, and which tools were used. What you ask is not part of this record.'
+									)}
+								</li>
+								<li>{$i18n.t('This record is kept for 30 days for governance audit.')}</li>
+								<li>
+									{$i18n.t(
+										'Conversations are saved in your history. Temporary chats are not saved to history.'
+									)}
+								</li>
+							</ul>
+						</details>
+					</div>
+				</div>
 			</div>
 		</div>
 	{/if}

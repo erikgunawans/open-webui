@@ -302,6 +302,14 @@
 		else if (phase === 'ready') startRecording();
 	};
 
+	// The voice button in the composer: starts a normal call if none is open, then talks.
+	const voiceFromComposer = async () => {
+		if (!call) {
+			if (!(await begin('governed'))) return;
+		}
+		if (call?.mode === 'governed') talk();
+	};
+
 	const hangUp = async () => {
 		stopSpeech();
 		if (recorder && recorder.state !== 'inactive') {
@@ -468,33 +476,58 @@
 		<a class="jup-ap-record" href="/c/{call.chat_id}">{$i18n.t('Open the written record')}</a>
 	{/if}
 
-	<form class="jup-ap-input" on:submit|preventDefault={send}>
-		<textarea
-			bind:value={draft}
-			on:keydown={onKey}
-			rows="2"
-			maxlength="2000"
-			placeholder={$i18n.t('Ask about this page…')}
-			aria-label={$i18n.t('Ask about this page…')}
-			disabled={modes.length === 0}
-		></textarea>
-		<button
-			type="submit"
-			class="jup-ap-send"
-			disabled={!draft.trim() || asking || modes.length === 0}
-			aria-label={$i18n.t('Send')}
-		>
-			<svg
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg
-			>
-		</button>
-	</form>
+	<div class="jup-ap-compose">
+		<form class="jup-ap-input" on:submit|preventDefault={send}>
+			<textarea
+				bind:value={draft}
+				on:keydown={onKey}
+				rows="2"
+				maxlength="2000"
+				placeholder={$i18n.t('Ask about this page…')}
+				aria-label={$i18n.t('Ask about this page…')}
+				disabled={modes.length === 0}
+			></textarea>
+			<div class="jup-ap-input-row">
+				{#if call?.mode !== 'live'}
+					<button
+						type="button"
+						class="jup-ap-voice-btn"
+						class:jup-ap-voice-on={phase === 'recording'}
+						on:click={voiceFromComposer}
+						disabled={modes.length === 0 || phase === 'thinking' || phase === 'starting'}
+						aria-label={phase === 'recording'
+							? $i18n.t('Listening… tap to send')
+							: $i18n.t('Tap to speak')}
+					>
+						<svg
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							aria-hidden="true"><path d="M6 10v4M10 7v10M14 9v6M18 11v2" /></svg
+						>
+					</button>
+				{/if}
+				<button
+					type="submit"
+					class="jup-ap-send"
+					disabled={!draft.trim() || asking || modes.length === 0}
+					aria-label={$i18n.t('Send')}
+				>
+					<svg
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg
+					>
+				</button>
+			</div>
+		</form>
+	</div>
 </aside>
 
 <style>
@@ -723,20 +756,33 @@
 		text-underline-offset: 2px;
 	}
 
+	/* The same composer as the chat home: a paper card inside a soft tray, controls on its foot. */
+	.jup-ap-compose {
+		margin: 0 0.75rem 0.75rem;
+		padding: 0.375rem;
+		border-radius: calc(var(--jup-ui-radius-nested) + 0.375rem);
+		background: var(--jup-ui-surface-alt);
+		box-shadow: 0 0 0 1px var(--jup-ui-hairline);
+	}
+
 	.jup-ap-input {
 		display: flex;
-		align-items: flex-end;
-		gap: 0.5rem;
-		padding: 0.75rem 1rem 1rem;
-		border-top: 1px solid var(--jup-ui-hairline);
+		flex-direction: column;
+		gap: 0.25rem;
+		padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+		border-radius: var(--jup-ui-radius-nested);
+		background: var(--jup-ui-paper);
+		box-shadow: 0 0 0 1px var(--jup-ui-hairline);
+	}
+
+	.jup-ap-input:focus-within {
+		box-shadow: 0 0 0 1px var(--jup-ui-hairline-strong);
 	}
 
 	.jup-ap-input textarea {
-		flex: 1;
 		resize: none;
-		padding: 0.5rem 0.75rem;
-		border-radius: var(--jup-ui-radius-nested);
-		background: var(--jup-ui-fill);
+		padding: 0.25rem 0;
+		background: transparent;
 		color: var(--jup-ui-ink);
 		font-size: 0.875rem;
 	}
@@ -745,9 +791,50 @@
 		color: var(--jup-ui-muted);
 	}
 
+	/* The card's edge shows focus; the field itself needs no second ring. */
 	.jup-ap-input textarea:focus-visible {
+		outline: none;
+	}
+
+	.jup-ap-input-row {
+		display: flex;
+		justify-content: flex-end;
+		gap: 0.5rem;
+	}
+
+	.jup-ap-voice-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.25rem;
+		height: 2.25rem;
+		border-radius: 999px;
+		box-shadow: 0 0 0 1px var(--jup-ui-hairline-strong);
+		color: var(--jup-ui-ink);
+	}
+
+	.jup-ap-voice-btn svg {
+		width: 1.125rem;
+		height: 1.125rem;
+	}
+
+	.jup-ap-voice-btn:hover {
+		background: var(--jup-ui-fill);
+	}
+
+	.jup-ap-voice-on {
+		background: var(--jup-brand);
+		color: #011627;
+		box-shadow: none;
+	}
+
+	.jup-ap-voice-btn:disabled {
+		opacity: 0.4;
+	}
+
+	.jup-ap-voice-btn:focus-visible {
 		outline: 2px solid var(--jup-ring);
-		outline-offset: 1px;
+		outline-offset: 2px;
 	}
 
 	.jup-ap-send {
