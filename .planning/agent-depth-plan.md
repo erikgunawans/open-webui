@@ -51,7 +51,7 @@ design. The sandbox work for terminal and browser is needed on either path.
 | I1  | Integrations via MCP (Notion first)                     | in-progress | integrations                   | live 00060, admin-only, off until #41 token |
 | O1  | Office output: Word documents (.docx) in the JUP template | in-progress | docs (holaOS: `doc-coauthoring` skill + bash) | live 00060, all staff; staff-account check open |
 | O2  | Office output: spreadsheets (.xlsx)                      | live    | sheets (holaOS: `xlsx` skill + bash) | live 00083 10-03; accepted: card 0003 → TERBATAS .xlsx; tool attached to Asisten JUP |
-| O3  | Office output: slide decks (.pptx) in the JUP template   | planned | slides (holaOS: `pptx` skill + bash) | O2 (shared tool shape); copy Presentasi v1.5-r2 into the repo |
+| O3  | Office output: slide decks (.pptx) in the JUP template   | built, not deployed | slides (holaOS: `pptx` skill + bash) | O2 (shared tool shape); copy Presentasi v1.5-r2 into the repo |
 | O4  | Office preview panel: files open in the chat column, view-only | live    | in-app preview (holaOS: desktop preview) | live 00084 10-03; click + auto-open confirmed by Erik |
 | X1  | Hermes as an admin-only lab runtime                     | parked  | runtime experiments                | Erik reopens it                              |
 
@@ -304,6 +304,18 @@ there is no code sandbox to build and no new egress, hence no D-decision under D
      PowerPoint and Keynote on the JUP master, the charts can be edited, and the classification footer is right.
   **Known trap:** the RKA deck's own numbers disagree (GPM 11,3% vs 12,6%, CFO Rp7,81 M vs Rp9,73 M);
   a generated deck repeats whatever the source says, so the deck owner's fix should land first.
+  **Built 2026-10-03 (tickets 1-2):** `jup.office_slides.render_slides` + `presentation_layouts` /
+  `create_presentation` in the existing `jup_documents` tool (1.2.0; already granted to all staff, so
+  no new grant). The model picks layouts by meaning (`agenda`, `kpi`, `bar_chart`, `decision`, …, 18
+  plus two cover styles = layouts 01-20) and fills named fields; `manifest.json` maps them to
+  placeholder idx. Found while building: the template writes `type="subtitle"` (OOXML says `subTitle`),
+  corrected in memory so the checked-in file stays byte-identical; its sizes live on the prompt runs,
+  not the list style, so they are copied; tables and charts are cloned from the template's own
+  example slides (which are then dropped) but the example chart's fixed axis (0-150) is removed;
+  each table layout draws a rule under each example row, so a table keeps that row height and is
+  capped at the example's row count (4, or 3 for risks/actions). Text is measured against each box
+  and refused when it would overflow (calibrated on LibreOffice renders). Not in `VOICE_TOOL_IDS`.
+  Ticket 3 (deploy, `sync-tools` 1.2.0, live acceptance) needs Erik's OKs.
 - **Erik's decisions (2026-09-29):** office output is for **all staff**; the templates are
   **JUP Template Dokumen 2.0** (17 Word templates, 17 Sept 2026) and **Presentasi v1.5-r2**, from
   `~/NEW-JUP/deliverables/JUP-Enterprise-Document-Templates-2026-09-17/` (zip of the whole set beside it).

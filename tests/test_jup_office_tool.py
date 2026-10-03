@@ -13,9 +13,11 @@ import pytest
 
 from docx import Document
 from openpyxl import load_workbook
+from pptx import Presentation
 
 from jup import office_floor, office_tool
 from jup.office_tool import (
+    DECK_NOT_CREATED,
     FLOOR_FAILED,
     NO_CHAT,
     NO_USER,
@@ -23,14 +25,17 @@ from jup.office_tool import (
     SHEET_NOT_CREATED,
     STORE_FAILED,
     create_document,
+    create_presentation,
     create_spreadsheet,
     document_templates,
+    presentation_layouts,
 )
 
 TOOL_SOURCE = Path(__file__).resolve().parent.parent / 'tools' / 'jup_documents.py'
 USER = {'id': 'u-1', 'name': 'Staf JUP', 'role': 'user'}
 BLOCKS = [{'type': 'heading', 'level': 2, 'text': 'Agenda'}, {'type': 'bullets', 'items': ['Status SPBG']}]
 SHEETS = [{'name': 'Kontrak', 'columns': [{'header': 'Mitra'}, {'header': 'Nilai', 'type': 'idr'}], 'rows': [['A', 5]]}]
+SLIDES = [{'layout': 'agenda', 'title': 'Agenda', 'items': ['Kinerja', 'RKA 2027']}]
 
 
 def floor_of(level):
@@ -235,6 +240,80 @@ def test_spreadsheet_refusals_are_unmistakable_and_store_nothing():
     assert _sheet(Recorder(fail=True)).startswith(SHEET_NOT_CREATED)
 
 
+# -- create_presentation -----------------------------------------------------------------------
+
+
+def _deck(recorder: Recorder, **overrides) -> str:
+    kwargs = {
+        'request': 'REQ',
+        'user': USER,
+        'chat_id': 'chat-1',
+        'message_id': 'msg-1',
+        'title': 'Kinerja triwulan III',
+        'slides': SLIDES,
+        'emit': recorder.emit,
+        'store': recorder.store,
+        'floor_lookup': floor_of(None),
+    }
+    kwargs.update(overrides)
+    return asyncio.run(create_presentation(**kwargs))
+
+
+def test_a_presentation_is_stored_for_the_asking_user_and_attached():
+    recorder = Recorder()
+    text = _deck(recorder, cover={'kind': 'Rapat Direksi'}, classification='terbatas')
+    (request, rendered, user, chat_id, message_id) = recorder.stored[0]
+    assert (request, user, chat_id, message_id) == ('REQ', USER, 'chat-1', 'msg-1')
+    assert rendered.classification == 'TERBATAS'
+    item = recorder.events[0]['data']['files'][0]
+    assert item['content_type'] == 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    assert item['name'] == 'JUP-PPT-Kinerja-triwulan-III-Draf.pptx'
+    prs = Presentation(io.BytesIO(rendered.data))
+    assert len(prs.slides) == 2 and prs.core_properties.author == 'Staf JUP'
+    assert text.startswith('Created "JUP-PPT-Kinerja-triwulan-III-Draf.pptx" with 2 slides, including the cover')
+    assert 'Status: Draf. Classification: TERBATAS.' in text
+
+
+def test_the_stored_presentation_records_what_it_is():
+    recorder = Recorder()
+    _deck(recorder)
+    rendered = recorder.stored[0][1]
+    assert office_tool.file_metadata(rendered, 'chat-1', 'msg-1') == {
+        'chat_id': 'chat-1',
+        'message_id': 'msg-1',
+        'jup_office': {'kind': 'pptx', 'classification': 'INTERNAL', 'status': 'Draf'},
+    }
+
+
+def test_a_chat_that_read_restricted_material_raises_the_decks_classification():
+    recorder = Recorder()
+    text = _deck(recorder, classification='INTERNAL', floor_lookup=floor_of('TERBATAS'))
+    assert recorder.stored[0][1].classification == 'TERBATAS'
+    assert 'Classification: TERBATAS' in text
+
+
+def test_what_is_left_for_the_user_is_named():
+    recorder = Recorder()
+    text = _deck(recorder, slides=[{'layout': 'project', 'title': 'PLTS Atap', 'text': 'Tujuan'}])
+    assert 'Left for the user to fill: slide 2: the project photo.' in text
+
+
+def test_presentation_refusals_are_unmistakable_and_store_nothing():
+    recorder = Recorder()
+    assert _deck(recorder, chat_id=None).startswith(DECK_NOT_CREATED)
+    assert _deck(recorder, user=None).startswith(DECK_NOT_CREATED)
+    assert _deck(recorder, floor_lookup=broken_floor).startswith(DECK_NOT_CREATED)
+    refused = _deck(recorder, slides=[{'layout': 'gallery', 'title': 'x'}])
+    assert refused.startswith(DECK_NOT_CREATED) and 'use one of: agenda' in refused
+    assert recorder.stored == [] and recorder.events == []
+    assert _deck(Recorder(fail=True)).startswith(DECK_NOT_CREATED)
+
+
+def test_presentation_layouts_lists_or_describes():
+    assert '- kpi: Empat KPI berdampingan' in presentation_layouts()
+    assert presentation_layouts('kpi').startswith('kpi: Empat KPI berdampingan')
+
+
 def test_document_templates_lists_or_outlines():
     assert '- MEM: Memo usulan keputusan' in document_templates()
     assert document_templates('mem').startswith('# MEM: Memo usulan keputusan')
@@ -248,14 +327,27 @@ def test_the_stored_wrapper_holds_no_logic_of_its_own():
     tree = ast.parse(source)
     tools = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'Tools')
     methods = [n for n in tools.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
-    assert [m.name for m in methods] == ['document_templates', 'create_document', 'create_spreadsheet']
-    for method, target in zip(methods, ('_document_templates(', '_create_document(', '_create_spreadsheet(')):
+    assert [m.name for m in methods] == [
+        'document_templates',
+        'create_document',
+        'create_spreadsheet',
+        'presentation_layouts',
+        'create_presentation',
+    ]
+    targets = (
+        '_document_templates(',
+        '_create_document(',
+        '_create_spreadsheet(',
+        '_presentation_layouts(',
+        '_create_presentation(',
+    )
+    for method, target in zip(methods, targets):
         body = [n for n in method.body if not (isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant))]
         assert len(body) == 1 and isinstance(body[0], ast.Return), method.name
         assert target in ast.unparse(body[0])
 
 
-@pytest.mark.parametrize('target', ['_create_document', '_create_spreadsheet'])
+@pytest.mark.parametrize('target', ['_create_document', '_create_spreadsheet', '_create_presentation'])
 def test_the_wrapper_passes_the_callers_identity_and_chat_through(target):
     call = ast.unparse(
         next(

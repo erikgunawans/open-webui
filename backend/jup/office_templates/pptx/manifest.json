@@ -1,0 +1,584 @@
+{
+	"source": "Template presentasi JUP v1.5-r2 (17 September 2026), ~/NEW-JUP/deliverables/JUP-Enterprise-Document-Templates-2026-09-17/output/Presentasi",
+	"file": "JUP-Enterprise-Template-v1.5-r2.pptx",
+	"sha256": "01cf1f7aa3afa854f9c026787689905ca3a32a411711a5e01f2fa2c0468b9052",
+	"excluded": {
+		"21 Panduan identitas": "template guidance, not content",
+		"22 Panduan tipografi": "template guidance, not content",
+		"23 Panduan data": "template guidance, not content",
+		"24 Panduan penggunaan": "template guidance, not content",
+		"25 Sampul dengan pembicara": "speaker pages need names and photos the assistant does not have",
+		"26 Profil satu pembicara": "speaker pages need names and photos the assistant does not have",
+		"27 Dua pembicara tanpa foto": "speaker pages need names and photos the assistant does not have",
+		"28 Panel tiga pembicara": "speaker pages need names and photos the assistant does not have",
+		"29 Tim penyusun enam anggota": "speaker pages need names and photos the assistant does not have",
+		"30 Penyaji dan kontribusi tim": "speaker pages need names and photos the assistant does not have"
+	},
+	"covers": {
+		"institusional": {
+			"layout": "01 Sampul institusional",
+			"name": "Sampul institusional (terang)",
+			"fields": {
+				"title": 0,
+				"kind": 2,
+				"unit_date": 3
+			},
+			"fixed": [
+				89,
+				1,
+				90,
+				91
+			],
+			"footer": 98
+		},
+		"korporat": {
+			"layout": "02 Sampul korporat",
+			"name": "Sampul korporat (gelap)",
+			"fields": {
+				"title": 0,
+				"kind": 2,
+				"unit_date": 3
+			},
+			"fixed": [
+				1,
+				90,
+				91
+			],
+			"footer": 98
+		}
+	},
+	"layouts": {
+		"agenda": {
+			"layout": "03 Agenda",
+			"name": "Agenda pembahasan",
+			"fields": {
+				"title": {
+					"idx": 0,
+					"required": true
+				}
+			},
+			"groups": {
+				"items": {
+					"min": 2,
+					"max": 4,
+					"number": "no",
+					"slots": [
+						{
+							"no": 3,
+							"text": 4
+						},
+						{
+							"no": 5,
+							"text": 6
+						},
+						{
+							"no": 7,
+							"text": 8
+						},
+						{
+							"no": 9,
+							"text": 10
+						}
+					]
+				}
+			}
+		},
+		"summary": {
+			"layout": "04 Ringkasan eksekutif",
+			"name": "Ringkasan eksekutif: tiga poin bernomor",
+			"fields": {
+				"title": {
+					"idx": 0,
+					"required": true
+				},
+				"subtitle": {
+					"idx": 1
+				}
+			},
+			"groups": {
+				"points": {
+					"min": 2,
+					"max": 3,
+					"number": "no",
+					"slots": [
+						{
+							"no": 3,
+							"heading": 4,
+							"text": 5
+						},
+						{
+							"no": 6,
+							"heading": 7,
+							"text": 8
+						},
+						{
+							"no": 9,
+							"heading": 10,
+							"text": 11
+						}
+					]
+				}
+			},
+			"source": {
+				"idx": 97
+			}
+		},
+		"section": {
+			"layout": "05 Pembatas bagian",
+			"name": "Pembatas bagian (gelap), bernomor otomatis",
+			"fields": {
+				"title": {
+					"idx": 0,
+					"required": true
+				},
+				"subtitle": {
+					"idx": 1
+				}
+			},
+			"section_number": 2
+		},
+		"text": {
+			"layout": "06 Judul dan uraian",
+			"name": "Pesan utama dengan uraian di samping",
+			"fields": {
+				"title": {
+					"idx": 0,
+					"required": true
+				},
+				"subtitle": {
+					"idx": 1
+				},
+				"message": {
+					"idx": 3,
+					"required": true
+				},
+				"side_heading": {
+					"idx": 4,
+					"default": "Dasar pembahasan"
+				},
+				"side_text": {
+					"idx": 5
+				}
+			},
+			"source": {
+				"idx": 97
+			}
+		},
+		"two_columns": {
+			"layout": "07 Dua kolom",
+			"name": "Dua kolom: dua aspek berdampingan",
+			"fields": {
+				"title": {
+					"idx": 0,
+					"required": true
+				},
+				"left_heading": {
+					"idx": 3,
+					"required": true
+				},
+				"left_points": {
+					"idx": 4,
+					"required": true,
+					"list": true,
+					"spaced": true
+				},
+				"right_heading": {
+					"idx": 5,
+					"required": true
+				},
+				"right_points": {
+					"idx": 6,
+					"required": true,
+					"list": true,
+					"spaced": true
+				}
+			},
+			"source": {
+				"idx": 97
+			}
+		},
+		"kpi": {
+			"layout": "08 Empat KPI",
+			"name": "Empat KPI berdampingan",
+			"fields": {
+				"title": {
+					"idx": 0,
+					"required": true
+				},
+				"subtitle": {
+					"idx": 1
+				}
+			},
+			"groups": {
+				"kpis": {
+					"min": 4,
+					"max": 4,
+					"slots": [
+						{
+							"name": 3,
+							"value": 4,
+							"unit": 5,
+							"period": 6
+						},
+						{
+							"name": 7,
+							"value": 8,
+							"unit": 9,
+							"period": 10
+						},
+						{
+							"name": 11,
+							"value": 12,
+							"unit": 13,
+							"period": 14
+						},
+						{
+							"name": 15,
+							"value": 16,
+							"unit": 17,
+							"period": 18
+						}
+					]
+				}
+			},
+			"source": {
+				"idx": 97,
+				"required": true
+			}
+		},
+		"bar_chart": {
+			"layout": "09 Grafik perbandingan",
+			"name": "Grafik batang perbandingan (dapat diedit)",
+			"section": "KINERJA",
+			"fields": {
+				"title": {
+					"idx": 0,
+					"required": true
+				},
+				"subtitle": {
+					"idx": 1
+				},
+				"note_heading": {
+					"idx": 4
+				},
+				"note": {
+					"idx": 5
+				}
+			},
+			"chart": {
+				"idx": 3,
+				"kind": "bar"
+			},
+			"source": {
+				"idx": 97,
+				"required": true
+			}
+		},
+		"line_chart": {
+			"layout": "10 Grafik tren",
+			"name": "Grafik garis tren (dapat diedit)",
+			"section": "TREN",
+			"fields": {
+				"title": {
+					"idx": 0,
+					"required": true
+				},
+				"subtitle": {
+					"idx": 1
+				},
+				"note_heading": {
+					"idx": 4
+				},
+				"note": {
+					"idx": 5
+				}
+			},
+			"chart": {
+				"idx": 3,
+				"kind": "line"
+			},
+			"source": {
+				"idx": 97,
+				"required": true
+			}
+		},
+		"financial_table": {
+			"layout": "11 Tabel keuangan",
+			"name": "Tabel keuangan",
+			"fields": {
+				"title": {
+					"idx": 0,
+					"required": true
+				},
+				"subtitle": {
+					"idx": 1
+				}
+			},
+			"table": {
+				"idx": 3,
+				"rows": 4
+			},
+			"source": {
+				"idx": 97,
+				"required": true
+			}
+		},
+		"portfolio": {
+			"layout": "12 Portofolio sektor",
+			"name": "Portofolio lima sektor dengan ikon tetap",
+			"fields": {
+				"title": {
+					"idx": 0,
+					"required": true
+				},
+				"subtitle": {
+					"idx": 1
+				},
+				"solar": {
+					"idx": 4
+				},
+				"electricity": {
+					"idx": 6
+				},
+				"gas": {
+					"idx": 8
+				},
+				"water": {
+					"idx": 10
+				},
+				"parking": {
+					"idx": 12
+				}
+			},
+			"fixed": [
+				3,
+				5,
+				7,
+				9,
+				11
+			],
+			"min_filled": [
+				"solar",
+				"electricity",
+				"gas",
+				"water",
+				"parking"
+			],
+			"source": {
+				"idx": 97
+			}
+		},
+		"project": {
+			"layout": "13 Profil proyek dan foto",
+			"name": "Profil proyek dengan tempat foto",
+			"fields": {
+				"title": {
+					"idx": 0,
+					"required": true
+				},
+				"subtitle": {
+					"idx": 1
+				},
+				"heading": {
+					"idx": 4,
+					"default": "Ringkasan proyek"
+				},
+				"text": {
+					"idx": 5,
+					"required": true,
+					"list": true,
+					"spaced": true
+				}
+			},
+			"photo": {
+				"idx": 3
+			},
+			"source": {
+				"idx": 97
+			}
+		},
+		"schedule": {
+			"layout": "14 Jadwal pelaksanaan",
+			"name": "Jadwal pelaksanaan (tabel)",
+			"fields": {
+				"title": {
+					"idx": 0,
+					"required": true
+				},
+				"subtitle": {
+					"idx": 1
+				}
+			},
+			"table": {
+				"idx": 3,
+				"rows": 4
+			},
+			"source": {
+				"idx": 97
+			}
+		},
+		"process": {
+			"layout": "15 Tahapan proses",
+			"name": "Empat tahapan proses bernomor",
+			"fields": {
+				"title": {
+					"idx": 0,
+					"required": true
+				},
+				"subtitle": {
+					"idx": 1
+				}
+			},
+			"groups": {
+				"steps": {
+					"min": 4,
+					"max": 4,
+					"number": "no",
+					"slots": [
+						{
+							"no": 3,
+							"name": 4,
+							"input": 5,
+							"output": 6
+						},
+						{
+							"no": 7,
+							"name": 8,
+							"input": 9,
+							"output": 10
+						},
+						{
+							"no": 11,
+							"name": 12,
+							"input": 13,
+							"output": 14
+						},
+						{
+							"no": 15,
+							"name": 16,
+							"input": 17,
+							"output": 18
+						}
+					]
+				}
+			},
+			"source": {
+				"idx": 97
+			}
+		},
+		"risks": {
+			"layout": "16 Risiko prioritas",
+			"name": "Risiko prioritas (tabel)",
+			"fields": {
+				"title": {
+					"idx": 0,
+					"required": true
+				},
+				"subtitle": {
+					"idx": 1
+				}
+			},
+			"table": {
+				"idx": 3,
+				"rows": 3
+			},
+			"source": {
+				"idx": 97
+			}
+		},
+		"options": {
+			"layout": "17 Perbandingan opsi",
+			"name": "Perbandingan opsi (tabel)",
+			"fields": {
+				"title": {
+					"idx": 0,
+					"required": true
+				},
+				"subtitle": {
+					"idx": 1
+				}
+			},
+			"table": {
+				"idx": 3,
+				"rows": 4
+			},
+			"source": {
+				"idx": 97
+			}
+		},
+		"decision": {
+			"layout": "18 Usulan keputusan",
+			"name": "Usulan keputusan untuk persetujuan",
+			"fields": {
+				"title": {
+					"idx": 0,
+					"required": true
+				},
+				"decision": {
+					"idx": 3,
+					"required": true
+				},
+				"basis": {
+					"idx": 5,
+					"required": true
+				},
+				"scope": {
+					"idx": 7,
+					"required": true
+				},
+				"follow_up": {
+					"idx": 9,
+					"required": true
+				}
+			},
+			"fixed": [
+				4,
+				6,
+				8
+			],
+			"source": {
+				"idx": 97
+			}
+		},
+		"actions": {
+			"layout": "19 Tindak lanjut",
+			"name": "Rencana tindak lanjut (tabel)",
+			"fields": {
+				"title": {
+					"idx": 0,
+					"required": true
+				},
+				"subtitle": {
+					"idx": 1
+				}
+			},
+			"table": {
+				"idx": 3,
+				"rows": 3
+			},
+			"source": {
+				"idx": 97
+			}
+		},
+		"closing": {
+			"layout": "20 Penutup",
+			"name": "Penutup (gelap)",
+			"fields": {
+				"title": {
+					"idx": 0,
+					"required": true
+				},
+				"contact": {
+					"idx": 3,
+					"list": true
+				}
+			},
+			"fixed": [
+				1,
+				90,
+				91,
+				92
+			]
+		}
+	}
+}
