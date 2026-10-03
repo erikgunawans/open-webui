@@ -1,0 +1,3 @@
+{"configs_models": {"DEFAULT_MODELS": null, "DEFAULT_PINNED_MODELS": null, "MODEL_ORDER_LIST": [], "DEFAULT_MODEL_METADATA": {}, "DEFAULT_MODEL_PARAMS": {}},
+ "model_access": {"id": "xiaomi/mimo-v2.6-pro-ultraspeed", "name": "Asisten JUP", "access_grants": []},
+ "rollback": "POST /api/v1/configs/models with configs_models; POST /api/v1/models/model/access/update with model_access"}
