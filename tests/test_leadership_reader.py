@@ -90,7 +90,7 @@ def test_variance_is_served_only_for_a_like_for_like_comparison(dataset: dict) -
 
     rka = read_overview(dataset, 'rka')['metrics']
     # RKA 2027 compares against a 2026 narrative, not a 2027 actual: nothing to subtract.
-    assert [metric['variance'] for metric in rka] == [None, None, None]
+    assert [metric['variance'] for metric in rka] == [None, None, None, None]
 
 
 def test_a_shared_action_is_one_record_in_both_views(dataset: dict) -> None:

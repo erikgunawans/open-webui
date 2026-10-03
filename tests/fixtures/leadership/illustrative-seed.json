@@ -51,9 +51,10 @@
     },
     {
       "id": "rka-assumptions",
-      "filename": "20260923 - RKA 2027 - DRAFT 1.pptx",
-      "document_date": "2026-09-23",
+      "filename": "20261001 - RKA 2027 - DRAFT - Jakpro Final.pptx",
+      "document_date": "2026-10-01",
       "physical_slides": [
+        2,
         3
       ],
       "visibility": "visible",
@@ -62,10 +63,35 @@
     },
     {
       "id": "rka-cash",
-      "filename": "20260923 - RKA 2027 - DRAFT 1.pptx",
-      "document_date": "2026-09-23",
+      "filename": "20261001 - RKA 2027 - DRAFT - Jakpro Final.pptx",
+      "document_date": "2026-10-01",
       "physical_slides": [
-        5
+        4
+      ],
+      "visibility": "visible",
+      "document_status": "draft",
+      "verification_status": "unverified"
+    },
+    {
+      "id": "rka-drivers",
+      "filename": "20261001 - RKA 2027 - DRAFT - Jakpro Final.pptx",
+      "document_date": "2026-10-01",
+      "physical_slides": [
+        5,
+        6,
+        7
+      ],
+      "visibility": "visible",
+      "document_status": "draft",
+      "verification_status": "unverified"
+    },
+    {
+      "id": "rka-programs",
+      "filename": "20261001 - RKA 2027 - DRAFT - Jakpro Final.pptx",
+      "document_date": "2026-10-01",
+      "physical_slides": [
+        8,
+        9
       ],
       "visibility": "visible",
       "document_status": "draft",
@@ -294,11 +320,13 @@
         "scope_id": "jup-consolidated",
         "period_start": "2027-01-01",
         "period_end": "2027-12-31",
-        "label": "Tahun 2027 · RKA Draft 1",
+        "label": "Tahun 2027 · RKA Draft Final Jakpro (1 Okt 2026)",
         "report_status": "draft",
         "source_ids": [
           "rka-assumptions",
           "rka-cash",
+          "rka-drivers",
+          "rka-programs",
           "board-directions"
         ]
       },
@@ -307,7 +335,7 @@
           "id": "example-rka-revenue",
           "label": "Target pendapatan",
           "primary": {
-            "value": "413",
+            "value": "347.17",
             "unit": "IDR_billion",
             "kind": "budget",
             "period_start": "2027-01-01",
@@ -318,7 +346,28 @@
           },
           "baseline": null,
           "comparison_kind": "narrative_only",
-          "comparison_note": "Sekitar Rp413 miliar; narasi sumber menyebut +64% terhadap RKA 2026. Angka dibulatkan.",
+          "comparison_note": "Naik 38% dari RKA 2026 (Rp252,16 miliar) dan 47% dari prognosa 2026 (Rp235,57 miliar); 66% recurring, 34% bisnis baru.",
+          "verification_status": "unverified",
+          "source_ids": [
+            "rka-assumptions"
+          ]
+        },
+        {
+          "id": "example-rka-net-profit",
+          "label": "Target laba bersih",
+          "primary": {
+            "value": "9.59",
+            "unit": "IDR_billion",
+            "kind": "budget",
+            "period_start": "2027-01-01",
+            "period_end": "2027-12-31",
+            "scope_id": "jup-consolidated",
+            "missing_reason": null,
+            "definition_status": "candidate"
+          },
+          "baseline": null,
+          "comparison_kind": "narrative_only",
+          "comparison_note": "RKA 2026 Rp2,17 miliar; prognosa 2026 Rp1,96 miliar. Laba usaha Rp4,57 miliar ditambah pendapatan lain-lain Rp5,51 miliar.",
           "verification_status": "unverified",
           "source_ids": [
             "rka-assumptions"
@@ -328,7 +377,7 @@
           "id": "example-rka-margin",
           "label": "Target margin laba kotor",
           "primary": {
-            "value": "7.9",
+            "value": "12.6",
             "unit": "percent",
             "kind": "budget",
             "period_start": "2027-01-01",
@@ -339,17 +388,18 @@
           },
           "baseline": null,
           "comparison_kind": "narrative_only",
-          "comparison_note": "Pembanding: prognosa 2026 sebesar 11,7%, bukan realisasi 2027.",
+          "comparison_note": "Laba kotor Rp43,84 miliar dari pendapatan Rp347,17 miliar. Satu tabel rasio di slide 4 masih menulis 11,3%; perlu dikonfirmasi ke penyusun.",
           "verification_status": "unverified",
           "source_ids": [
-            "rka-assumptions"
+            "rka-assumptions",
+            "rka-cash"
           ]
         },
         {
           "id": "example-rka-cash",
-          "label": "Asumsi arus kas operasi",
+          "label": "Arus kas operasi",
           "primary": {
-            "value": "7.81",
+            "value": "9.73",
             "unit": "IDR_billion",
             "kind": "budget",
             "period_start": "2027-01-01",
@@ -360,7 +410,7 @@
           },
           "baseline": null,
           "comparison_kind": "narrative_only",
-          "comparison_note": "Pembanding: prognosa 2026 sebesar Rp13,49 miliar. Status tetap asumsi draft.",
+          "comparison_note": "Prognosa 2026 Rp0,99 miliar; kas akhir 2027 Rp21,31 miliar. Narasi slide 4 masih menyebut Rp7,81 miliar (angka Draft 1); tabel memakai Rp9,73 miliar.",
           "verification_status": "unverified",
           "source_ids": [
             "rka-cash"
@@ -373,11 +423,12 @@
       "assumptions": [
         {
           "id": "example-assumption-wtp",
-          "label": "Produksi WTP KBB",
-          "target_note": "310 → 400 LPS",
-          "watch_note": "Kapasitas, mutu air, dan tarif; fokus pemantauan merupakan usulan.",
+          "label": "Tarif dan mutu WTP KBB",
+          "target_note": "Rp2.943 → Rp3.237 per m³ sepanjang 2027 (eksisting Rp2.675), 450 LPS; pendapatan Rp42,87 miliar (12%).",
+          "watch_note": "Persetujuan tarif oleh PAM Jaya bergantung pada mutu air produksi; pemindahan intake dan perbaikan fasilitas.",
           "source_ids": [
-            "rka-assumptions"
+            "rka-drivers",
+            "rka-programs"
           ],
           "action_ids": [
             "example-action-water"
@@ -386,22 +437,58 @@
         },
         {
           "id": "example-assumption-cng",
-          "label": "Pengembangan CNG",
-          "target_note": "Rp133,9 miliar",
-          "watch_note": "Volume, mitra, dan waktu operasi; fokus pemantauan merupakan usulan.",
+          "label": "Alokasi gas CNG 0,9 BBTUD",
+          "target_note": "70% transportasi/PSO Rp4.500 per LSP, 30% komersial Rp7.946 per Sm³; pendapatan Rp60,65 miliar (17%). Investasi Rp15,83 miliar didanai mitra KSO.",
+          "watch_note": "Pendanaan revitalisasi SPBG, on-stream dari PEP, GTA dengan transporter, izin niaga tetap, lahan BPAD; keselamatan instalasi SPBG.",
           "source_ids": [
-            "rka-assumptions"
+            "rka-drivers",
+            "rka-programs"
           ],
           "action_ids": [],
           "verification_status": "unverified"
         },
         {
-          "id": "example-assumption-ebt",
-          "label": "Energi baru terbarukan",
-          "target_note": "Rp30,2 miliar",
-          "watch_note": "Lokasi dan kesiapan inisiatif; fokus pemantauan merupakan usulan.",
+          "id": "example-assumption-cng-retail",
+          "label": "CNG retail komersial 0,4 BBTUD",
+          "target_note": "JUP 5.663 Sm³/hari dan Petross Gas naik 1.000 → 6.320 Sm³/hari, Rp14.500 per Sm³; pendapatan Rp45,08 miliar (13%).",
+          "watch_note": "Alokasi pasokan CNG dari pemasok gas.",
           "source_ids": [
-            "rka-assumptions"
+            "rka-drivers"
+          ],
+          "action_ids": [],
+          "verification_status": "unverified"
+        },
+        {
+          "id": "example-assumption-spbe",
+          "label": "Volume SPBE Teluk Gong dan JIEP",
+          "target_note": "Teluk Gong 60 → 67 ton/hari (Rp415/kg), JIEP 85 → 99 ton/hari (Rp420/kg); pendapatan Rp19,56 miliar.",
+          "watch_note": "Kebijakan pembatasan LPG 3 kg (risiko utama); alokasi khusus dari Pertamina Patra Niaga; sertifikasi ISO untuk penyesuaian tarif.",
+          "source_ids": [
+            "rka-drivers",
+            "rka-programs"
+          ],
+          "action_ids": [],
+          "verification_status": "unverified"
+        },
+        {
+          "id": "example-assumption-biomass",
+          "label": "Biomassa sawdust ke PLTU Suralaya",
+          "target_note": "750 ton per bulan, Rp568 per kg; pendapatan Rp5,11 miliar (1,5%).",
+          "watch_note": "Pengajuan harga Rp600 per kg dan kuota ke PLN EPI; mitra pemasok dan armada.",
+          "source_ids": [
+            "rka-drivers"
+          ],
+          "action_ids": [],
+          "verification_status": "unverified"
+        },
+        {
+          "id": "example-assumption-funding",
+          "label": "Pendanaan dan neraca",
+          "target_note": "Tanpa kas internal untuk investasi; liabilitas turun 12,6% dan ekuitas naik 27,0% menjadi Rp94,6 miliar.",
+          "watch_note": "Bergantung pada Debt to Equity Swap ke Holding yang direalisasikan akhir 2026 dan modal kerja bisnis CNG; pengembalian modal kerja sekitar Rp310 juta per bulan.",
+          "source_ids": [
+            "rka-cash",
+            "rka-drivers"
           ],
           "action_ids": [],
           "verification_status": "unverified"
@@ -436,7 +523,7 @@
           "id": "versions",
           "label": "Perbandingan versi",
           "state": "unavailable",
-          "reason": "Contoh hanya memuat Draft 1; belum ada acuan yang disetujui."
+          "reason": "Contoh memuat Draft Final Jakpro (1 Okt 2026); belum dibandingkan dengan Draft 1 dan belum ada acuan yang disetujui."
         },
         {
           "id": "scenarios",
