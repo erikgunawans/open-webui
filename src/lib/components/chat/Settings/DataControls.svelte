@@ -250,5 +250,25 @@
 				</button>
 			</UserSettingRow>
 		</UserSettingSection>
+
+		<!-- JUP: the logging stated exactly, moved here from the chat home (Erik 10-03). jup.governance
+		     records who, when, model and tools (argument size only, never content) in Cloud Logging's
+		     30-day _Default bucket. ENABLE_ADMIN_CHAT_ACCESS is off (deploy.sh), which is what makes the
+		     history line complete. Change any of those and this copy is wrong. -->
+		<UserSettingSection title={$i18n.t('What is logged?')}>
+			<ul class="list-disc ps-4 space-y-1 text-xs leading-relaxed text-gray-600 dark:text-gray-400">
+				<li>
+					{$i18n.t(
+						'Who asked, when, which model, and which tools were used. What you ask is not part of this record.'
+					)}
+				</li>
+				<li>{$i18n.t('This record is kept for 30 days for governance audit.')}</li>
+				<li>
+					{$i18n.t(
+						'Conversations are saved in your history. Temporary chats are not saved to history.'
+					)}
+				</li>
+			</ul>
+		</UserSettingSection>
 	</div>
 </div>

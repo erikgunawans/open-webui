@@ -131,7 +131,7 @@ describe('the disclosure text (#29)', () => {
 	});
 
 	it('is versioned like the server, so a changed text is acknowledged again', () => {
-		expect(DISCLOSURE_VERSION).toBe('2026-09-28');
+		expect(DISCLOSURE_VERSION).toBe('2026-10-03');
 	});
 
 	it('names OpenAI, the US and up to 30 days (D21), in both languages', () => {
@@ -150,9 +150,14 @@ describe('the disclosure text (#29)', () => {
 		}
 	});
 
-	it('says voice answers only from the named strategy documents', () => {
-		expect(id).toMatch(/dokumen strategi/);
-		expect(en).toMatch(/strategy documents/);
+	it('names the sources voice answers from, within access rights (Erik 10-03)', () => {
+		expect(id).toMatch(
+			/basis pengetahuan JUP, kartu kontrak, dan Ruang Pimpinan, sesuai hak akses Anda/
+		);
+		expect(en).toMatch(
+			/knowledge base, contract cards and Ruang Pimpinan, within your access rights/
+		);
+		expect(id).not.toMatch(/dokumen strategi/);
 	});
 
 	it('says whatever is spoken is sent regardless, so no non-public figures (D16(e))', () => {
