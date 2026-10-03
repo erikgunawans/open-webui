@@ -1,3 +1,30 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-03-v46)
+
+> Prepended by /wrap 2026-10-03 (checkpoint 2026-10-03-v46). Supersedes v45's anchor and its "do next" (00078 landed; panel test, disclosure and Erik's four calls are all done); v45's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-03-v46).
+Anchor: `origin/main` at `0ab019c2c` **as this was written**, or one commit ahead at this checkpoint's own commit (subject begins `chore(session): checkpoint — 2026-10-03-v46`). Verify with `git log --oneline 0ab019c2c..origin/main`; any other commit there is a parallel push.
+
+**Current state:** live **`ent-os-00081-5r6`** (image `0ab019c2c`), rollback `00080-4hz`. Today shipped #68 (truthful normal-call disclosure + "Apa yang dicatat?" in Settings → Data Controls), #69 (Ruang Pimpinan cards), #70 (truthful GPT-Live disclosure + a pytest fix), #71 (voice answers start in ~4.5 s instead of 28 s). Both panel call modes are proven by Erik. No open PRs.
+
+**Do next, in order:**
+1. **Erik's carried design calls:** pattern band (recommend skip) and the eyebrow copy ("Jakarta Utilitas Propertindo" vs section names). Ask, then build what he picks.
+2. **Phone-width check of the Ruang Pimpinan cards** (tiles, 2×2 → 1 column, modules). Interceptor cannot force a narrow viewport on prod; it needs a local dev server + the 390 px iframe probe page, or Erik's phone.
+3. **Kartu Kontrak with the Legal account** (edit, approve, return one card) — needs the Legal user to sign in.
+4. **Staff-account checks:** step-6 contract live check (staff vs Direksi), O1 `create_document` as staff.
+5. Carried: `jup_contracts` all-users read grant (Erik), Rully items (truncated file 0594/0639, reviewers, app login, #46), #47, Notion #41/#42 (token), CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- **Python CI does not run on frontend-only PRs, but some pytest files scan `.svelte`/`.ts` source** (a11y scan, disclosure-version parity). Before merging a frontend-only PR, run those scans locally.
+- **Interceptor guard means STOP:** if `location.host` is not `non-jupe.jup.co.id`, do not navigate — that tab is Erik's (this session drove his `localhost:5173` tab to prod by mistake).
+- **gcloud is `alesha-bot@axiara.ai`** (owner on jup-ops) since Erik's re-login; `gcloud auth login` again if a call reports re-auth.
+- **Voice parts:** call answers are split `first=300`/`limit=1200` bytes in `routers/jup_voice.py`; changing them changes TTS cache keys and the part count tests (`test_jup_voice_audio*.py`).
+- The disclosure texts are fixed acknowledgement text: any wording change bumps `DISCLOSURE_VERSION` / `LIVE_DISCLOSURE_VERSION` in both `backend/jup/voice.py` and `src/lib/voice/{call,live}.ts`.
+
+**Open items waiting on Erik:** pattern band; eyebrow copy; Legal-account Kartu Kontrak check; share the "None-JUPe vs holaboss-ai" doc if it goes to the board (private until shared); deck owner to fix GPM 11,3% vs 12,6% and CFO Rp7,81 M vs Rp9,73 M; Staff titles; `jup_contracts` all-users grant; Rully items; Notion token; Impeccable update; delete "Uji kecepatan" chats + two O1 test .docx?; Daftar Perkara grant; Gmail send scope; keep or drop `docker-compose.dev.yaml`; delete the "Test" knowledge collection?
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-03-v45)
 
 > Prepended by /wrap 2026-10-03 (checkpoint 2026-10-03-v45). Supersedes v44's anchor and its "do next" (the side panel is built and live); v44's and older blocks' constraints still hold unless noted.
