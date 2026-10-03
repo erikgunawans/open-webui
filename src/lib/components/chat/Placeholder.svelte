@@ -28,7 +28,6 @@
 	import FolderPlaceholder from './Placeholder/FolderPlaceholder.svelte';
 	import FolderTitle from './Placeholder/FolderTitle.svelte';
 	import NoneJupeMark from './Placeholder/NoneJupeMark.svelte';
-	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
 	import { getKnowledgeById } from '$lib/apis/knowledge';
 	import HomeShortcuts from '$lib/components/jup/HomeShortcuts.svelte';
 	import HomeAreas from '$lib/components/jup/HomeAreas.svelte';
@@ -403,46 +402,6 @@
 
 				<HomeAreas />
 				<HomeRecent />
-
-				<div class="jup-home-foot">
-					<p>{$i18n.t('Not connected yet: email, live finance, BOD decisions.')}</p>
-					<!-- JUP: the operating contract as a stance (backend/jup/governance.py rules 1 and 2),
-				     and the logging stated exactly: jup.governance records who, when, model and tools
-				     (argument size only, never content) in Cloud Logging's 30-day _Default bucket.
-				     ENABLE_ADMIN_CHAT_ACCESS is off (deploy.sh), which is what makes the history line
-				     complete. Change any of those and this copy is wrong. -->
-					<div class="text-sm font-normal text-gray-600 dark:text-gray-400">
-						<p>
-							{$i18n.t("Honest about what it doesn't know, and never presents revenue as profit.")}
-						</p>
-						<details class="group mt-1 text-xs">
-							<summary
-								class="mx-auto w-fit cursor-pointer list-none inline-flex items-center gap-1 rounded-sm underline decoration-gray-300 dark:decoration-gray-600 underline-offset-4 hover:text-gray-800 dark:hover:text-gray-200 [&::-webkit-details-marker]:hidden"
-							>
-								{$i18n.t('What is logged?')}
-								<ChevronDown
-									className="size-3 transition-transform group-open:rotate-180"
-									strokeWidth="2.5"
-								/>
-							</summary>
-							<ul
-								class="mt-2 mx-auto w-fit max-w-md text-left list-disc ps-4 space-y-1 leading-relaxed"
-							>
-								<li>
-									{$i18n.t(
-										'Who asked, when, which model, and which tools were used. What you ask is not part of this record.'
-									)}
-								</li>
-								<li>{$i18n.t('This record is kept for 30 days for governance audit.')}</li>
-								<li>
-									{$i18n.t(
-										'Conversations are saved in your history. Temporary chats are not saved to history.'
-									)}
-								</li>
-							</ul>
-						</details>
-					</div>
-				</div>
 			</div>
 		</div>
 	{/if}

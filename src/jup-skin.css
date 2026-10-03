@@ -1297,14 +1297,3 @@ button[role='switch']:focus-visible {
 	text-decoration-color: var(--jup-ui-hairline-strong);
 	text-underline-offset: 4px;
 }
-
-.jup-home-foot {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 0.25rem;
-	padding-top: 0.5rem;
-	text-align: center;
-	font-size: 0.75rem;
-	color: var(--jup-ui-muted);
-}
