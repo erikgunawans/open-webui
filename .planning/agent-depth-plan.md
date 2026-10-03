@@ -45,11 +45,13 @@ design. The sandbox work for terminal and browser is needed on either path.
 | E4  | Browser automation via Playwright MCP in the sandbox    | planned | browser                            | A5, E2, E5                                   |
 | E5  | Approval step for risky tool calls (ADR-0013)           | live    | long autonomous runs               | —                                            |
 | E6  | Skill proposals: agent drafts, admin approves, sync     | planned | self-improving skills              | E1                                           |
-| E7  | Messaging gateway (Telegram first, then WhatsApp)       | planned | chat channels                      | ADR-0012 amendment, D-decision per channel   |
+| E7  | Channel gateway core: one machine identity, channel user → JUP user | planned | chat channels           | ADR-0012 amendment (Erik); channel order (Erik) |
+| E8  | Microsoft Teams channel: Asisten JUP bot in JUP's tenant | planned | chat channels                      | E7; JUP IT registers the bot; D-decision     |
+| E9  | WhatsApp channel: Business Cloud API, verified numbers   | planned | chat channels                      | E7, E8 proven; JUP business number; D-decision |
 | I1  | Integrations via MCP (Notion first)                     | in-progress | integrations                   | live 00060, admin-only, off until #41 token |
 | O1  | Office output: Word documents (.docx) in the JUP template | in-progress | docs (holaOS: `doc-coauthoring` skill + bash) | live 00060, all staff; staff-account check open |
-| O2  | Office output: spreadsheets (.xlsx)                      | planned | sheets (holaOS: `xlsx` skill + bash) | O1 (shared file path)                        |
-| O3  | Office output: slide decks (.pptx) in the JUP template   | planned | slides (holaOS: `pptx` skill + bash) | O1; deck = JUP Template v1.5-r2              |
+| O2  | Office output: spreadsheets (.xlsx)                      | ready   | sheets (holaOS: `xlsx` skill + bash) | Erik's go-ahead; O1's file path is live      |
+| O3  | Office output: slide decks (.pptx) in the JUP template   | planned | slides (holaOS: `pptx` skill + bash) | O2 (shared tool shape); copy Presentasi v1.5-r2 into the repo |
 | X1  | Hermes as an admin-only lab runtime                     | parked  | runtime experiments                | Erik reopens it                              |
 
 ## Where the gap is (holaOS `a6b58be` vs Asisten JUP `254da9640`)
@@ -59,7 +61,7 @@ design. The sandbox work for terminal and browser is needed on either path.
 | Agent loop   | 3 runtimes: pi (in-process), Claude Code, Codex; all auto-approve | 1: the model's native tool loop          | E1–E6      |
 | Tools        | 96 built-in (files, bash, 33 browser, cron, apps, media)          | builtins (KB, memory, chats, notes) + 1  | A2–A5, E3, E4 |
 | Integrations | 89 via Composio, proxied through `api.holaboss.ai`                | none                                     | A5, I1     |
-| Channels     | 8 (Telegram, Slack, Discord, Feishu, DingTalk, QQ, WeCom, WeChat) | web only                                 | E7         |
+| Channels     | 8 (Telegram, Slack, Discord, Feishu, DingTalk, QQ, WeCom, WeChat) | web only                                 | E7–E9      |
 | Voice        | **none**                                                          | none (ADR-0005/0006 decided, no code)    | V1–V2      |
 | Cron         | 60 s cron worker, workflow graph                                  | automations exist, none configured       | A1         |
 | Subagents    | `delegate_task` family                                            | native, off                              | A2         |
@@ -190,10 +192,52 @@ is the governed answer, word for word. Spec: issue #25.
 - **E6 Skill proposals.** A `propose_skill` tool lets the agent draft a skill from a repeated
   task into a review queue. An admin approves it into `skills/`, and `sync-skills.ts` publishes it.
   This is the self-improvement Hermes has, with a human gate that Hermes lacks.
-- **E7 Messaging gateway.** A thin service for Telegram first, then WhatsApp. It maps a verified
-  account to one JUP user and calls our pipeline as that user, so every channel turn is governed
-  and audited like typed chat. It needs one machine identity: an ADR-0012 amendment, decided
-  before code. Each channel is new egress, so each needs a D-decision.
+- **E7–E9 Channels (re-planned 2026-10-03 from the holaboss-ai comparison).** Directors will not
+  open a web app for one question; they are in Teams and WhatsApp all day. holaboss-ai has eight
+  channels, none of them JUP's, and maps no channel user to a company identity. That mapping is the
+  hard part and the part we must get right. **Recommended order: Teams first, then WhatsApp; Telegram
+  dropped** (JUP staff do not use it). Erik decides the order.
+  - **E7 Gateway core.** A separate Cloud Run service, `jup-gateway`, in `asia-southeast2`. It is
+    the only public, non-IAP endpoint, so it verifies every inbound request cryptographically (Bot
+    Framework JWT for Teams, Meta's `X-Hub-Signature-256` for WhatsApp) and rejects anything else.
+    It holds one machine identity that may call ent-os **on behalf of a mapped user only**: the
+    ADR-0012 amendment. That identity may not act as itself, may not act as an unmapped user,
+    and every turn it carries writes `channel=<teams|whatsapp>` and the channel user id hash in the
+    audit line. Inside ent-os the turn takes the normal governed path: the funnel, the contract,
+    tool-call audit, the caller's RBAC. Rules that apply to every channel:
+    - **No mapping, no answer.** An unknown sender gets one fixed reply ("akun ini belum terhubung
+      ke Asisten JUP") and is never forwarded to the model.
+    - **Unattended means fail-closed (ADR-0013).** A tool of class `external` is refused in a
+      channel turn with a pointer to the web app. A Teams Adaptive Card approval is a later step,
+      not v1.
+    - **One chat per channel conversation**, marked `channel` in the chat meta, visible in the web
+      app's history, kept like any chat.
+    - **Files and long answers link back** to `non-jupe.jup.co.id` (behind IAP). Nothing from a
+      contract card or Daftar Perkara is pasted into a channel above what the caller may see, and
+      TERBATAS content is replaced by a link, never sent as text (Erik to confirm this rule).
+    - **Answers are text only** in v1: no voice notes in, no audio out.
+    - Kill switch `JUP_CHANNELS_ENABLED` plus a per-user grant `jup.channel.use`. Erik only at
+      first, as with voice.
+  - **E8 Teams.** Identity comes free: staff already sign in with their JUP Entra account
+    (ADR-0016), and a Teams message carries the sender's Entra object id and tenant. The gateway
+    accepts only JUP's tenant id, resolves the object id to the email through the same single-tenant
+    app (Graph `User.ReadBasic.All`, JUP IT consent), and maps that email to the JUP user. There is
+    no linking step for staff. Work: JUP IT registers an Azure Bot (single-tenant) and publishes the
+    Teams app to JUP's org catalogue (see `deploy/gcp/entra-request-jup-it.md` for the pattern);
+    1:1 chat only in v1, with no channel or group mentions. Bot Framework wants a quick 200, so the
+    gateway acknowledges at once, shows typing, and posts the answer through the connector API. D-decision: Microsoft Bot
+    Service relays message text (it is Microsoft-hosted, inside JUP's existing M365 contract).
+    Verify: Erik asks "status proyek SPBG" in Teams → answer in Teams, one chat in his web history
+    marked `channel`, audit lines `channel_turn`, `admitted`, the tool calls; a non-JUP-tenant
+    message is rejected; a `gate_probe` call is refused with the web-app pointer.
+  - **E9 WhatsApp.** WhatsApp Business Cloud API (Meta-hosted) on a JUP business number. There is
+    no company identity in WhatsApp, so linking is explicit: in the web app, Settings → Akun → "Hubungkan
+    WhatsApp", the user enters their number, the gateway sends a one-time code over WhatsApp, and
+    the user types it back in the web app. Only then does the number map to that user; unlinking is
+    one click and is audited. Meta's 24-hour service window means the assistant only replies, never
+    starts a conversation (no template messages in v1). D-decision: message text passes through
+    Meta (US processing), the same kind of disclosure as voice, acknowledged once at linking.
+    Ships only after E8 has been proven in daily use, because it is the riskier egress.
 
 ## Track O — office output: documents, spreadsheets, slides (added 2026-09-29, Erik)
 
@@ -212,11 +256,46 @@ there is no code sandbox to build and no new egress, hence no D-decision under D
   caller's own space), E1 audit line with sizes, not content. Establishes the shared path: file
   record, owner, download link, size caps, filename rules. Verify: a generated memo opens in Word
   with the template's styles, its file belongs to the caller, and another user gets 404.
-- **O2 Spreadsheets.** `create_spreadsheet` → .xlsx: sheets, header row, typed cells (numbers stay
-  numbers, IDR and dates formatted), frozen header; formulas only from a small allowlist. Ad-hoc
-  analysis stays in A3 (Pyodide, browser-side, already has openpyxl).
-- **O3 Slides.** `create_presentation` → .pptx on a JUP master deck: title, section, bullets,
-  table and one chart layout. Verify it opens in PowerPoint and Keynote with the master's layouts.
+- **O2 Spreadsheets (plan 2026-10-03, ready).** Use cases: "export the contract list I can
+  see to Excel", "RKA targets per unit as a sheet", the portfolio status table. Three tickets, the O1 shape:
+  1. **Renderer `jup.office_sheet`** (pure, no I/O, like `office_doc.py`): input is
+     `{title, classification, sheets: [{name, columns: [{header, type}], rows}]}`; types `text`,
+     `number`, `idr`, `percent`, `date`. Numbers stay numbers (an IDR cell is a number formatted
+     `"Rp" #,##0`, never a string), dates are real dates, header row bold and frozen, autofilter on,
+     column widths from content. A cover sheet "Info" carries title, generator, Draf status,
+     classification and the date (Asia/Jakarta). Space Grotesk and the brand tokens, since there is no
+     Excel template. **No formulas in v1**: totals are computed by the renderer and written as
+     values, so nothing the model writes is ever executed by Excel. Caps: 10 sheets, 5,000 rows,
+     50 columns, 32 kB per cell; a cell starting with `=`, `+`, `-` or `@` is written as text
+     (CSV/formula injection).
+  2. **Tool `create_spreadsheet`** in `office_tool.py`, reusing O1's `_store`, file record, owner,
+     download link and filename rules. Class `write_own`, E1 audit line with sizes. Classification
+     follows O1's rule: never below the sources (contract money terms or Daftar Perkara → at least
+     TERBATAS), enforced in code. Add it to Asisten JUP's tools; **not** to `VOICE_TOOL_IDS` (voice
+     does not make files).
+  3. **Deploy + grant all staff + live acceptance with Erik**: a contract-list export opens in
+     Excel with number-typed amounts, it belongs to the caller, another user gets 404, and a staff
+     account cannot export amounts its grant hides.
+  Ad-hoc analysis stays in A3 (Pyodide, browser-side, already has openpyxl).
+- **O3 Slides (plan 2026-10-03).** Use cases: "make this RKA summary into 5 slides", a
+  board-pack draft from Ruang Pimpinan, a project profile. Three tickets:
+  1. **Template in the repo + renderer `jup.office_slides`.** Copy Presentasi v1.5-r2 (.pptx,
+     2.4 MB) into `backend/jup/office_templates/pptx/` with a manifest of layouts 01–20 and their
+     placeholder idx (read once with python-pptx and checked in, as for docx). The renderer fills
+     placeholders by idx and never draws free-floating shapes, so every slide stays on the master. Input:
+     `{title, classification, slides: [{layout, fields}]}`, with `layout` restricted to the 20
+     working layouts. Charts (comparison, trend) use python-pptx's native chart data, so they stay
+     editable in PowerPoint. Tables come from the same column/row shape as O2. Speaker notes are allowed. Caps: 30
+     slides, text per placeholder trimmed to what the layout holds (overflow = a renderer error the
+     model must fix, not a shrunken font). Classification and Draf status go in the master's
+     footer fields.
+  2. **Tool `create_presentation`**, same storage, class, audit and classification rule as O1/O2.
+     It must also obey the leadership grants: a deck built from Ruang Pimpinan data only contains
+     what `jup_leadership` returned to this caller.
+  3. **Deploy + grant all staff + live acceptance with Erik**: the RKA summary deck opens in
+     PowerPoint and Keynote on the JUP master, the charts can be edited, and the classification footer is right.
+  **Known trap:** the RKA deck's own numbers disagree (GPM 11,3% vs 12,6%, CFO Rp7,81 M vs Rp9,73 M);
+  a generated deck repeats whatever the source says, so the deck owner's fix should land first.
 - **Erik's decisions (2026-09-29):** office output is for **all staff**; the templates are
   **JUP Template Dokumen 2.0** (17 Word templates, 17 Sept 2026) and **Presentasi v1.5-r2**, from
   `~/NEW-JUP/deliverables/JUP-Enterprise-Document-Templates-2026-09-17/` (zip of the whole set beside it).
@@ -262,6 +341,10 @@ touching staff or records, and its model calls go through our funnel with no fal
 2. **V2:** the named voice set was named 2026-09-27 (8 files, Track V); each addition is dated and
    named. Also the TTS voice and the OpenAI budget limit.
 3. **E2:** deferred 2026-09-26; a VM budget when Erik reopens it. E3 and E4 wait on it.
-4. **E7:** the ADR-0012 amendment for one machine identity.
+4. **E7–E9:** channel order (recommended: Teams, then WhatsApp; Telegram dropped); the ADR-0012
+   amendment for the gateway's on-behalf-of identity; the rule that TERBATAS content in a
+   channel becomes a link; the JUP IT requests (Azure Bot + Teams app, Graph consent); a JUP
+   WhatsApp business number.
 5. **E7/I1:** one D-decision per new egress (channel, integration); third-party MCP only after E5 (D20).
 6. **O1–O3:** decided 2026-09-29: all staff; JUP Template Dokumen 2.0 + Presentasi v1.5-r2.
+   O2 needs only the go-ahead; "no formulas in v1" is a recommendation, his to overrule.
