@@ -97,13 +97,15 @@
 				aria-describedby="metric-{metric.id}"
 				on:click={() => dispatch('select', metric.id)}>{$i18n.t('Select')}</button
 			>
-			{#each metric.source_ids as sourceId (sourceId)}
+			{#each metric.source_ids as sourceId, index (sourceId)}
 				<button
 					type="button"
 					class="jlp-link"
 					aria-describedby="metric-{metric.id}"
 					on:click={() => dispatch('source', sourceId)}
-					>{$i18n.t('Source')}<svg
+					>{metric.source_ids.length > 1
+						? $i18n.t('Source {{n}}', { n: index + 1 })
+						: $i18n.t('Source')}<svg
 						viewBox="0 0 16 16"
 						width="12"
 						height="12"

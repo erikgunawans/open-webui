@@ -310,6 +310,11 @@ p > .jlp-link {
 	gap: 1rem;
 }
 
+/* Four figures in a row of three leave one orphaned below; a 2x2 keeps the rows even. */
+.jlp-metric-row:has(> :nth-child(4):last-child) {
+	grid-template-columns: repeat(auto-fit, minmax(max(15rem, calc(50% - 0.5rem)), 1fr));
+}
+
 .jlp-metric {
 	display: flex;
 	flex-direction: column;
@@ -433,6 +438,8 @@ p > .jlp-link {
 	display: inline-flex;
 	flex-wrap: wrap;
 	gap: 0.5rem;
+	/* .jlp-link's padding outruns its negative margin by 0.25rem; this lines its text up. */
+	margin-inline-start: -0.25rem;
 }
 
 .jlp-row-buttons {
@@ -444,6 +451,7 @@ p > .jlp-link {
 .jlp-grid {
 	display: grid;
 	grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+	align-items: start;
 	gap: 1rem;
 	margin-top: 1rem;
 }
@@ -471,7 +479,7 @@ p > .jlp-link {
 
 .jlp-surface-head {
 	display: flex;
-	align-items: center;
+	align-items: baseline;
 	justify-content: space-between;
 	gap: 0.5rem;
 	margin-bottom: 0.25rem;
@@ -487,6 +495,11 @@ p > .jlp-link {
 
 .jlp-surface-head .jlp-surface-title {
 	margin-bottom: 0;
+}
+
+.jlp-surface-head .jlp-link {
+	flex: none;
+	white-space: nowrap;
 }
 
 /* A group inside a surface: one step below its title. */
@@ -581,7 +594,8 @@ p > .jlp-link {
 
 .jlp-modules {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+	/* At most three across: a wide screen otherwise fits four and orphans the rest. */
+	grid-template-columns: repeat(auto-fit, minmax(max(16rem, calc(33.333% - 0.5rem)), 1fr));
 	gap: 0.625rem;
 	margin-top: 0.75rem;
 }
@@ -658,6 +672,60 @@ p > .jlp-link {
 
 .jlp-cell-title {
 	font-weight: 600;
+}
+
+/* ── Assumptions behind the targets ─────────────────────────────────────── */
+
+.jlp-assumptions {
+	display: flex;
+	flex-direction: column;
+	gap: 0.625rem;
+	margin-top: 0.75rem;
+}
+
+.jlp-assumption {
+	display: flex;
+	flex-direction: column;
+	gap: 0.625rem;
+	padding: 1rem;
+	border-radius: var(--jup-radius-nested);
+	box-shadow: inset 0 0 0 1px var(--jup-ui-hairline);
+	font-size: 0.875rem;
+}
+
+.jlp-assumption .jlp-cell-title {
+	font-size: 0.9375rem;
+	letter-spacing: -0.005em;
+}
+
+/* Two answers side by side when the card is wide enough, stacked when it is not. */
+.jlp-assumption-notes {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+	gap: 0.75rem 1.25rem;
+}
+
+.jlp-assumption-notes dt {
+	font-size: 0.6875rem;
+	font-weight: 500;
+	letter-spacing: var(--jup-ui-tracking-caption);
+	text-transform: uppercase;
+	color: var(--jup-ui-muted);
+	margin-bottom: 0.25rem;
+}
+
+.jlp-assumption-notes dd {
+	color: var(--jup-ink-soft);
+	line-height: 1.5;
+	font-variant-numeric: tabular-nums;
+}
+
+.jlp-assumption .jlp-row-buttons {
+	margin-top: 0;
+}
+
+.jlp-assumption.jlp-row-selected {
+	box-shadow: 0 0 0 2px var(--jup-ring);
 }
 
 /* ── Notices ──────────────────────────────────────────────────────────── */
@@ -938,11 +1006,6 @@ p > .jlp-link {
 
 .jlp-board .jlp-mini {
 	border-radius: var(--jup-radius-nested);
-}
-
-/* A figure never breaks across lines; the table scrolls inside its own region instead. */
-.jlp-board .jlp-table :is(th, td):nth-child(2) {
-	white-space: nowrap;
 }
 
 /* Module tiles are outlined inside their card rather than filled, so status chips carry the colour. */

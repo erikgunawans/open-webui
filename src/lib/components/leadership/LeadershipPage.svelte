@@ -347,54 +347,45 @@
 				<h3 id="jlp-left-title" class="jlp-surface-title">
 					{$i18n.t('Assumptions behind the targets')}
 				</h3>
-				<!-- A region that scrolls sideways must be reachable by keyboard (WCAG 2.1.1). -->
-				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-				<div
-					class="jlp-table-scroll"
-					role="region"
-					aria-label={$i18n.t('Assumptions')}
-					tabindex="0"
-				>
-					<table class="jlp-table">
-						<thead>
-							<tr>
-								<th scope="col">{$i18n.t('Driver')}</th>
-								<th scope="col">{$i18n.t('In the draft')}</th>
-								<th scope="col">{$i18n.t('Watch')}</th>
-							</tr>
-						</thead>
-						<tbody>
-							{#each overview.assumptions as assumption (assumption.id)}
-								<tr class:jlp-row-selected={recordId === assumption.id}>
-									<td>
-										<strong id="assumption-{assumption.id}" class="jlp-cell-title"
-											>{assumption.label}</strong
-										>
-										<span class="jlp-row-buttons">
-											<button
-												type="button"
-												class="jlp-link"
-												aria-pressed={recordId === assumption.id}
-												aria-describedby="assumption-{assumption.id}"
-												on:click={() => select(assumption.id)}>{$i18n.t('Select')}</button
-											>
-											{#each assumption.source_ids as id (id)}
-												<button
-													type="button"
-													class="jlp-link"
-													aria-describedby="assumption-{assumption.id}"
-													on:click={() => openSource(id)}>{$i18n.t('Source')}</button
-												>
-											{/each}
-										</span>
-									</td>
-									<td>{assumption.target_note}</td>
-									<td>{assumption.watch_note}</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</div>
+				<!-- JUP: one tile per driver. Three prose columns never fit the left card (a table there
+				     scrolled sideways and crushed the driver names), so each answer is a labelled block. -->
+				<ul class="jlp-assumptions">
+					{#each overview.assumptions as assumption (assumption.id)}
+						<li class="jlp-assumption" class:jlp-row-selected={recordId === assumption.id}>
+							<h4 id="assumption-{assumption.id}" class="jlp-cell-title">{assumption.label}</h4>
+							<dl class="jlp-assumption-notes">
+								<div>
+									<dt>{$i18n.t('In the draft')}</dt>
+									<dd>{assumption.target_note}</dd>
+								</div>
+								<div>
+									<dt>{$i18n.t('Watch')}</dt>
+									<dd>{assumption.watch_note}</dd>
+								</div>
+							</dl>
+							<span class="jlp-row-buttons">
+								<button
+									type="button"
+									class="jlp-link"
+									aria-pressed={recordId === assumption.id}
+									aria-describedby="assumption-{assumption.id}"
+									on:click={() => select(assumption.id)}>{$i18n.t('Select')}</button
+								>
+								{#each assumption.source_ids as id, index (id)}
+									<button
+										type="button"
+										class="jlp-link"
+										aria-describedby="assumption-{assumption.id}"
+										on:click={() => openSource(id)}
+										>{assumption.source_ids.length > 1
+											? $i18n.t('Source {{n}}', { n: index + 1 })
+											: $i18n.t('Source')}</button
+									>
+								{/each}
+							</span>
+						</li>
+					{/each}
+				</ul>
 			{/if}
 		</section>
 
