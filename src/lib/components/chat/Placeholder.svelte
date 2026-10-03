@@ -157,9 +157,17 @@
 	// conversations). A chip writes its opening words into the composer and never sends them;
 	// "More" opens the knowledge starters and the configured suggestions below the composer.
 	let moreOpen = false;
+	// The editor rebuilds set text as HTML paragraphs, which drops a trailing space, so the space
+	// after the opening words is typed in at the end instead, where the editor keeps it.
 	const insertStarter = async (text: string) => {
-		await messageInput?.setText(text);
+		await messageInput?.setText(text.trimEnd());
 		messageInput?.focus();
+		const editor = document.getElementById('chat-input');
+		const selection = window.getSelection();
+		if (!editor || !selection) return;
+		selection.selectAllChildren(editor);
+		selection.collapseToEnd();
+		document.execCommand('insertText', false, ' ');
 	};
 
 	// True when viewing a shared folder the current user doesn't own AND lacks write access
