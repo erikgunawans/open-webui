@@ -9,7 +9,7 @@ import type { LiveCapabilities } from './live';
  */
 
 /** The server's `voice.DISCLOSURE_VERSION`. Bump both whenever the text below changes. */
-export const DISCLOSURE_VERSION = '2026-09-28';
+export const DISCLOSURE_VERSION = '2026-10-03';
 
 /** The disclosure, Indonesian first. Fixed text, not translated per locale: it is what was acknowledged. */
 export const DISCLOSURE = {
@@ -17,14 +17,14 @@ export const DISCLOSURE = {
 		'Panggilan suara memakai OpenAI untuk mengubah suara Anda menjadi teks. OpenAI memproses suara di Amerika Serikat dan dapat menyimpannya hingga 30 hari.',
 		'Jawaban dibacakan dengan Google Text-to-Speech. Google menyatakan tidak mencatat teks maupun audio jawaban tersebut.',
 		'Kata-kata Anda juga melewati OpenRouter dan Xiaomi, penyedia model yang menyusun jawaban.',
-		'Asisten suara hanya menjawab dari dokumen strategi yang ditetapkan.',
+		'Asisten suara menjawab dari basis pengetahuan JUP, kartu kontrak, dan Ruang Pimpinan, sesuai hak akses Anda.',
 		'Apa pun yang Anda ucapkan tetap terkirim. Jangan sebutkan angka atau informasi yang belum publik.'
 	],
 	en: [
 		'Voice calls use OpenAI to turn your speech into text. OpenAI processes speech in the United States and may keep it for up to 30 days.',
 		'Answers are read aloud with Google Text-to-Speech. Google states that it does not log that text or audio.',
 		'Your words also pass through OpenRouter and Xiaomi, the providers of the model that writes the answer.',
-		'Voice answers only from the named strategy documents.',
+		'Voice answers from the JUP knowledge base, contract cards and Ruang Pimpinan, within your access rights.',
 		'Whatever you say is sent regardless. Do not speak figures or information that are not public.'
 	]
 } as const;
