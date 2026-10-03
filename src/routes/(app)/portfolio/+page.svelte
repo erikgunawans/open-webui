@@ -269,7 +269,7 @@
 		<div class="mx-auto w-full max-w-4xl px-5 pt-8 pb-16">
 			<MobileSidebarToggle />
 			<header class="mb-7">
-				<p class="jup-eyebrow">Jakarta Utilitas Propertindo</p>
+				<p class="jup-eyebrow">{$i18n.t('Admin')}</p>
 				<h1 class="jup-title text-2xl font-semibold">{$i18n.t('Portfolio')}</h1>
 				<p class="jup-subtitle mt-1.5 text-sm">
 					{$i18n.t(

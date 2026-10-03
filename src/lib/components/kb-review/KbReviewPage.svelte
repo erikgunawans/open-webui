@@ -29,7 +29,7 @@
 			<MobileSidebarToggle />
 			<header class="jlp-header">
 				<div>
-					<p class="jup-eyebrow">Jakarta Utilitas Propertindo</p>
+					<p class="jup-eyebrow">{$i18n.t('Knowledge Base')}</p>
 					<h1 class="jlp-title">{$i18n.t('Knowledge review')}</h1>
 					<p class="jlp-subtitle">
 						{$i18n.t(
