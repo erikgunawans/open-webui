@@ -4348,6 +4348,12 @@
 				<div
 					class="absolute top-0 left-0 w-full h-full bg-linear-to-t from-white to-white/85 dark:from-gray-900 dark:to-gray-900/90 z-0"
 				/>
+			{:else if !embedded && $settings?.jupChatBackground === 'jup'}
+				<!-- JUP: the branded pattern, light mode only. No white wash: the art is already pale. -->
+				<div
+					class="jup-chat-pattern absolute top-0 left-0 w-full h-full bg-contain bg-bottom bg-no-repeat dark:hidden"
+					style="background-image: url({WEBUI_BASE_URL}/static/jup-chat-pattern.png)"
+				/>
 			{:else if !embedded && ($settings?.backgroundImageUrl ?? $config?.license_metadata?.background_image_url ?? null)}
 				<div
 					class="absolute top-0 left-0 w-full h-full bg-cover bg-center bg-no-repeat"
