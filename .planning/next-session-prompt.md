@@ -1,3 +1,48 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-04-v50)
+
+> Prepended by /wrap 2026-10-04 (checkpoint 2026-10-04-v50). Supersedes v49's anchor and its "do next" (#91 merged, #86 built, live and closed); v49's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-04-v50).
+Anchor: `origin/main` at `af89a49c8` **as this was written**, or one commit ahead at this checkpoint's own commit (subject begins `chore(session): checkpoint — 2026-10-04-v50`). Verify with `git log --oneline af89a49c8..origin/main`; any other commit there is a parallel push.
+
+**Current state:**
+- **Live:** **`ent-os-00089-6gx`** (image `af89a49c8`); rollback `00088-bpm`.
+- **E7.2 is live and #86 is closed.** Through IAP, the gateway service account `jup-gateway@jup-ops.iam.gserviceaccount.com` called `POST /api/jup/channel/turn` on behalf of `erik@jakarta-utilitas.com`. It got a governed answer back, a `Teams · …` chat in his history, and audit lines `channel_turn` + `admitted` + `tool_call`.
+- **Grant:** group **Kanal — uji** (`603eb6fc…`), Erik only. Kill switch `JUP_CHANNELS_ENABLED=true` in `deploy.sh`.
+- **Open PRs:** docs only, **#82** and **#83**.
+
+**Do next, in order:**
+1. **`/implement` #87** (E7.3 conversation rules: reuse the conversation's chat if it was active in the last 8 h, else a new one; `baru` in any letter case; one turn in flight per conversation key; later ones wait in order). Build on `jup.channel.run_channel_turn`: today it always creates a new chat, and its tests use a fake store, runner and clock.
+2. **`/implement` #88** (E7.4 answer shaping: TERBATAS → link via a per-message marker set in `mark_restricted`; 1,500-character cut at a paragraph; attachment notice). The 120 s "masih diproses" reply already exists in `jup/channel.py`.
+3. **`/implement` #89** (E7.5 gateway in `gateway/`, Bun, `bun test`, own CI job). Its ent-os client uses the **Identity Platform custom token**, not OIDC/IAM (see the #89 comment): sign a JWT as the SA, call `accounts:signInWithCustomToken?key=<project browser key>`, send `Authorization: Bearer`, refresh before the 1 h expiry.
+4. **#90** deploy the gateway. Cloud Run runs **as** `jup-gateway`; spend is already approved. Its verify adds the one thing still untested live: a `gate_probe`/`external` tool refused in a Channel Turn.
+5. Merge #82 and #83 when Erik is ready; send #82's file to JUP IT.
+6. Carried: Kartu Kontrak with the Legal account; staff-account checks (O1/O2/O3); `jup_contracts` all-users grant; Rully items; #47; Notion #41/#42; CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- **Erik's app account is `erik@jakarta-utilitas.com`**, not `erik@axiara.ai`. The on-behalf-of value is the app email.
+- **IAP is in external-identities mode: IAM does nothing for a service account.** Machine callers need an Identity Platform token. `jup-gateway` holds token-creator on itself only; to sign as it from this machine, grant `alesha-bot@axiara.ai` token-creator temporarily and remove it after.
+- **This vendor has no `app.state.config`.** Read settings with `await Config.get('<dotted key>')`, as `routers/configs.py` does. Fork routers can't be imported under the dev group, so add a source-read test for vendor access patterns.
+- **`governance.audit(path=…)` is the trail FILE.** Never pass a request path as `path=`; use `request_path=`.
+- **The Channel route authenticates from request state only** (`jup_channel_turn` + `jup_channel_user_id`, set by the IAP middleware). Never add `get_verified_user` there: the gateway has no JWT.
+- **The route prefix `/api/jup/channel` must equal `CHANNEL_API_PREFIX`**; `tests/test_jup_router_registration.py` holds them together.
+- **Reading Identity Platform `oauthIdpConfigs` prints the Entra client secret.** Don't.
+- **Forge is still broken** (codex refuses gpt-5.4 on the ChatGPT login); say so when skipping it at E3+.
+- From v49: policy marks on `request.state`, never the body; the per-conversation lock assumes one ent-os instance; the keyed identity hash lives in the gateway; local pytest runs `uv run --offline --only-group dev pytest --continue-on-collection-errors` (5 pre-existing contract errors); local build needs `NODE_OPTIONS=--max-old-space-size=8192`; confirm deploys with `pgrep` + the live revision; Interceptor can't close tabs.
+
+**Open items waiting on Erik:**
+- Close the Interceptor tab on non-jupe.jup.co.id.
+- Rotate the Entra client secret if this session's transcript is shared.
+- O3 acceptance in PowerPoint + Keynote; phone check of `/ruang-pimpinan` + home composer.
+- Send #82 to JUP IT (needs a Privileged Role Admin / Global Admin there); JUP WhatsApp business number (E9).
+- Legal-account Kartu Kontrak check; the deck owner to fix GPM 11,3% vs 12,6% and CFO Rp7,81 M vs Rp9,73 M.
+- Share the "None-JUPe vs holaboss-ai" doc?
+- Staff titles; `jup_contracts` all-users grant; Rully items; Notion token; Impeccable update.
+- Delete "Uji kecepatan" chats + test .docx/.xlsx/.pptx, and the 10-04 `Teams · 2026-10-04 18:25` test chat?
+- Daftar Perkara grant; Gmail send scope; keep or drop `docker-compose.dev.yaml`; delete the "Test" knowledge collection?; RAHASIA decks and footer-less layouts fine?
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-04-v49)
 
 > Prepended by /wrap 2026-10-04 (checkpoint 2026-10-04-v49). Supersedes v48's anchor and its "do next" (xlsx fixed, E7 decided and ticketed); v48's and older blocks' constraints still hold unless noted.

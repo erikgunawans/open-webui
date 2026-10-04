@@ -1,6 +1,28 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-10-04-v49 (latest) — xlsx advisories fixed (00087); ADR-0012 gateway amendment; E7 grilled → spec #84 → tickets #85–#90; E7.1 built (PR #91)
+## Checkpoint 2026-10-04-v50 (latest) — E7.1 merged; E7.2 tracer bullet LIVE (00089): the gateway answers for Erik through IAP
+
+- **Session (10-04, after v49):** `/next` → merged **#91** (E7.1, closes #85) → built **#86** (E7.2) → Claude review (Forge unavailable) found the audit `path=` bug → **PR #92** merged → deploy **00088** → live call 500'd → **PR #93** fix → deploy **00089** → live call answered → **#86 closed**.
+- **Live:** **`ent-os-00089-6gx`** (image `af89a49c8`, 100%); rollback `00088-bpm` (`202ba1900`), before it `00087-8vg`.
+- **#92 (`202ba1900`) E7.2:**
+  - The IAP middleware recognises `JUP_GATEWAY_PRINCIPAL`. With `JUP_CHANNELS_ENABLED`, on `/api/jup/channel/`, with exactly one `X-JUP-On-Behalf-Of` naming an existing non-`pending` user with `jup.channel.use`, it rewrites the email header, drops the id header, and sets `request.state.jup_channel_turn` plus `jup_channel_user_id`. Every other gateway case gets 403 `channel_refused`, audited with the reason only. Everyone else's on-behalf-of header is stripped.
+  - Tool policy: new unattended path `channel_turn`, read from request state.
+  - `jup/channel.py`: grant, request shape, minimal turn (a new chat titled `Teams · <Jakarta time>`, meta `jup_channel`, answer + link, 120 s → "masih diproses" + link, one audit line).
+  - `routers/jup_channel.py`: `POST /api/jup/channel/turn`, authenticated from request state ONLY. The gateway has no session JWT, so `get_verified_user` cannot serve it.
+  - `deploy.sh` env added.
+  - Tests: the ADR amendment's tests at the ASGI seam, the module with a fake runner, registration held to the middleware's prefix. Full dev suite **2,065 passed** (same 5 local-only contract errors as main).
+- **#93 (`af89a49c8`):** this vendor has **no `app.state.config`**. Settings come from `await Config.get('ui.default_models' | 'webui.url')`. Source test added. (Memory `vendor-has-no-app-state-config`.)
+- **IAP is in external-identities mode → no IAM for service accounts** (Erik chose the custom token, 10-04). SA `jup-gateway@jup-ops.iam.gserviceaccount.com` (token-creator on itself) + Identity Platform user `jup-gateway` with that email. The gateway signs a custom token, exchanges it at `accounts:signInWithCustomToken`, and sends `Authorization: Bearer`. Recorded on #86, #89, #90. Memory `iap-external-identities-no-iam-for-service-accounts`.
+- **Grant:** group **Kanal — uji** (`603eb6fc-e4cf-4ca7-b272-33adea400c68`), `jup.channel.use: true`, Erik only. **Erik's app account is `erik@jakarta-utilitas.com`**, not `erik@axiara.ai`.
+- **Live evidence:**
+  - Refused: on behalf of `erik@axiara.ai` → 403 + audit `refused / unknown_user`.
+  - Answered: "status proyek SPBG?" on Erik's behalf → 200 in 76 s, `answered`. Chat `Teams · 2026-10-04 18:25` (`4f06a16c…`) in his history with `jup_channel` meta. Audit `channel_turn` (hashes, chat; no email) + `admitted` ×2 + `tool_call` ×2.
+  - Not checked live: an `external` tool refused in a Channel Turn (unit-tested; carried to #90).
+- **Cleanup:** temporary token-creator grant for `alesha-bot@axiara.ai` removed; local tokens deleted.
+- **Security note:** reading Identity Platform `oauthIdpConfigs` printed the Entra client secret into this session's transcript. Rotate it if the transcript is shared.
+- **Next:** `/implement` **#87** (8 h reuse, `baru`, one turn at a time) ∥ #88 (answer shaping) ∥ #89 (gateway with fakes + CI job; uses the custom token) → #90 (deploy the gateway). Docs PRs **#82**, **#83** still open.
+
+## Checkpoint 2026-10-04-v49 — xlsx advisories fixed (00087); ADR-0012 gateway amendment; E7 grilled → spec #84 → tickets #85–#90; E7.1 built (PR #91)
 
 - **Session (10-04, after v48):** `/next` → items 1–2 are Erik's hands-on checks → Erik decided the three open calls: TERBATAS in a channel → link; ADR-0012 amendment as drafted; one-off npm exception for `xlsx` → #80 + #81 merged → **00087** → JUP IT Teams request drafted (#82) → `/grill-with-docs` on E7 (Q1–Q15, all recommendations accepted) → `/to-spec` **#84** → `/to-tickets` **#85–#90** → `/implement` #85 → **PR #91**.
 - **Live:** **`ent-os-00087-8vg`** (image `a45ff065f`, 100%); rollback `00086-6f7` (`68bd0b3eb`). Verified in an own Interceptor tab: the served xlsx chunk reports SheetJS `0.20.3`.
