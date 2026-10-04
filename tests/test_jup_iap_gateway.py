@@ -13,11 +13,12 @@ import json
 
 import pytest
 
-from jup.governance import CHANNEL_TURN_STATE_ATTR, CHANNEL_USER_STATE_ATTR
+from jup.governance import CHANNEL_LINK_STATE_ATTR, CHANNEL_TURN_STATE_ATTR, CHANNEL_USER_STATE_ATTR
 from jup.iap_identity import (
     CHANNEL_API_PREFIX,
     CHANNELS_ENABLED_ENV,
     GATEWAY_PRINCIPAL_ENV,
+    LINK_PATH,
     ON_BEHALF_OF_HEADER,
     IapIdentityHeaderMiddleware,
 )
@@ -52,6 +53,10 @@ class FakeUsers:
     async def get_user_by_email(self, email: str) -> FakeUser | None:
         self.lookups.append(email)
         return self._by_email.get(email)
+
+    async def get_user_by_id(self, user_id: str) -> FakeUser | None:
+        self.lookups.append(user_id)
+        return next((user for user in self._by_email.values() if user.id == user_id), None)
 
     async def insert_new_user(self, *args, **kwargs) -> None:
         self.writes.append('insert_new_user')
@@ -104,11 +109,32 @@ def as_gateway(on_behalf_of: str | None = None, *extra: tuple[bytes, bytes], pat
     return scope(*headers, *extra, path=path)
 
 
-async def run(scope_: dict, *, env: dict | None = None, users: FakeUsers | None = None, granted=None):
+class FakeLinks:
+    """Stands in for `jup.channel_links`: linked hashes, live codes, and the calls made."""
+
+    def __init__(self, linked: dict[str, str] | None = None, codes: dict[str, str] | None = None) -> None:
+        self.linked = linked or {}
+        self.codes = codes or {}
+        self.calls: list[tuple] = []
+
+    async def resolve(self, identity_hash: str) -> str | None:
+        self.calls.append(('resolve', identity_hash))
+        return self.linked.get(identity_hash)
+
+    async def code_owner(self, code: str, identity_hash: str) -> str | None:
+        self.calls.append(('code_owner', code, identity_hash))
+        return self.codes.get(code)
+
+
+async def run(scope_: dict, *, env: dict | None = None, users: FakeUsers | None = None, granted=None, links=None):
     inner, sent = RecordingApp(), Sent()
     users = users if users is not None else FakeUsers(ERIK, STAFF, PENDING)
     middleware = IapIdentityHeaderMiddleware(
-        inner, env=ON if env is None else env, users=users, may_use_channel=granted or Granted(ERIK.id)
+        inner,
+        env=ON if env is None else env,
+        users=users,
+        may_use_channel=granted or Granted(ERIK.id),
+        links=links if links is not None else FakeLinks(),
     )
     await middleware(scope_, None, sent)
     return inner, sent, users
@@ -333,3 +359,107 @@ async def test_the_refusal_reaches_the_real_audit_trail(tmp_path, monkeypatch):
         'not_granted',
         TURN_PATH,
     )
+
+
+# --- amendment 2: a WhatsApp number, and a Link Code (E9.1, #102) -------------------------------------
+
+NUMBER = 'c' * 64
+OTHER = 'd' * 64
+
+
+async def test_a_linked_number_is_admitted_as_its_user_for_a_turn():
+    links = FakeLinks(linked={NUMBER: ERIK.id})
+    inner, _, _ = await run(as_gateway(f'whatsapp:{NUMBER}'), links=links)
+
+    (forwarded,) = inner.scopes
+    assert header(forwarded, EMAIL_HEADER) == [ERIK.email.encode()]
+    assert forwarded['state'][CHANNEL_TURN_STATE_ATTR] is True
+    assert forwarded['state'][CHANNEL_USER_STATE_ATTR] == ERIK.id
+    assert CHANNEL_LINK_STATE_ATTR not in forwarded['state']
+
+
+@pytest.mark.parametrize(
+    'linked',
+    [{}, {NUMBER: PENDING.id}, {NUMBER: STAFF.id}, {NUMBER: 'u-deleted'}],
+    ids=['unlinked', 'pending', 'ungranted', 'deleted-user'],
+)
+async def test_6_an_unlinked_number_or_one_linked_to_an_unqualified_user_is_refused(linked):
+    inner, sent, users = await run(as_gateway(f'whatsapp:{NUMBER}'), links=FakeLinks(linked=linked))
+
+    assert refused(inner, sent)
+    assert users.writes == []
+
+
+async def test_a_link_code_admits_its_issuer_on_the_link_path_with_the_link_mark_only():
+    links = FakeLinks(codes={'482913': ERIK.id})
+    inner, _, _ = await run(as_gateway(f'link-code:482913:{NUMBER}', path=LINK_PATH), links=links)
+
+    (forwarded,) = inner.scopes
+    assert forwarded['state'][CHANNEL_LINK_STATE_ATTR] == {'code': '482913', 'identity_hash': NUMBER}
+    assert forwarded['state'][CHANNEL_USER_STATE_ATTR] == ERIK.id
+    assert CHANNEL_TURN_STATE_ATTR not in forwarded['state']
+    assert links.calls == [('code_owner', '482913', NUMBER)]
+
+
+@pytest.mark.parametrize('path', [TURN_PATH, f'{LINK_PATH}/', f'{CHANNEL_API_PREFIX}links'])
+async def test_7_a_link_code_anywhere_but_the_link_path_is_refused_unlooked(path):
+    links = FakeLinks(codes={'482913': ERIK.id})
+    inner, sent, _ = await run(as_gateway(f'link-code:482913:{NUMBER}', path=path), links=links)
+
+    assert refused(inner, sent)
+    assert links.calls == []
+
+
+async def test_8_a_code_the_directory_does_not_own_is_refused():
+    # Expired, used, unknown and over-the-limit all reach the middleware as no owner.
+    inner, sent, _ = await run(as_gateway(f'link-code:000000:{NUMBER}', path=LINK_PATH), links=FakeLinks())
+
+    assert refused(inner, sent)
+
+
+async def test_8_a_code_issued_by_a_user_who_lost_the_grant_is_refused():
+    links = FakeLinks(codes={'482913': STAFF.id})
+    inner, sent, _ = await run(as_gateway(f'link-code:482913:{NUMBER}', path=LINK_PATH), links=links)
+
+    assert refused(inner, sent)
+
+
+@pytest.mark.parametrize(
+    'value',
+    [
+        f'whatsapp:{NUMBER.upper()}',
+        f'whatsapp:{NUMBER[:-1]}',
+        'whatsapp:',
+        f'link-code:48291:{NUMBER}',
+        f'link-code:482913:{NUMBER.upper()}',
+        f'link-code:482913{NUMBER}',
+        f'teams:{NUMBER}',
+        f'mailto:{ERIK.email}',
+    ],
+)
+async def test_9_a_malformed_value_is_refused_without_a_lookup(value):
+    links = FakeLinks(linked={NUMBER: ERIK.id, NUMBER.upper(): ERIK.id}, codes={'482913': ERIK.id})
+    path = LINK_PATH if value.startswith('link-code') else TURN_PATH
+    inner, sent, users = await run(as_gateway(value, path=path), links=links)
+
+    assert refused(inner, sent)
+    assert links.calls == []
+    assert users.lookups == []
+
+
+async def test_a_failing_directory_refuses_rather_than_admitting():
+    class Broken(FakeLinks):
+        async def resolve(self, identity_hash):
+            raise RuntimeError('the Channel Mapping schema is not ready')
+
+    inner, sent, _ = await run(as_gateway(f'whatsapp:{NUMBER}'), links=Broken())
+
+    assert refused(inner, sent)
+
+
+async def test_the_kill_switch_refuses_a_linked_number_too():
+    links = FakeLinks(linked={NUMBER: ERIK.id})
+    inner, sent, _ = await run(as_gateway(f'whatsapp:{NUMBER}'), env={GATEWAY_PRINCIPAL_ENV: GATEWAY}, links=links)
+
+    assert refused(inner, sent)
+    assert links.calls == []

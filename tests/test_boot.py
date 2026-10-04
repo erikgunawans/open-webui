@@ -39,6 +39,8 @@ VERSIONS_DIR = BACKEND_DIR / 'open_webui' / 'migrations' / 'versions'
 LEADERSHIP_VERSIONS_DIR = BACKEND_DIR / 'jup' / 'leadership' / 'migrations' / 'versions'
 # The contract KB's graph, separate again so a broken contract migration disables only contracts.
 CONTRACTS_VERSIONS_DIR = BACKEND_DIR / 'jup' / 'contracts' / 'migrations' / 'versions'
+# The Channel Mappings (E9.1): WhatsApp links, separate so a broken migration disables only linking.
+CHANNEL_LINKS_VERSIONS_DIR = BACKEND_DIR / 'jup' / 'channel_links' / 'migrations' / 'versions'
 # The tracked tree `config.py` wipes at import. `tests/conftest.py` redirects STATIC_DIR away
 # from it before pytest imports any test module; the last test in this file asserts that.
 TRACKED_STATIC_DIR = BACKEND_DIR / 'open_webui' / 'static'
@@ -64,6 +66,9 @@ _BOOT_SCRIPT = textwrap.dedent(
     from jup.contracts.migrate import schema_ready as contracts_ready
 
     assert contracts_ready(), 'the contract KB graph did not reach its head during boot'
+    from jup.channel_links.migrate import schema_ready as links_ready
+
+    assert links_ready(), 'the Channel Mapping graph did not reach its head during boot'
     print('BOOTED', len(app.routes))
     """
 )
@@ -71,8 +76,8 @@ _BOOT_SCRIPT = textwrap.dedent(
 
 @pytest.fixture(
     scope='module',
-    params=[VERSIONS_DIR, LEADERSHIP_VERSIONS_DIR, CONTRACTS_VERSIONS_DIR],
-    ids=['vendor', 'leadership', 'contracts'],
+    params=[VERSIONS_DIR, LEADERSHIP_VERSIONS_DIR, CONTRACTS_VERSIONS_DIR, CHANNEL_LINKS_VERSIONS_DIR],
+    ids=['vendor', 'leadership', 'contracts', 'channel_links'],
 )
 def revisions(request: pytest.FixtureRequest) -> tuple[Revision, ...]:
     """One whole revision graph, read once for every assertion in this file."""

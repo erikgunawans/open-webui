@@ -38,10 +38,11 @@ cannot become someone else by sending it.
 import json
 import logging
 import os
+import re
 from collections.abc import Awaitable, Callable, Iterable, Mapping
-from typing import Any
+from typing import Any, Protocol
 
-from jup.governance import CHANNEL_TURN_STATE_ATTR, CHANNEL_USER_STATE_ATTR
+from jup.governance import CHANNEL_LINK_STATE_ATTR, CHANNEL_TURN_STATE_ATTR, CHANNEL_USER_STATE_ATTR
 
 log = logging.getLogger(__name__)
 
@@ -63,10 +64,30 @@ ON_BEHALF_OF_HEADER = b'x-jup-on-behalf-of'
 #: The only paths the gateway principal may reach (`routers/jup_channel.py` is mounted here).
 CHANNEL_API_PREFIX = '/api/jup/channel/'
 
+#: The one path a Link Code admits the gateway to (ADR-0012 amendment 2).
+LINK_PATH = f'{CHANNEL_API_PREFIX}link'
+#: The on-behalf-of forms beside a plain email (amendment 2). Hex is lowercase, exactly as the gateway writes it.
+_WHATSAPP_VALUE = re.compile(r'whatsapp:([0-9a-f]{64})')
+_LINK_CODE_VALUE = re.compile(r'link-code:([0-9]{6}):([0-9a-f]{64})')
+
 #: What a refused gateway request gets back. The reason goes to the audit line only (spec #84).
 REFUSED_DETAIL = 'channel_refused'
 
 GrantCheck = Callable[[Any], Awaitable[bool]]
+
+
+class LinkDirectory(Protocol):
+    """The WhatsApp Mappings (`jup.channel_links`), as the middleware reads them."""
+
+    async def resolve(self, identity_hash: str) -> str | None:
+        """The user id the number is linked to, or None."""
+        ...
+
+    async def code_owner(self, code: str, identity_hash: str) -> str | None:
+        """The user who issued the live code, or None; a miss counts against the sender."""
+        ...
+
+
 Audit = Callable[..., None]
 
 
@@ -170,6 +191,7 @@ class IapIdentityHeaderMiddleware:
         users: Any = None,
         may_use_channel: GrantCheck | None = None,
         audit: Audit | None = None,
+        links: LinkDirectory | None = None,
     ) -> None:
         self.app = app
         # Injected in tests; in production the env is read per request and the vendor's `Users`
@@ -178,6 +200,7 @@ class IapIdentityHeaderMiddleware:
         self._users = users
         self._may_use_channel = may_use_channel or _default_grant
         self._audit = audit or _default_audit
+        self._links = links
 
     async def __call__(self, scope: dict, receive: Callable, send: Callable) -> None:
         if scope.get('type') not in ('http', 'websocket'):
@@ -197,7 +220,7 @@ class IapIdentityHeaderMiddleware:
 
     async def _as_gateway(self, scope: dict, headers: list, receive: Callable, send: Callable) -> None:
         """Admit the gateway on behalf of one mapped user, or refuse it here, before routing."""
-        user, reason = await self._mapped_user(scope, headers)
+        user, reason, link = await self._mapped_user(scope, headers)
         if user is None:
             self._audit('channel_turn', outcome='refused', reason=reason, request_path=scope.get('path'))
             await _refuse(scope, send)
@@ -206,37 +229,76 @@ class IapIdentityHeaderMiddleware:
         rewritten.append((_EMAIL_HEADER, str(user.email).encode('latin-1')))
         scope = dict(scope)
         scope['headers'] = rewritten
-        scope['state'] = {
-            **(scope.get('state') or {}),
-            CHANNEL_TURN_STATE_ATTR: True,
-            CHANNEL_USER_STATE_ATTR: user.id,
-        }
+        # A Link Code admits the link and nothing else: no Channel Turn mark, so the turn route refuses it.
+        marks = {CHANNEL_LINK_STATE_ATTR: link} if link else {CHANNEL_TURN_STATE_ATTR: True}
+        scope['state'] = {**(scope.get('state') or {}), **marks, CHANNEL_USER_STATE_ATTR: user.id}
         await self.app(scope, receive, send)
 
-    async def _mapped_user(self, scope: dict, headers: list) -> tuple[Any, str]:
-        """`(user, '')` when the gateway may act for the named user, else `(None, reason)`."""
+    async def _mapped_user(self, scope: dict, headers: list) -> tuple[Any, str, dict | None]:
+        """`(user, '', link)` when the gateway may act for that user, else `(None, reason, None)`.
+
+        The on-behalf-of value is an email (Teams), `whatsapp:<hash>` (a linked number) or, on
+        `LINK_PATH` only, `link-code:<code>:<hash>` (ADR-0012 amendment 2). `link` is
+        `{'code', 'identity_hash'}` when a Link Code admitted the request, else None.
+        """
         if scope.get('type') != 'http':
-            return None, 'gateway_not_http'
+            return None, 'gateway_not_http', None
         if not channels_enabled(self._env):
-            return None, 'channels_disabled'
+            return None, 'channels_disabled', None
         if not on_channel_prefix(scope.get('path')):
-            return None, 'gateway_off_prefix'
+            return None, 'gateway_off_prefix', None
         values = [value for name, value in headers if name == ON_BEHALF_OF_HEADER]
-        email = values[0].decode('latin-1').strip().lower() if len(values) == 1 else ''
-        if not email:
-            return None, 'no_on_behalf_of'
+        value = values[0].decode('latin-1').strip() if len(values) == 1 else ''
+        if not value:
+            return None, 'no_on_behalf_of', None
+        link = None
         try:
-            user = await self._lookup(email)
+            if value.startswith('whatsapp:'):
+                match = _WHATSAPP_VALUE.fullmatch(value)
+                if match is None:
+                    return None, 'malformed_on_behalf_of', None
+                user_id = await self._directory().resolve(match[1])
+                if user_id is None:
+                    return None, 'unlinked', None
+                user = await self._lookup_id(user_id)
+            elif value.startswith('link-code:'):
+                if scope.get('path') != LINK_PATH:
+                    return None, 'link_code_off_path', None
+                match = _LINK_CODE_VALUE.fullmatch(value)
+                if match is None:
+                    return None, 'malformed_on_behalf_of', None
+                user_id = await self._directory().code_owner(match[1], match[2])
+                if user_id is None:
+                    return None, 'bad_link_code', None
+                user, link = await self._lookup_id(user_id), {'code': match[1], 'identity_hash': match[2]}
+            elif ':' in value:
+                return None, 'malformed_on_behalf_of', None
+            else:
+                user = await self._lookup(value.lower())
             if user is None:
-                return None, 'unknown_user'
+                return None, 'unknown_user', None
             if getattr(user, 'role', None) == 'pending':
-                return None, 'pending_user'
+                return None, 'pending_user', None
             if await self._may_use_channel(user) is not True:
-                return None, 'not_granted'
+                return None, 'not_granted', None
         except Exception:
             log.exception('jup.iap_identity could not check the gateway on-behalf-of user')
-            return None, 'lookup_failed'
-        return user, ''
+            return None, 'lookup_failed', None
+        return user, '', link
+
+    def _directory(self) -> LinkDirectory:
+        if self._links is None:
+            from jup.channel_links.directory import EngineDirectory
+
+            self._links = EngineDirectory()
+        return self._links
+
+    async def _lookup_id(self, user_id: str) -> Any:
+        if self._users is None:
+            from open_webui.models.users import Users
+
+            self._users = Users
+        return await self._users.get_user_by_id(user_id)
 
     async def _lookup(self, email: str) -> Any:
         if self._users is None:

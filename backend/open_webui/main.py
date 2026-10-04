@@ -44,6 +44,7 @@ from starsessions.stores.redis import RedisStore
 
 from jup.admin_allowlist import AdminAllowlistMiddleware
 from jup.iap_identity import IapIdentityHeaderMiddleware
+from jup.channel_links.migrate import run_channel_link_migrations
 from jup.contracts.migrate import run_contract_migrations
 from jup.leadership.migrate import run_leadership_migrations
 from open_webui.config import (
@@ -889,6 +890,8 @@ if ENABLE_DB_MIGRATIONS:
     run_leadership_migrations(engine)
     # JUP: the contract KB's tables, on their own graph too; a failure disables only contracts.
     run_contract_migrations(engine)
+    # JUP: the Channel Mappings (E9, WhatsApp links), on their own graph; a failure disables only linking.
+    run_channel_link_migrations(engine)
 app.include_router(jup_portfolio.router, prefix='/api/v1/portfolio', tags=['portfolio'])
 app.include_router(jup_leadership.router, prefix='/api/v1/leadership', tags=['leadership'])
 app.include_router(jup_kb_review.router, prefix='/api/v1/kb-review', tags=['kb-review'])

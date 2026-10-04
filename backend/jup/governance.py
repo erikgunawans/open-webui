@@ -74,6 +74,11 @@ CHANNEL_TURN_STATE_ATTR = 'jup_channel_turn'
 #: vendor's `get_verified_user` (which needs one) cannot serve that route.
 CHANNEL_USER_STATE_ATTR = 'jup_channel_user_id'
 
+#: Set instead of `CHANNEL_TURN_STATE_ATTR` when the gateway was admitted on a Link Code (ADR-0012
+#: amendment 2): `{'code', 'identity_hash'}`, the code to spend and the number it may link, and
+#: nothing else. Only the link route reads it.
+CHANNEL_LINK_STATE_ATTR = 'jup_channel_link_identity'
+
 #: The marker the contract opens with, so a human reading a provider-side log can see the
 #: turn was governed. Presence of this alone is *not* sufficient — see `carries_contract`.
 CONTRACT_SENTINEL = '[JUP-GOVERNED]'
@@ -472,6 +477,7 @@ def assert_governed(form_data: dict, *, state: Any = None, user_id: str | None =
 __all__ = [
     'ADMITTED_STATE_ATTR',
     'AUDIT_ENV',
+    'CHANNEL_LINK_STATE_ATTR',
     'CHANNEL_TURN_STATE_ATTR',
     'CHANNEL_USER_STATE_ATTR',
     'CONTRACT_SENTINEL',

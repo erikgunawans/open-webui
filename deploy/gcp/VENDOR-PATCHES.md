@@ -906,6 +906,21 @@ so a broken contract migration disables only contracts — not chat and not Ruan
 
 **Conflict risk:** low. Two lines next to the leadership ones.
 
+## `backend/open_webui/main.py` — the Channel Mapping migration graph (2026-10-04, E9.1)
+
+**What:** `run_channel_link_migrations(engine)` after `run_contract_migrations` under
+`ENABLE_DB_MIGRATIONS`.
+
+**Why:** WhatsApp links (`jup_channel_link`, `jup_channel_link_code`, `jup_channel_link_failure`) sit on
+their own graph and version table (`jup_channel_links_alembic_version`), so a broken migration disables
+only WhatsApp linking.
+
+**If dropped:** the app boots; every `whatsapp:` and `link-code:` gateway request is refused
+(`lookup_failed`) and the link route answers 503. `tests/test_channel_link_migration_seam.py` and the
+boot test notice.
+
+**Conflict risk:** low. One line next to the contract one.
+
 ## `src/lib/components/chat/Messages/ContentRenderer.svelte` — names beside contract codes (2026-10-02, D2)
 
 **What:** `formatMessageContent` becomes reactive and passes its result through `withContractNames`

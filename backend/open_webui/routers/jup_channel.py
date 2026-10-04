@@ -23,7 +23,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request, status
 
 from jup import channel, conversation_lock
-from jup.governance import CHANNEL_TURN_STATE_ATTR, CHANNEL_USER_STATE_ATTR, audit
+from jup.governance import CHANNEL_LINK_STATE_ATTR, CHANNEL_TURN_STATE_ATTR, CHANNEL_USER_STATE_ATTR, audit
 from jup.iap_identity import REFUSED_DETAIL
 from jup.turn import resolve_defaults, run_turn
 
@@ -201,3 +201,44 @@ async def channel_turn(request: Request) -> dict[str, Any]:
         log.exception('jup.channel turn failed')
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, 'channel_turn_failed') from None
     return {'reply': reply.reply, 'chat_url': reply.chat_url, 'outcome': reply.outcome}
+
+
+@router.post('/link')
+async def channel_link(request: Request) -> dict[str, Any]:
+    """Links the number a Link Code was sent from to the user who issued it (E9.1, ADR-0012 amendment 2).
+
+    Admitted by the middleware on `link-code:<code>:<hash>` only: the code and the number arrive on
+    the request state, never from the body. The body adds the last four digits for the web app. A
+    code already spent or expired by now answers 403, exactly like a refusal at the middleware.
+    """
+    link = getattr(request.state, CHANNEL_LINK_STATE_ATTR, None)
+    user_id = getattr(request.state, CHANNEL_USER_STATE_ATTR, None)
+    if not isinstance(link, dict) or not user_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, REFUSED_DETAIL)
+    try:
+        body = await request.json()
+        hint = body['hint'] if isinstance(body, dict) and set(body) == {'hint'} else None
+    except ValueError:
+        hint = None
+    if not isinstance(hint, str) or not (len(hint) == 4 and hint.isascii() and hint.isdigit()):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, 'channel_request_invalid: hint must be four digits')
+
+    import asyncio
+    import time
+
+    from jup.channel_links import links
+    from jup.channel_links.migrate import schema_ready
+    from open_webui.internal.db import engine
+
+    if not schema_ready():
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, 'channel_unavailable')
+    identity_hash = link['identity_hash']
+    claimed = await asyncio.to_thread(links.claim, engine, link['code'], identity_hash, hint, int(time.time() * 1000))
+    if claimed is None or claimed.user_id != user_id:
+        audit(
+            'channel_link', channel=links.WHATSAPP, identity_hash=identity_hash, outcome='refused', reason='code_spent'
+        )
+        raise HTTPException(status.HTTP_403_FORBIDDEN, REFUSED_DETAIL)
+    outcome = 'relinked' if claimed.relinked else 'linked'
+    audit('channel_link', channel=links.WHATSAPP, identity_hash=identity_hash, user=user_id, outcome=outcome)
+    return {'linked': True, 'outcome': outcome}
