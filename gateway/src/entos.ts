@@ -126,3 +126,42 @@ export class HttpEntOs implements EntOsClient {
 		};
 	}
 }
+
+/** What `selfCheck` saw: the HTTP status of each probe. */
+export interface SelfCheck {
+	channel: number;
+	other: number;
+	ok: boolean;
+}
+
+/**
+ * Proves the running gateway's identity through IAP without running a turn (#90): the Channel
+ * endpoint with an empty body must be admitted and then refused as malformed (422), and any other
+ * path must be refused (403) even with the on-behalf-of header.
+ */
+export async function selfCheck(opts: {
+	baseUrl: string;
+	tokens: TokenSource;
+	onBehalfOf: string;
+	fetch?: Fetch;
+}): Promise<SelfCheck> {
+	const http = opts.fetch ?? fetch;
+	const base = opts.baseUrl.replace(/\/$/, '');
+	const headers = {
+		authorization: `Bearer ${await opts.tokens.token()}`,
+		[ON_BEHALF_OF]: opts.onBehalfOf,
+		'content-type': 'application/json'
+	};
+	const channel = await http(`${base}/api/jup/channel/turn`, {
+		method: 'POST',
+		headers,
+		body: '{}',
+		redirect: 'manual'
+	});
+	const other = await http(`${base}/api/v1/auths/`, { headers, redirect: 'manual' });
+	return {
+		channel: channel.status,
+		other: other.status,
+		ok: channel.status === 422 && other.status === 403
+	};
+}

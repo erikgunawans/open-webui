@@ -1,7 +1,7 @@
 /** The ent-os client with a fake `fetch`: the Identity Platform sign-in and the Channel call (#89). */
 
 import { expect, test } from 'bun:test';
-import { HttpEntOs, IdentityPlatformTokens, ON_BEHALF_OF } from './entos';
+import { HttpEntOs, IdentityPlatformTokens, ON_BEHALF_OF, selfCheck } from './entos';
 import type { TurnRequest } from './types';
 
 const SA = 'jup-gateway@jup-ops.iam.gserviceaccount.com';
@@ -97,4 +97,25 @@ test('a 403 is a refusal; any other failure throws', async () => {
 	]) {
 		await expect(entos(response).turn(TURN, 'x@y')).rejects.toThrow();
 	}
+});
+
+test('the self-check passes only on 422 at the Channel endpoint and 403 elsewhere', async () => {
+	const statuses = (channel: number, other: number) =>
+		(async (input: string | URL | Request, init?: RequestInit) => {
+			expect(new Headers(init?.headers).get(ON_BEHALF_OF)).toBe('erik@jakarta-utilitas.com');
+			return new Response(null, {
+				status: String(input).endsWith('/api/jup/channel/turn') ? channel : other
+			});
+		}) as typeof fetch;
+	const run = (channel: number, other: number) =>
+		selfCheck({
+			baseUrl: 'https://non-jupe.jup.co.id',
+			tokens: { token: async () => 'id-token' },
+			onBehalfOf: 'erik@jakarta-utilitas.com',
+			fetch: statuses(channel, other)
+		});
+	expect(await run(422, 403)).toEqual({ channel: 422, other: 403, ok: true });
+	expect((await run(403, 403)).ok).toBe(false); // not admitted
+	expect((await run(422, 200)).ok).toBe(false); // reached a non-Channel path
+	expect((await run(302, 302)).ok).toBe(false); // IAP sign-in redirect
 });
