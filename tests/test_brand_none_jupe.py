@@ -20,6 +20,9 @@ ASSETS = (
     'favicon-96x96.png',
     'favicon.ico',
     'favicon.svg',
+    'favicon-dark.png',
+    'favicon-dark-96x96.png',
+    'favicon-dark.ico',
     'logo.png',
     'splash.png',
     'splash-dark.png',
@@ -53,3 +56,12 @@ def test_the_bangjayaos_marks_are_gone() -> None:
 def test_the_asisten_jup_marks_are_gone() -> None:
     for directory in STATIC_DIRS:
         assert not list(directory.glob('asisten-jup-*')), f'Asisten JUP mark left in {directory}'
+
+
+def test_the_favicon_follows_the_browser_colour_scheme() -> None:
+    svg = (STATIC_DIRS[0] / 'favicon.svg').read_text(encoding='utf-8')
+    assert '@media (prefers-color-scheme:dark)' in svg
+    html = (ROOT / 'src' / 'app.html').read_text(encoding='utf-8')
+    for dark in ('favicon-dark.png', 'favicon-dark-96x96.png', 'favicon-dark.ico'):
+        assert f'data-jup-dark="/static/{dark}"' in html
+    assert "matchMedia('(prefers-color-scheme: dark)')" in html
