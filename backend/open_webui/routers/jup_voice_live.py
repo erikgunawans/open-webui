@@ -22,13 +22,13 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import time
 import uuid
 from collections.abc import Awaitable, Callable
 from typing import Any
 
 from jup import voice, voice_live
 from jup.governance import audit
+from jup.turn import run_turn
 
 log = logging.getLogger(__name__)
 
@@ -51,20 +51,6 @@ Send = Callable[[dict], Awaitable[None]]
 # --- The governed turn ------------------------------------------------------------------------
 
 
-def _branch(history: dict, current_id: str | None, limit: int) -> list[dict]:
-    """The last `limit` messages on the branch ending at `current_id`, oldest first."""
-    messages = history.get('messages') or {}
-    branch: list[dict] = []
-    seen: set[str] = set()
-    while current_id and current_id in messages and current_id not in seen and len(branch) < limit:
-        seen.add(current_id)
-        message = messages[current_id]
-        if message.get('role') in ('user', 'assistant') and message.get('content'):
-            branch.append({'role': message['role'], 'content': message['content']})
-        current_id = message.get('parentId')
-    return list(reversed(branch))
-
-
 async def live_turn(
     app: Any,
     user: Any,
@@ -81,51 +67,30 @@ async def live_turn(
 ) -> tuple[str, str]:
     """Runs `question` as a turn in the caller's voice chat and returns `(message_id, sealed answer)`.
 
-    The request is the one the call UI sends for a follow-up, so the vendor persists both messages
-    and `enforce_voice_turn` holds the turn to the voice model and scope. Raises `TimeoutError` when
-    no sealed answer appears in time.
+    The request is the one the call UI sends for a follow-up (`jup.turn.run_turn`), so the vendor
+    persists both messages and `enforce_voice_turn` holds the turn to the voice model and scope. Only
+    a sealed answer counts as finished. Raises `TimeoutError` when none appears in time.
     """
     if build_request is None:
         from open_webui.utils.automations import _build_request as build_request
 
-    chat = await store.get_chat(chat_id)
-    history = ((chat.chat if chat is not None else None) or {}).get('history') or {}
-    parent_id = history.get('currentId')
-    user_message_id, message_id = str(uuid.uuid4()), str(uuid.uuid4())
-    user_message = {
-        'id': user_message_id,
-        'parentId': parent_id,
-        'role': 'user',
-        'content': question,
-        'models': [voice.VOICE_MODEL_ID],
-        'timestamp': int(time.time()),
-    }
-    form_data = {
-        'model': voice.VOICE_MODEL_ID,
-        'messages': [*_branch(history, parent_id, CONTEXT_MESSAGES), {'role': 'user', 'content': question}],
-        'stream': True,
-        'chat_id': chat_id,
-        'id': message_id,
-        'parent_id': parent_id,
-        'user_message': user_message,
-        'session_id': session_id or f'voice-live:{chat_id}',
-        'background_tasks': {},
-    }
-    run = handler or app.state.CHAT_COMPLETION_HANDLER
-    await run(build_request(app), form_data, user=user)
-
-    deadline = time.monotonic() + wait_seconds
-    while time.monotonic() < deadline:
-        message = await store.get_message(chat_id, message_id)
-        if (
-            isinstance(message, dict)
-            and message.get('done') is not False
-            and message.get('content')
-            and voice.answer_sealed(message, chat_id, message_id, secret=secret)
-        ):
-            return message_id, message['content']
-        await asyncio.sleep(poll_seconds)
-    raise TimeoutError(f'no sealed answer for {message_id}')
+    result = await run_turn(
+        user=user,
+        chat_id=chat_id,
+        text=question,
+        model_id=voice.VOICE_MODEL_ID,
+        store=store,
+        handler=handler or app.state.CHAT_COMPLETION_HANDLER,
+        build_request=lambda: build_request(app),
+        session_id=session_id or f'voice-live:{chat_id}',
+        accept=lambda message, message_id: voice.answer_sealed(message, chat_id, message_id, secret=secret),
+        context_messages=CONTEXT_MESSAGES,
+        wait_seconds=wait_seconds,
+        poll_seconds=poll_seconds,
+    )
+    if not result.finished:
+        raise TimeoutError(f'no sealed answer for {result.message_id}')
+    return result.message_id, result.content
 
 
 # --- The relay --------------------------------------------------------------------------------
