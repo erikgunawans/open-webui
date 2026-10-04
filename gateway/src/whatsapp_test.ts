@@ -220,6 +220,18 @@ describe('a question', () => {
 		expect(JSON.stringify(world.logs)).not.toContain(WA_ID);
 	});
 
+	test('the answer is sent in WhatsApp formatting, not Markdown', async () => {
+		const world = new World();
+		world.outcome = async () => ({
+			kind: 'reply',
+			reply: '## Status\n- **Gate:** belum lulus',
+			chatUrl: '',
+			outcome: 'answered'
+		});
+		await run(world, request(webhook([message()])));
+		expect(world.texts()).toEqual(['*Status*\n• *Gate:* belum lulus']);
+	});
+
 	test('a refusal gets the neutral reply; an ent-os failure gets the outage reply, once', async () => {
 		const refused = new World();
 		refused.outcome = async () => ({ kind: 'refused' });
