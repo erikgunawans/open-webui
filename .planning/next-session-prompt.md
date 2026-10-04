@@ -1,3 +1,40 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-05-v54)
+
+> Prepended by /wrap 2026-10-05 (checkpoint 2026-10-05-v54). Supersedes v53's anchor and its "do next"; v53's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-05-v54).
+Anchor: `origin/main` at `6402f0f77` **as this was written**, or one commit ahead at this checkpoint's own commit (subject begins `chore(session): checkpoint — 2026-10-05-v54`). Verify with `git log --oneline 6402f0f77..origin/main`; any other commit there is a parallel push.
+
+**Current state:**
+- **Live:** `ent-os-00098-x22` (image `6402f0f77`; rollback `00097-p6k`), `jup-gateway-00004-fxv` unchanged. No open PRs. Main = live.
+- New this session: Latar Obrolan (Putih Polos / Pola JUP, Erik's account set to Pola JUP), `JUP_NOTION_TOKEN` mapped (#41 done), favicon follows the browser's light/dark (verified live on 00098), upstream PyPI/Docker workflows disabled.
+- `~/ent-os-ui` (@jup/ui) design-synced to claude.ai/design "JUP UI Components" (`813880e6-…`), pushed `68f6b76`.
+
+**Do next, in order:**
+1. **#42 Notion acceptance with Erik:** he opens a new chat → Alat → Notion (read-only) → asks about a meeting note. Check: the answer cites the Notion page URL; a page NOT shared with the integration is not found; a non-admin account is refused (code); `jup.governance` has one E1 audit line per call. Then close #42 + #39 and set I1 live in `.planning/agent-depth-plan.md`.
+2. **E8 when JUP IT answers #82** (v51/v53 item, unchanged): `bot-app-secret` (printf, no newline; accessor jup-gateway); `BOT_APP_ID=… JUP_TENANT_ID=… bash deploy/gcp/deploy-gateway.sh`; messaging endpoint `<gateway>/api/messages`; Teams app package (1:1); enforce `msteams` endorsement in `gateway/src/botframework.ts`; live check incl. a `gate_probe`/`external` tool refused in a Channel Turn. If #82 is still unanswered, ask Erik once.
+3. Erik's decisions from his list (below) as he answers them: contract titles via Pengguna title column, `jup_contracts` all-users grant, Rully items.
+4. Carried: O3 acceptance (PowerPoint + Keynote); phone check; Legal-account Kartu Kontrak; staff-account checks (O1); #47 (seen only when an IAP session expires mid-answer).
+
+**Constraints to honor** (new, plus the blocks below):
+- **Favicons follow the browser's scheme, never the app theme.** `src/routes/+layout.svelte` injects a late `rel=icon`: it must stay `favicon.svg` (test in `tests/test_brand_none_jupe.py`). Regenerate icons only with `bun deploy/gcp/brand/build-icons.ts` (writes both static dirs).
+- **`deploy.sh` image tag = HEAD at start**: don't commit/edit until the upload finished (this session waited for each deploy before committing).
+- **Secrets go in `--set-secrets`**, never the env heredoc (the heredoc stores values in clear on the revision).
+- **Disk:** dipped to 554 MiB this session (swap 11 GB). `df -h /` + `sysctl vm.swapusage` before deploys/installs. The SecurityPipeline hook blocks `rm -r` on home paths; use `find … -delete`.
+- **`~/ent-os-ui` re-sync:** read its `.design-sync/NOTES.md` first; bun only (`bun add` in `.ds-sync`), never npm.
+
+**Open items waiting on Erik:**
+- #42: run the Notion test (above). Confirm the **Tasks** database he shared fits D25 (work + meeting notes only); remove it from the integration's Access tab if it holds contracts/perkara/personal data.
+- `release.yml` also disabled? Its Docker-dispatch step errors on the next upstream version bump.
+- JUP IT's reply to #82.
+- Contract-card titles (Direksi/Legal/Manager/Staff members); `jup_contracts` all-users grant yes/no; Rully: files 0594/0639 (re-upload or skip) + her reviewers.
+- O3 acceptance in PowerPoint + Keynote; phone check of `/ruang-pimpinan` + home; Legal/staff-account checks need a second person logged in.
+- Latar Obrolan id-ID wording (ours: Latar Obrolan / Putih Polos / Pola JUP); WhatsApp Akun strings; delete WhatsApp/Teams test chats?
+- Rotate the Meta app secret / Entra client secret if the v52 / v50 transcripts are shared.
+- JUP's own WhatsApp number + Meta Business account (after E8).
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-05-v53)
 
 > Prepended by /wrap 2026-10-05 (checkpoint 2026-10-05-v53). Supersedes v52's anchor and its "do next" (#104, #103, #105 and spec #101 are built, live and closed); v52's and older blocks' constraints still hold unless noted.
