@@ -500,7 +500,9 @@
 							Perspektif {openPersp.name} · Bobot {nf(openItem.weight * 100, 0)}% · Monitoring {openItem.monitoring}
 						</p>
 					</div>
-					<button type="button" class="jlp-link" on:click={() => (showDetail = false)}>Selesai</button>
+					<button type="button" class="jlp-link" on:click={() => (showDetail = false)}
+						>Selesai</button
+					>
 				</div>
 				<dl class="kd-dl">
 					<dt>Strategy Objective Korporasi</dt>
