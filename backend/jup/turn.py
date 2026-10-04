@@ -62,11 +62,26 @@ class TurnDefaults:
 @dataclass(frozen=True)
 class TurnResult:
     """The assistant message a turn produced. `finished` is False when the time limit ran out first;
-    the turn itself is not cancelled, and `message_id` still names the message it will finish in."""
+    the turn itself is not cancelled, and `message_id` still names the message it will finish in.
+
+    `error` is set when the message ended in the pipeline's error (a provider outage, say) with no
+    answer: it will never finish, so the wait stops at once and `finished` is False.
+    """
 
     message_id: str
     content: str
     finished: bool
+    error: str | None = None
+
+
+def message_error(message: dict) -> str | None:
+    """The error a finished message with no answer carries, as text, or None."""
+    error = message.get('error')
+    if message.get('done') is False or message.get('content') or not error:
+        return None
+    if isinstance(error, dict):
+        return str(error.get('content') or error.get('message') or error)
+    return str(error)
 
 
 async def resolve_defaults(app: Any, model_id: str, *, resolver: Resolver | None = None) -> TurnDefaults:
@@ -152,6 +167,9 @@ async def run_turn(
     deadline = time.monotonic() + wait_seconds
     while time.monotonic() < deadline:
         message = await store.get_message(chat_id, message_id)
+        error = message_error(message) if isinstance(message, dict) else None
+        if error is not None:
+            return TurnResult(message_id=message_id, content='', finished=False, error=error)
         if (
             isinstance(message, dict)
             and message.get('done') is not False

@@ -593,3 +593,13 @@ def test_the_fixed_texts_match_the_plan_exactly():
         channel.ATTACHMENT_TEXT.format(channel='Teams', link=link)
         == 'Lampiran belum didukung di Teams — unggah lewat L'
     )
+
+
+async def test_an_answer_that_ended_in_an_error_fails_the_turn_instead_of_promising_it():
+    audit = AuditLines()
+    with pytest.raises(channel.AnswerFailed):
+        await turn(result=TurnResult('m1', '', False, error='OpenRouter could not verify credits'), audit=audit)
+
+    ((event, fields),) = audit.lines
+    assert (event, fields['outcome'], fields['reason']) == ('channel_turn', 'failed', 'answer_error')
+    assert 'OpenRouter' not in json.dumps(audit.lines)

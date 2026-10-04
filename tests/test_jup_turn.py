@@ -136,3 +136,26 @@ def test_defaults_come_from_the_injected_resolver() -> None:
     assert defaults == turn.TurnDefaults(
         tool_ids=('jup_documents',), features={'web_search': True}, filter_ids=('f1',), terminal_id='term-1'
     )
+
+
+def test_an_answer_that_ended_in_an_error_stops_the_wait_at_once() -> None:
+    store = _Store()
+
+    async def handler(request, form_data, user):
+        store.messages[(CHAT, form_data['id'])] = {
+            'role': 'assistant',
+            'content': '',
+            'done': True,
+            'error': {'content': 'OpenRouter could not verify available credits for this request in time.'},
+        }
+
+    result = _run(store, handler, wait_seconds=30)
+    assert not result.finished and result.content == ''
+    assert result.error == 'OpenRouter could not verify available credits for this request in time.'
+
+
+def test_an_error_beside_an_answer_or_before_done_is_not_a_failure() -> None:
+    assert turn.message_error({'done': True, 'content': 'Jawaban.', 'error': {'content': 'x'}}) is None
+    assert turn.message_error({'done': False, 'content': '', 'error': {'content': 'x'}}) is None
+    assert turn.message_error({'done': True, 'content': ''}) is None
+    assert turn.message_error({'done': True, 'content': '', 'error': 'plain'}) == 'plain'

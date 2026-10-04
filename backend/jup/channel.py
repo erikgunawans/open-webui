@@ -100,6 +100,10 @@ def may_use_channel(permissions: Any) -> bool:
         return False
 
 
+class AnswerFailed(RuntimeError):
+    """The turn's answer ended in the pipeline's error. The route answers 502, the gateway its outage reply."""
+
+
 class ChannelRequestInvalid(ValueError):
     """The body is not a Channel Turn request. The route answers 422."""
 
@@ -295,6 +299,9 @@ async def run_channel_turn(
             else:
                 result = await run(chat_id, request.text, {CHANNEL_TURN_STATE_ATTR: request.channel})
                 reply = await _shape(request, result, store, chat_id, link)
+        except AnswerFailed:
+            audit('channel_turn', **fields, chat=chat_id, outcome=FAILED, reason='answer_error')
+            raise
         except Exception:
             audit('channel_turn', **fields, chat=chat_id, outcome=FAILED, reason='turn_error')
             raise
@@ -310,6 +317,9 @@ async def _shape(
     request: ChannelTurnRequest, result: TurnResult, store: ChatStore, chat_id: str, link: str
 ) -> ChannelReply:
     """The reply for a turn that ran: the processing text, the link only, or the (cut) answer."""
+    if result.error is not None:
+        # The answer ended in an error and will never arrive: the gateway's outage reply, not "masih diproses".
+        raise AnswerFailed(result.error)
     if not result.finished:
         text, outcome = PROCESSING_TEXT.format(link=link), PROCESSING
     else:
@@ -355,6 +365,7 @@ __all__ = [
     'REUSE_HOURS',
     'TEXT_MAX_CHARS',
     'TURN_SECONDS',
+    'AnswerFailed',
     'ChannelChat',
     'ChannelReply',
     'ChannelRequestInvalid',
