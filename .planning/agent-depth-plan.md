@@ -280,6 +280,31 @@ is the governed answer, word for word. Spec: issue #25.
     starts a conversation (no template messages in v1). D-decision: message text passes through
     Meta (US processing), the same kind of disclosure as voice, acknowledged once at linking.
     Ships only after E8 has been proven in daily use, because it is the riskier egress.
+  - **E9 design, decided with Erik 2026-10-04** (build now while E8 waits on JUP IT; the go-live
+    gate above stays):
+    - **Linking is reversed: the user sends the code.** Settings → Akun → "Hubungkan WhatsApp"
+      shows a 6-digit code (10 minutes, single use) and a `wa.me` link prefilled with
+      `hubungkan <code>`. The user sends it from their own WhatsApp: Meta has already verified the
+      sender's number, and the message opens the 24-hour service window, so **no template message
+      is ever needed** and nobody types a phone number. This replaces "the gateway sends a code".
+    - **The Mapping lives in ent-os**, in a fork-owned table (own migration graph, as ADR-0014),
+      keyed by the gateway's HMAC of the number, never the number; it keeps the last four digits
+      only so the web app can say which number is linked. One number per user and one user per
+      number; a new proof of possession replaces the old link and is audited `relinked`.
+      Unlinking is one click in the web app, audited. The commands in WhatsApp stay `baru` and
+      `hubungkan <code>`; any other text from an unlinked number gets the fixed refusal.
+    - **The middleware resolves the number** (ADR-0012 amendment 2, accepted by Erik 2026-10-04): the
+      gateway sends `X-JUP-On-Behalf-Of: whatsapp:<hash>` or, on the link path only,
+      `link-code:<code>:<hash>`.
+    - **D-decision accepted by Erik 2026-10-04:** message text passes through Meta (US
+      processing). The web app says so once, beside the code, before the user links.
+    - **Meta app under Axiara for now** (developer app + Meta's free test number, up to five
+      verified recipients); it moves to JUP's Meta Business account with JUP's number.
+    - **Gateway:** `GET /api/whatsapp` answers Meta's verify challenge; `POST /api/whatsapp` checks
+      `X-Hub-Signature-256` (HMAC of the raw body with the app secret), answers 200 at once, drops
+      repeats by message id (Meta redelivers), marks the message read with a typing indicator, and
+      replies through Cloud API `/<phone number id>/messages` (v25.0). Text messages only; any
+      other type gets the attachment notice. Status webhooks are ignored.
 
 ## Track O — office output: documents, spreadsheets, slides (added 2026-09-29, Erik)
 

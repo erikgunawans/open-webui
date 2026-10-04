@@ -94,6 +94,11 @@ Turning a Channel Identity into exactly one JUP user. A sender is mapped or unma
 mapped; an unmapped sender is never forwarded to the model.
 _Avoid_: linking, binding, pairing, account match
 
+**Link Code**:
+A six-digit code the web app shows a signed-in user so they can prove a WhatsApp number is theirs by
+sending it from that number. Ten minutes, single use; it can only link a number, nothing else.
+_Avoid_: OTP, verification code, PIN
+
 **Channel Turn**:
 One question and its answer carried through a Channel on behalf of a mapped user. It is one kind of
 unattended turn: nobody is present to approve an External Call, so one is refused.

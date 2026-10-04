@@ -203,3 +203,33 @@ must fail a test rather than production:
 4. The kill switch off means the gateway principal gets 403 for everyone.
 5. A client-supplied `X-Goog-Authenticated-User-Email` cannot reach the app unreplaced. IAP must
    be shown to overwrite it; this is checked on the live load balancer, not assumed.
+
+## Amendment 2026-10-04 (2) — on behalf of a WhatsApp number, and of a link code
+
+**Accepted 2026-10-04 — Erik Gunawan Supriatna.** Agent-depth plan E9.
+
+The first amendment names the user by email, which the gateway can work out for Teams (Entra →
+Graph). A WhatsApp sender is only a phone number, and the plan keeps phone numbers out of ent-os.
+So the **Mapping lives in ent-os**, keyed by the gateway's HMAC of the number, and the middleware,
+not the gateway, turns it into a user. `X-JUP-On-Behalf-Of` gains two forms beside the email:
+
+- **`whatsapp:<identity hash>`**: admitted only when that hash is linked to exactly one existing,
+  non-`pending` user holding `jup.channel.use`; the trusted email is rewritten to that user's.
+  Unlinked, or linked to a user who no longer qualifies: 403, as for an unknown email.
+- **`link-code:<code>:<hash>`**: admitted only on the one link path (`/api/jup/channel/link`), only while
+  the code is unexpired and unused, and only on behalf of the user who issued it in the web app,
+  who must still qualify as above. The hash is the number the code may link, so the code and the
+  sender travel together. Anywhere else, or with a bad code: 403. Failed codes are
+  counted per identity hash and stop being tried after five in ten minutes.
+
+**The rule is unchanged:** the gateway still acts only on behalf of an existing, granted user, and
+never as itself; no path admits it without one. A link code is a short-lived bearer of the issuing
+user's consent to link *one* number, and it can do nothing but that.
+
+**Tests the implementation must carry**, in addition to the five above:
+
+6. `whatsapp:<hash>` that is unlinked, or linked to a `pending` or ungranted user, gets 403.
+7. `link-code:<code>:<hash>` on any path but the link path gets 403, even with a valid code.
+8. An expired, used or unknown code gets 403; the sixth failure for one hash in ten minutes gets
+   403 even with the right code.
+9. A malformed on-behalf-of value (wrong prefix, wrong length, uppercase hex) gets 403.
