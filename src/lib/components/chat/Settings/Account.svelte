@@ -27,6 +27,7 @@
 	import Modal from '$lib/components/common/Modal.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import UserProfileImage from './Account/UserProfileImage.svelte';
+	import WhatsAppLink from './Account/WhatsAppLink.svelte';
 	import UserSettingField from './UserSettingField.svelte';
 	import UserSettingRow from './UserSettingRow.svelte';
 	import SettingsSelect from '$lib/components/common/SettingsSelect.svelte';
@@ -371,6 +372,9 @@
 				<UpdatePassword />
 			</UserSettingSection>
 		{/if}
+
+		<!-- JUP E9.2 (#103): renders only for a `jup.channel.use` holder; see VENDOR-PATCHES.md. -->
+		<WhatsAppLink />
 
 		{#if ($config?.features?.enable_api_keys ?? true) && ($user?.role === 'admin' || ($user?.permissions?.features?.api_keys ?? false))}
 			<UserSettingSection title={$i18n.t('API keys')}>

@@ -211,7 +211,9 @@ modules themselves are fork-owned files. `jup_kb_review` was added 2026-09-25 (A
 `jup_voice` 2026-09-27 (ADR-0017, #26), `jup_contracts` at `/api/v1/contracts`, and `jup_channel`
 2026-10-04 at `/api/jup/channel` (E7, #86). The channel prefix must equal
 `jup.iap_identity.CHANNEL_API_PREFIX`, the only path the gateway principal is let through; the
-registration test holds the two together.
+registration test holds the two together. `jup_whatsapp_link` 2026-10-05 at `/api/v1/whatsapp-link`
+(E9.2, #103): the signed-in user's Link Code, link status and unlink, deliberately outside the
+Channel prefix.
 
 **Why:** Portfolio (ADR-0004), Ruang Pimpinan (P1), the KB review queue (ADR-0015) and voice calls
 (ADR-0017) are served from their own routers so their rules stay out of vendor code; mounting them

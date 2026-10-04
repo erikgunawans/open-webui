@@ -20,6 +20,7 @@ ROUTERS = {
     'jup_contracts': '/api/v1/contracts',
     'jup_voice': '/api/v1/voice',
     'jup_channel': '/api/jup/channel',
+    'jup_whatsapp_link': '/api/v1/whatsapp-link',
 }
 
 
