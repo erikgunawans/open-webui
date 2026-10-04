@@ -1,5 +1,5 @@
 /**
- * jup-gateway's HTTP entry: `POST /api/messages` (Teams), `GET /healthz`.
+ * jup-gateway's HTTP entry: `POST /api/messages` (Teams), `GET /health`.
  *
  * Production reads its settings from the environment (Secret Manager in #90). `GATEWAY_DEV=1`
  * (`bun run dev`) swaps the Teams side for local stand-ins: no token check, replies printed to the
@@ -122,7 +122,8 @@ export function createServer(deps: TeamsDeps, port: number) {
 		port,
 		async fetch(request) {
 			const { pathname } = new URL(request.url);
-			if (request.method === 'GET' && pathname === '/healthz') return new Response('ok');
+			// Not /healthz: Cloud Run reserves paths ending in "z" and answers them itself with a 404.
+			if (request.method === 'GET' && pathname === '/health') return new Response('ok');
 			if (request.method === 'POST' && pathname === '/api/messages') {
 				const { response, work } = await handle(request, deps);
 				void work; // answered at once; the turn carries on (Cloud Run CPU is always allocated)

@@ -45,7 +45,7 @@ design. The sandbox work for terminal and browser is needed on either path.
 | E4  | Browser automation via Playwright MCP in the sandbox    | planned | browser                            | A5, E2, E5                                   |
 | E5  | Approval step for risky tool calls (ADR-0013)           | live    | long autonomous runs               | —                                            |
 | E6  | Skill proposals: agent drafts, admin approves, sync     | planned | self-improving skills              | E1                                           |
-| E7  | Channel gateway core: one machine identity, channel user → JUP user | planned | chat channels           | ADR-0012 amendment accepted 10-04; order set 10-03: Teams, then WhatsApp |
+| E7  | Channel gateway core: one machine identity, channel user → JUP user | **live 10-04** | chat channels | ent-os `00092-dmh` (#85–#88, #96) + `jup-gateway-00001` (#89, #90); Teams closed until E8 |
 | E8  | Microsoft Teams channel: Asisten JUP bot in JUP's tenant | planned | chat channels                      | E7; JUP IT registers the bot; D-decision     |
 | E9  | WhatsApp channel: Business Cloud API, verified numbers   | planned | chat channels                      | E7, E8 proven; JUP business number; D-decision |
 | I1  | Integrations via MCP (Notion first)                     | in-progress | integrations                   | live 00060, admin-only, off until #41 token |
@@ -232,6 +232,14 @@ is the governed answer, word for word. Spec: issue #25.
     1:1 chat only in v1, with no channel or group mentions. Bot Framework wants a quick 200, so the
     gateway acknowledges at once, shows typing, and posts the answer through the connector API. D-decision: Microsoft Bot
     Service relays message text (it is Microsoft-hosted, inside JUP's existing M365 contract).
+    **What remains after E7 (2026-10-04):** the gateway is live at
+    `https://jup-gateway-uit4bfhauq-et.a.run.app` with Teams closed (every `/api/messages` is 401).
+    E8 needs, from JUP IT (#82): the bot's app id, its client secret (into Secret Manager as
+    `bot-app-secret`), JUP's tenant id, and Graph `User.ReadBasic.All` consent. Then: set the
+    bot's messaging endpoint to `<gateway url>/api/messages`, redeploy with `BOT_APP_ID` and
+    `JUP_TENANT_ID` (`deploy/gcp/deploy-gateway.sh`), build and publish the Teams app package
+    (1:1 scope only), enforce the Bot Framework key endorsement (`msteams`), and run the live
+    check, including a `gate_probe`/`external` tool refused in a Channel Turn (still untested live).
     Verify: Erik asks "status proyek SPBG" in Teams → answer in Teams, one chat in his web history
     marked `channel`, audit lines `channel_turn`, `admitted`, the tool calls; a non-JUP-tenant
     message is rejected; a `gate_probe` call is refused with the web-app pointer.

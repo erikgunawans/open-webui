@@ -30,7 +30,7 @@ test('health answers, an unsigned Teams request is refused, anything else is 404
 	);
 	try {
 		const base = `http://localhost:${server.port}`;
-		expect(await (await fetch(`${base}/healthz`)).text()).toBe('ok');
+		expect(await (await fetch(`${base}/health`)).text()).toBe('ok');
 		const teams = await fetch(`${base}/api/messages`, { method: 'POST', body: '{}' });
 		expect(teams.status).toBe(401);
 		expect((await fetch(`${base}/elsewhere`)).status).toBe(404);
