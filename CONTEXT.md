@@ -78,3 +78,23 @@ A numbered, dated entry in JUP's decisions register (D20) stating what was decid
 reasoning, and its named non-coverage. A reversed or superseded Decision stays in the register with
 that status.
 _Avoid_: D-row, D-decision, ruling, resolution, approval
+
+**Channel**:
+An outside messaging surface Asisten JUP answers in — Microsoft Teams, later WhatsApp. The web app
+is not a Channel.
+_Avoid_: integration, connector, platform, the vendor's Channels feature
+
+**Channel Identity**:
+Who the sender is inside a Channel — in Teams, the Entra object id and tenant; in WhatsApp, the
+phone number. It is never a JUP user by itself.
+_Avoid_: channel user, account, handle
+
+**Mapping**:
+Turning a Channel Identity into exactly one JUP user. A sender is mapped or unmapped, never partly
+mapped; an unmapped sender is never forwarded to the model.
+_Avoid_: linking, binding, pairing, account match
+
+**Channel Turn**:
+One question and its answer carried through a Channel on behalf of a mapped user. It is one kind of
+unattended turn: nobody is present to approve an External Call, so one is refused.
+_Avoid_: channel message, bot turn, automation

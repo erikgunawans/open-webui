@@ -223,6 +223,35 @@ is the governed answer, word for word. Spec: issue #25.
     - **Answers are text only** in v1: no voice notes in, no audio out.
     - Kill switch `JUP_CHANNELS_ENABLED` plus a per-user grant `jup.channel.use`. Erik only at
       first, as with voice.
+  - **E7 design, grilled with Erik 2026-10-04** (terms in `CONTEXT.md`: Channel, Channel Identity,
+    Mapping, Channel Turn):
+    - **Gateway:** TypeScript on Bun in `gateway/` of this repo, own Dockerfile and deploy script.
+      Cloud Run `asia-southeast2`, CPU always allocated (`--no-cpu-throttling`), min 0, max 2
+      (Erik OK'd the spend, a few dollars a month at director volume).
+    - **Contract:** one fork-owned endpoint, `POST /api/jup/channel/turn`. The gateway sends
+      channel, identity hash, conversation key and text; ent-os picks the chat, runs the turn with
+      Asisten JUP's defaults, applies the cut and the TERBATAS link, and returns channel-ready text
+      plus the chat link. The IAP middleware lets the gateway principal reach
+      `/api/jup/channel/*` only.
+    - **Mappings:** E7 stores none. A Mapping interface with the Teams resolver (Entra object id →
+      Graph → email → user); storage and WhatsApp linking are E9's design.
+    - **Chats:** a new chat after 8 hours of silence or on `baru`; titled `Teams · <date> <time>`.
+    - **Long answers:** over 1,500 characters, cut at a paragraph and add "Jawaban lengkap: <link>".
+      No summarising call.
+    - **TERBATAS per turn:** `mark_restricted` also records the assistant message in its
+      `message.meta`; the endpoint reads that marker, and an unreadable marker means a link.
+    - **Timing:** acknowledge at once, typing indicator, 120 s limit, then "Jawaban masih diproses —
+      lihat di <link>" (the turn continues). One turn in flight per conversation; later messages
+      wait.
+    - **Audit:** `channel`, HMAC-SHA256 `identity_hash` and hashed `conversation_key` (one key in
+      Secret Manager), chat id; never a plain email beside a Channel Identity. The turn marker
+      travels on `request.state`, not in the request body.
+    - **Edges:** every refusal (unmapped, `pending`, no grant, kill switch off) gets the same reply,
+      "Akun ini belum terhubung ke Asisten JUP. Hubungi admin JUP.", with the reason in the audit
+      line only. Attachments are not read in v1: "Lampiran belum didukung di Teams — unggah lewat
+      <link>", and any text alongside is still answered. ent-os down or erroring: "Asisten JUP
+      sedang tidak tersedia, coba lagi sebentar lagi.", logged, never retried. The only command
+      is `baru` (exact, any case).
   - **E8 Teams.** Identity comes free: staff already sign in with their JUP Entra account
     (ADR-0016), and a Teams message carries the sender's Entra object id and tenant. The gateway
     accepts only JUP's tenant id, resolves the object id to the email through the same single-tenant
