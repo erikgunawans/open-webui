@@ -1,3 +1,44 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-04-v51)
+
+> Prepended by /wrap 2026-10-04 (checkpoint 2026-10-04-v51). Supersedes v50's anchor and its "do next" (#87–#90 are all built, live and closed); v50's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-04-v51).
+Anchor: `origin/main` at `669a1556f` **as this was written**, or one commit ahead at this checkpoint's own commit (subject begins `chore(session): checkpoint — 2026-10-04-v51`). Verify with `git log --oneline 669a1556f..origin/main`; any other commit there is a parallel push.
+
+**Current state:**
+- **E7 is complete.** ent-os **`00092-dmh`** (image `d4943b56b`; rollback `00091-8v5`) has the conversation rules (#87), answer shaping (#88) and the errored-answer fix (#96). **`jup-gateway-00002-ldk`** is deployed at `https://jup-gateway-uit4bfhauq-et.a.run.app` with Teams closed (every `/api/messages` 401) until E8.
+- `jup_contracts` wrapper synced (passes `__message_id__`).
+- **Open PRs:** docs only, **#82** and **#83**.
+
+**Do next, in order:**
+1. **Unblock E8:** Erik merges #82/#83 and sends #82's file to JUP IT. E8 cannot start without the bot app id, client secret, JUP tenant id and Graph `User.ReadBasic.All` consent. Ask once; don't chase.
+2. When JUP IT answers, E8 (plan `.planning/agent-depth-plan.md`, E8 "What remains"): put the secret in Secret Manager as `bot-app-secret` (printf, no newline; accessor jup-gateway); `BOT_APP_ID=… JUP_TENANT_ID=… bash deploy/gcp/deploy-gateway.sh`; messaging endpoint `<gateway>/api/messages`; Teams app package (1:1 only); enforce Bot Framework key endorsement `msteams` in `gateway/src/botframework.ts`; live check incl. a `gate_probe`/`external` tool refused in a Channel Turn.
+3. If Erik wants it: move the per-conversation lock to the DB (live ent-os is maxScale 4).
+4. Carried: O3 acceptance (PowerPoint + Keynote); phone check; Kartu Kontrak with the Legal account; staff-account checks (O1/O2/O3); `jup_contracts` all-users grant; Rully items; #47; Notion #41/#42; CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- **Cloud Run reserves paths ending in `z`** (`/healthz` → Google's 404). The gateway's health is `/health`.
+- **Gateway tests are `*_test.ts`**, never `*.test.ts`: the frontend's vitest collects `*.test.ts` repo-wide and would fail on `bun:test`. Gateway files must pass the repo prettier (tabs, single quotes): `node_modules/.bin/prettier --check "gateway/**/*.{ts,json,md}"`.
+- **`deploy-gateway.sh --set-env-vars/--set-secrets` replace everything**: `SELFCHECK=1` lasts one deploy; the next plain deploy drops it. To re-prove the gateway's IAP identity without temp grants: `SELFCHECK=1 bash deploy/gcp/deploy-gateway.sh`, read the `selfcheck` log line (want channel 422, other 403).
+- **The TERBATAS per-turn marker lives on `chat.meta.jup_restricted_source.messages`**, never on message meta (the vendor rewrites message `meta` whole).
+- **A Channel chat is chosen by newest *creation*, reuse decided by `updated_at`.** Don't "simplify" to newest by activity: it reopens the old chat after `baru`.
+- **Live ent-os is minScale 1 / maxScale 4**: any in-process lock or cache is per instance.
+- **`pgrep -f deploy.sh` matches your own wait loop** (its command line contains the string). Wait on the background task notification, or `pgrep -f 'bash deploy/gcp/deploy.sh'`.
+- Still true from v50: Erik's app account is `erik@jakarta-utilitas.com`; IAP external-identities = no IAM for SAs; no `app.state.config` (use `Config.get`); `audit(path=)` is the trail file; Channel route authenticates from request state only; don't read `oauthIdpConfigs`; Forge is broken (say so at E3+); Interceptor: own tab, guard `location.host`, can't close tabs.
+
+**Open items waiting on Erik:**
+- Merge #82/#83; send #82 to JUP IT (Privileged Role Admin / Global Admin there); JUP WhatsApp business number (E9).
+- Delete the 10-04 test chats (`Teams · 2026-10-04 18:25`, `Teams · 2026-10-04 19:45` `f4f5f60e…`, `97b6d657…`)?
+- Close Interceptor tabs `893495310` and `893495288` (non-jupe.jup.co.id).
+- Rotate the Entra client secret if the v50 transcript is shared.
+- Mac disk: free space dipped to 297 MiB on 10-04 (swap ~10 GB); local test runs flake when it's low.
+- O3 acceptance in PowerPoint + Keynote; phone check of `/ruang-pimpinan` + home composer.
+- Legal-account Kartu Kontrak check; the deck owner to fix GPM 11,3% vs 12,6% and CFO Rp7,81 M vs Rp9,73 M.
+- Share the "None-JUPe vs holaboss-ai" doc?; staff titles; `jup_contracts` all-users grant; Rully items; Notion token; Impeccable update.
+- Delete "Uji kecepatan" chats + test .docx/.xlsx/.pptx?; Daftar Perkara grant; Gmail send scope; keep or drop `docker-compose.dev.yaml`; delete the "Test" knowledge collection?; RAHASIA decks and footer-less layouts fine?
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-04-v50)
 
 > Prepended by /wrap 2026-10-04 (checkpoint 2026-10-04-v50). Supersedes v49's anchor and its "do next" (#91 merged, #86 built, live and closed); v49's and older blocks' constraints still hold unless noted.
