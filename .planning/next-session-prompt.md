@@ -1,3 +1,44 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-04-v52)
+
+> Prepended by /wrap 2026-10-04 (checkpoint 2026-10-04-v52). Supersedes v51's anchor and its "do next" (#82/#83 merged, #82 sent to JUP IT, the DB lock built and live); v51's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-04-v52).
+Anchor: `origin/main` at `f932bae21` **as this was written**, or one commit ahead at this checkpoint's own commit (subject begins `chore(session): checkpoint — 2026-10-04-v52`). Verify with `git log --oneline f932bae21..origin/main`; any other commit there is a parallel push.
+
+**Current state:**
+- **Live:** `ent-os-00093-ft9` (image `f6e0acdb5` = #100, cross-instance conversation lock, verified live); rollback `00092-dmh`. `jup-gateway-00002-ldk` unchanged (Teams closed).
+- **E9 WhatsApp:** decided (plan *E9 design*), ADR-0012 amendment 2 **accepted**, spec **#101**, tickets #102 (done) **#103 #104 #105**. **E9.1 (#107) is merged but NOT deployed**: main is ahead of live by #106 (docs) and #107.
+- **Meta dev app ready (Erik):** phone number ID `1173558312506997`, WABA `2041351150599623`, secrets `whatsapp-app-secret` / `whatsapp-access-token` / `whatsapp-verify-token` (accessor jup-gateway). Memory `whatsapp-meta-dev-app`.
+- **E8:** JUP IT has #82; answer due **Monday 2026-10-05**.
+- No open PRs.
+
+**Do next, in order:**
+1. **`/implement` #104 (E9.3 gateway WhatsApp handler)**, against fakes, like `gateway/src/teams.ts`: `GET /api/whatsapp` verify challenge (`WHATSAPP_VERIFY_TOKEN`); `POST /api/whatsapp` → `X-Hub-Signature-256` over the RAW body (`WHATSAPP_APP_SECRET`, constant-time; test with non-ASCII text) → 200 at once → drop repeats by message id → mark read + `typing_indicator` → `hubungkan <6 digits>` = link call on behalf of `link-code:<code>:<hash>` to `POST /api/jup/channel/link {hint: last 4 digits}`, else turn on behalf of `whatsapp:<hash>` (channel `whatsapp`, conversation key = HMAC of the number) → reply via Cloud API v25.0 `/<WHATSAPP_PHONE_NUMBER_ID>/messages`. Non-text → attachment flag; statuses ignored; closed (401) until configured. Copy in #101. The ent-os client today sends `X-JUP-On-Behalf-Of: <email>`; it needs the two new forms and a `link()` call.
+2. **`/implement` #103 (E9.2 web linking):** issue/status/unlink API (grant `jup.channel.use`) on `jup.channel_links.links` + Settings → Akun section (Meta disclosure, code + countdown, `wa.me/15556537220?text=hubungkan%20<code>` for the test number, `•••• 1234`, Putuskan). Literal i18n keys, check id-ID values.
+3. **#105 (E9.4):** deploy ent-os (ships E9.1/E9.2: new `jw0001` graph) → deploy gateway with `WHATSAPP_PHONE_NUMBER_ID` + the three secrets (add to `deploy-gateway.sh`: it REPLACES env/secrets each deploy) → `POST /2041351150599623/subscribed_apps` with the token (today only Meta's DevX app is subscribed) → Erik sets webhook URL `<gateway>/api/whatsapp` + verify token, subscribes `messages` → live: link Erik's phone, "status proyek SPBG", unlinked phone refused, replayed webhook answered once, `gate_probe` refused.
+4. **E8 when JUP IT answers** (v51 block item 2 still exact).
+5. Carried: O3 acceptance (PowerPoint + Keynote); phone check; Kartu Kontrak with the Legal account; staff-account checks; `jup_contracts` all-users grant; Rully items; #47; Notion #41/#42; CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- **deploy.sh uploads the working tree.** Never switch branches or edit while it uploads; do other git work in a scratchpad `git worktree` (memory `throwaway-postgres-via-pgserver`).
+- **Postgres tests:** throwaway PG 16.2 from pgserver's binaries on TCP 55432 (same memory); `JUP_TEST_POSTGRES_URL=postgresql+psycopg://postgres@127.0.0.1:55432/postgres`.
+- **A Link Code admission sets `CHANNEL_LINK_STATE_ATTR` only, never the turn mark**; keep the two routes mutually closed (tests in `test_jup_channel_link_route.py`).
+- **Never print secret values, not even a tail**: check length and trailing bytes with `wc -c` / `od` on the last byte only, or use the API to prove a token works. (10-04 a check printed the app secret's last ~4 chars.)
+- `/me/assigned_whatsapp_business_accounts` is empty for our token although it can read the number; probe `/<phone id>` instead.
+- Live channel checks: temp token-creator for `alesha-bot@axiara.ai` on `jup-gateway@`, takes ~1 min to apply, **remove after**; drive with the gateway's own `IdentityPlatformTokens` + a fetch that answers the metadata URL with `gcloud auth print-access-token`.
+- Mac disk was 1.2 GiB free during this session's deploy.
+- From v51: `/health` not `/healthz`; gateway tests `*_test.ts` + repo prettier; `deploy-gateway.sh` replaces env/secrets; TERBATAS marker on `chat.meta`; chat chosen by newest creation; maxScale 4; Erik's app account `erik@jakarta-utilitas.com`; Forge broken.
+
+**Open items waiting on Erik:**
+- JUP IT's reply to #82 (Mon 10-05): bot app id, client secret, tenant id, Graph consent.
+- Rotate the Meta app secret if this session's transcript is shared (last ~4 chars printed); rotate the Entra client secret if the v50 transcript is shared.
+- Delete test chats? `Teams · 2026-10-04 18:25`, `f4f5f60e…`, `97b6d657…`, and 10-04's `/c/66e97846…` (2+2 / 3+3).
+- Close Interceptor tabs `893495310` and `893495288`.
+- JUP's own WhatsApp business number + Meta Business account (for go-live, after E8).
+- Carried from v51: O3 acceptance; phone check; Legal-account Kartu Kontrak; deck figures; "None-JUPe vs holaboss-ai" doc; staff titles; `jup_contracts` grant; Rully; Notion token; Impeccable; test files/chats; Daftar Perkara; Gmail scope; `docker-compose.dev.yaml`; "Test" collection; RAHASIA decks.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-04-v51)
 
 > Prepended by /wrap 2026-10-04 (checkpoint 2026-10-04-v51). Supersedes v50's anchor and its "do next" (#87–#90 are all built, live and closed); v50's and older blocks' constraints still hold unless noted.
