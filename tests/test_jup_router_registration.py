@@ -72,3 +72,10 @@ def test_the_channel_router_is_mounted_where_the_iap_middleware_lets_the_gateway
     from jup.iap_identity import CHANNEL_API_PREFIX
 
     assert _mounts(_tree())['jup_channel'] + '/' == CHANNEL_API_PREFIX
+
+
+def test_the_channel_router_reads_settings_through_the_config_store() -> None:
+    """This vendor version has no `app.state.config`; reading it there was a live 500 (#86)."""
+    source = (MAIN_PY.parent / 'routers' / 'jup_channel.py').read_text(encoding='utf-8')
+    assert 'state.config' not in source
+    assert "Config.get('ui.default_models')" in source
