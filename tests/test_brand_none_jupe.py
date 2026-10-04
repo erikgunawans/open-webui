@@ -65,3 +65,8 @@ def test_the_favicon_follows_the_browser_colour_scheme() -> None:
     for dark in ('favicon-dark.png', 'favicon-dark-96x96.png', 'favicon-dark.ico'):
         assert f'data-jup-dark="/static/{dark}"' in html
     assert "matchMedia('(prefers-color-scheme: dark)')" in html
+    # The root layout injects its own icon link after app.html's; a raster one there overrides the
+    # dark variants, so it must be the self-switching SVG.
+    layout = (ROOT / 'src' / 'routes' / '+layout.svelte').read_text(encoding='utf-8')
+    assert 'href="{WEBUI_BASE_URL}/static/favicon.png" />' not in layout
+    assert 'href="{WEBUI_BASE_URL}/static/favicon.svg"' in layout
