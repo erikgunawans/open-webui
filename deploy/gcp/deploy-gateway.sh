@@ -11,6 +11,11 @@
 # bot-app-secret secret and JUP_TENANT_ID exist (E8, #82): set BOT_APP_ID and JUP_TENANT_ID here
 # when JUP IT sends them.
 #
+# WhatsApp (E9.4, #105) stays closed (every /api/whatsapp request 401) until WHATSAPP_PHONE_NUMBER_ID
+# is set here AND the three whatsapp-* secrets exist: whatsapp-app-secret, whatsapp-access-token,
+# whatsapp-verify-token (accessor jup-gateway). The default is Meta's test number under the Axiara
+# developer app; set WHATSAPP_PHONE_NUMBER_ID= (empty) to deploy with WhatsApp closed.
+#
 # SELFCHECK=1 makes the new revision prove its identity through IAP once at start (on behalf of
 # SELFCHECK_ON_BEHALF_OF): 422 at the Channel endpoint, 403 elsewhere; read the `selfcheck` log
 # line. The next plain deploy drops it.
@@ -24,6 +29,7 @@ REPO="asia-southeast2-docker.pkg.dev/$PROJECT/ent-os/jup-gateway"
 ENTOS_URL="${ENTOS_URL:-https://non-jupe.jup.co.id}"
 BOT_APP_ID="${BOT_APP_ID:-}"
 JUP_TENANT_ID="${JUP_TENANT_ID:-}"
+WHATSAPP_PHONE_NUMBER_ID="${WHATSAPP_PHONE_NUMBER_ID-1173558312506997}"
 SHA="$(git rev-parse --short HEAD)"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
@@ -37,6 +43,10 @@ SECRETS="GATEWAY_HMAC_KEY=gateway-hmac-key:latest,IDENTITY_PLATFORM_API_KEY=iden
 if [ -n "$BOT_APP_ID" ] && [ -n "$JUP_TENANT_ID" ]; then
   ENV="$ENV,BOT_APP_ID=$BOT_APP_ID,JUP_TENANT_ID=$JUP_TENANT_ID"
   SECRETS="$SECRETS,BOT_APP_SECRET=bot-app-secret:latest"
+fi
+if [ -n "$WHATSAPP_PHONE_NUMBER_ID" ]; then
+  ENV="$ENV,WHATSAPP_PHONE_NUMBER_ID=$WHATSAPP_PHONE_NUMBER_ID"
+  SECRETS="$SECRETS,WHATSAPP_APP_SECRET=whatsapp-app-secret:latest,WHATSAPP_ACCESS_TOKEN=whatsapp-access-token:latest,WHATSAPP_VERIFY_TOKEN=whatsapp-verify-token:latest"
 fi
 if [ "${SELFCHECK:-}" = "1" ]; then
   ENV="$ENV,SELFCHECK_ON_BEHALF_OF=${SELFCHECK_ON_BEHALF_OF:-erik@jakarta-utilitas.com}"
