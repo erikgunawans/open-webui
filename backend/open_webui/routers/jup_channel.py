@@ -22,7 +22,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, status
 
-from jup import channel
+from jup import channel, conversation_lock
 from jup.governance import CHANNEL_TURN_STATE_ATTR, CHANNEL_USER_STATE_ATTR, audit
 from jup.iap_identity import REFUSED_DETAIL
 from jup.turn import resolve_defaults, run_turn
@@ -87,6 +87,35 @@ class ChannelStore:
         from open_webui.models.chats import Chats
 
         return await Chats.get_message_by_id_and_message_id(chat_id, message_id)
+
+
+_lock_engine: Any = None
+
+
+async def _lock_connection() -> Any:
+    """A connection of its own for one conversation lock: `NullPool`, so closing it ends the session
+    and releases the lock (`jup.conversation_lock`). Built on first use, beside the app's engine."""
+    global _lock_engine
+    if _lock_engine is None:
+        from sqlalchemy.pool import NullPool
+
+        from open_webui.internal.db import ASYNC_SQLALCHEMY_DATABASE_URL, _create_async_engine, enable_iam_token_auth
+
+        _lock_engine = _create_async_engine(ASYNC_SQLALCHEMY_DATABASE_URL, poolclass=NullPool)
+        enable_iam_token_auth(_lock_engine)
+    return await _lock_engine.connect()
+
+
+def conversation_locks() -> channel.ConversationLocks:
+    """Per conversation, in-process and, on Postgres, across instances (live ent-os scales to 4)."""
+    from open_webui.internal.db import ASYNC_SQLALCHEMY_DATABASE_URL
+
+    if not ASYNC_SQLALCHEMY_DATABASE_URL.startswith('postgresql'):
+        return channel.ConversationLocks()  # SQLite: one process, so in-process is exact
+    return channel.ConversationLocks(shared=conversation_lock.AdvisoryLocks(_lock_connection).hold)
+
+
+LOCKS = conversation_locks()
 
 
 async def channel_user(request: Request) -> Any:
@@ -166,6 +195,7 @@ async def channel_turn(request: Request) -> dict[str, Any]:
             base_url=await base_url(),
             audit=audit,
             now=lambda: dt.datetime.now(dt.UTC),
+            locks=LOCKS,
         )
     except Exception:
         log.exception('jup.channel turn failed')

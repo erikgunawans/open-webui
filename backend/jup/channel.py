@@ -39,7 +39,7 @@ import hashlib
 import re
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
-from contextlib import asynccontextmanager
+from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -213,27 +213,43 @@ class ChatStore(Protocol):
         ...
 
 
+#: Holds `key` across every ent-os instance for as long as its context is open (`jup.conversation_lock`).
+SharedHold = Callable[[str], AbstractAsyncContextManager[None]]
+
+
+class LockUnavailable(RuntimeError):
+    """The cross-instance lock could not be taken (database down, or waited too long). The turn fails."""
+
+
 class ConversationLocks:
     """One turn in flight per conversation; later turns wait and run in arrival order.
 
-    `asyncio.Lock` hands itself to its waiters first come, first served, which is the ordering the
-    spec asks for. An entry lives only while someone holds or awaits it.
+    Two layers. **In-process first:** `asyncio.Lock` hands itself to its waiters first come, first
+    served, so turns landing on one instance queue here and never hold a database connection while
+    they wait. **Then `shared`, across instances:** live ent-os runs min 1 / max 4 instances
+    (checked 2026-10-04), and two turns of one conversation can land on two of them. The route
+    passes a Postgres advisory lock (`jup.conversation_lock`), whose waiters the database also
+    serves in arrival order. Without `shared` (tests, a SQLite dev server) the lock is in-process
+    only, which is exact for one instance.
 
-    **This lock is in-process: it assumes one ent-os instance serves the conversation.** Cloud Run
-    keeps one warm (min 1) but may scale to four (max 4, checked 2026-10-04), and turns of one
-    conversation that land on two instances are not ordered against each other. At director volume
-    that is rare; if it starts to matter, the lock moves to the database.
+    An entry lives only while someone holds or awaits it.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, shared: SharedHold | None = None) -> None:
         self._locks: dict[str, tuple[asyncio.Lock, int]] = {}
+        self._shared = shared
 
     @asynccontextmanager
     async def hold(self, key: str) -> AsyncIterator[None]:
         lock, users = self._locks.get(key, (asyncio.Lock(), 0))
         self._locks[key] = (lock, users + 1)
         try:
-            async with lock:
+            async with lock, AsyncExitStack() as stack:
+                if self._shared is not None:
+                    try:
+                        await stack.enter_async_context(self._shared(key))
+                    except Exception as error:
+                        raise LockUnavailable(str(error) or type(error).__name__) from error
                 yield
         finally:
             lock, users = self._locks[key]
@@ -246,7 +262,7 @@ class ConversationLocks:
         return len(self._locks)
 
 
-#: The process-wide locks the route uses; tests pass their own.
+#: In-process locks only; the route passes its own with the database layer, tests pass theirs.
 LOCKS = ConversationLocks()
 
 
@@ -269,8 +285,9 @@ async def run_channel_turn(
 ) -> ChannelReply:
     """Runs one Channel Turn for `user_id` and returns the reply for the Channel.
 
-    The turn waits for any earlier turn of the same conversation to finish first. A chat that cannot
-    be found or created, or a turn that raises, is audited as `failed` and re-raised: the route
+    The turn waits for any earlier turn of the same conversation to finish first. A conversation lock
+    that cannot be taken, a chat that cannot be found or created, or a turn that raises, is audited
+    as `failed` and re-raised: the route
     answers with an error and the gateway sends its fixed outage reply, never a retry.
 
     A turn that outlives `TURN_SECONDS` releases the conversation when its reply goes back; the
@@ -282,10 +299,10 @@ async def run_channel_turn(
         'identity_hash': request.identity_hash,
         'conversation': conversation,
     }
-    async with locks.hold(f'{user_id}:{request.channel}:{conversation}'):
-        new_chat = is_new_chat_command(request.text)
-        chat_id = None
-        try:
+    chat_id = None
+    try:
+        async with locks.hold(f'{user_id}:{request.channel}:{conversation}'):
+            new_chat = is_new_chat_command(request.text)
             chat_id = None if new_chat else await _recent_chat(store, user_id, request.channel, conversation, now())
             if chat_id is None:
                 chat_id = str(uuid.uuid4())
@@ -299,12 +316,15 @@ async def run_channel_turn(
             else:
                 result = await run(chat_id, request.text, {CHANNEL_TURN_STATE_ATTR: request.channel})
                 reply = await _shape(request, result, store, chat_id, link)
-        except AnswerFailed:
-            audit('channel_turn', **fields, chat=chat_id, outcome=FAILED, reason='answer_error')
-            raise
-        except Exception:
-            audit('channel_turn', **fields, chat=chat_id, outcome=FAILED, reason='turn_error')
-            raise
+    except AnswerFailed:
+        audit('channel_turn', **fields, chat=chat_id, outcome=FAILED, reason='answer_error')
+        raise
+    except LockUnavailable:
+        audit('channel_turn', **fields, chat=chat_id, outcome=FAILED, reason='lock_error')
+        raise
+    except Exception:
+        audit('channel_turn', **fields, chat=chat_id, outcome=FAILED, reason='turn_error')
+        raise
     audit('channel_turn', **fields, chat=chat_id, outcome=reply.outcome, reason=None)
     return reply
 
@@ -371,6 +391,8 @@ __all__ = [
     'ChannelRequestInvalid',
     'ChannelTurnRequest',
     'ConversationLocks',
+    'LockUnavailable',
+    'SharedHold',
     'chat_title',
     'chat_url',
     'cut',

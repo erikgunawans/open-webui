@@ -10,6 +10,7 @@ and the one audit line. The grant and the request shape are tested here too, as 
 import asyncio
 import datetime as dt
 import json
+from contextlib import asynccontextmanager
 from types import SimpleNamespace
 
 import pytest
@@ -438,8 +439,68 @@ async def test_a_failed_turn_releases_the_conversation_for_the_next():
     assert len(locks) == 0
 
 
-def test_the_lock_notes_that_it_assumes_one_ent_os_instance():
-    assert 'one ent-os instance' in (channel.ConversationLocks.__doc__ or '')
+class SharedLayer:
+    """Stands for the database lock: records the order of takes and releases, and can refuse a take."""
+
+    def __init__(self, refuse: Exception | None = None) -> None:
+        self.events: list[str] = []
+        self.refuse = refuse
+
+    @asynccontextmanager
+    async def hold(self, key: str):
+        if self.refuse is not None:
+            raise self.refuse
+        self.events.append(f'take {key}')
+        try:
+            yield
+        finally:
+            self.events.append(f'release {key}')
+
+
+async def test_the_shared_layer_is_taken_after_the_in_process_lock_and_released_before_it():
+    shared = SharedLayer()
+    locks = channel.ConversationLocks(shared=shared.hold)
+    store, runner = FakeStore(), GatedRunner()
+
+    def send(text: str):
+        return asyncio.create_task(
+            turn(store=store, runner=runner, locks=locks, request=channel.parse_request(body(text=text)))
+        )
+
+    first, second = send('satu'), send('dua')
+    await settle()
+    # The second turn waits in-process: it has not reached the database layer.
+    assert [e.split()[0] for e in shared.events] == ['take']
+    runner.release('satu')
+    runner.release('dua')
+    await first, await second
+
+    assert [e.split()[0] for e in shared.events] == ['take', 'release', 'take', 'release']
+    assert len(set(e.split()[1] for e in shared.events)) == 1  # one key per conversation
+    assert len(locks) == 0
+
+
+async def test_a_shared_lock_that_cannot_be_taken_fails_the_turn_without_running_it():
+    locks = channel.ConversationLocks(shared=SharedLayer(refuse=TimeoutError('lock timeout')).hold)
+    store, runner, audit = FakeStore(), FakeRunner(TurnResult('m', 'x', True)), AuditLines()
+
+    with pytest.raises(channel.LockUnavailable):
+        await turn(store=store, runner=runner, audit=audit, locks=locks)
+
+    assert runner.calls == []
+    assert store.chats == []
+    assert audit.lines[-1][1]['outcome'] == 'failed'
+    assert audit.lines[-1][1]['reason'] == 'lock_error'
+    assert len(locks) == 0
+
+
+async def test_an_error_inside_the_turn_is_not_reported_as_a_lock_error():
+    locks = channel.ConversationLocks(shared=SharedLayer().hold)
+    audit = AuditLines()
+    with pytest.raises(RuntimeError):
+        await turn(audit=audit, locks=locks, runner=FakeRunner(RuntimeError('boom')))
+
+    assert audit.lines[-1][1]['reason'] == 'turn_error'
 
 
 # --- the reply's shape (E7.4, #88) ------------------------------------------------------------------
