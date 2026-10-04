@@ -28,7 +28,7 @@ runs only with a verified approval (`jup.approval`, ticket 3/7). Without one it 
 `rejected`, and the model is told why, so it can say so instead of retrying or hanging.
 
 **Where nobody is present to approve** (ADR-0013 §4, ticket 2/7): an automation run, a channel
-chat and a subagent are unattended **paths**. There an `external` call is refused as
+chat, a Channel Turn (E7) and a subagent are unattended **paths**. There an `external` call is refused as
 `rejected_unattended`, and stays refused once the card exists, because there is no one to show it
 to. The vendor forces automations and channels to `full` mode; that is why the gate never reads
 `tool_approval_mode` at all. A subagent is not even offered `external` tools (`offered_tools`).
@@ -38,7 +38,7 @@ from dataclasses import dataclass
 from typing import Any
 
 # The attribute `utils/subagents.py` stamps on a subagent's request; it is what marks the path.
-from jup.governance import PARENT_CHAT_STATE_ATTR
+from jup.governance import CHANNEL_TURN_STATE_ATTR, PARENT_CHAT_STATE_ATTR
 
 READ = 'read'
 WRITE_OWN = 'write_own'
@@ -126,8 +126,11 @@ _MCP_PREFIX = 'mcp:'
 CHAT = 'chat'
 AUTOMATION = 'automation'
 CHANNEL = 'channel'
+#: A Teams or WhatsApp turn the gateway made for a mapped user (E7). It runs in an ordinary chat, so
+#: it is marked on the request state, and is not the vendor's own `channel:` chat feature above.
+CHANNEL_TURN = 'channel_turn'
 SUBAGENT = 'subagent'
-UNATTENDED = frozenset({AUTOMATION, CHANNEL, SUBAGENT})
+UNATTENDED = frozenset({AUTOMATION, CHANNEL, CHANNEL_TURN, SUBAGENT})
 
 
 @dataclass(frozen=True)
@@ -203,6 +206,8 @@ def path_of(metadata: Any, state: Any = None) -> str:
     chat_id = metadata.get('chat_id')
     if isinstance(chat_id, str) and chat_id.startswith('channel:'):
         return CHANNEL
+    if state is not None and getattr(state, CHANNEL_TURN_STATE_ATTR, None):
+        return CHANNEL_TURN
     if state is not None and getattr(state, PARENT_CHAT_STATE_ATTR, None):
         return SUBAGENT
     return CHAT
@@ -285,6 +290,7 @@ def _refusal(name: str) -> str:
 _WHERE = {
     AUTOMATION: 'an automation run',
     CHANNEL: 'a channel conversation',
+    CHANNEL_TURN: 'a Teams or WhatsApp conversation',
     SUBAGENT: 'a subagent task',
 }
 
@@ -303,6 +309,7 @@ __all__ = [
     'AUTOMATION',
     'BUILTIN_CLASSES',
     'CHANNEL',
+    'CHANNEL_TURN',
     'CHAT',
     'EXTERNAL',
     'READ',

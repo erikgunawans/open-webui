@@ -208,7 +208,10 @@ and re-apply the upstream body inside `applyDefaults`.
 `jup_leadership`, `jup_portfolio` and `jup_voice`, and their four `app.include_router(...)` lines, at
 `/api/v1/kb-review`, `/api/v1/leadership`, `/api/v1/portfolio` and `/api/v1/voice`. The router
 modules themselves are fork-owned files. `jup_kb_review` was added 2026-09-25 (ADR-0015),
-`jup_voice` 2026-09-27 (ADR-0017, #26).
+`jup_voice` 2026-09-27 (ADR-0017, #26), `jup_contracts` at `/api/v1/contracts`, and `jup_channel`
+2026-10-04 at `/api/jup/channel` (E7, #86). The channel prefix must equal
+`jup.iap_identity.CHANNEL_API_PREFIX`, the only path the gateway principal is let through; the
+registration test holds the two together.
 
 **Why:** Portfolio (ADR-0004), Ruang Pimpinan (P1), the KB review queue (ADR-0015) and voice calls
 (ADR-0017) are served from their own routers so their rules stay out of vendor code; mounting them
@@ -221,7 +224,7 @@ the Portfolio page renders as a refused load and Ruang Pimpinan as unavailable.
 `--only-group dev`).
 
 **Conflict risk:** low to moderate. Upstream adds routers to the same import block and the same
-run of `include_router` lines, so a merge can drop a neighbour. Keep all four lines.
+run of `include_router` lines, so a merge can drop a neighbour. Keep every one of them.
 
 ## A voice turn is held to the voice model, tools and documents — `backend/open_webui/main.py`, `backend/open_webui/utils/middleware.py` (2026-09-27)
 

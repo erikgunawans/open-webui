@@ -63,6 +63,17 @@ ADMITTED_STATE_ATTR = 'jup_governance_admitted'
 #: caller can put anything in `form_data`, and a forged parent would mislabel the trail.
 PARENT_CHAT_STATE_ATTR = 'jup_parent_chat_id'
 
+#: Set on `request.state` for a Channel Turn (E7, ADR-0012 amendment 2026-10-04). The IAP middleware
+#: sets it on the gateway's inbound request; the Channel Turn sets it, to the Channel's name, on the
+#: request it builds for the turn, where `tool_policy.path_of` reads it as unattended. Never from
+#: the body: `automation_id` in `form_data` shows how a body mark can be written by any caller.
+CHANNEL_TURN_STATE_ATTR = 'jup_channel_turn'
+
+#: Set beside it by the IAP middleware only: the id of the user the gateway was admitted to act for.
+#: The Channel route authenticates from this alone. The gateway holds no session token, so the
+#: vendor's `get_verified_user` (which needs one) cannot serve that route.
+CHANNEL_USER_STATE_ATTR = 'jup_channel_user_id'
+
 #: The marker the contract opens with, so a human reading a provider-side log can see the
 #: turn was governed. Presence of this alone is *not* sufficient — see `carries_contract`.
 CONTRACT_SENTINEL = '[JUP-GOVERNED]'
@@ -461,6 +472,8 @@ def assert_governed(form_data: dict, *, state: Any = None, user_id: str | None =
 __all__ = [
     'ADMITTED_STATE_ATTR',
     'AUDIT_ENV',
+    'CHANNEL_TURN_STATE_ATTR',
+    'CHANNEL_USER_STATE_ATTR',
     'CONTRACT_SENTINEL',
     'CONTRACT_TEXT',
     'EXEMPT_TASKS',

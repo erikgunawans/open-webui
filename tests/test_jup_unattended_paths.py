@@ -13,6 +13,7 @@ import pytest
 from jup.tool_policy import (
     AUTOMATION,
     CHANNEL,
+    CHANNEL_TURN,
     CHAT,
     SUBAGENT,
     UNATTENDED,
@@ -56,6 +57,22 @@ def test_a_channel_automation_counts_as_an_automation():
 def test_a_subagent_is_marked_by_the_state_its_request_carries():
     """`utils/subagents.py` stamps `jup_parent_chat_id` on the child request (as `jup.governance` reads it)."""
     assert path_of({'chat_id': 'c2'}, SimpleNamespace(jup_parent_chat_id='c1')) == SUBAGENT
+
+
+def test_a_channel_turn_is_marked_by_the_state_its_request_carries():
+    """E7: the Channel Turn sets `jup_channel_turn` on the request it builds (`jup.governance`)."""
+    assert path_of({'chat_id': 'c1'}, SimpleNamespace(jup_channel_turn='teams')) == CHANNEL_TURN
+
+
+def test_a_channel_turn_is_not_the_vendors_own_channel_chat():
+    """A Teams or WhatsApp turn runs in an ordinary chat; `channel:` chats are the vendor's own feature."""
+    assert CHANNEL_TURN != CHANNEL
+    assert CHANNEL_TURN in UNATTENDED
+
+
+def test_a_channel_mark_in_the_body_does_not_make_a_channel_turn():
+    """Only the request state counts: any caller can write the metadata."""
+    assert path_of({'chat_id': 'c1', 'jup_channel_turn': 'teams'}, SimpleNamespace()) == CHAT
 
 
 @pytest.mark.parametrize('mode', ['full', 'ask', None])
@@ -102,7 +119,12 @@ def test_read_and_write_own_still_run_unattended(path, tool):
 
 @pytest.mark.parametrize(
     ('path', 'where'),
-    [(AUTOMATION, 'automation run'), (CHANNEL, 'channel conversation'), (SUBAGENT, 'subagent task')],
+    [
+        (AUTOMATION, 'automation run'),
+        (CHANNEL, 'channel conversation'),
+        (CHANNEL_TURN, 'Teams or WhatsApp conversation'),
+        (SUBAGENT, 'subagent task'),
+    ],
 )
 def test_the_model_is_told_why_so_the_reason_reaches_the_runs_chat(path, where):
     message = decide('gate_probe', GATE_PROBE, path=path).message
@@ -131,7 +153,7 @@ def test_a_subagents_offered_tools_exclude_every_external_tool():
     assert set(offered_tools(TOOLS, SUBAGENT)) == {'search_web', 'add_memory', 'portfolio_status'}
 
 
-@pytest.mark.parametrize('path', [CHAT, AUTOMATION, CHANNEL])
+@pytest.mark.parametrize('path', [CHAT, AUTOMATION, CHANNEL, CHANNEL_TURN])
 def test_other_paths_are_offered_everything_and_refused_at_the_call(path):
     """Filtering there would hide the refusal from the run's chat; the call is refused instead."""
     assert offered_tools(TOOLS, path) == TOOLS

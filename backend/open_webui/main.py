@@ -162,6 +162,7 @@ from open_webui.routers import (
     functions,
     groups,
     images,
+    jup_channel,
     jup_contracts,
     jup_kb_review,
     jup_leadership,
@@ -893,6 +894,9 @@ app.include_router(jup_leadership.router, prefix='/api/v1/leadership', tags=['le
 app.include_router(jup_kb_review.router, prefix='/api/v1/kb-review', tags=['kb-review'])
 app.include_router(jup_contracts.router, prefix='/api/v1/contracts', tags=['contracts'])
 app.include_router(jup_voice.router, prefix='/api/v1/voice', tags=['voice'])
+# E7: the gateway's one endpoint. The prefix is `jup.iap_identity.CHANNEL_API_PREFIX`, the only
+# place the gateway principal is let through; the two must move together.
+app.include_router(jup_channel.router, prefix='/api/jup/channel', tags=['channel'])
 
 # SCIM 2.0 API for identity management
 if ENABLE_SCIM:
