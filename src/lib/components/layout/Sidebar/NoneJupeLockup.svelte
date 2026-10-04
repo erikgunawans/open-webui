@@ -4,7 +4,8 @@
 	// "Asisten AI" descriptor. On light, "JUP" takes Polynesian Blue and the "e" JUP green; on dark
 	// the mark and the whole wordmark go single-colour white, as the design's dark panel does. Live
 	// text rather than an image, so the name stays sharp and follows the theme. Assets are built by
-	// deploy/gcp/brand/build-icons.ts.
+	// deploy/gcp/brand/build-icons.ts. The descriptor row ends in the JUP endorsement (Erik,
+	// 2026-10-05): JUP's own compact lockup as an image, since it must never be re-typeset.
 	import { WEBUI_BASE_URL } from '$lib/constants';
 </script>
 
@@ -26,7 +27,21 @@
 			><span class="nj-none">None-</span><span class="nj-jup">JUP</span><span class="nj-e">e</span
 			></span
 		>
-		<span class="nj-tagline">Asisten AI</span>
+		<span class="nj-descriptor">
+			<span class="nj-tagline">Asisten AI</span>
+			<img
+				src="{WEBUI_BASE_URL}/static/jup-endorsement.png"
+				alt="JUP"
+				class="nj-endorsement dark:hidden"
+				draggable="false"
+			/>
+			<img
+				src="{WEBUI_BASE_URL}/static/jup-endorsement-white.png"
+				alt="JUP"
+				class="nj-endorsement hidden dark:block"
+				draggable="false"
+			/>
+		</span>
 	</div>
 </div>
 
@@ -89,6 +104,19 @@
 		line-height: 1;
 		white-space: nowrap;
 		color: #3a4a58;
+	}
+
+	.nj-descriptor {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	/* 14px is the JUP logogram's minimum on screen (JUP Design System, DESIGN.md). */
+	.nj-endorsement {
+		height: 0.875rem;
+		width: auto;
+		flex-shrink: 0;
 	}
 
 	:global(.dark) .nj-wordmark,

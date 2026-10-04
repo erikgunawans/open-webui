@@ -16,6 +16,8 @@ STATIC_DIRS = (ROOT / 'static' / 'static', ROOT / 'backend' / 'open_webui' / 'st
 ASSETS = (
     'none-jupe-mark.png',
     'none-jupe-mark-white.png',
+    'jup-endorsement.png',
+    'jup-endorsement-white.png',
     'favicon.png',
     'favicon-96x96.png',
     'favicon.ico',
