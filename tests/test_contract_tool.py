@@ -180,11 +180,13 @@ class Marks:
     def __init__(self, fail: bool = False):
         self.fail = fail
         self.calls: list[tuple[str, str]] = []
+        self.messages: list[str | None] = []
 
-    async def __call__(self, chat_id: str, source: str) -> None:
+    async def __call__(self, chat_id: str, source: str, message_id: str | None = None) -> None:
         if self.fail:
             raise RuntimeError('database unavailable')
         self.calls.append((chat_id, source))
+        self.messages.append(message_id)
 
 
 def test_a_card_with_money_marks_the_chat(world) -> None:
@@ -193,6 +195,18 @@ def test_a_card_with_money_marks_the_chat(world) -> None:
     text = _run(tool.get_contract(USER, '0001', source=source('legal'), chat_id='chat-1', marker=marks))
     assert 'Kartu kontrak [0001]' in text
     assert marks.calls == [('chat-1', 'contracts')]
+
+
+def test_the_mark_names_the_message_the_read_happened_in(world) -> None:
+    _, source = world
+    marks = Marks()
+    _run(
+        tool.read_contract_pages(
+            USER, '0001', '1', source=source('direksi'), chat_id='chat-1', message_id='m-7', marker=marks
+        )
+    )
+    _run(tool.get_contract(USER, '0001', source=source('legal'), chat_id='chat-1', message_id='m-8', marker=marks))
+    assert marks.messages == ['m-7', 'm-8']
 
 
 def test_a_card_without_money_does_not_mark_the_chat(world) -> None:
@@ -226,5 +240,5 @@ def test_restricted_text_is_withheld_when_the_mark_cannot_be_written(world) -> N
 
 def test_the_stored_wrapper_passes_the_chat_through() -> None:
     wrapper = (Path(__file__).resolve().parent.parent / 'tools' / 'jup_contracts.py').read_text(encoding='utf-8')
-    assert '_get_contract(__user__, ref, chat_id=__chat_id__)' in wrapper
-    assert '_read_contract_pages(__user__, ref, pages, chat_id=__chat_id__)' in wrapper
+    assert '_get_contract(__user__, ref, chat_id=__chat_id__, message_id=__message_id__)' in wrapper
+    assert '_read_contract_pages(__user__, ref, pages, chat_id=__chat_id__, message_id=__message_id__)' in wrapper

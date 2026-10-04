@@ -1,4 +1,4 @@
-"""The Channel Turn, through its one entry point, with a fake turn runner, chat store and clock (E7.2 #86, E7.3 #87).
+"""The Channel Turn, through its one entry point, with a fake turn runner, chat store and clock (E7.2–E7.4, #86–#88).
 
 What a caller of `jup.channel` observes: the reply text and the chat link it gets back, the chat it
 created, the request state the turn ran with (that is what makes an `external` tool fail closed),
@@ -14,7 +14,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from jup import channel
+from jup import channel, office_floor
 from jup.governance import CHANNEL_TURN_STATE_ATTR
 from jup.tool_policy import CHANNEL_TURN, decide, path_of
 from jup.turn import TurnResult
@@ -41,6 +41,8 @@ class FakeStore:
     def __init__(self, clock=lambda: NOW) -> None:
         self.chats: list[dict] = []
         self.clock = clock
+        #: chat id -> chat meta written by the floor (`jup.office_floor.mark_restricted`) during a turn.
+        self.floor_meta: dict[str, object] = {}
 
     async def create_chat(self, chat_id: str, user_id: str, title: str, meta: dict) -> None:
         self.chats.append(
@@ -67,6 +69,9 @@ class FakeStore:
             return None
         newest = mine[-1]  # by creation, as the store orders them
         return channel.ChannelChat(id=newest['id'], updated_at=newest['updated_at'])
+
+    async def turn_restricted(self, chat_id: str, message_id: str) -> bool:
+        return office_floor.turn_restricted(self.floor_meta.get(chat_id), message_id)
 
 
 class FakeRunner:
@@ -152,6 +157,7 @@ def test_a_well_formed_body_parses():
         body(conversation_key='k' * 513),
         body(text=''),
         body(text='   '),
+        body(text='', has_attachment='yes'),
         body(text='x' * (channel.TEXT_MAX_CHARS + 1)),
         body(text=7),
         body(has_attachment='yes'),
@@ -434,3 +440,156 @@ async def test_a_failed_turn_releases_the_conversation_for_the_next():
 
 def test_the_lock_notes_that_it_assumes_one_ent_os_instance():
     assert 'one ent-os instance' in (channel.ConversationLocks.__doc__ or '')
+
+
+# --- the reply's shape (E7.4, #88) ------------------------------------------------------------------
+
+
+def restrict(store: FakeStore, message_id: str, *, level: str = 'TERBATAS') -> None:
+    """What `mark_restricted` writes when a restricted read happens in the turn of `message_id`."""
+    chat_id = store.chats[-1]['id']
+    meta = store.floor_meta.get(chat_id) or {}
+    record = office_floor.marked(meta, level, 'contracts', at=1, message_id=message_id)
+    store.floor_meta[chat_id] = {**meta, office_floor.KEY: record} if record else meta
+
+
+class RestrictingRunner(FakeRunner):
+    """A turn whose tool read restricted material into the chat, as the contracts tool does."""
+
+    def __init__(self, store: FakeStore, result: TurnResult) -> None:
+        super().__init__(result)
+        self.store = store
+
+    async def __call__(self, chat_id, text, request_state):
+        restrict(self.store, self.result.message_id)
+        return await super().__call__(chat_id, text, request_state)
+
+
+async def test_a_turn_that_read_restricted_material_replies_with_the_link_only():
+    store = FakeStore()
+    reply, store, _, audit = await turn(
+        store=store, runner=RestrictingRunner(store, TurnResult('m1', 'Nilai kontrak Rp 9 M', True))
+    )
+
+    link = f'https://non-jupe.jup.co.id/c/{store.chats[0]["id"]}'
+    assert reply == channel.ChannelReply(reply=link, chat_url=link, outcome='restricted')
+    assert 'Rp' not in json.dumps(audit.lines)
+    assert audit.lines[0][1]['outcome'] == 'restricted'
+
+
+async def test_a_clean_turn_in_a_chat_restricted_earlier_still_arrives_as_text():
+    store = FakeStore()
+    await turn(store=store, runner=RestrictingRunner(store, TurnResult('m1', 'rahasia', True)))
+    reply, _, _, _ = await turn(store=store, result=TurnResult('m2', 'Proyek SPBG on track.', True))
+
+    assert (reply.reply, reply.outcome) == ('Proyek SPBG on track.', 'answered')
+
+
+async def test_a_chat_marked_before_messages_were_listed_counts_as_restricted_earlier_only():
+    store = FakeStore()
+    await turn(store=store)
+    store.floor_meta[store.chats[0]['id']] = {office_floor.KEY: {'level': 'TERBATAS', 'source': 'contracts', 'at': 1}}
+    reply, _, _, _ = await turn(store=store, result=TurnResult('m2', 'teks', True))
+
+    assert reply.outcome == 'answered'
+
+
+@pytest.mark.parametrize(
+    'meta',
+    [
+        'not an object',
+        {office_floor.KEY: 'TERBATAS'},
+        {office_floor.KEY: {'level': 'TERBATAS', office_floor.MESSAGES: 'm1'}},
+    ],
+)
+async def test_an_unreadable_marker_replies_with_the_link_only(meta):
+    store = FakeStore()
+    await turn(store=store)
+    store.floor_meta[store.chats[0]['id']] = meta
+    reply, _, _, _ = await turn(store=store, result=TurnResult('m2', 'teks', True))
+
+    assert (reply.reply, reply.outcome) == (reply.chat_url, 'restricted')
+
+
+async def test_a_store_that_cannot_read_the_marker_replies_with_the_link_only():
+    class Broken(FakeStore):
+        async def turn_restricted(self, chat_id, message_id):
+            raise RuntimeError('database unavailable')
+
+    reply, _, _, _ = await turn(store=Broken())
+
+    assert (reply.reply, reply.outcome) == (reply.chat_url, 'restricted')
+
+
+LINK = 'https://non-jupe.jup.co.id/c/x'
+
+
+def test_an_answer_at_the_limit_is_untouched():
+    text = 'a' * channel.CUT_CHARS
+    assert channel.cut(text, LINK) == text
+    assert channel.cut('pendek', LINK) == 'pendek'
+
+
+def test_a_long_answer_is_cut_at_the_last_paragraph_before_the_limit_and_links_to_the_rest():
+    first, second = 'a' * 700, 'b' * 700
+    text = f'{first}\n\n{second}\n\n' + 'c' * 200  # paragraph 3 crosses the limit
+
+    assert channel.cut(text, LINK) == f'{first}\n\n{second}\n\nJawaban lengkap: {LINK}'
+
+
+def test_one_char_over_the_limit_is_cut():
+    text = 'a' * 1000 + '\n\n' + 'b' * (channel.CUT_CHARS - 1001)
+    assert len(text) == channel.CUT_CHARS + 1
+    assert channel.cut(text, LINK) == 'a' * 1000 + f'\n\nJawaban lengkap: {LINK}'
+
+
+def test_without_a_paragraph_the_cut_falls_back_to_a_line_then_to_the_limit():
+    lines = 'a' * 1000 + '\n' + 'b' * 1000
+    assert channel.cut(lines, LINK) == 'a' * 1000 + f'\n\nJawaban lengkap: {LINK}'
+    assert channel.cut('a' * 2000, LINK) == 'a' * channel.CUT_CHARS + f'\n\nJawaban lengkap: {LINK}'
+
+
+async def test_a_long_answer_comes_back_cut_with_its_chat_link():
+    long = 'a' * 1000 + '\n\n' + 'b' * 1000
+    reply, store, _, _ = await turn(result=TurnResult('m1', long, True))
+
+    assert reply.reply == 'a' * 1000 + f'\n\nJawaban lengkap: {reply.chat_url}'
+    assert reply.outcome == 'answered'
+
+
+async def test_an_attachment_with_text_gets_the_notice_and_the_text_is_still_answered():
+    reply, store, runner, _ = await turn(request=channel.parse_request(body(has_attachment=True)))
+
+    link = reply.chat_url
+    assert runner.calls[0]['text'] == 'status proyek SPBG?'
+    assert reply.reply == f'Lampiran belum didukung di Teams — unggah lewat {link}\n\nProyek SPBG on track.'
+    assert reply.outcome == 'answered'
+
+
+async def test_an_attachment_alone_gets_the_notice_and_no_turn():
+    reply, store, runner, audit = await turn(request=channel.parse_request(body(text='', has_attachment=True)))
+
+    (chat,) = store.chats
+    assert runner.calls == []
+    assert reply == channel.ChannelReply(
+        reply=f'Lampiran belum didukung di Teams — unggah lewat https://non-jupe.jup.co.id/c/{chat["id"]}',
+        chat_url=f'https://non-jupe.jup.co.id/c/{chat["id"]}',
+        outcome='attachment',
+    )
+    assert audit.lines[0][1]['outcome'] == 'attachment'
+
+
+async def test_the_whatsapp_notice_names_whatsapp():
+    reply, _, _, _ = await turn(request=channel.parse_request(body(channel='whatsapp', text='', has_attachment=True)))
+
+    assert reply.reply.startswith('Lampiran belum didukung di WhatsApp — unggah lewat ')
+
+
+def test_the_fixed_texts_match_the_plan_exactly():
+    link = 'L'
+    assert channel.PROCESSING_TEXT.format(link=link) == 'Jawaban masih diproses — lihat di L'
+    assert channel.CUT_TEXT.format(link=link) == 'Jawaban lengkap: L'
+    assert (
+        channel.ATTACHMENT_TEXT.format(channel='Teams', link=link)
+        == 'Lampiran belum didukung di Teams — unggah lewat L'
+    )

@@ -181,3 +181,43 @@ def test_higher():
     assert office_floor.higher('INTERNAL', None) == 'INTERNAL'
     assert office_floor.higher(None, 'TERBATAS') == 'TERBATAS'
     assert office_floor.higher('RAHASIA', 'TERBATAS') == 'RAHASIA'
+
+
+# -- the per-turn mark (E7.4, #88) -------------------------------------------------------------
+
+
+def test_marking_lists_the_message_and_still_raises_the_floor():
+    record = office_floor.marked({}, 'TERBATAS', 'contracts', at=1, message_id='m1')
+    assert record == {'level': 'TERBATAS', 'source': 'contracts', 'at': 1, office_floor.MESSAGES: ['m1']}
+
+
+def test_a_chat_already_at_the_floor_still_lists_a_new_message_and_keeps_its_level():
+    meta = {office_floor.KEY: {'level': 'RAHASIA', 'source': 'contracts', 'at': 1, office_floor.MESSAGES: ['m1']}}
+    record = office_floor.marked(meta, 'TERBATAS', 'contracts', at=2, message_id='m2')
+    assert record == {'level': 'RAHASIA', 'source': 'contracts', 'at': 1, office_floor.MESSAGES: ['m1', 'm2']}
+    assert office_floor.marked({office_floor.KEY: record}, 'TERBATAS', 'contracts', at=3, message_id='m2') is None
+
+
+def test_a_raise_keeps_the_messages_already_listed():
+    meta = {office_floor.KEY: {'level': 'TERBATAS', 'source': 'contracts', 'at': 1, office_floor.MESSAGES: ['m1']}}
+    record = office_floor.marked(meta, 'RAHASIA', 'contracts', at=2, message_id='m2')
+    assert record['level'] == 'RAHASIA'
+    assert record[office_floor.MESSAGES] == ['m1', 'm2']
+
+
+def test_without_a_message_marking_is_exactly_raising():
+    assert office_floor.marked({}, 'TERBATAS', 'contracts', at=1) == office_floor.raised(
+        {}, 'TERBATAS', 'contracts', at=1
+    )
+
+
+def test_turn_restricted_reads_only_this_turn():
+    meta = {office_floor.KEY: {'level': 'TERBATAS', office_floor.MESSAGES: ['m1']}}
+    assert office_floor.turn_restricted(meta, 'm1') is True
+    assert office_floor.turn_restricted(meta, 'm2') is False
+    assert office_floor.turn_restricted({office_floor.KEY: {'level': 'TERBATAS'}}, 'm1') is False
+    assert office_floor.turn_restricted({}, 'm1') is False
+    assert office_floor.turn_restricted(None, 'm1') is False
+    for bad in ('x', {office_floor.KEY: []}, {office_floor.KEY: {office_floor.MESSAGES: 'm1'}}):
+        with pytest.raises(office_floor.MarkUnreadable):
+            office_floor.turn_restricted(bad, 'm1')

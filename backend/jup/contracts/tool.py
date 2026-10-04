@@ -39,8 +39,8 @@ MARK_FAILED = 'Kontrak tidak dapat ditampilkan saat ini: server gagal mencatat k
 
 log = logging.getLogger(__name__)
 
-# (chat_id, source) -> None; raises when the mark cannot be written.
-Marker = Callable[[str, str], Any]
+# (chat_id, source, message_id) -> None; raises when the mark cannot be written.
+Marker = Callable[[str, str, str | None], Any]
 
 LABELS: dict[str, str] = {
     'mitra': 'Mitra',
@@ -358,6 +358,7 @@ async def _run(
     work: Callable[[Source, Access], tuple[str, list[str]]],
     *,
     chat_id: str | None = None,
+    message_id: str | None = None,
     restricted: Callable[[Access], bool] | None = None,
     marker: Marker | None = None,
 ) -> str:
@@ -379,7 +380,7 @@ async def _run(
         return str(refused)
     if chat_id and refs and restricted is not None and restricted(reader):
         try:
-            await (marker or office_floor.mark_restricted)(chat_id, 'contracts')
+            await (marker or office_floor.mark_restricted)(chat_id, 'contracts', message_id=message_id)
         except Exception:
             log.exception('contract_read: marking chat %s restricted failed', chat_id)
             audit('contract_read', user=user_id, operation=operation, result='mark_failed')
@@ -404,6 +405,7 @@ async def get_contract(
     source: Source | None = None,
     chat_id: str | None = None,
     marker: Marker | None = None,
+    message_id: str | None = None,
 ) -> str:
     # A card shows its money fields only to a reader holding `money`.
     return await _run(
@@ -412,6 +414,7 @@ async def get_contract(
         source,
         lambda s, r: _card_text(s, r, ref),
         chat_id=chat_id,
+        message_id=message_id,
         restricted=lambda reader: reader.money,
         marker=marker,
     )
@@ -424,6 +427,7 @@ async def read_contract_pages(
     source: Source | None = None,
     chat_id: str | None = None,
     marker: Marker | None = None,
+    message_id: str | None = None,
 ) -> str:
     # Page text is contract full text, which is TERBATAS for every reader.
     return await _run(
@@ -432,6 +436,7 @@ async def read_contract_pages(
         source,
         lambda s, r: _pages_text(s, r, ref, pages),
         chat_id=chat_id,
+        message_id=message_id,
         restricted=lambda reader: True,
         marker=marker,
     )

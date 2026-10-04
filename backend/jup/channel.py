@@ -19,8 +19,13 @@ conversation key and the chat; never an email.
 **A conversation behaves like a working session (#87).** A turn lands in the chat its conversation
 used last, if that chat saw activity in the last `REUSE_HOURS`; otherwise it starts a new one. `baru`
 starts a new chat at once and answers without calling the model. Turns on one conversation run one
-after another, in arrival order, so a second question is answered after the first. The answer's
-shaping (#88) builds on the same entry point.
+after another, in arrival order, so a second question is answered after the first.
+
+**The reply is shaped for a Channel (#88).** If this turn read restricted material
+(`jup.office_floor.turn_restricted`), the reply is the chat link only; if that cannot be read, the
+same. A clean turn in a chat restricted earlier still arrives as text. An answer over
+`CUT_CHARS` is cut at a paragraph and ends with the link. An attachment is not read: the reply says
+so, and any text beside it is still answered.
 
 Every dependency is injected (store, turn runner, audit, clock), so this imports the standard
 library and `jup.*` only, and its tests run under `--only-group dev`.
@@ -62,13 +67,22 @@ REUSE_HOURS = 8
 #: The one command (spec #84): exact, any letter case, trimmed. Any other text is a question.
 NEW_CHAT_COMMAND = 'baru'
 
+#: A longer answer is cut at a paragraph and links to the rest (spec #84).
+CUT_CHARS = 1500
+
 ANSWERED = 'answered'
 PROCESSING = 'processing'
 NEW_CHAT = 'new_chat'
+#: The turn read restricted material; the reply is the link only.
+RESTRICTED = 'restricted'
+#: An attachment with no text: the notice only, no turn.
+ATTACHMENT = 'attachment'
 FAILED = 'failed'
 
 #: Product copy decided by Erik (spec #84); changing it is a product change.
 PROCESSING_TEXT = 'Jawaban masih diproses — lihat di {link}'
+CUT_TEXT = 'Jawaban lengkap: {link}'
+ATTACHMENT_TEXT = 'Lampiran belum didukung di {channel} — unggah lewat {link}'
 #: The reply to `baru`. Spec #84 asks only for "a short confirmation"; this wording is ours.
 NEW_CHAT_TEXT = 'Percakapan baru dimulai. Silakan ajukan pertanyaan Anda.'
 
@@ -121,11 +135,12 @@ def parse_request(body: Any) -> ChannelTurnRequest:
     key = body['conversation_key']
     if not isinstance(key, str) or not key or len(key) > CONVERSATION_KEY_MAX_CHARS:
         raise ChannelRequestInvalid('conversation_key is missing or too long')
-    text = body['text']
-    if not isinstance(text, str) or not text.strip() or len(text) > TEXT_MAX_CHARS:
-        raise ChannelRequestInvalid('text is missing or too long')
     if not isinstance(body['has_attachment'], bool):
         raise ChannelRequestInvalid('has_attachment must be a boolean')
+    text = body['text']
+    # A message that is only an attachment carries no text; it still gets the attachment notice.
+    if not isinstance(text, str) or len(text) > TEXT_MAX_CHARS or not (text.strip() or body['has_attachment']):
+        raise ChannelRequestInvalid('text is missing or too long')
     return ChannelTurnRequest(
         channel=body['channel'],
         identity_hash=identity_hash,
@@ -147,6 +162,22 @@ def chat_title(channel: str, now: dt.datetime) -> str:
 
 def chat_url(base_url: str, chat_id: str) -> str:
     return f'{base_url.rstrip("/")}/c/{chat_id}'
+
+
+def cut(text: str, link: str, limit: int = CUT_CHARS) -> str:
+    """`text` as it stands when it fits; otherwise cut at the last paragraph before `limit`, plus the link.
+
+    No paragraph break before the limit: the last line break, else the limit itself.
+    """
+    if len(text) <= limit:
+        return text
+    head = text[:limit]
+    for boundary in ('\n\n', '\n'):
+        at = head.rfind(boundary)
+        if at > 0:
+            head = head[:at]
+            break
+    return f'{head.rstrip()}\n\n{CUT_TEXT.format(link=link)}'
 
 
 def is_new_chat_command(text: str) -> bool:
@@ -171,6 +202,10 @@ class ChatStore(Protocol):
         Newest by creation, not by activity: after `baru`, an answer still finishing in the old chat
         must not pull the conversation back into it.
         """
+        ...
+
+    async def turn_restricted(self, chat_id: str, message_id: str) -> bool:
+        """Whether the turn that wrote `message_id` read restricted material; raises when unreadable."""
         ...
 
 
@@ -252,21 +287,43 @@ async def run_channel_turn(
                 chat_id = str(uuid.uuid4())
                 meta = {CHAT_KEY: {**fields}}
                 await store.create_chat(chat_id, user_id, chat_title(request.channel, now()), meta)
+            link = chat_url(base_url, chat_id)
             if new_chat:
-                reply = ChannelReply(reply=NEW_CHAT_TEXT, chat_url=chat_url(base_url, chat_id), outcome=NEW_CHAT)
-                audit('channel_turn', **fields, chat=chat_id, outcome=reply.outcome, reason=None)
-                return reply
-            result = await run(chat_id, request.text, {CHANNEL_TURN_STATE_ATTR: request.channel})
+                reply = ChannelReply(reply=NEW_CHAT_TEXT, chat_url=link, outcome=NEW_CHAT)
+            elif not request.text:
+                reply = ChannelReply(reply=_notice(request, link), chat_url=link, outcome=ATTACHMENT)
+            else:
+                result = await run(chat_id, request.text, {CHANNEL_TURN_STATE_ATTR: request.channel})
+                reply = await _shape(request, result, store, chat_id, link)
         except Exception:
             audit('channel_turn', **fields, chat=chat_id, outcome=FAILED, reason='turn_error')
             raise
-    link = chat_url(base_url, chat_id)
-    if result.finished:
-        reply = ChannelReply(reply=result.content, chat_url=link, outcome=ANSWERED)
-    else:
-        reply = ChannelReply(reply=PROCESSING_TEXT.format(link=link), chat_url=link, outcome=PROCESSING)
     audit('channel_turn', **fields, chat=chat_id, outcome=reply.outcome, reason=None)
     return reply
+
+
+def _notice(request: ChannelTurnRequest, link: str) -> str:
+    return ATTACHMENT_TEXT.format(channel=CHANNELS[request.channel], link=link)
+
+
+async def _shape(
+    request: ChannelTurnRequest, result: TurnResult, store: ChatStore, chat_id: str, link: str
+) -> ChannelReply:
+    """The reply for a turn that ran: the processing text, the link only, or the (cut) answer."""
+    if not result.finished:
+        text, outcome = PROCESSING_TEXT.format(link=link), PROCESSING
+    else:
+        try:
+            restricted = await store.turn_restricted(chat_id, result.message_id)
+        except Exception:
+            restricted = True  # an unreadable marker fails closed: the link only
+        if restricted:
+            text, outcome = link, RESTRICTED
+        else:
+            text, outcome = cut(result.content, link), ANSWERED
+    if request.has_attachment:
+        text = f'{_notice(request, link)}\n\n{text}'
+    return ChannelReply(reply=text, chat_url=link, outcome=outcome)
 
 
 async def _recent_chat(store: ChatStore, user_id: str, channel: str, conversation: str, now: dt.datetime) -> str | None:
@@ -280,8 +337,12 @@ async def _recent_chat(store: ChatStore, user_id: str, channel: str, conversatio
 
 __all__ = [
     'ANSWERED',
+    'ATTACHMENT',
+    'ATTACHMENT_TEXT',
     'CHANNELS',
     'CHAT_KEY',
+    'CUT_CHARS',
+    'CUT_TEXT',
     'DEFAULT_PERMISSIONS',
     'FAILED',
     'LOCKS',
@@ -290,6 +351,7 @@ __all__ = [
     'NEW_CHAT_TEXT',
     'PROCESSING',
     'PROCESSING_TEXT',
+    'RESTRICTED',
     'REUSE_HOURS',
     'TEXT_MAX_CHARS',
     'TURN_SECONDS',
@@ -300,6 +362,7 @@ __all__ = [
     'ConversationLocks',
     'chat_title',
     'chat_url',
+    'cut',
     'hash_key',
     'is_new_chat_command',
     'may_use_channel',

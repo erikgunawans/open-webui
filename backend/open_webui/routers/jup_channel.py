@@ -70,6 +70,14 @@ class ChannelStore:
             row = (await session.execute(stmt)).first()
         return channel.ChannelChat(id=row[0], updated_at=int(row[1] or 0)) if row else None
 
+    async def turn_restricted(self, chat_id: str, message_id: str) -> bool:
+        from jup import office_floor
+
+        chat = await self.get_chat(chat_id)
+        if chat is None:
+            raise office_floor.MarkUnreadable('the Channel chat is gone')
+        return office_floor.turn_restricted(chat.meta, message_id)
+
     async def get_chat(self, chat_id: str) -> Any:
         from open_webui.models.chats import Chats
 
