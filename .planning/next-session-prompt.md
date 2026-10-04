@@ -1,3 +1,33 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-04-v49)
+
+> Prepended by /wrap 2026-10-04 (checkpoint 2026-10-04-v49). Supersedes v48's anchor and its "do next" (xlsx fixed, E7 decided and ticketed); v48's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-04-v49).
+Anchor: `origin/main` at `a45ff065f` **as this was written**, or one commit ahead at this checkpoint's own commit (subject begins `chore(session): checkpoint — 2026-10-04-v49`). Verify with `git log --oneline a45ff065f..origin/main`; any other commit there is a parallel push.
+
+**Current state:** live **`ent-os-00087-8vg`** (image `a45ff065f`, SheetJS 0.20.3 verified), rollback `00086-6f7`. E7 is decided (ADR-0012 amendment, grilling Q1–Q15), specced (**#84**) and ticketed (**#85–#90**, `ready-for-agent`). E7.1 is built: **PR #91** on `feat/e7-1-turn-helper` (backend CI green; Format & Build pending at wrap). Open docs PRs: **#82** (JUP IT Teams request), **#83** (glossary + E7 design).
+
+**Do next, in order:**
+1. **Merge #91** once all checks are green (it closes #85). Nothing to deploy (refactor, no behaviour change) — deploy rides with #86.
+2. **`/implement` #86** (E7.2 tracer bullet) in this fresh context: IAP middleware lock with the ADR-0012 amendment's five tests at the ASGI seam (prior art `tests/test_jup_iap_identity.py`), `jup.channel.use` grant, Channel Turn marker on `request.state` read by `tool_policy.path_of` as unattended (distinct from the vendor's `channel:` chats; `_WHERE` entry), thin route, minimal Channel Turn module on `jup.turn.run_turn` + `resolve_defaults`. Deploy + gateway SA with IAP accessor binding + one live identity-token call = Erik's OKs (new SA, IAM binding, deploy).
+3. Then #87 ∥ #88 ∥ #89 (each `/implement` with `/clear` between), then #90 (deploy the gateway; spend already approved).
+4. Merge #82 and #83 (docs) when Erik is ready; send #82's file to JUP IT.
+5. Carried: Kartu Kontrak with the Legal account; staff-account checks (O1/O2/O3); `jup_contracts` all-users grant; Rully items; #47; Notion #41/#42; CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- **Forge auto-include is broken here** (`codex` refuses gpt-5.4 on the ChatGPT login) — E3+ coding ran without it this session; say so rather than silently skipping.
+- **Policy marks travel on `request.state`, never the request body** (`automation_id` in form_data is caller-writable today).
+- **The per-conversation turn lock assumes one ent-os instance;** if ent-os scales out, move it to the DB (#87 notes it).
+- **The keyed identity hash lives in the gateway;** raw Teams ids never reach ent-os.
+- **Local pytest:** run as CI does, `uv run --offline --only-group dev pytest`; 5 `No module named 'tests'` errors (contract tests, sqlalchemy present locally) are pre-existing on main — not yours.
+- **Local `bun run build` needs `NODE_OPTIONS=--max-old-space-size=8192`.**
+- **A background deploy's "completed" notice can arrive before the deploy ends** — confirm with `pgrep -fl deploy.sh` and the live revision, not the notice.
+- **Interceptor has no tab-close command;** ask Erik to close the tab you opened.
+
+**Open items waiting on Erik:** O3 acceptance in PowerPoint + Keynote (then mark O3 live in the plan); phone check of `/ruang-pimpinan` + home composer; send #82 to JUP IT (needs a Privileged Role Admin / Global Admin there); JUP WhatsApp business number (E9); OKs for #86's deploy, gateway service account and IAP binding; Legal-account Kartu Kontrak check; deck owner to fix GPM 11,3% vs 12,6% and CFO Rp7,81 M vs Rp9,73 M; share the "None-JUPe vs holaboss-ai" doc?; Staff titles; `jup_contracts` all-users grant; Rully items; Notion token; Impeccable update; delete "Uji kecepatan" chats + test .docx/.xlsx/.pptx?; Daftar Perkara grant; Gmail send scope; keep or drop `docker-compose.dev.yaml`; delete the "Test" knowledge collection?; RAHASIA decks and footer-less layouts fine?
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-03-v48)
 
 > Prepended by /wrap 2026-10-03 (checkpoint 2026-10-03-v48). Supersedes v47's anchor and its "do next" (O3 is built, deployed and synced); v47's and older blocks' constraints still hold unless noted.

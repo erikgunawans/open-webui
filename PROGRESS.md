@@ -1,6 +1,19 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-10-03-v48 (latest) — O3 slides live (00086, tool synced, not yet accepted); home composer restyled after Erik's reference (00085→00086)
+## Checkpoint 2026-10-04-v49 (latest) — xlsx advisories fixed (00087); ADR-0012 gateway amendment; E7 grilled → spec #84 → tickets #85–#90; E7.1 built (PR #91)
+
+- **Session (10-04, after v48):** `/next` → items 1–2 are Erik's hands-on checks → Erik decided the three open calls: TERBATAS in a channel → link; ADR-0012 amendment as drafted; one-off npm exception for `xlsx` → #80 + #81 merged → **00087** → JUP IT Teams request drafted (#82) → `/grill-with-docs` on E7 (Q1–Q15, all recommendations accepted) → `/to-spec` **#84** → `/to-tickets` **#85–#90** → `/implement` #85 → **PR #91**.
+- **Live:** **`ent-os-00087-8vg`** (image `a45ff065f`, 100%); rollback `00086-6f7` (`68bd0b3eb`). Verified in an own Interceptor tab: the served xlsx chunk reports SheetJS `0.20.3`.
+- **#80 (`d36f5c28a`) xlsx:** `xlsx` → `https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz` (latest; SheetJS left npm after 0.18.5), lockfile regenerated with `npm install --package-lock-only` (Erik's one-off exception). CI incl. `npm ci` green; local build needs `NODE_OPTIONS=--max-old-space-size=8192` (OOMs without, as CI/Docker set).
+- **#81 (`a45ff065f` merge) ADR-0012 amendment (accepted 10-04):** gateway service account through LB + IAP; the IAP middleware rewrites to `X-JUP-On-Behalf-Of` only for `JUP_GATEWAY_PRINCIPAL`, strips it for everyone else, 403 for the gateway as itself / unknown / pending / ungranted; five required tests. Plan: TERBATAS → link confirmed; O3 row = live, awaiting acceptance.
+- **E7 design (PR #83, docs, open):** `CONTEXT.md` gains Channel, Channel Identity, Mapping, Channel Turn. Plan block *E7 design*: TS/Bun gateway in `gateway/`; one endpoint `POST /api/jup/channel/turn` (gateway principal limited to `/api/jup/channel/*`); no stored Mappings in E7; new chat after 8 h or `baru`; 1,500-char cut + link; per-message TERBATAS marker (fail → link); 120 s limit; one turn in flight per conversation; HMAC identity hash (in the gateway); `--no-cpu-throttling` min 0 / max 2 (**Erik OK'd the spend**); fixed replies for refusals / attachments / outages.
+- **Spec #84 + tickets (all `ready-for-agent`):** #85 E7.1 helper → #86 E7.2 tracer bullet (middleware lock + ADR tests + route + minimal turn + live identity-token call) → #87 conversation rules ∥ #88 answer shaping ∥ #89 gateway with fakes + CI job → #90 deploy.
+- **PR #91 (E7.1, `feat/e7-1-turn-helper`):** `jup.turn.run_turn` (stdlib only) + `resolve_defaults` / `TurnDefaults.as_form` / `request_state` / `accept`; `live_turn` runs on it, behaviour-identical (spec reviewer diffed vs main). Tests: 8 new; voice 195/195; full dev suite 1,990 passed (5 local-only `No module named 'tests'` errors, same on main). Two-axis review: Standards 4 fixes; Spec: path param + defaults' first caller deferred to #86 (named in PR). CI: backend green, Format & Build was pending at wrap.
+- **PR #82 (docs):** `deploy/gcp/teams-request-jup-it.id.md` — Azure Bot `asisten-jup-bot`, Graph `User.ReadBasic.All` **application** (needs Privileged Role Admin or Global Admin), Teams channel, Teams app for Erik only.
+- **Not verified:** O3 acceptance (PowerPoint/Keynote), phone check — both Erik's.
+- **Next:** merge #91 (after CI) → `/implement` #86 in a fresh context → #87/#88/#89 → #90.
+
+## Checkpoint 2026-10-03-v48 — O3 slides live (00086, tool synced, not yet accepted); home composer restyled after Erik's reference (00085→00086)
 
 - **Session (10-03, after v47):** `/next` → item 1 (phone check) is Erik's → O3 built (#77) → Erik asked for the home composer in the style of his reference (sparkle, labelled controls) → #78 → **00085** → Erik: chips above the composer not aligned → #79 → Erik OK #79 + #77 → **00086** → Erik OK `sync-tools` → `jup_documents` 1.2.0 live.
 - **Live:** **`ent-os-00086-6f7`** (image `68bd0b3eb`, 100%); rollback `00085-lll` (`c0377484b`).
