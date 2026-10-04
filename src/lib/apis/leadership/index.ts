@@ -279,6 +279,42 @@ export const getSource = (
 		signal
 	);
 
+// --- KPI 2026 (rides on the RKA read grant) ---------------------------------------------
+
+export type KpiPerspective = { id: string; name: string; weight: number };
+
+export type KpiItem = {
+	id: string;
+	p: string;
+	so_k: string;
+	so_d: string;
+	name: string;
+	definition: string;
+	satuan: string;
+	unit: 'rp' | 'pct' | 'count';
+	formula: string;
+	target: number;
+	weight: number;
+	monitoring: string;
+	cum: boolean;
+};
+
+export type KpiCatalogue = {
+	year: number;
+	source: string;
+	sample_is_illustrative: boolean;
+	perspectives: KpiPerspective[];
+	items: KpiItem[];
+	sample: Record<string, (number | null)[]>;
+};
+
+export const getKpi = (token: string, scopeId: string, signal?: AbortSignal) =>
+	request<KpiCatalogue>(
+		`/kpi?${new URLSearchParams({ scope_id: scopeId }).toString()}`,
+		token,
+		signal
+	);
+
 // --- The action record (P2 T2, T7) ----------------------------------------------------------
 
 // The records store's own due shape: `value` is `YYYY-MM-DD`, `YYYY-MM`, `YYYY` or `YYYY/YYYY`.

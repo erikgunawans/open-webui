@@ -19,7 +19,9 @@
 	// panel owns the size; this fills it and never measures itself against the viewport.
 	const TABS = [
 		{ view: 'board', href: '/ruang-pimpinan/board', label: 'Direksi & Komisaris' },
-		{ view: 'rka', href: '/ruang-pimpinan/rka', label: 'RKA & Realisasi' }
+		{ view: 'rka', href: '/ruang-pimpinan/rka', label: 'RKA & Realisasi' },
+		// KPI is performance against the plan, so it is offered (and served) on the RKA grant.
+		{ view: 'rka', href: '/ruang-pimpinan/kpi', label: 'KPI 2026' }
 	] as const;
 
 	// A tab is offered only for a view the reader holds. That is presentation: a direct URL still
@@ -57,7 +59,7 @@
 
 				{#if tabs.length > 0}
 					<nav class="jlp-tabs jup-seg" aria-label={$i18n.t('Ruang Pimpinan views')}>
-						{#each tabs as tab (tab.view)}
+						{#each tabs as tab (tab.href)}
 							<a
 								class="jlp-tab"
 								href={tab.href}

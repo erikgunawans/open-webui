@@ -1,0 +1,709 @@
+/* Ruang Pimpinan → KPI 2026. Ported from Erik's claude.ai/design "KPI Dashboard 2026"
+ * (2026-10-05), which was drawn on the @jup/ui tokens. Here every colour is the app's own JUP
+ * token (src/jup-tokens.css) so light and dark follow the app; the one addition is the gold fill
+ * for the Internal Business Process perspective, which the app's palette does not name. Fills
+ * carry the perspective colours; words use the -text tokens. Scoped under .kd. */
+
+.kd {
+	--kd-gold: #dca62e;
+	--kd-ink: var(--jup-ink);
+	--kd-soft: var(--jup-ink-soft);
+	--kd-line: var(--jup-ui-hairline);
+	--kd-line-strong: var(--jup-ui-hairline-strong);
+	--kd-sunk: var(--jlp-sunk, var(--jup-ui-surface-alt));
+	--kd-card: var(--jlp-card-bg, var(--jup-ui-paper));
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	margin-top: 1rem;
+	color: var(--kd-ink);
+}
+
+.dark .kd {
+	--kd-gold: #e9c05c;
+}
+
+.kd-eyebrow {
+	font-family: var(--jup-font-mono);
+	font-size: 0.6875rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--kd-soft);
+}
+
+.kd-muted {
+	color: var(--kd-soft);
+	font-size: 0.8125rem;
+}
+
+.kd-mono {
+	font-family: var(--jup-font-mono);
+	font-variant-numeric: tabular-nums;
+}
+
+.kd-r {
+	text-align: right;
+}
+
+.kd-strong {
+	font-weight: 700;
+}
+
+/* ── Head ── */
+.kd-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
+	gap: 1rem;
+	flex-wrap: wrap;
+	padding-bottom: 1rem;
+	border-bottom: 2px solid var(--kd-ink);
+}
+
+.kd-h {
+	margin: 0.25rem 0 0.5rem;
+	font-family: var(--jup-font-display);
+	font-size: 1.75rem;
+	font-weight: 700;
+	letter-spacing: -0.02em;
+	line-height: 1.1;
+	text-wrap: balance;
+}
+
+.kd-head-meta,
+.kd-head-ctrl {
+	display: flex;
+	gap: 0.75rem;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.kd-seg {
+	margin: 0;
+}
+
+.kd-ghost {
+	min-height: 2rem;
+	padding: 0.3rem 0.75rem;
+	border-radius: var(--jup-radius-sm);
+	font-size: 0.8125rem;
+	font-weight: 500;
+	color: var(--kd-ink);
+	background: transparent;
+}
+
+.kd-ghost:hover {
+	background: var(--jup-hover);
+}
+
+.kd-ghost:focus-visible,
+.kd-stat:focus-visible,
+.kd-pcard:focus-visible,
+.kd-control:focus-visible {
+	outline: 2px solid var(--jup-ring);
+	outline-offset: 2px;
+}
+
+/* ── Badges: the status tones are the app's up / defer / down / neu pairs ── */
+.kd-badge {
+	display: inline-flex;
+	align-items: center;
+	border-radius: 999px;
+	padding: 0.15rem 0.6rem;
+	font-size: 0.75rem;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.kd-badge-outline {
+	color: var(--jup-defer-text);
+	box-shadow: inset 0 0 0 1px currentColor;
+}
+
+.kd-tone-up {
+	background: var(--jup-up-bg);
+	color: var(--jup-up-text);
+}
+
+.kd-tone-defer {
+	background: var(--jup-defer-bg);
+	color: var(--jup-defer-text);
+}
+
+.kd-tone-down {
+	background: var(--jup-down-bg);
+	color: var(--jup-down-text);
+}
+
+.kd-tone-neu {
+	background: var(--jup-neu-bg);
+	color: var(--jup-neu-text);
+}
+
+.kd-dot {
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	border-radius: 999px;
+	flex: none;
+}
+
+.kd-dot-up {
+	background: var(--jup-up-text);
+}
+
+.kd-dot-defer {
+	background: var(--kd-gold);
+}
+
+.kd-dot-down {
+	background: var(--jup-down-text);
+}
+
+.kd-dot-neu {
+	background: var(--jup-neu-text);
+}
+
+/* ── Hero: the score and the trend ── */
+.kd-hero {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+	gap: 1rem;
+}
+
+.kd-score {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.kd-score-row {
+	display: flex;
+	align-items: baseline;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+}
+
+.kd-score-big {
+	font-family: var(--jup-font-display);
+	font-size: 5.5rem;
+	font-weight: 700;
+	line-height: 1;
+	letter-spacing: -0.04em;
+	font-variant-numeric: tabular-nums;
+}
+
+.kd-score-of {
+	font-family: var(--jup-font-mono);
+	font-size: 1.125rem;
+	color: var(--kd-soft);
+}
+
+.kd-score-sub {
+	display: flex;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+	font-size: 0.8125rem;
+}
+
+.kd-up,
+.kd-down {
+	font-family: var(--jup-font-mono);
+	font-weight: 600;
+}
+
+.kd-up {
+	color: var(--jup-up-text);
+}
+
+.kd-down {
+	color: var(--jup-down-text);
+}
+
+.kd-stack {
+	display: flex;
+	gap: 3px;
+	height: 14px;
+	margin-top: 0.5rem;
+}
+
+.kd-stack-seg {
+	background: var(--kd-sunk);
+	overflow: hidden;
+}
+
+.kd-fill {
+	height: 100%;
+	transition: width 0.2s linear;
+}
+
+.kd-stats {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 0.5rem;
+	margin-top: auto;
+	padding-top: 0.75rem;
+}
+
+.kd-stat {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 0.5rem 0.75rem;
+	text-align: left;
+	border-radius: var(--jup-radius-sm);
+	background: var(--kd-card);
+	box-shadow: inset 0 0 0 1px var(--kd-line);
+	cursor: pointer;
+}
+
+.kd-stat:hover {
+	background: var(--jup-hover);
+}
+
+.kd-stat.is-on,
+.kd-pcard.is-on {
+	box-shadow: inset 0 0 0 2px var(--kd-ink);
+}
+
+.kd-stat .kd-dot {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+}
+
+.kd-stat-n {
+	font-family: var(--jup-font-mono);
+	font-size: 1.5rem;
+	font-weight: 700;
+	line-height: 1.1;
+}
+
+.kd-stat-l {
+	font-size: 0.75rem;
+	color: var(--kd-soft);
+}
+
+.kd-trend {
+	display: block;
+	width: 100%;
+	height: auto;
+	margin-top: 0.5rem;
+}
+
+.kd-grid {
+	stroke: var(--kd-line);
+}
+
+.kd-empty-bar {
+	fill: none;
+	stroke: var(--kd-line-strong);
+	stroke-dasharray: 3 3;
+}
+
+.kd-axis {
+	font-family: var(--jup-font-mono);
+	font-size: 10px;
+	fill: var(--kd-soft);
+}
+
+.kd-axis-on {
+	fill: var(--kd-ink);
+	font-weight: 700;
+}
+
+.kd-val {
+	font-family: var(--jup-font-mono);
+	font-size: 12px;
+	font-weight: 700;
+	fill: var(--kd-ink);
+}
+
+.kd-legend {
+	display: flex;
+	gap: 1rem;
+	flex-wrap: wrap;
+	font-size: 0.75rem;
+	color: var(--kd-soft);
+	margin-top: 0.5rem;
+}
+
+.kd-legend span {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.kd-legend i {
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+}
+
+/* ── Perspective cards ── */
+.kd-persp {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 1rem;
+}
+
+.kd-pcard {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding: 1rem;
+	text-align: left;
+	border-radius: var(--jup-radius);
+	background: var(--kd-card);
+	box-shadow: inset 0 0 0 1px var(--kd-line);
+	cursor: pointer;
+	transition: box-shadow 0.12s linear;
+}
+
+.kd-pcard:hover {
+	box-shadow: inset 0 0 0 1px var(--kd-line-strong);
+}
+
+.kd-pcard-top {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.kd-sw {
+	display: inline-block;
+	width: 12px;
+	height: 12px;
+	margin-right: 0.5rem;
+	vertical-align: -1px;
+}
+
+.kd-pcard-name {
+	font-family: var(--jup-font-display);
+	font-size: 1.125rem;
+	font-weight: 600;
+	line-height: 1.2;
+	min-height: 2.4em;
+}
+
+.kd-pcard-score {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	font-family: var(--jup-font-mono);
+}
+
+.kd-pcard-big {
+	font-size: 1.75rem;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.kd-pcard-pct {
+	margin-left: auto;
+	font-size: 0.8125rem;
+	font-weight: 600;
+}
+
+.kd-pcard-foot {
+	display: flex;
+	gap: 0.75rem;
+	align-items: center;
+	font-family: var(--jup-font-mono);
+	font-size: 0.75rem;
+	margin-top: 0.25rem;
+}
+
+.kd-pcard-foot span {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.kd-push {
+	margin-left: auto;
+}
+
+.kd-bar {
+	position: relative;
+	width: 100%;
+	min-width: 60px;
+	background: var(--kd-sunk);
+}
+
+.kd-bar-mark {
+	position: absolute;
+	top: -3px;
+	bottom: -3px;
+	width: 2px;
+	background: var(--kd-ink);
+	transform: translateX(-1px);
+}
+
+/* ── The KPI table ── */
+.jlp-surface.kd-tablecard {
+	padding: 0;
+	overflow: hidden;
+}
+
+.kd-toolbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 1rem;
+	flex-wrap: wrap;
+	padding: 1rem 1.25rem;
+	border-bottom: 1px solid var(--kd-line);
+}
+
+.kd-toolbar-r {
+	display: flex;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+	flex: 1 1 560px;
+	justify-content: flex-end;
+}
+
+.kd-control {
+	flex: 0 1 190px;
+	min-width: 140px;
+	min-height: 2rem;
+	padding: 0.3rem 0.6rem;
+	font-size: 0.8125rem;
+	color: var(--kd-ink);
+	background: var(--kd-card);
+	border-radius: var(--jup-radius-sm);
+	box-shadow: inset 0 0 0 1px var(--kd-line-strong);
+}
+
+.kd-tablewrap {
+	overflow-x: auto;
+}
+
+.kd-table {
+	width: 100%;
+	min-width: 900px;
+	border-collapse: collapse;
+	font-size: 0.8125rem;
+}
+
+.kd-table th {
+	text-align: left;
+	font-family: var(--jup-font-mono);
+	font-size: 0.6875rem;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--kd-soft);
+	font-weight: 500;
+	padding: 0.5rem 0.75rem;
+	background: var(--kd-sunk);
+	border-bottom: 1px solid var(--kd-line);
+	white-space: nowrap;
+}
+
+.kd-table th.kd-r {
+	text-align: right;
+}
+
+.kd-table td {
+	padding: 0.5rem 0.75rem;
+	border-bottom: 1px solid var(--kd-line);
+	vertical-align: middle;
+}
+
+.kd-row {
+	cursor: pointer;
+}
+
+.kd-row:hover td {
+	background: var(--jup-hover);
+}
+
+.kd-row:focus-visible {
+	outline: 2px solid var(--jup-ring);
+	outline-offset: -2px;
+}
+
+.kd-group td {
+	font-family: var(--jup-font-display);
+	font-weight: 600;
+	padding-top: 1rem;
+	border-bottom: 1px solid var(--kd-line-strong);
+}
+
+.kd-group-r {
+	float: right;
+	font-family: var(--jup-font-mono);
+	font-weight: 700;
+}
+
+.kd-c-name {
+	max-width: 340px;
+}
+
+.kd-kname {
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+.kd-ksub {
+	font-size: 0.75rem;
+	color: var(--kd-soft);
+	line-height: 1.35;
+	margin-top: 2px;
+	text-wrap: pretty;
+}
+
+.kd-c-in {
+	width: 150px;
+}
+
+.kd-c-ach {
+	width: 200px;
+}
+
+.kd-achrow {
+	display: grid;
+	grid-template-columns: 56px 1fr;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.kd-empty {
+	text-align: center;
+	padding: 2rem !important;
+	color: var(--kd-soft);
+}
+
+/* ── The realisasi input ── */
+.kd-num {
+	display: inline-flex;
+	align-items: center;
+	width: 140px;
+	min-height: 2rem;
+	border-radius: var(--jup-radius-sm);
+	background: var(--kd-card);
+	box-shadow: inset 0 0 0 1px var(--kd-line-strong);
+}
+
+.kd-num:focus-within {
+	box-shadow: inset 0 0 0 2px var(--jup-ring);
+}
+
+.kd-num input {
+	flex: 1;
+	min-width: 0;
+	padding: 0.3rem 0.5rem;
+	font-family: var(--jup-font-mono);
+	font-size: 0.8125rem;
+	text-align: right;
+	color: var(--kd-ink);
+	background: transparent;
+	outline: none;
+}
+
+.kd-num-suffix {
+	padding-right: 0.5rem;
+	font-family: var(--jup-font-mono);
+	font-size: 0.75rem;
+	color: var(--kd-soft);
+}
+
+.kd-foot {
+	margin: 0;
+	font-size: 0.75rem;
+	max-width: 900px;
+	text-wrap: pretty;
+}
+
+/* ── Detail dialog ── */
+.jlp-dialog.kd {
+	margin-top: 0;
+}
+
+.kd-dl {
+	display: grid;
+	grid-template-columns: 200px minmax(0, 1fr);
+	gap: 0.5rem 1rem;
+	margin: 0;
+	font-size: 0.8125rem;
+}
+
+.kd-dl dt {
+	color: var(--kd-soft);
+	font-family: var(--jup-font-mono);
+	font-size: 0.6875rem;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	padding-top: 3px;
+}
+
+.kd-dl dd {
+	margin: 0;
+	text-wrap: pretty;
+}
+
+.kd-qgrid {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.kd-qcell {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding: 0.75rem;
+	border-radius: var(--jup-radius-sm);
+	background: var(--kd-sunk);
+}
+
+.kd-qcell-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.kd-qfield {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	font-size: 0.8125rem;
+}
+
+.kd-qcell .kd-num {
+	width: 100%;
+}
+
+.kd-note {
+	margin: 0;
+	font-size: 0.75rem;
+	color: var(--kd-soft);
+}
+
+@media (max-width: 1100px) {
+	.kd-hero {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.kd-persp {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 640px) {
+	.kd-persp,
+	.kd-qgrid,
+	.kd-dl {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.kd-stats {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.kd-score-big {
+		font-size: 4rem;
+	}
+}
