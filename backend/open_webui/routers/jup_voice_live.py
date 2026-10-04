@@ -38,8 +38,6 @@ ATTACH_URL = 'wss://api.openai.com/v1/live/sessions/{session_id}/attach'
 SETTLE_SECONDS = 0.7
 #: How long a governed turn may take before the caller is told the documents did not answer.
 TURN_SECONDS = 90.0
-#: How much earlier conversation a live turn carries, as in a governed call.
-CONTEXT_MESSAGES = 6
 
 ASK_AGAIN = 'Maaf, pertanyaannya belum terdengar jelas. Mohon ulangi pertanyaan Anda.'
 NO_ANSWER = 'Maaf, jawaban dari dokumen belum bisa diambil saat ini. Silakan coba lagi sebentar lagi.'
@@ -84,7 +82,6 @@ async def live_turn(
         build_request=lambda: build_request(app),
         session_id=session_id or f'voice-live:{chat_id}',
         accept=lambda message, message_id: voice.answer_sealed(message, chat_id, message_id, secret=secret),
-        context_messages=CONTEXT_MESSAGES,
         wait_seconds=wait_seconds,
         poll_seconds=poll_seconds,
     )

@@ -45,6 +45,19 @@ class TurnDefaults:
     filter_ids: tuple[str, ...] = ()
     terminal_id: str | None = None
 
+    def as_form(self) -> dict[str, Any]:
+        """The non-empty defaults, under the keys the chat pipeline reads from the request body."""
+        form: dict[str, Any] = {}
+        if self.tool_ids:
+            form['tool_ids'] = list(self.tool_ids)
+        if self.features:
+            form['features'] = dict(self.features)
+        if self.filter_ids:
+            form['filter_ids'] = list(self.filter_ids)
+        if self.terminal_id:
+            form['terminal_id'] = self.terminal_id
+        return form
+
 
 @dataclass(frozen=True)
 class TurnResult:
@@ -57,7 +70,12 @@ class TurnResult:
 
 
 async def resolve_defaults(app: Any, model_id: str, *, resolver: Resolver | None = None) -> TurnDefaults:
-    """The model's defaults, resolved exactly as automations resolve them (model meta + admin config)."""
+    """The model's defaults, resolved exactly as automations resolve them (model meta + admin config).
+
+    The resolver is the vendor's private `_resolve_model_defaults`, unpacked by position; a rebase
+    that renames it or reorders its tuple breaks here, so the live Channel Turn check (#86) is what
+    proves it after each rebase.
+    """
     if resolver is None:
         from open_webui.utils.automations import _resolve_model_defaults as resolver
     tool_ids, features, filter_ids, terminal_id = await resolver(app, model_id)
@@ -69,7 +87,7 @@ async def resolve_defaults(app: Any, model_id: str, *, resolver: Resolver | None
     )
 
 
-def branch(history: dict, current_id: str | None, limit: int) -> list[dict]:
+def context_branch(history: dict, current_id: str | None, limit: int) -> list[dict]:
     """The last `limit` messages on the branch ending at `current_id`, oldest first."""
     messages = history.get('messages') or {}
     found: list[dict] = []
@@ -107,7 +125,7 @@ async def run_turn(
     user_message_id, message_id = str(uuid.uuid4()), str(uuid.uuid4())
     form_data: dict[str, Any] = {
         'model': model_id,
-        'messages': [*branch(history, parent_id, context_messages), {'role': 'user', 'content': text}],
+        'messages': [*context_branch(history, parent_id, context_messages), {'role': 'user', 'content': text}],
         'stream': True,
         'chat_id': chat_id,
         'id': message_id,
@@ -124,14 +142,7 @@ async def run_turn(
         'background_tasks': {},
     }
     if defaults is not None:
-        if defaults.tool_ids:
-            form_data['tool_ids'] = list(defaults.tool_ids)
-        if defaults.features:
-            form_data['features'] = dict(defaults.features)
-        if defaults.filter_ids:
-            form_data['filter_ids'] = list(defaults.filter_ids)
-        if defaults.terminal_id:
-            form_data['terminal_id'] = defaults.terminal_id
+        form_data.update(defaults.as_form())
 
     request = build_request()
     for name, value in (request_state or {}).items():
