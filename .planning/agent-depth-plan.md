@@ -45,13 +45,13 @@ design. The sandbox work for terminal and browser is needed on either path.
 | E4  | Browser automation via Playwright MCP in the sandbox    | planned | browser                            | A5, E2, E5                                   |
 | E5  | Approval step for risky tool calls (ADR-0013)           | live    | long autonomous runs               | —                                            |
 | E6  | Skill proposals: agent drafts, admin approves, sync     | planned | self-improving skills              | E1                                           |
-| E7  | Channel gateway core: one machine identity, channel user → JUP user | **live 10-04** | chat channels | ent-os `00092-dmh` (#85–#88, #96) + `jup-gateway-00001` (#89, #90); Teams closed until E8 |
-| E8  | Microsoft Teams channel: Asisten JUP bot in JUP's tenant | planned | chat channels                      | E7; JUP IT registers the bot; D-decision     |
-| E9  | WhatsApp channel: Business Cloud API, verified numbers   | planned | chat channels                      | E7, E8 proven; JUP business number; D-decision |
+| E7  | Channel gateway core: one machine identity, channel user → JUP user | live    | chat channels                      | live 10-04: ent-os `00092-dmh` (#85–#88, #96) + `jup-gateway-00001` (#89, #90) |
+| E8  | Microsoft Teams channel: Asisten JUP bot in JUP's tenant | blocked | chat channels                      | JUP IT answers #82 (bot app id, secret, tenant id, Graph consent) |
+| E9  | WhatsApp channel: Business Cloud API, verified numbers   | live    | chat channels                      | live 10-05 on Meta's test number (#101, #103–#105, #111); staff go-live waits on E8 + JUP's own number |
 | I1  | Integrations via MCP (Notion first)                     | in-progress | integrations                   | live 00060, admin-only, off until #41 token |
 | O1  | Office output: Word documents (.docx) in the JUP template | in-progress | docs (holaOS: `doc-coauthoring` skill + bash) | live 00060, all staff; staff-account check open |
 | O2  | Office output: spreadsheets (.xlsx)                      | live    | sheets (holaOS: `xlsx` skill + bash) | live 00083 10-03; accepted: card 0003 → TERBATAS .xlsx; tool attached to Asisten JUP |
-| O3  | Office output: slide decks (.pptx) in the JUP template   | live 10-03 (00086), awaiting Erik's acceptance | slides (holaOS: `pptx` skill + bash) | O2 (shared tool shape); copy Presentasi v1.5-r2 into the repo |
+| O3  | Office output: slide decks (.pptx) in the JUP template   | live    | slides (holaOS: `pptx` skill + bash) | live 00086 10-03; Erik's acceptance in PowerPoint + Keynote open |
 | O4  | Office preview panel: files open in the chat column, view-only | live    | in-app preview (holaOS: desktop preview) | live 00084 10-03; click + auto-open confirmed by Erik |
 | X1  | Hermes as an admin-only lab runtime                     | parked  | runtime experiments                | Erik reopens it                              |
 
