@@ -1409,7 +1409,13 @@
 	Do not alter, remove, obscure, or replace it except as LICENSE permits:
 	https://docs.openwebui.com/license. -->
 	<title>{$WEBUI_NAME}</title>
-	<link crossorigin="anonymous" rel="icon" href="{WEBUI_BASE_URL}/static/favicon.png" />
+	<!-- JUP: the self-switching SVG, so this late link does not override app.html's light/dark icons -->
+	<link
+		crossorigin="anonymous"
+		rel="icon"
+		type="image/svg+xml"
+		href="{WEBUI_BASE_URL}/static/favicon.svg"
+	/>
 
 	<meta name="apple-mobile-web-app-title" content={$WEBUI_NAME} />
 	<meta name="description" content={$WEBUI_NAME} />

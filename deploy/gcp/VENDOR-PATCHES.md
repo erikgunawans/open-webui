@@ -994,7 +994,12 @@ after them swaps `href` to it while `prefers-color-scheme: dark` matches, and ba
 the browser, not the app's theme, because the tab strip is browser chrome: following the app theme
 would put a white icon on a light tab whenever the app is dark.
 
+Also `src/routes/+layout.svelte`: its `<svelte:head>` injects one more `rel="icon"` link AFTER
+app.html's, which Chrome then uses. It pointed at the light `favicon.png` and overrode the dark
+variants live (found on 00097); it now points at the self-switching `favicon.svg`.
+
 **If dropped:** silent — a browser that picks a raster icon shows the light mark on a dark tab strip.
 `tests/test_brand_none_jupe.py` notices.
 
-**Conflict risk:** low. The vendor links keep their `href`s; one attribute each plus one script block.
+**Conflict risk:** low. The vendor links keep their `href`s; one attribute each plus one script block;
+the layout link changes only its `href` and `type`.

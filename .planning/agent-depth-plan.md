@@ -48,7 +48,7 @@ design. The sandbox work for terminal and browser is needed on either path.
 | E7  | Channel gateway core: one machine identity, channel user → JUP user | live    | chat channels                      | live 10-04: ent-os `00092-dmh` (#85–#88, #96) + `jup-gateway-00001` (#89, #90) |
 | E8  | Microsoft Teams channel: Asisten JUP bot in JUP's tenant | blocked | chat channels                      | JUP IT answers #82 (bot app id, secret, tenant id, Graph consent) |
 | E9  | WhatsApp channel: Business Cloud API, verified numbers   | live    | chat channels                      | live 10-05 on Meta's test number (#101, #103–#105, #111); staff go-live waits on E8 + JUP's own number |
-| I1  | Integrations via MCP (Notion first)                     | in-progress | integrations                   | live 00060, admin-only, off until #41 token |
+| I1  | Integrations via MCP (Notion first)                     | in-progress | integrations                   | token live 00096 10-05 (#41 done); waits on Erik's live acceptance (#42) |
 | O1  | Office output: Word documents (.docx) in the JUP template | in-progress | docs (holaOS: `doc-coauthoring` skill + bash) | live 00060, all staff; staff-account check open |
 | O2  | Office output: spreadsheets (.xlsx)                      | live    | sheets (holaOS: `xlsx` skill + bash) | live 00083 10-03; accepted: card 0003 → TERBATAS .xlsx; tool attached to Asisten JUP |
 | O3  | Office output: slide decks (.pptx) in the JUP template   | live    | slides (holaOS: `pptx` skill + bash) | live 00086 10-03; Erik's acceptance in PowerPoint + Keynote open |
