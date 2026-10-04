@@ -6,11 +6,18 @@
 		visual, textual, symbolic identifiers, metadata, and surrounding UI.
 		Do not alter, remove, obscure, or replace it except as LICENSE permits:
 		https://docs.openwebui.com/license. -->
-		<link rel="icon" type="image/png" href="/static/favicon.png" crossorigin="use-credentials" />
+		<link
+			rel="icon"
+			type="image/png"
+			href="/static/favicon.png"
+			data-jup-dark="/static/favicon-dark.png"
+			crossorigin="use-credentials"
+		/>
 		<link
 			rel="icon"
 			type="image/png"
 			href="/static/favicon-96x96.png"
+			data-jup-dark="/static/favicon-dark-96x96.png"
 			sizes="96x96"
 			crossorigin="use-credentials"
 		/>
@@ -20,7 +27,27 @@
 			href="/static/favicon.svg"
 			crossorigin="use-credentials"
 		/>
-		<link rel="shortcut icon" href="/static/favicon.ico" crossorigin="use-credentials" />
+		<link
+			rel="shortcut icon"
+			href="/static/favicon.ico"
+			data-jup-dark="/static/favicon-dark.ico"
+			crossorigin="use-credentials"
+		/>
+		<script>
+			// JUP: the tab icon follows the BROWSER's colour scheme (the tab strip is browser chrome),
+			// never the app's theme. favicon.svg switches itself; this swaps the raster fallbacks.
+			(() => {
+				const dark = window.matchMedia('(prefers-color-scheme: dark)');
+				const links = [...document.querySelectorAll('link[data-jup-dark]')];
+				for (const link of links) link.dataset.jupLight = link.getAttribute('href');
+				const apply = () => {
+					for (const link of links)
+						link.setAttribute('href', dark.matches ? link.dataset.jupDark : link.dataset.jupLight);
+				};
+				apply();
+				dark.addEventListener('change', apply);
+			})();
+		</script>
 		<link
 			rel="apple-touch-icon"
 			sizes="180x180"

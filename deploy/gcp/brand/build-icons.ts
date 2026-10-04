@@ -10,6 +10,11 @@
  *   none-jupe-mark-white.svg  the single-colour reversal for dark surfaces
  * App icons follow the design's tile: the mark on white at 56/88 of the side.
  *
+ * Favicons follow the BROWSER's colour scheme, not the app's theme: the tab strip is browser chrome
+ * (Erik, 2026-10-05). Light = the full-colour mark; dark = the white reversal. favicon.svg carries
+ * both and switches itself with prefers-color-scheme; the PNG/ICO links are swapped by a script in
+ * src/app.html for browsers that pick a raster icon over the SVG.
+ *
  * Usage: bun deploy/gcp/brand/build-icons.ts
  * Writes into static/static and backend/open_webui/static, which must stay identical.
  */
@@ -58,14 +63,30 @@ function ico(png: Buffer, size: number): Buffer {
   return Buffer.concat([head, png]);
 }
 
+/** The full mark recoloured by the browser's scheme: white outline and blue petals, no centre point. */
+async function adaptiveSvg(): Promise<string> {
+  const svg = (await Bun.file(FULL).text())
+    .trim()
+    .replace('stroke="#004999"', 'class="o"')
+    .replaceAll('fill="#004999"', 'class="b"')
+    .replace('fill="#011627"', 'class="d"');
+  const style =
+    "<style>.o{stroke:#004999}.b{fill:#004999}.d{fill:#011627}" +
+    "@media (prefers-color-scheme:dark){.o{stroke:#fff}.b{fill:#fff}.d{display:none}}</style>";
+  return svg.replace(/^(<svg[^>]*>)/, `$1${style}`) + "\n";
+}
+
 const TILE = 56 / 88;
 const files: Record<string, Buffer | string> = {
   "none-jupe-mark.png": await mark(SMALL, 128),
   "none-jupe-mark-white.png": await mark(WHITE, 128),
-  "favicon.png": await placed(SMALL, 512, 0.9),
-  "favicon-96x96.png": await placed(SMALL, 96, 0.9),
-  "favicon.ico": ico(await placed(SMALL, 32, 0.94), 32),
-  "favicon.svg": (await Bun.file(SMALL).text()).trim() + "\n",
+  "favicon.png": await placed(FULL, 512, 0.9),
+  "favicon-96x96.png": await placed(FULL, 96, 0.9),
+  "favicon.ico": ico(await placed(FULL, 32, 0.94), 32),
+  "favicon.svg": await adaptiveSvg(),
+  "favicon-dark.png": await placed(WHITE, 512, 0.9),
+  "favicon-dark-96x96.png": await placed(WHITE, 96, 0.9),
+  "favicon-dark.ico": ico(await placed(WHITE, 32, 0.94), 32),
   "logo.png": await placed(FULL, 500, 0.8),
   "splash.png": await placed(FULL, 500, 0.7),
   "splash-dark.png": await placed(WHITE, 500, 0.7),
