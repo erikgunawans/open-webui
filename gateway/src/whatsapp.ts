@@ -15,6 +15,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { whatsappConversation, whatsappIdentity, type Hasher } from './hash';
 import { CODE_INVALID, LINKED, NOT_CONNECTED, UNAVAILABLE } from './texts';
+import { toWhatsApp } from './whatsapp_format';
 import type { EntOsClient, EntOsLinker, Log } from './types';
 
 /** Posts to the Cloud API. Both calls may throw; the handler logs and carries on. */
@@ -214,7 +215,7 @@ async function answer(deps: WhatsAppDeps, message: Inbound): Promise<void> {
 			return send(NOT_CONNECTED);
 		}
 		deps.log('turn_answered', { identity_hash: identityHash, outcome: outcome.outcome });
-		return send(outcome.reply);
+		return send(toWhatsApp(outcome.reply));
 	} catch (error) {
 		// Logged, never retried (spec #84): a retry could run the turn twice.
 		deps.log('entos_failed', { identity_hash: identityHash, detail: String(error) });
