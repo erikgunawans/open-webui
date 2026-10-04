@@ -199,7 +199,7 @@ class IapIdentityHeaderMiddleware:
         """Admit the gateway on behalf of one mapped user, or refuse it here, before routing."""
         user, reason = await self._mapped_user(scope, headers)
         if user is None:
-            self._audit('channel_turn', outcome='refused', reason=reason, path=scope.get('path'))
+            self._audit('channel_turn', outcome='refused', reason=reason, request_path=scope.get('path'))
             await _refuse(scope, send)
             return
         rewritten = [item for item in headers if item[0] not in (ON_BEHALF_OF_HEADER, _EMAIL_HEADER, _ID_HEADER)]

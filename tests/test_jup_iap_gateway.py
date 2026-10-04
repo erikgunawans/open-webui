@@ -312,6 +312,24 @@ async def test_a_refusal_is_audited_with_its_reason_and_never_the_address():
 
     await middleware(as_gateway(STAFF.email), None, sent)
 
-    assert lines == [('channel_turn', {'outcome': 'refused', 'reason': 'not_granted', 'path': TURN_PATH})]
+    assert lines == [('channel_turn', {'outcome': 'refused', 'reason': 'not_granted', 'request_path': TURN_PATH})]
     assert '@' not in json.dumps(lines)
     assert sent.body == {'detail': 'channel_refused'}
+
+
+async def test_the_refusal_reaches_the_real_audit_trail(tmp_path, monkeypatch):
+    """No injected audit: the line must land in the governance file (`path` there is the file)."""
+    trail = tmp_path / 'audit.jsonl'
+    monkeypatch.setenv('JUP_GOVERNANCE_AUDIT', str(trail))
+    inner, sent = RecordingApp(), Sent()
+    middleware = IapIdentityHeaderMiddleware(inner, env=ON, users=FakeUsers(ERIK), may_use_channel=Granted())
+
+    await middleware(as_gateway(ERIK.email), None, sent)
+
+    (line,) = [json.loads(raw) for raw in trail.read_text().splitlines()]
+    assert (line['event'], line['outcome'], line['reason'], line['request_path']) == (
+        'channel_turn',
+        'refused',
+        'not_granted',
+        TURN_PATH,
+    )

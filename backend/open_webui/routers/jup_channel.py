@@ -102,11 +102,12 @@ async def channel_turn(request: Request) -> dict[str, Any]:
         log.error('jup.channel has no model: set %s or the default model', MODEL_ENV)
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, 'channel_unavailable')
     store = ChannelStore(model_id)
-    defaults = await resolve_defaults(app, model_id)
 
     from open_webui.utils.automations import _build_request
 
     async def run(chat_id: str, text: str, request_state: Any):
+        # Resolved inside the turn, so a failure here is audited as `failed` like any other.
+        defaults = await resolve_defaults(app, model_id)
         return await run_turn(
             user=user,
             chat_id=chat_id,
