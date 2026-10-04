@@ -1,4 +1,4 @@
-"""The Channel Turn, through its one entry point, with a fake turn runner, chat store and clock (E7.2, #86).
+"""The Channel Turn, through its one entry point, with a fake turn runner, chat store and clock (E7.2 #86, E7.3 #87).
 
 What a caller of `jup.channel` observes: the reply text and the chat link it gets back, the chat it
 created, the request state the turn ran with (that is what makes an `external` tool fail closed),
@@ -7,6 +7,7 @@ and the one audit line. The grant and the request shape are tested here too, as 
 `jup.channel` imports the standard library and `jup.*` only, so this runs under `--only-group dev`.
 """
 
+import asyncio
 import datetime as dt
 import json
 from types import SimpleNamespace
@@ -34,11 +35,38 @@ def body(**overrides) -> dict:
 
 
 class FakeStore:
-    def __init__(self) -> None:
+    """Chats as the vendor table keeps them; `updated_at` is set from the fake clock on create, and a
+    test moves it to stand for later activity."""
+
+    def __init__(self, clock=lambda: NOW) -> None:
         self.chats: list[dict] = []
+        self.clock = clock
 
     async def create_chat(self, chat_id: str, user_id: str, title: str, meta: dict) -> None:
-        self.chats.append({'id': chat_id, 'user_id': user_id, 'title': title, 'meta': meta})
+        self.chats.append(
+            {
+                'id': chat_id,
+                'user_id': user_id,
+                'title': title,
+                'meta': meta,
+                'updated_at': int(self.clock().timestamp()),
+                'archived': False,
+            }
+        )
+
+    async def latest_chat(self, user_id: str, channel_id: str, conversation: str):
+        mine = [
+            chat
+            for chat in self.chats
+            if chat['user_id'] == user_id
+            and not chat['archived']
+            and chat['meta'].get(channel.CHAT_KEY, {}).get('channel') == channel_id
+            and chat['meta'].get(channel.CHAT_KEY, {}).get('conversation') == conversation
+        ]
+        if not mine:
+            return None
+        newest = mine[-1]  # by creation, as the store orders them
+        return channel.ChannelChat(id=newest['id'], updated_at=newest['updated_at'])
 
 
 class FakeRunner:
@@ -63,17 +91,19 @@ class AuditLines:
         self.lines.append((event, fields))
 
 
-async def turn(result=None, request=None, **kwargs):
-    store, audit = FakeStore(), AuditLines()
-    runner = FakeRunner(result if result is not None else TurnResult('m1', 'Proyek SPBG on track.', True))
+async def turn(result=None, request=None, store=None, runner=None, audit=None, now=NOW, user_id='u-erik', **kwargs):
+    store = store if store is not None else FakeStore()
+    audit = audit if audit is not None else AuditLines()
+    runner = runner or FakeRunner(result if result is not None else TurnResult('m1', 'Proyek SPBG on track.', True))
     reply = await channel.run_channel_turn(
-        user_id='u-erik',
+        user_id=user_id,
         request=request or channel.parse_request(body()),
         store=store,
         run=runner,
         base_url='https://non-jupe.jup.co.id/',
         audit=audit,
-        now=lambda: NOW,
+        now=lambda: now,
+        locks=kwargs.pop('locks', channel.ConversationLocks()),
         **kwargs,
     )
     return reply, store, runner, audit
@@ -150,7 +180,7 @@ async def test_the_answer_text_and_the_chat_link_come_back():
     )
 
 
-async def test_each_turn_runs_in_a_new_chat_of_the_user_marked_with_its_channel():
+async def test_a_first_turn_runs_in_a_new_chat_of_the_user_marked_with_its_channel():
     reply, store, runner, _ = await turn()
 
     (chat,) = store.chats
@@ -202,17 +232,9 @@ async def test_an_unfinished_answer_returns_the_link_and_the_turn_keeps_running(
 
 
 async def test_a_failed_turn_is_raised_for_the_route_to_answer_with_one_failed_audit_line():
-    store, audit = FakeStore(), AuditLines()
+    audit = AuditLines()
     with pytest.raises(RuntimeError):
-        await channel.run_channel_turn(
-            user_id='u-erik',
-            request=channel.parse_request(body()),
-            store=store,
-            run=FakeRunner(RuntimeError('boom')),
-            base_url='https://non-jupe.jup.co.id',
-            audit=audit,
-            now=lambda: NOW,
-        )
+        await turn(runner=FakeRunner(RuntimeError('boom')), audit=audit)
 
     ((event, fields),) = audit.lines
     assert (event, fields['outcome'], fields['reason']) == ('channel_turn', 'failed', 'turn_error')
@@ -231,15 +253,184 @@ async def test_a_chat_that_cannot_be_created_is_audited_as_failed_and_no_turn_ru
 
     audit, runner = AuditLines(), FakeRunner(TurnResult('m1', 'x', True))
     with pytest.raises(RuntimeError):
-        await channel.run_channel_turn(
-            user_id='u-erik',
-            request=channel.parse_request(body()),
-            store=Broken(),
-            run=runner,
-            base_url='https://non-jupe.jup.co.id',
-            audit=audit,
-            now=lambda: NOW,
-        )
+        await turn(store=Broken(), runner=runner, audit=audit)
 
     assert runner.calls == []
     assert [fields['outcome'] for _, fields in audit.lines] == ['failed']
+
+
+# --- the conversation (E7.3, #87) -------------------------------------------------------------------
+
+LATER = dt.timedelta(hours=channel.REUSE_HOURS)
+
+
+async def test_a_follow_up_within_eight_hours_lands_in_the_same_chat():
+    _, store, _, _ = await turn()
+    reply, store, runner, _ = await turn(store=store, now=NOW + LATER - dt.timedelta(seconds=1))
+
+    (chat,) = store.chats
+    assert runner.calls[0]['chat_id'] == chat['id']
+    assert reply.chat_url.endswith(f'/c/{chat["id"]}')
+
+
+async def test_silence_is_counted_from_the_last_activity_not_from_the_chat_start():
+    _, store, _, _ = await turn()
+    store.chats[0]['updated_at'] = int((NOW + dt.timedelta(hours=7)).timestamp())  # a web-app follow-up
+    _, store, _, _ = await turn(store=store, now=NOW + dt.timedelta(hours=14))
+
+    assert len(store.chats) == 1
+
+
+async def test_after_eight_hours_of_silence_a_new_chat_starts_with_its_title_and_channel_meta():
+    _, store, _, _ = await turn()
+    later = NOW + LATER
+    _, store, runner, _ = await turn(store=store, now=later)
+
+    first, second = store.chats
+    assert runner.calls[0]['chat_id'] == second['id'] != first['id']
+    assert second['title'] == 'Teams · 2026-10-05 00:30'
+    assert second['meta'][channel.CHAT_KEY] == {
+        'channel': 'teams',
+        'identity_hash': IDENTITY,
+        'conversation': channel.hash_key('k' * 64),
+    }
+
+
+async def test_another_conversation_or_channel_or_user_never_shares_a_chat():
+    _, store, _, _ = await turn()
+    await turn(store=store, request=channel.parse_request(body(conversation_key='other')))
+    await turn(store=store, request=channel.parse_request(body(channel='whatsapp')))
+    await turn(store=store, user_id='u-other')
+
+    assert len(store.chats) == 4
+    assert store.chats[2]['title'] == 'WhatsApp · 2026-10-04 16:30'
+
+
+async def test_an_archived_chat_is_not_reused():
+    _, store, _, _ = await turn()
+    store.chats[0]['archived'] = True
+    _, store, _, _ = await turn(store=store)
+
+    assert len(store.chats) == 2
+
+
+@pytest.mark.parametrize('text', ['baru', 'Baru', ' BARU '])
+async def test_baru_starts_a_new_chat_and_never_calls_the_model(text):
+    _, store, _, _ = await turn()
+    reply, store, runner, audit = await turn(store=store, request=channel.parse_request(body(text=text)))
+
+    first, second = store.chats
+    assert runner.calls == []
+    assert reply == channel.ChannelReply(
+        reply=channel.NEW_CHAT_TEXT, chat_url=f'https://non-jupe.jup.co.id/c/{second["id"]}', outcome='new_chat'
+    )
+    assert audit.lines[0][1]['outcome'] == 'new_chat'
+    assert audit.lines[0][1]['chat'] == second['id']
+
+
+async def test_the_question_after_baru_lands_in_the_new_chat():
+    _, store, _, _ = await turn()
+    await turn(store=store, request=channel.parse_request(body(text='baru')))
+    _, store, runner, _ = await turn(store=store)
+
+    assert len(store.chats) == 2
+    assert runner.calls[0]['chat_id'] == store.chats[1]['id']
+
+
+async def test_after_baru_a_late_answer_in_the_old_chat_does_not_pull_the_conversation_back():
+    _, store, _, _ = await turn()
+    await turn(store=store, request=channel.parse_request(body(text='baru')))
+    store.chats[0]['updated_at'] += 60  # the old chat's answer finishes after `baru`
+    _, store, runner, _ = await turn(store=store)
+
+    assert runner.calls[0]['chat_id'] == store.chats[1]['id']
+
+
+@pytest.mark.parametrize('text', ['bantuan', 'baru saja', 'yang baru?', 'barus'])
+async def test_any_other_word_is_a_normal_question(text):
+    _, store, runner, _ = await turn(request=channel.parse_request(body(text=text)))
+
+    assert runner.calls[0]['text'] == text.strip()
+
+
+class GatedRunner:
+    """A turn runner whose turns finish only when the test releases them, recording start order."""
+
+    def __init__(self) -> None:
+        self.started: list[str] = []
+        self.gates: dict[str, asyncio.Event] = {}
+
+    async def __call__(self, chat_id: str, text: str, request_state: dict) -> TurnResult:
+        self.started.append(text)
+        gate = self.gates.setdefault(text, asyncio.Event())
+        await gate.wait()
+        return TurnResult('m', f'jawaban: {text}', True)
+
+    def release(self, text: str) -> None:
+        self.gates.setdefault(text, asyncio.Event()).set()
+
+
+async def settle() -> None:
+    for _ in range(10):
+        await asyncio.sleep(0)
+
+
+async def test_turns_of_one_conversation_run_one_after_another_in_arrival_order():
+    store, runner, locks = FakeStore(), GatedRunner(), channel.ConversationLocks()
+
+    def send(text: str):
+        return asyncio.create_task(
+            turn(store=store, runner=runner, locks=locks, request=channel.parse_request(body(text=text)))
+        )
+
+    first = send('satu')
+    await settle()
+    second, third = send('dua'), send('tiga')
+    await settle()
+    assert runner.started == ['satu']
+
+    runner.release('dua')  # released early: still waits its turn
+    runner.release('tiga')
+    await settle()
+    assert runner.started == ['satu']
+
+    runner.release('satu')
+    replies = [(await task)[0].reply for task in (first, second, third)]
+    assert runner.started == ['satu', 'dua', 'tiga']
+    assert replies == ['jawaban: satu', 'jawaban: dua', 'jawaban: tiga']
+    assert len(store.chats) == 1
+    assert len(locks) == 0
+
+
+async def test_different_conversations_do_not_wait_for_each_other():
+    store, runner, locks = FakeStore(), GatedRunner(), channel.ConversationLocks()
+    blocked = asyncio.create_task(
+        turn(store=store, runner=runner, locks=locks, request=channel.parse_request(body(text='lama')))
+    )
+    await settle()
+    runner.release('cepat')
+    other = await turn(
+        store=store,
+        runner=runner,
+        locks=locks,
+        request=channel.parse_request(body(text='cepat', conversation_key='other')),
+    )
+
+    assert other[0].reply == 'jawaban: cepat'
+    assert not blocked.done()
+    runner.release('lama')
+    await blocked
+
+
+async def test_a_failed_turn_releases_the_conversation_for_the_next():
+    store, locks = FakeStore(), channel.ConversationLocks()
+    with pytest.raises(RuntimeError):
+        await turn(store=store, locks=locks, runner=FakeRunner(RuntimeError('boom')))
+    reply, _, _, _ = await turn(store=store, locks=locks)
+
+    assert reply.outcome == 'answered'
+    assert len(locks) == 0
+
+
+def test_the_lock_notes_that_it_assumes_one_ent_os_instance():
+    assert 'one ent-os instance' in (channel.ConversationLocks.__doc__ or '')

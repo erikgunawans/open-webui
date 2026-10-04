@@ -52,6 +52,24 @@ class ChannelStore:
         if await Chats.insert_new_chat(chat_id, user_id, form, internal_meta=meta) is None:
             raise RuntimeError('the Channel chat could not be created')
 
+    async def latest_chat(self, user_id: str, channel_id: str, conversation: str) -> channel.ChannelChat | None:
+        from sqlalchemy import select
+
+        from open_webui.internal.db import get_async_db_context
+        from open_webui.models.chats import Chat
+
+        marker = Chat.meta[(channel.CHAT_KEY, 'conversation')].as_string()
+        source = Chat.meta[(channel.CHAT_KEY, 'channel')].as_string()
+        stmt = (
+            select(Chat.id, Chat.updated_at)
+            .where(Chat.user_id == user_id, Chat.archived.is_not(True), marker == conversation, source == channel_id)
+            .order_by(Chat.created_at.desc())
+            .limit(1)
+        )
+        async with get_async_db_context() as session:
+            row = (await session.execute(stmt)).first()
+        return channel.ChannelChat(id=row[0], updated_at=int(row[1] or 0)) if row else None
+
     async def get_chat(self, chat_id: str) -> Any:
         from open_webui.models.chats import Chats
 

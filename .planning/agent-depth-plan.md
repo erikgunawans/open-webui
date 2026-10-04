@@ -212,7 +212,11 @@ is the governed answer, word for word. Spec: issue #25.
       channel turn with a pointer to the web app. A Teams Adaptive Card approval is a later step,
       not v1.
     - **One chat per channel conversation**, marked `channel` in the chat meta, visible in the web
-      app's history, kept like any chat.
+      app's history, kept like any chat. A new chat after 8 hours of silence or on `baru` (#87).
+    - **One turn in flight per conversation; later ones wait, in order** (#87). The lock is
+      in-process, so it assumes one ent-os instance serves the conversation. Cloud Run keeps one
+      warm but may scale to four (checked 2026-10-04); if turns split across instances start to
+      matter, the lock moves to the database.
     - **Files and long answers link back** to `non-jupe.jup.co.id` (behind IAP). Nothing from a
       contract card or Daftar Perkara is pasted into a channel above what the caller may see, and
       TERBATAS content is replaced by a link, never sent as text (confirmed by Erik 2026-10-04).
