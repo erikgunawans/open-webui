@@ -66,6 +66,7 @@ from jup.leadership.evidence_store import (
     max_bytes,
     read_bounded,
 )
+from jup.leadership.kpi import read_kpi
 from jup.leadership.policy import DEFAULT_PERMISSIONS, SCOPES, allowed_operations, allowed_views, may, may_read
 from jup.leadership.reader import (
     ACTIONS_SOURCES,
@@ -240,6 +241,31 @@ async def get_overview(
         overview = read_overview(dataset, view, await run_in_threadpool(_register))
     _audit('served', actions_source=source, actions=len(overview['actions']))
     return overview
+
+
+@router.get('/kpi')
+async def get_kpi(
+    scope_id: Scope,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+) -> dict[str, Any]:
+    """The corporate KPI catalogue (targets, weights, definitions) and its illustrative realisasi.
+
+    KPI is performance against the plan, so it rides on the RKA read grant rather than a grant of
+    its own. Targets are company figures: refused before anything is read, like every view.
+    """
+
+    def _audit(result: str) -> None:
+        audit('leadership_read', user=user.id, operation='kpi', view='rka', result=result)
+
+    if not may_read(permissions, 'rka', scope_id):
+        _audit('refused')
+        raise _refuse()
+    if not _enabled():
+        _audit('unavailable')
+        raise _unavailable('Ruang Pimpinan is not enabled on this server.')
+    _audit('served')
+    return read_kpi()
 
 
 @router.get('/sources/{source_id}')

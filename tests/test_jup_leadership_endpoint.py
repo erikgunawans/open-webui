@@ -1485,3 +1485,53 @@ def test_a_due_revision_that_breaks_a_rule_is_422(client, directory, records, ch
     _as_bod(client, directory)
     assert client.post(DUE, json={**NEW_DUE, **change}).status_code == 422
     assert _action_state(client, directory) == ('not_started', 2)
+
+
+# --- KPI 2026 (rides on the RKA grant) ----------------------------------------------
+
+KPI = f'{BASE}/kpi?scope_id=jup-consolidated'
+
+
+def test_the_kpi_catalogue_is_refused_without_the_rka_grant(client, directory: _Directory) -> None:
+    _sign_in_as(client, 'admin')
+    response = client.get(KPI)
+    assert response.status_code == 403
+    assert 'target' not in response.text
+    _no_store(response)
+    directory.groups = [_grant(board=True)]
+    _sign_in_as(client, 'user')
+    assert client.get(KPI).status_code == 403
+
+
+def test_the_kpi_catalogue_needs_the_scope_grant_too(client, directory: _Directory) -> None:
+    directory.groups = [_grant(rka=True, scope=False)]
+    _sign_in_as(client, 'user')
+    assert client.get(KPI).status_code == 403
+
+
+def test_an_rka_reader_gets_the_kpi_catalogue(client, directory: _Directory) -> None:
+    directory.groups = [_grant(rka=True)]
+    _sign_in_as(client, 'user')
+    response = client.get(KPI)
+    assert response.status_code == 200
+    _no_store(response)
+    body = response.json()
+    assert len(body['items']) == 15
+    assert body['sample_is_illustrative'] is True
+
+
+def test_the_kpi_catalogue_is_unavailable_when_disabled(
+    client, directory: _Directory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    directory.groups = [_grant(rka=True)]
+    monkeypatch.setenv('JUP_LEADERSHIP_ENABLED', 'false')
+    _sign_in_as(client, 'user')
+    response = client.get(KPI)
+    assert response.status_code == 503
+    _no_store(response)
+
+
+def test_an_unknown_kpi_scope_is_rejected(client, directory: _Directory) -> None:
+    directory.groups = [_grant(rka=True)]
+    _sign_in_as(client, 'user')
+    assert client.get(f'{BASE}/kpi?scope_id=elsewhere').status_code == 422
