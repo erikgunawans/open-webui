@@ -76,16 +76,25 @@ async def channel_user(request: Request) -> Any:
     return user
 
 
-def channel_model(app: Any) -> str:
+async def channel_model() -> str:
+    """`JUP_CHANNEL_MODEL`, else the first of the deployment's default models (Asisten JUP).
+
+    Settings are read through the vendor's `Config` store (`ui.default_models`, as `configs.py`
+    does): this vendor version keeps no config object on the app state.
+    """
     configured = (os.environ.get(MODEL_ENV) or '').strip()
     if configured:
         return configured
-    defaults = getattr(app.state.config, 'DEFAULT_MODELS', None) or ''
+    from open_webui.models.config import Config
+
+    defaults = await Config.get('ui.default_models') or ''
     return next((part.strip() for part in str(defaults).split(',') if part.strip()), '')
 
 
-def base_url(app: Any) -> str:
-    return (getattr(app.state.config, 'WEBUI_URL', None) or '').strip() or FALLBACK_BASE_URL
+async def base_url() -> str:
+    from open_webui.models.config import Config
+
+    return str(await Config.get('webui.url') or '').strip() or FALLBACK_BASE_URL
 
 
 @router.post('/turn')
@@ -97,7 +106,7 @@ async def channel_turn(request: Request) -> dict[str, Any]:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f'channel_request_invalid: {error}') from None
 
     app = request.app
-    model_id = channel_model(app)
+    model_id = await channel_model()
     if not model_id:
         log.error('jup.channel has no model: set %s or the default model', MODEL_ENV)
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, 'channel_unavailable')
@@ -128,7 +137,7 @@ async def channel_turn(request: Request) -> dict[str, Any]:
             request=turn_request,
             store=store,
             run=run,
-            base_url=base_url(app),
+            base_url=await base_url(),
             audit=audit,
             now=lambda: dt.datetime.now(dt.UTC),
         )
