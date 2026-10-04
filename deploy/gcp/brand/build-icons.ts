@@ -15,6 +15,11 @@
  * both and switches itself with prefers-color-scheme; the PNG/ICO links are swapped by a script in
  * src/app.html for browsers that pick a raster icon over the SVG.
  *
+ * The sidebar lockup closes with the JUP endorsement (Erik, 2026-10-05): the approved JUP "compact"
+ * lockup from the JUP Design System, never re-typeset. It is only a raster there, so it is trimmed
+ * and scaled down from the 2088px original at 3x its 14px display height (the logogram's minimum);
+ * the dark version is the same shape in white, as the system's -white variants are.
+ *
  * Usage: bun deploy/gcp/brand/build-icons.ts
  * Writes into static/static and backend/open_webui/static, which must stay identical.
  */
@@ -27,6 +32,7 @@ const OUT = [join(ROOT, "static", "static"), join(ROOT, "backend", "open_webui",
 const FULL = join(HERE, "none-jupe-mark.svg");
 const SMALL = join(HERE, "none-jupe-mark-small.svg");
 const WHITE = join(HERE, "none-jupe-mark-white.svg");
+const COMPACT = join(ROOT, "design", "jup-design-system", "assets", "logo-compact.png");
 const WHITE_TILE = { r: 255, g: 255, b: 255, alpha: 1 };
 const CLEAR = { r: 0, g: 0, b: 0, alpha: 0 };
 
@@ -76,10 +82,26 @@ async function adaptiveSvg(): Promise<string> {
   return svg.replace(/^(<svg[^>]*>)/, `$1${style}`) + "\n";
 }
 
+/** The JUP compact lockup, trimmed to its ink and `height` pixels tall; `white` keeps only its shape. */
+async function endorsement(height: number, white: boolean): Promise<Buffer> {
+  const { data, info } = await sharp(COMPACT)
+    .trim()
+    .resize({ height })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  if (white) for (let i = 0; i < data.length; i += 4) data.fill(255, i, i + 3);
+  return sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } })
+    .png()
+    .toBuffer();
+}
+
 const TILE = 56 / 88;
 const files: Record<string, Buffer | string> = {
   "none-jupe-mark.png": await mark(SMALL, 128),
   "none-jupe-mark-white.png": await mark(WHITE, 128),
+  "jup-endorsement.png": await endorsement(42, false),
+  "jup-endorsement-white.png": await endorsement(42, true),
   "favicon.png": await placed(FULL, 512, 0.9),
   "favicon-96x96.png": await placed(FULL, 96, 0.9),
   "favicon.ico": ico(await placed(FULL, 32, 0.94), 32),
