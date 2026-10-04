@@ -19,3 +19,9 @@ export const teamsIdentity = (tenantId: string, objectId: string) =>
 
 /** A Teams conversation. In a 1:1 chat it is stable per sender. */
 export const teamsConversation = (conversationId: string) => `teams:conversation:${conversationId}`;
+
+/** The WhatsApp Channel Identity: the sender's number (`wa_id`). Only its hash reaches ent-os. */
+export const whatsappIdentity = (waId: string) => `whatsapp:identity:${waId}`;
+
+/** A WhatsApp conversation: one per number (spec #101). */
+export const whatsappConversation = (waId: string) => `whatsapp:conversation:${waId}`;

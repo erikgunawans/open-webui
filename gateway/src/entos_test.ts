@@ -56,12 +56,16 @@ test('the gateway signs in as itself through Identity Platform and caches the to
 	expect(calls.length).toBe(6);
 });
 
-function entos(response: Response, seen: { headers?: Headers; body?: unknown } = {}) {
+function entos(
+	response: Response,
+	seen: { headers?: Headers; body?: unknown } = {},
+	path = '/api/jup/channel/turn'
+) {
 	return new HttpEntOs({
 		baseUrl: 'https://non-jupe.jup.co.id/',
 		tokens: { token: async () => 'id-token' },
 		fetch: (async (input: string | URL | Request, init?: RequestInit) => {
-			expect(String(input)).toBe('https://non-jupe.jup.co.id/api/jup/channel/turn');
+			expect(String(input)).toBe(`https://non-jupe.jup.co.id${path}`);
 			seen.headers = new Headers(init?.headers);
 			seen.body = JSON.parse(String(init?.body));
 			return response;
@@ -96,6 +100,34 @@ test('a 403 is a refusal; any other failure throws', async () => {
 		Response.json({ outcome: 'answered' })
 	]) {
 		await expect(entos(response).turn(TURN, 'x@y')).rejects.toThrow();
+	}
+});
+
+const LINK = '/api/jup/channel/link';
+const ON_BEHALF_OF_CODE = `link-code:123456:${'c'.repeat(64)}`;
+
+test('a link sends only the hint, on behalf of the code and the number', async () => {
+	const seen: { headers?: Headers; body?: unknown } = {};
+	const outcome = await entos(Response.json({ linked: true, outcome: 'linked' }), seen, LINK).link(
+		'1234',
+		ON_BEHALF_OF_CODE
+	);
+	expect(outcome).toBe('linked');
+	expect(seen.headers?.get('authorization')).toBe('Bearer id-token');
+	expect(seen.headers?.get(ON_BEHALF_OF)).toBe(ON_BEHALF_OF_CODE);
+	expect(seen.body).toEqual({ hint: '1234' });
+});
+
+test('a link refused with 403 is a bad code; any other failure throws', async () => {
+	expect(await entos(new Response(null, { status: 403 }), {}, LINK).link('1234', 'x')).toBe(
+		'refused'
+	);
+	for (const response of [
+		new Response(null, { status: 503 }),
+		new Response(null, { status: 422 }),
+		Response.json({ linked: false })
+	]) {
+		await expect(entos(response, {}, LINK).link('1234', 'x')).rejects.toThrow();
 	}
 });
 

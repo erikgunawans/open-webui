@@ -49,9 +49,23 @@ export type TurnOutcome =
 	/** ent-os refused the user (unknown, pending, no grant, kill switch off): one neutral reply. */
 	| { kind: 'refused' };
 
-/** Calls ent-os on behalf of `email`. Throws when ent-os is down, errors or times out. */
+/**
+ * Calls ent-os on behalf of a user: an email (Teams) or `whatsapp:<hash>` (ADR-0012 amendment 2).
+ * Throws when ent-os is down, errors or times out.
+ */
 export interface EntOsClient {
 	turn(request: TurnRequest, onBehalfOf: string): Promise<TurnOutcome>;
+}
+
+/** `refused`: the code is unknown, used, expired, someone else's, or too many tries (all 403). */
+export type LinkOutcome = 'linked' | 'refused';
+
+/**
+ * `POST /api/jup/channel/link` on behalf of `link-code:<code>:<hash>`: links the number the code
+ * was sent from. `hint` is its last four digits, for the web app. Throws like `turn`.
+ */
+export interface EntOsLinker {
+	link(hint: string, onBehalfOf: string): Promise<LinkOutcome>;
 }
 
 export type Log = (event: string, fields: Record<string, unknown>) => void;

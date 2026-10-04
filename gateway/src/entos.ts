@@ -11,7 +11,7 @@
  * refusal: ent-os answers 403 for every reason a user may not use a Channel.
  */
 
-import type { EntOsClient, TurnOutcome, TurnRequest } from './types';
+import type { EntOsClient, EntOsLinker, LinkOutcome, TurnOutcome, TurnRequest } from './types';
 
 const AUDIENCE =
 	'https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit';
@@ -88,7 +88,7 @@ export class IdentityPlatformTokens implements TokenSource {
 	}
 }
 
-export class HttpEntOs implements EntOsClient {
+export class HttpEntOs implements EntOsClient, EntOsLinker {
 	constructor(
 		private readonly opts: {
 			baseUrl: string;
@@ -98,18 +98,31 @@ export class HttpEntOs implements EntOsClient {
 		}
 	) {}
 
-	async turn(request: TurnRequest, onBehalfOf: string): Promise<TurnOutcome> {
+	private async post(path: string, body: unknown, onBehalfOf: string): Promise<Response> {
 		const http = this.opts.fetch ?? fetch;
-		const response = await http(`${this.opts.baseUrl.replace(/\/$/, '')}/api/jup/channel/turn`, {
+		return http(`${this.opts.baseUrl.replace(/\/$/, '')}${path}`, {
 			method: 'POST',
 			headers: {
 				authorization: `Bearer ${await this.opts.tokens.token()}`,
 				[ON_BEHALF_OF]: onBehalfOf,
 				'content-type': 'application/json'
 			},
-			body: JSON.stringify(request),
+			body: JSON.stringify(body),
 			signal: AbortSignal.timeout(this.opts.timeoutMs ?? TURN_TIMEOUT_MS)
 		});
+	}
+
+	async link(hint: string, onBehalfOf: string): Promise<LinkOutcome> {
+		const response = await this.post('/api/jup/channel/link', { hint }, onBehalfOf);
+		if (response.status === 403) return 'refused';
+		if (!response.ok) throw new Error(`ent-os link ${response.status}`);
+		const body = (await response.json()) as { linked?: unknown };
+		if (body.linked !== true) throw new Error('ent-os did not confirm the link');
+		return 'linked';
+	}
+
+	async turn(request: TurnRequest, onBehalfOf: string): Promise<TurnOutcome> {
+		const response = await this.post('/api/jup/channel/turn', request, onBehalfOf);
 		if (response.status === 403) return { kind: 'refused' };
 		if (!response.ok) throw new Error(`ent-os ${response.status}`);
 		const body = (await response.json()) as {
