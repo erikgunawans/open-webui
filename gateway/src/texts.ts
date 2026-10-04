@@ -8,3 +8,9 @@ export const NOT_CONNECTED = 'Akun ini belum terhubung ke Asisten JUP. Hubungi a
 
 /** ent-os down, erroring or too slow. Logged, never retried. */
 export const UNAVAILABLE = 'Asisten JUP sedang tidak tersedia, coba lagi sebentar lagi.';
+
+/** WhatsApp, after `hubungkan <code>` linked the number (spec #101). */
+export const LINKED = 'Nomor ini sudah terhubung ke Asisten JUP.';
+
+/** WhatsApp, after a code ent-os refused: unknown, used, expired or too many tries. */
+export const CODE_INVALID = 'Kode tidak berlaku. Buat kode baru di Pengaturan → Akun.';
