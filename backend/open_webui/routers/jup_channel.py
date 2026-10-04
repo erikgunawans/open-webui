@@ -1,0 +1,138 @@
+"""The Channel API: one endpoint the gateway calls for a Channel Turn (E7, spec #84, ADR-0012 amendment).
+
+Thin on purpose. Every rule lives in `jup.channel` (the turn) and `jup.iap_identity` (who may call):
+this file reads the admitted user off the request state, checks the body's shape, binds the turn
+runner to Asisten JUP and its defaults, and maps the outcome to HTTP.
+
+**Authentication is the request state, not a session.** The gateway holds no session token, so the
+vendor's `get_verified_user` cannot serve this route. The IAP middleware admits the gateway only on
+behalf of an existing, non-`pending`, granted user, and only then sets `CHANNEL_TURN_STATE_ATTR` and
+`CHANNEL_USER_STATE_ATTR`. Request state cannot be written over HTTP, so a request without both,
+a signed-in browser included, is refused here.
+
+Mounted at `/api/jup/channel` (`main.py`), which is `jup.iap_identity.CHANNEL_API_PREFIX`.
+"""
+
+from __future__ import annotations
+
+import datetime as dt
+import logging
+import os
+from typing import Any
+
+from fastapi import APIRouter, HTTPException, Request, status
+
+from jup import channel
+from jup.governance import CHANNEL_TURN_STATE_ATTR, CHANNEL_USER_STATE_ATTR, audit
+from jup.iap_identity import REFUSED_DETAIL
+from jup.turn import resolve_defaults, run_turn
+
+log = logging.getLogger(__name__)
+
+router = APIRouter()
+
+#: Overrides the model a Channel Turn runs on; otherwise the deployment's default model, Asisten JUP.
+MODEL_ENV = 'JUP_CHANNEL_MODEL'
+#: Where the chat link points when the deployment has no `WEBUI_URL` configured.
+FALLBACK_BASE_URL = 'https://non-jupe.jup.co.id'
+
+
+class ChannelStore:
+    """The vendor tables a Channel Turn touches: its new chat, and the answer read back."""
+
+    def __init__(self, model_id: str) -> None:
+        self.model_id = model_id
+
+    async def create_chat(self, chat_id: str, user_id: str, title: str, meta: dict) -> None:
+        from open_webui.models.chats import ChatForm, Chats
+
+        form = ChatForm(
+            chat={'title': title, 'models': [self.model_id], 'history': {'messages': {}, 'currentId': None}}
+        )
+        if await Chats.insert_new_chat(chat_id, user_id, form, internal_meta=meta) is None:
+            raise RuntimeError('the Channel chat could not be created')
+
+    async def get_chat(self, chat_id: str) -> Any:
+        from open_webui.models.chats import Chats
+
+        return await Chats.get_chat_by_id(chat_id)
+
+    async def get_message(self, chat_id: str, message_id: str) -> dict | None:
+        from open_webui.models.chats import Chats
+
+        return await Chats.get_message_by_id_and_message_id(chat_id, message_id)
+
+
+async def channel_user(request: Request) -> Any:
+    """The user the IAP middleware admitted the gateway for, or a 403 exactly like the middleware's."""
+    user_id = getattr(request.state, CHANNEL_USER_STATE_ATTR, None)
+    if getattr(request.state, CHANNEL_TURN_STATE_ATTR, None) is not True or not user_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, REFUSED_DETAIL)
+    from open_webui.models.users import Users
+
+    user = await Users.get_user_by_id(user_id)
+    if user is None or user.role == 'pending':
+        raise HTTPException(status.HTTP_403_FORBIDDEN, REFUSED_DETAIL)
+    return user
+
+
+def channel_model(app: Any) -> str:
+    configured = (os.environ.get(MODEL_ENV) or '').strip()
+    if configured:
+        return configured
+    defaults = getattr(app.state.config, 'DEFAULT_MODELS', None) or ''
+    return next((part.strip() for part in str(defaults).split(',') if part.strip()), '')
+
+
+def base_url(app: Any) -> str:
+    return (getattr(app.state.config, 'WEBUI_URL', None) or '').strip() or FALLBACK_BASE_URL
+
+
+@router.post('/turn')
+async def channel_turn(request: Request) -> dict[str, Any]:
+    user = await channel_user(request)
+    try:
+        turn_request = channel.parse_request(await request.json())
+    except (channel.ChannelRequestInvalid, ValueError) as error:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f'channel_request_invalid: {error}') from None
+
+    app = request.app
+    model_id = channel_model(app)
+    if not model_id:
+        log.error('jup.channel has no model: set %s or the default model', MODEL_ENV)
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, 'channel_unavailable')
+    store = ChannelStore(model_id)
+
+    from open_webui.utils.automations import _build_request
+
+    async def run(chat_id: str, text: str, request_state: Any):
+        # Resolved inside the turn, so a failure here is audited as `failed` like any other.
+        defaults = await resolve_defaults(app, model_id)
+        return await run_turn(
+            user=user,
+            chat_id=chat_id,
+            text=text,
+            model_id=model_id,
+            store=store,
+            handler=app.state.CHAT_COMPLETION_HANDLER,
+            build_request=lambda: _build_request(app),
+            session_id=f'channel-turn:{chat_id}',
+            defaults=defaults,
+            request_state=request_state,
+            wait_seconds=channel.TURN_SECONDS,
+        )
+
+    try:
+        reply = await channel.run_channel_turn(
+            user_id=user.id,
+            request=turn_request,
+            store=store,
+            run=run,
+            base_url=base_url(app),
+            audit=audit,
+            now=lambda: dt.datetime.now(dt.UTC),
+        )
+    except Exception:
+        log.exception('jup.channel turn failed')
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, 'channel_turn_failed') from None
+    return {'reply': reply.reply, 'chat_url': reply.chat_url, 'outcome': reply.outcome}

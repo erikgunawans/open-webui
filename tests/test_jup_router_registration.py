@@ -19,6 +19,7 @@ ROUTERS = {
     'jup_kb_review': '/api/v1/kb-review',
     'jup_contracts': '/api/v1/contracts',
     'jup_voice': '/api/v1/voice',
+    'jup_channel': '/api/jup/channel',
 }
 
 
@@ -63,3 +64,11 @@ def test_the_router_is_mounted_at_its_prefix(module: str, prefix: str) -> None:
     assert _mounts(_tree()).get(module) == prefix, (
         f'{module} is not mounted at {prefix} in main.py — see deploy/gcp/VENDOR-PATCHES.md'
     )
+
+
+def test_the_channel_router_is_mounted_where_the_iap_middleware_lets_the_gateway_through() -> None:
+    """The gateway principal is admitted only under `CHANNEL_API_PREFIX`; a router mounted anywhere
+    else would be unreachable for it, and a prefix widened in one place only would be a hole."""
+    from jup.iap_identity import CHANNEL_API_PREFIX
+
+    assert _mounts(_tree())['jup_channel'] + '/' == CHANNEL_API_PREFIX
