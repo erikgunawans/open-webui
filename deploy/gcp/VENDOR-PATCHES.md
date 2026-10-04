@@ -959,3 +959,26 @@ vendor's own (SheetJS + `excelToTable`, `DocxPreview`, `pptxToImages`).
 `src/lib/office/preview.test.ts` still passes (it tests the module, not the hooks).
 
 **Conflict risk:** low. Additive lines; the `files` branch keeps the vendor assignment.
+
+## `Chat.svelte`, `InterfaceSettings.svelte` — Latar Obrolan: Putih Polos or Pola JUP (2026-10-05)
+
+**What:**
+
+- `InterfaceSettings.svelte`: a "Chat Background" row above the vendor's "Chat Background Image",
+  toggling `settings.jupChatBackground` between `'plain'` (default) and `'jup'`.
+- `Chat.svelte`: a branch between the folder background and the uploaded background draws
+  `/static/jup-chat-pattern.png` when it is `'jup'`: `bg-contain bg-bottom`, light mode only
+  (`dark:hidden`), and **without** the vendor's `from-white to-white/85` wash.
+- `src/lib/stores/index.ts`: the `jupChatBackground` field on `Settings`.
+- The image lives in `static/static/` and `backend/open_webui/static/`, like the None-JUPe mark.
+
+**Why:** Erik's call 10-05. He uploaded the JUP slide background through the vendor setting and
+saw no change: the vendor lays a 85–100% white wash over any background so text stays legible, and
+this art is already pale green on white, so the wash erases it. `contain`, not `cover`: at a
+normal window shape `cover` crops the logos off both bottom corners.
+
+**If dropped:** silent — the setting stays saved and the chat is plain white.
+`tests/test_jup_chat_background.py` notices.
+
+**Conflict risk:** low. One added `{:else if}` branch and one added settings row; the vendor
+branches are untouched.

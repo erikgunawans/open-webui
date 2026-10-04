@@ -23,6 +23,8 @@
 	$: defaultSettings = ($config?.ui?.default_interface_settings ?? {}) as Record<string, any>;
 
 	let backgroundImageUrl: string | null = null;
+	// JUP: 'plain' (default) or 'jup', the branded pattern drawn without the vendor's white wash
+	let jupChatBackground: 'plain' | 'jup' = 'plain';
 	let inputFiles: FileList | null = null;
 	let filesInputElement: HTMLInputElement | null = null;
 
@@ -392,6 +394,7 @@
 		}
 
 		backgroundImageUrl = currentSettings?.backgroundImageUrl ?? null;
+		jupChatBackground = currentSettings?.jupChatBackground === 'jup' ? 'jup' : 'plain';
 		webSearch = currentSettings?.webSearch ?? null;
 
 		textScale = currentSettings?.textScale ?? null;
@@ -821,6 +824,31 @@
 		</div>
 		<p class={settingDescriptionClass}>
 			{$i18n.t('Choose whether the app opens to the default home or chat view.')}
+		</p>
+	</div>
+
+	<div>
+		<div class={settingRowClass}>
+			<div id="jup-chat-background-label" class={settingLabelClass}>
+				{$i18n.t('Chat Background')}
+			</div>
+
+			<button
+				aria-labelledby="jup-chat-background-label jup-chat-background-state"
+				class={actionButtonClass}
+				on:click={() => {
+					jupChatBackground = jupChatBackground === 'jup' ? 'plain' : 'jup';
+					saveSettings({ jupChatBackground });
+				}}
+				type="button"
+			>
+				<span id="jup-chat-background-state"
+					>{jupChatBackground === 'jup' ? $i18n.t('JUP Pattern') : $i18n.t('Plain White')}</span
+				>
+			</button>
+		</div>
+		<p class={settingDescriptionClass}>
+			{$i18n.t('Show the JUP pattern behind the chat, or keep it plain white.')}
 		</p>
 	</div>
 
