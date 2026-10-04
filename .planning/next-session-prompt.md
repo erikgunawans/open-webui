@@ -1,3 +1,40 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-05-v53)
+
+> Prepended by /wrap 2026-10-05 (checkpoint 2026-10-05-v53). Supersedes v52's anchor and its "do next" (#104, #103, #105 and spec #101 are built, live and closed); v52's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-05-v53).
+Anchor: `origin/main` at `73a413768` **as this was written**, or one commit ahead at this checkpoint's own commit (subject begins `chore(session): checkpoint — 2026-10-05-v53`). Verify with `git log --oneline 73a413768..origin/main`; any other commit there is a parallel push.
+
+**Current state:**
+- **Live:** `ent-os-00094-9sk` (image `47b23d168`; rollback `00093-ft9`) and `jup-gateway-00004-fxv` (image `73a413768`; rollback `00003-czl`).
+- **E9 WhatsApp is live on Meta's test number** (+1 555-653-7220, Axiara dev app): webhook verified, app subscribed to the WABA, Erik's phone linked; live check 5a–5g passed; answers sent in WhatsApp formatting (#111). Staff go-live waits on E8 + JUP's own number.
+- **E8 (Teams):** JUP IT has #82; answer due **Monday 2026-10-05**. Teams still closed (every `/api/messages` 401).
+- No open PRs. Main = live for both services.
+
+**Do next, in order:**
+1. **E8 when JUP IT answers #82** (v51 block item 2 still exact): `bot-app-secret` in Secret Manager (printf, no newline; accessor jup-gateway); `BOT_APP_ID=… JUP_TENANT_ID=… bash deploy/gcp/deploy-gateway.sh` (the WhatsApp settings now ride along by default); messaging endpoint `<gateway>/api/messages`; Teams app package (1:1 only); enforce Bot Framework endorsement `msteams` in `gateway/src/botframework.ts`; live check incl. a `gate_probe`/`external` tool refused in a Channel Turn (not yet verified live on either channel).
+2. If JUP IT hasn't answered: ask Erik once, don't chase. Optional meanwhile: the carried list below.
+3. WhatsApp staff go-live (later, after E8 in daily use): JUP's own number + Meta Business account; move the app/secrets from Axiara to JUP; set `JUP_WHATSAPP_NUMBER` (ent-os `deploy.sh` heredoc) and `WHATSAPP_PHONE_NUMBER_ID` (gateway); grant `jup.channel.use` beyond "Kanal — uji".
+4. Carried: O3 acceptance (PowerPoint + Keynote); phone check; Kartu Kontrak with the Legal account; staff-account checks; `jup_contracts` all-users grant; Rully items; #47; Notion #41/#42; CI PyPI/Docker variants red.
+
+**Constraints to honor** (new, plus the blocks below):
+- **`deploy-gateway.sh` now deploys WhatsApp OPEN by default** (test number id + the three `whatsapp-*` secrets). `WHATSAPP_PHONE_NUMBER_ID=` deploys it closed. It still replaces env/secrets each deploy.
+- **Meta console:** webhook settings are under Use cases → Customize → **Step 2. Production setup**; never toggle "Subscribe webhooks" on Erik's LogBook Admin / AkselerAI numbers listed there. The unpublished-app banner does not block the test number. Memory `whatsapp-meta-dev-app`.
+- **Gateway dedup is per instance** (in-memory LRU, max 2 instances); ent-os has no message-id idempotency. Accepted by the spec.
+- **Logs:** gateway events `jsonPayload.event`; ent-os audit `textPayload=~"channel_turn|channel_link"`; Cloud Logging lags ~1 min — poll, don't filter on a guessed start time.
+- **Mac disk hit 0 bytes this session (8 GB swap).** `df -h /` and `sysctl vm.swapusage` before any deploy or install.
+- From v52: never print secret values (not even a tail); deploy.sh uploads the working tree (use a scratchpad worktree for other git work); throwaway PG on 55432; Link Code admission ≠ turn admission.
+
+**Open items waiting on Erik:**
+- JUP IT's reply to #82 (bot app id, client secret, tenant id, Graph consent).
+- Delete the WhatsApp test chats `7783f056…` and `1b1d495e…` (and the older Teams test chats listed in v52)?
+- The 12 Indonesian UI strings in Settings → Akun → WhatsApp are our wording (the disclosure is his); change any?
+- Rotate the Meta app secret if the v52 transcript is shared; rotate the Entra client secret if the v50 transcript is shared.
+- JUP's own WhatsApp business number + Meta Business account (go-live, after E8).
+- Carried from v52/v51: O3 acceptance; phone check; Legal-account Kartu Kontrak; deck figures; staff titles; `jup_contracts` grant; Rully; Notion token; close Interceptor tabs; `docker-compose.dev.yaml`; "Test" collection; RAHASIA decks.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-04-v52)
 
 > Prepended by /wrap 2026-10-04 (checkpoint 2026-10-04-v52). Supersedes v51's anchor and its "do next" (#82/#83 merged, #82 sent to JUP IT, the DB lock built and live); v51's and older blocks' constraints still hold unless noted.
