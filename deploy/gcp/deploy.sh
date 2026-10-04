@@ -169,7 +169,7 @@ gcloud run deploy "$SERVICE" \
   --add-volume-mount="volume=jup,mount-path=/srv/jup" \
   --add-volume="name=legal-kb,type=cloud-storage,bucket=jup-ops-legal-kb,readonly=true" \
   --add-volume-mount="volume=legal-kb,mount-path=/srv/legal-kb" \
-  --set-secrets="WEBUI_SECRET_KEY=webui-secret-key:latest,DATABASE_URL=database-url:latest,JUP_VOICE_OPENAI_API_KEY=openai-live-key:latest" \
+  --set-secrets="WEBUI_SECRET_KEY=webui-secret-key:latest,DATABASE_URL=database-url:latest,JUP_VOICE_OPENAI_API_KEY=openai-live-key:latest,JUP_NOTION_TOKEN=notion-integration-token:latest" \
   --env-vars-file="$ENVFILE"
 
 rm -f "$ENVFILE"
