@@ -40,8 +40,14 @@ if [ "${SKIP_BUILD:-}" = "1" ]; then
     || { echo "no image $REPO:$SHA in the registry; run without SKIP_BUILD" >&2; exit 1; }
 else
   echo "==> building $REPO:$SHA"
+  # The frontend names its build (SvelteKit version.name) from this file: `--tag` passes no build
+  # args, and .git never reaches the build, so without it every image was "0.11.3" and an open tab
+  # never learned of a deploy (500 on its next navigation). Gitignored, but .gcloudignore does not
+  # read .gitignore, so it is uploaded.
+  printf '%s' "$SHA" > .build-hash
   gcloud builds submit --project="$PROJECT" --region="$BUILD_REGION" \
     --tag="$REPO:$SHA" --timeout=3600s --machine-type="$BUILD_MACHINE"
+  rm -f .build-hash
 fi
 
 # DATABASE_URL is NOT assembled here. The whole connection string lives in the `database-url`

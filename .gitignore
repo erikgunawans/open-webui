@@ -319,3 +319,6 @@ cypress/screenshots
 !vendor/*.tgz
 # The handoff's browser bundle of @jup/ui; the vendored package replaces it.
 design_handoff_notulen_rapat_direksi/_ds/
+
+# Written by deploy/gcp/deploy.sh for the image build only (SvelteKit version name).
+.build-hash
