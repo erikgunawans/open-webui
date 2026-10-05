@@ -23,7 +23,17 @@ const config = {
 				// JUP: the image build has no .git (.dockerignore), so `git rev-parse` failed and every
 				// deploy shipped the package.json version — the same name each time. `updated` never
 				// fired, and a tab opened before a deploy hit "500: Internal Error" on its next
-				// navigation (its old chunks are gone). The Dockerfile sets APP_BUILD_HASH per image.
+				// navigation (its old chunks are gone). deploy.sh builds with `gcloud builds submit --tag`,
+				// which passes no build args (APP_BUILD_HASH stays 'dev-build'), so it writes the commit
+				// to .build-hash for the build instead; APP_BUILD_HASH covers a build that does pass it.
+				try {
+					const fromDeploy = fs
+						.readFileSync(new URL('./.build-hash', import.meta.url), 'utf8')
+						.trim();
+					if (fromDeploy) return fromDeploy;
+				} catch {
+					// not a deploy build
+				}
 				const buildHash = process.env.APP_BUILD_HASH;
 				if (buildHash && buildHash !== 'dev-build') return buildHash;
 				try {
