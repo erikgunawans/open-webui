@@ -120,6 +120,7 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey }: Notule
 									setRecords={setRecords(i)}
 									showTypes={false}
 									printing
+									toast={toast}
 								/>
 							))}
 							<DerivedViews meeting={meeting} />
@@ -135,6 +136,7 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey }: Notule
 							records={meeting.records[db ?? 0]}
 							setRecords={setRecords(db ?? 0)}
 							showTypes
+							toast={toast}
 						/>
 					)}
 					<footer className="nt-foot">{FOOTER}</footer>

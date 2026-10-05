@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Button, Dialog, useToast } from '@jup/ui';
+import { Alert, Button, Dialog, type ToastContextValue } from '@jup/ui';
 import { Plus } from 'lucide-react';
 
 import { AGENDAS } from '../../agendas';
@@ -17,10 +17,19 @@ type Props = {
 	/** Print mode: every record open, no per-record controls. */
 	printing?: boolean;
 	expandAll?: boolean;
+	/** From the caller: the snapshot renders without a ToastProvider, whose portal the server renderer rejects. */
+	toast: ToastContextValue['toast'];
 };
 
-export const AgendaView = ({ db, records, setRecords, showTypes, printing, expandAll }: Props) => {
-	const { toast } = useToast();
+export const AgendaView = ({
+	db,
+	records,
+	setRecords,
+	showTypes,
+	printing,
+	expandAll,
+	toast
+}: Props) => {
 	const a = AGENDAS[db];
 	const [openIds, setOpenIds] = useState<Set<string>>(
 		() =>
