@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useToast } from '@jup/ui';
 
 import { agendaPlan } from '../../layar-model';
 import type { MeetingRepo } from '../../repo';
@@ -7,6 +6,7 @@ import { ACTION_STATUS, DECISION_STATUS, text, type Meeting } from '../../types'
 import { useMeeting } from '../useMeeting';
 import { AgendaNav } from './AgendaNav';
 import { Footer } from './Footer';
+import { Notice, useNotice, type NoticeTone } from './Notice';
 import { Rail } from './Rail';
 import { Stage } from './Stage';
 import { TopBar } from './TopBar';
@@ -33,15 +33,15 @@ export type LayarProps = {
 	demo: boolean;
 };
 
-const TONE: Record<string, 'success' | 'danger' | 'neutral' | 'warning'> = {
+const TONE: Record<string, NoticeTone> = {
 	Disetujui: 'success',
 	Ditolak: 'danger',
 	'Belum diputuskan': 'neutral'
 };
 
 export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
-	const [meeting, update] = useMeeting(repo, meetingId, init);
-	const { toast } = useToast();
+	const [meeting, update, saved, unreadable] = useMeeting(repo, meetingId, init);
+	const { shown, notify, close } = useNotice();
 	const [now, setNow] = useState(() => new Date());
 	const [selected, setSelected] = useState<string | null>(null);
 	const plan = agendaPlan(meeting);
@@ -74,8 +74,33 @@ export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
 				...(cur < plan.length - 1 ? { currentAgenda: cur + 1, agendaEnteredAt: Date.now() } : {})
 			}
 		}));
-		toast({ title: `Agenda ${plan[cur].no} selesai dibahas`, tone: 'success' });
+		notify({ title: `Agenda ${plan[cur].no} selesai dibahas`, tone: 'success' });
 	};
+
+	// A write the browser refused leaves the change in this tab only; the operator must know before
+	// the Board moves on. Every refused write re-asserts the warning (it outranks the status notice
+	// of the same change), and it stays up until the next notice after a write that succeeded.
+	useEffect(() => {
+		if (saved.ok) return;
+		notify({
+			title: 'Perubahan belum tersimpan di peramban ini',
+			description:
+				'Penyimpanan penuh atau diblokir. Simpan salinan dari Notulen sebelum tab ini ditutup.',
+			tone: 'danger',
+			duration: 0
+		});
+	}, [saved, notify]);
+
+	// Damaged or other-version data was set aside, not shown: say so once, and where to recover it.
+	useEffect(() => {
+		if (!unreadable) return;
+		notify({
+			title: 'Data lama rapat ini tidak dapat dibaca',
+			description: 'Layar dimulai dari template. Unduh data lama dari Notulen untuk dipulihkan.',
+			tone: 'warning',
+			duration: 0
+		});
+	}, [unreadable, notify]);
 
 	const setValue = (db: number, recordId: string, key: string, value: string) =>
 		update((m) => ({
@@ -89,14 +114,29 @@ export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
 			)
 		}));
 
+	// Every live status change can be taken back from the notice: a mis-tap in front of the Board
+	// should cost one click, not three.
 	const decide = (recordId: string, status: string) => {
 		const r = meeting.records[7].find((x) => x.id === recordId);
+		const before = text(r?.values[DECISION_STATUS]) || 'Belum diputuskan';
 		setValue(7, recordId, DECISION_STATUS, status);
 		const id = text(r?.values['ID keputusan']);
-		toast({
+		notify({
 			title: `${id ? `${id} · ` : ''}${status}`,
 			description: text(r?.values['Topik keputusan']),
-			tone: TONE[status] ?? 'warning'
+			tone: TONE[status] ?? 'warning',
+			action: { label: 'Urungkan', onClick: () => setValue(7, recordId, DECISION_STATUS, before) }
+		});
+	};
+
+	const advance = (recordId: string, status: string) => {
+		const r = meeting.records[8].find((x) => x.id === recordId);
+		const before = text(r?.values[ACTION_STATUS]) || 'Belum mulai';
+		setValue(8, recordId, ACTION_STATUS, status);
+		notify({
+			title: `${text(r?.values['Tindakan / deliverable']) || 'Tindakan'} · ${status}`,
+			tone: 'neutral',
+			action: { label: 'Urungkan', onClick: () => setValue(8, recordId, ACTION_STATUS, before) }
 		});
 	};
 
@@ -104,7 +144,7 @@ export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
 	const view = { meeting, agenda: plan[cur] };
 
 	return (
-		<Stage>
+		<Stage overlay={<Notice shown={shown} onClose={close} />}>
 			<div className="lr-app">
 				<div className="lr-grid">
 					<TopBar
@@ -133,9 +173,7 @@ export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
 								onDecide={decide}
 							/>
 						) : null}
-						{cur === 8 ? (
-							<V08Aksi key={8} {...view} onAdvance={(id, s) => setValue(8, id, ACTION_STATUS, s)} />
-						) : null}
+						{cur === 8 ? <V08Aksi key={8} {...view} onAdvance={advance} /> : null}
 					</main>
 					<Rail
 						meeting={meeting}

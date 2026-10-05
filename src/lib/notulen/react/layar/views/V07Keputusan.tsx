@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Button, Card, Tag } from '@jup/ui';
 import { Check } from 'lucide-react';
 
@@ -8,7 +9,8 @@ import { Head, Nothing, StatusBadge, type ViewProps } from './common';
 
 // 07 Decision Making: the Board decides live. A status written here goes straight into
 // "7. Decision Making › Status keputusan" of the Meeting; clicking the active status again reverts
-// it to "Belum diputuskan".
+// it to "Belum diputuskan". Tolak asks once, in place (no modal over the projected screen); every
+// change can also be taken back from the Layar notice.
 
 const ACTS: [status: string, active: 'primary' | 'secondary' | 'danger', label: string][] = [
 	['Disetujui', 'primary', 'Setujui'],
@@ -29,6 +31,27 @@ export const V07Keputusan = ({ meeting, agenda, selected, onSelect, onDecide }: 
 	const statusOf = (r: (typeof list)[number]) =>
 		text(r.values[DECISION_STATUS]) || 'Belum diputuskan';
 	const decided = list.filter((x) => statusOf(x) !== 'Belum diputuskan').length;
+	// The record whose rejection is awaiting a second click; any other selection drops it.
+	const [confirming, setConfirming] = useState<string | null>(null);
+	const asking = !!d && confirming === d.id;
+
+	useEffect(() => {
+		if (!asking) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') setConfirming(null);
+		};
+		window.addEventListener('keydown', onKey);
+		return () => window.removeEventListener('keydown', onKey);
+	}, [asking]);
+
+	const choose = (id: string, status: string, on: boolean) => {
+		if (!on && status === 'Ditolak') {
+			setConfirming(id);
+			return;
+		}
+		setConfirming(null);
+		onDecide(id, on ? 'Belum diputuskan' : status);
+	};
 
 	return (
 		<div className="lr-view">
@@ -45,12 +68,11 @@ export const V07Keputusan = ({ meeting, agenda, selected, onSelect, onDecide }: 
 			/>
 			{d ? (
 				<div className="lr-dec">
-					<div className="lr-dec__list" role="listbox" aria-label="Daftar keputusan">
+					<div className="lr-dec__list" role="group" aria-label="Daftar keputusan">
 						{list.map((x, i) => (
 							<button
 								type="button"
-								role="option"
-								aria-selected={x.id === d.id}
+								aria-current={x.id === d.id ? 'true' : undefined}
 								key={x.id}
 								className={`lr-dec__item${x.id === d.id ? ' is-active' : ''}`}
 								onClick={() => onSelect(x.id)}
@@ -94,23 +116,47 @@ export const V07Keputusan = ({ meeting, agenda, selected, onSelect, onDecide }: 
 								<div>{text(d.values['PIC pelaksanaan']) || '—'}</div>
 							</div>
 						</div>
-						<div className="lr-dec__acts">
-							{ACTS.map(([s, variant, label]) => {
-								const on = statusOf(d) === s;
-								return (
-									<Button
-										key={s}
-										variant={on ? variant : 'outline'}
-										size="lg"
-										aria-pressed={on}
-										iconLeft={on ? <Check size={20} aria-hidden="true" /> : undefined}
-										onClick={() => onDecide(d.id, on ? 'Belum diputuskan' : s)}
-									>
-										{label}
-									</Button>
-								);
-							})}
-						</div>
+						{asking ? (
+							<div
+								className="lr-dec__acts lr-dec__confirm"
+								role="group"
+								aria-label="Konfirmasi tolak"
+							>
+								<span className="lr-dec__confirm-q">Tolak usulan ini?</span>
+								<Button
+									variant="danger"
+									size="lg"
+									autoFocus
+									onClick={() => {
+										setConfirming(null);
+										onDecide(d.id, 'Ditolak');
+									}}
+								>
+									Ya, tolak
+								</Button>
+								<Button variant="outline" size="lg" onClick={() => setConfirming(null)}>
+									Batal
+								</Button>
+							</div>
+						) : (
+							<div className="lr-dec__acts">
+								{ACTS.map(([s, variant, label]) => {
+									const on = statusOf(d) === s;
+									return (
+										<Button
+											key={s}
+											variant={on ? variant : 'outline'}
+											size="lg"
+											aria-pressed={on}
+											iconLeft={on ? <Check size={20} aria-hidden="true" /> : undefined}
+											onClick={() => choose(d.id, s, on)}
+										>
+											{label}
+										</Button>
+									);
+								})}
+							</div>
+						)}
 					</Card>
 				</div>
 			) : (

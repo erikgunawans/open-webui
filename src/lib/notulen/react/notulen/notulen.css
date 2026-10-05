@@ -98,7 +98,7 @@
 	flex-wrap: wrap;
 	margin: var(--jup-s2) 0 0;
 	max-width: 90ch;
-	font-size: 0.75rem;
+	font-size: 0.8125rem;
 	color: var(--jup-text-secondary);
 	text-wrap: pretty;
 }
@@ -565,6 +565,7 @@
 		border: 0 !important;
 	}
 	.nt-note,
+	.nt-save-alert,
 	.nt-top .nt-actions,
 	.nt-side,
 	.nt-top__tabs,
@@ -661,4 +662,20 @@
 	text-align: center;
 	padding: 2rem 0.75rem !important;
 	color: var(--jup-text-muted);
+}
+
+/* The save status sits inside the storage note; the alert replaces it when the browser refused the
+ * last write, and stays until a later write succeeds. */
+.nt-saved:empty {
+	display: none;
+}
+.nt-save-alert {
+	margin-top: var(--jup-s3);
+	max-width: 90ch;
+}
+.nt-unreadable {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--jup-s2);
+	margin-top: var(--jup-s2);
 }

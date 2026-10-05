@@ -1,23 +1,45 @@
-import { Badge, Button } from '@jup/ui';
+import { Alert, Badge, Button } from '@jup/ui';
 import { Download, Monitor, Printer, RotateCcw } from 'lucide-react';
 
 import { CHECKLIST, toneOf } from '../../agendas';
 import { checklistCount, fmtDate, mainInfo, meetingName } from '../../selectors';
 import { text, type Meeting } from '../../types';
+import type { SaveState, Unreadable } from '../useMeeting';
 
 // The Notulen header, in the KPI 2026 tab's form: eyebrow, meeting name and a meta line over a
 // heavy rule, the actions to its right (layar, reset, print, the one primary: save). The theme is
-// the app's, so there is no switch here. The storage note stays in view on every agenda.
+// the app's, so there is no switch here. The storage note stays in view on every agenda, and says
+// when the last edit was stored — or, when the browser refused it, stops the reader with an alert.
 
 type Props = {
 	meeting: Meeting;
 	layarHref: string;
+	saved: SaveState;
+	/** Stored data that could not be read when the meeting opened; offered for download. */
+	unreadable?: Unreadable;
+	onDownloadOld?: () => void;
 	onReset: () => void;
 	onPrint: () => void;
 	onSave: () => void;
 };
 
-export const Header = ({ meeting, layarHref, onReset, onPrint, onSave }: Props) => {
+const clock = (at: number) =>
+	new Date(at).toLocaleTimeString('id-ID', {
+		hour: '2-digit',
+		minute: '2-digit',
+		timeZone: 'Asia/Jakarta'
+	});
+
+export const Header = ({
+	meeting,
+	layarHref,
+	saved,
+	unreadable = null,
+	onDownloadOld,
+	onReset,
+	onPrint,
+	onSave
+}: Props) => {
 	const mv = mainInfo(meeting)?.values ?? {};
 	const status = text(mv['Status validasi']);
 	const klas = text(mv['Klasifikasi dokumen']);
@@ -48,13 +70,65 @@ export const Header = ({ meeting, layarHref, onReset, onPrint, onSave }: Props) 
 						</span>
 					</div>
 					<p className="nt-note">
-						<Badge variant="outline">Tersimpan di peramban ini</Badge>
+						<span role="status" className="nt-saved">
+							{saved.ok && saved.at !== null ? (
+								<Badge tone="success" dot>
+									Tersimpan · {clock(saved.at)} WIB
+								</Badge>
+							) : saved.ok ? (
+								<Badge variant="outline">Tersimpan di peramban ini</Badge>
+							) : null}
+						</span>
 						<span>
 							Isian tersimpan otomatis di peramban dan perangkat ini saja, untuk akun Anda; belum
 							ada salinan di server. Gunakan <strong>Simpan HTML terisi</strong> untuk membuat
 							salinan berisi data.
 						</span>
 					</p>
+					{saved.ok ? null : (
+						<Alert
+							tone="danger"
+							title="Perubahan terakhir belum tersimpan"
+							className="nt-save-alert"
+							actions={
+								<Button
+									variant="danger"
+									size="sm"
+									iconLeft={<Download size={16} aria-hidden="true" />}
+									onClick={onSave}
+								>
+									Simpan HTML terisi sekarang
+								</Button>
+							}
+						>
+							Penyimpanan peramban ini penuh atau diblokir, jadi isian hanya ada di tab ini dan
+							hilang bila tab ditutup. Unduh salinannya sekarang; peringatan ini hilang begitu
+							penyimpanan berhasil lagi.
+						</Alert>
+					)}
+					{unreadable ? (
+						<Alert
+							tone="warning"
+							title="Data lama rapat ini tidak dapat dibaca"
+							className="nt-save-alert"
+							actions={
+								onDownloadOld ? (
+									<Button
+										variant="secondary"
+										size="sm"
+										iconLeft={<Download size={16} aria-hidden="true" />}
+										onClick={onDownloadOld}
+									>
+										Unduh data lama
+									</Button>
+								) : null
+							}
+						>
+							{unreadable.kept
+								? 'Notulen dimulai dari template. Data lama tidak dihapus: salinannya disimpan terpisah di peramban ini dan bisa diunduh untuk dipulihkan oleh admin.'
+								: 'Notulen dimulai dari template, tetapi tidak menimpa data lama karena salinannya tidak bisa dibuat. Unduh data lama sekarang sebelum mengisi.'}
+						</Alert>
+					) : null}
 				</div>
 				<div className="nt-actions">
 					<Button

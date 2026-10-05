@@ -38,9 +38,21 @@
 	<div class="flex justify-center py-16"><Spinner className="size-5" /></div>
 {/if}
 {#if failed}
-	<div class="jlp-notice jlp-notice-refused mt-4">
-		<p class="font-medium">Layar rapat tidak dapat dimuat</p>
-		<p class="mt-1 text-sm">{failed}</p>
+	<!-- The usual cause is a deploy: this tab still names the previous build's files. A reload fixes
+	     it, and the meeting itself is in the browser, so nothing typed is lost. -->
+	<div class="jlp-notice jlp-notice-refused mt-4" role="alert">
+		<p class="font-medium">Halaman Rapat Direksi tidak dapat dimuat</p>
+		<p class="mt-1 text-sm">
+			Biasanya karena aplikasi baru saja diperbarui. Muat ulang halaman; isian rapat tetap tersimpan
+			di peramban ini.
+		</p>
+		<button type="button" class="jlp-button mt-3" on:click={() => location.reload()}>
+			Muat ulang
+		</button>
+		<details class="mt-3 text-xs">
+			<summary>Detail teknis</summary>
+			<p class="mt-1 break-all">{failed}</p>
+		</details>
 	</div>
 {/if}
 <div bind:this={target}></div>

@@ -11,12 +11,22 @@ export type Unsubscribe = () => void;
 
 export interface MeetingRepo {
 	get(id: string): Meeting | null;
-	save(meeting: Meeting): void;
+	/** Store the meeting; false when it could not be stored (it still reaches this tab's listeners). */
+	save(meeting: Meeting): boolean;
+	/**
+	 * When something is stored under `id` that is not a readable Meeting (damaged, or written by a
+	 * different version), copy it aside before anything replaces it. Null when there is nothing
+	 * unreadable; `kept` is false when the copy itself could not be stored — then the caller must
+	 * not save over the original either.
+	 */
+	quarantine(id: string): { raw: string; kept: boolean } | null;
 	/** Called with the stored meeting whenever another tab (or this one) saves it. */
 	subscribe(id: string, cb: (meeting: Meeting) => void): Unsubscribe;
 }
 
 const PREFIX = 'jup-rapat-direksi:v1:';
+/** Unreadable data moved aside by quarantine(), kept for recovery rather than overwritten. */
+const QUARANTINE = 'jup-rapat-direksi-tidak-terbaca:';
 
 const isMeeting = (v: unknown): v is Meeting => {
 	if (!v || typeof v !== 'object') return false;
@@ -70,6 +80,18 @@ export class LocalStorageMeetingRepo implements MeetingRepo {
 		return out;
 	}
 
+	/** Ids stored for this namespace whose data list() skips because it cannot be read. */
+	unreadableIds(): string[] {
+		const prefix = this.key('');
+		const out: string[] = [];
+		for (let i = 0; i < this.storage.length; i++) {
+			const k = this.storage.key(i);
+			if (k?.startsWith(prefix) && !parseMeeting(this.storage.getItem(k)))
+				out.push(k.slice(prefix.length));
+		}
+		return out;
+	}
+
 	get(id: string): Meeting | null {
 		try {
 			return parseMeeting(this.storage.getItem(this.key(id)));
@@ -78,14 +100,35 @@ export class LocalStorageMeetingRepo implements MeetingRepo {
 		}
 	}
 
-	save(meeting: Meeting): void {
+	save(meeting: Meeting): boolean {
+		let stored = true;
 		try {
 			this.storage.setItem(this.key(meeting.id), JSON.stringify(meeting));
 		} catch {
-			// Storage full or blocked: the change holds in memory for this visit only.
+			// Storage full or blocked: the change holds in memory for this visit only, and the caller
+			// must say so — the screens promise an automatic save.
+			stored = false;
 		}
 		// The storage event never fires in the tab that wrote, so tell local listeners directly.
 		this.listeners.get(meeting.id)?.forEach((cb) => cb(meeting));
+		return stored;
+	}
+
+	quarantine(id: string): { raw: string; kept: boolean } | null {
+		let raw: string | null;
+		try {
+			raw = this.storage.getItem(this.key(id));
+		} catch {
+			return null;
+		}
+		if (raw === null || parseMeeting(raw)) return null;
+		try {
+			// Outside PREFIX + namespace + ':', so list() never reads it back as a meeting.
+			this.storage.setItem(`${QUARANTINE}${this.key(id)}:${Date.now()}`, raw);
+			return { raw, kept: true };
+		} catch {
+			return { raw, kept: false };
+		}
 	}
 
 	subscribe(id: string, cb: (meeting: Meeting) => void): Unsubscribe {

@@ -60,7 +60,14 @@ export const snapshotHtml = (meeting: Meeting, theme: JupResolvedTheme): string 
 	const noop = () => {};
 	const body = renderToStaticMarkup(
 		<JupUIProvider theme={theme} storageKey={null} className="nt-app nt-snapshot">
-			<Header meeting={meeting} layarHref="" onReset={noop} onPrint={noop} onSave={noop} />
+			<Header
+				meeting={meeting}
+				layarHref=""
+				saved={{ ok: true, at: null }}
+				onReset={noop}
+				onPrint={noop}
+				onSave={noop}
+			/>
 			<div className="nt-shell nt-shell--tabs">
 				<main className="nt-main">
 					{AGENDAS.map((_, i) => (

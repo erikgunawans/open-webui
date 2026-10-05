@@ -6,8 +6,8 @@ import { actions, fmtShort, targetOf } from '../../../selectors';
 import { ACTION_STATUS, text } from '../../../types';
 import { Head, StatusBadge, type ViewProps } from './common';
 
-// 08 Action Plan: a four-column board. Clicking a tile advances its status cyclically; the change
-// is written to "8. Action Plan › Status" of the Meeting.
+// 08 Action Plan: a four-column board. Clicking a tile advances its status cyclically (the Layar
+// notice offers Urungkan); the change is written to "8. Action Plan › Status" of the Meeting.
 
 export const nextStatus = (s: string) =>
 	ACTION_COLUMNS[(ACTION_COLUMNS.indexOf(s) + 1) % ACTION_COLUMNS.length];
