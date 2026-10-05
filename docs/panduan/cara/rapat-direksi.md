@@ -19,7 +19,7 @@ Untuk membuka notulen yang sudah ada, klik **Notulen** pada kartu rapatnya di da
 
 - Tekan → atau Page Down untuk agenda berikutnya, ← atau Page Up untuk agenda sebelumnya.
 - Tekan angka 0 sampai 8 untuk melompat langsung ke agenda tertentu.
-- Perubahan di Notulen langsung tampil di Layar, selama keduanya terbuka di peramban yang sama.
+- Perubahan di Notulen langsung tampil di Layar, dan keputusan yang diambil di Layar langsung tercatat di Notulen, selama keduanya terbuka di peramban yang sama.
 
 ## Menyimpan dan mencetak
 
