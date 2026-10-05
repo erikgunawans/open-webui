@@ -43,4 +43,4 @@
 		<p class="mt-1 text-sm">{failed}</p>
 	</div>
 {/if}
-<div bind:this={target} class:rapat-island-full={surface === 'layar'}></div>
+<div bind:this={target}></div>
