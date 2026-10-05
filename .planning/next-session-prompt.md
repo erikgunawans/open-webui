@@ -1,3 +1,41 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-05-v55)
+
+> Prepended by /wrap 2026-10-05 (checkpoint 2026-10-05-v55). Supersedes v54's anchor and its "do next"; v54's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-05-v55).
+Anchor: `origin/main` at `560af18d2` **as this was written**, or one commit ahead at this checkpoint's own commit (subject begins `chore(session): checkpoint — 2026-10-05-v55`). Verify with `git log --oneline 560af18d2..origin/main`; any other commit there is a parallel push.
+Open PR: **#119** `feat/rapat-direksi` (draft, CI green, head `a6aef68ee`, 7 commits) — NOT merged, NOT deployed.
+
+**Current state:**
+- **Live:** `ent-os-00100-d89` (image `560af18d2`; rollback `00099-vvt`). Gateway `jup-gateway-00004-fxv` unchanged. Main = live.
+- New live this session: sidebar lockup with JUP endorsement (#117), Ruang Pimpinan → KPI 2026 tab on the RKA grant (#118, live-checked).
+- Rapat Direksi (Notulen + Layar) is built in #119 and verified in a local harness only (see PROGRESS v55 for the evidence list).
+
+**Do next, in order:**
+1. **Ask Erik once: merge + deploy #119?** (first deploy with React deps and `COPY vendor` in the Dockerfile.) On yes: mark ready, merge, `df -h /` + swap, `bash deploy/gcp/deploy.sh` (don't touch the tree until the upload ends), then verify LIVE as Erik with Interceptor: Rapat Direksi tab appears (Board grant), `/ruang-pimpinan/rapat` list, `/rapat/demo/notulen`, `/rapat/demo/layar` full window outside the shell, "Data dummy" only on demo, a decision on the Layar tab moves the Notulen tab's Perlu Keputusan, Notulen dark theme, "Simpan HTML terisi" download, print preview (warn Erik first: print dialog blocks Interceptor).
+2. **#42 Notion acceptance with Erik** (v54 item, unchanged): new chat → Alat → Notion → meeting note cites URL; unshared page not found; `jup.governance` E1 line per call; then close #42 + #39, I1 live in `.planning/agent-depth-plan.md`.
+3. **E8 when JUP IT answers #82** (v53 item 1 still exact). If still unanswered, ask Erik once.
+4. Rapat Direksi follow-up (only after Erik uses it): server-backed `MeetingRepo` (multi-device sync, persistence off the browser) and how Agenda 8 relates to the governed action register — see constraints.
+5. Carried: O3 acceptance (PowerPoint + Keynote); phone check; Legal-account Kartu Kontrak; staff-account checks (O1); #47.
+
+**Constraints to honor** (new, plus the blocks below):
+- **Rapat Direksi data is localStorage per user (`jup-rapat-direksi:v1:<userId>:<meetingId>`)** — a draft notulen, NOT the action register. Settled Ruang Pimpinan rules still bind any server version: one action register across meetings; only an authorised BOD closes/returns an action (admin is not BOD). The Layar's action tiles currently cycle status freely — fine for a local draft, not for the governed register.
+- **`.tsx` is not type-checked by svelte-check or vite**: run `bun run check:notulen` after touching `src/lib/notulen/**`. CI's prettier glob also skips `.tsx` — format it yourself.
+- **@jup/ui is vendored** (`vendor/jup-ui-0.1.0.tgz`, `!vendor/*.tgz` in .gitignore). Updating it: `bun pm pack` in `~/ent-os-ui`, replace the tgz, `npm install --force ./vendor/jup-ui-<v>.tgz` (Dockerfile installs from package-lock.json — the one npm exception Erik accepted 10-05).
+- **Regenerate the schema only via `bun scripts/gen-schema.ts`**; the handoff folder is prettier-ignored and must stay verbatim.
+- **Local `bun run build` OOMs on this Mac** (heap); rely on CI Frontend Build, or use `NODE_OPTIONS=--max-old-space-size=8192` only with free RAM. Never edit package.json while a build runs (it reads it mid-write).
+- **Interceptor screenshots** fail on the live app and on babel-heavy pages; a CSS fade-in captures blank (inject `animation:none`). Geometry/computed-style probes are the evidence.
+- From v54: favicons follow the browser scheme; deploy.sh image tag = HEAD at start; secrets via `--set-secrets`; disk/swap check before deploys.
+
+**Open items waiting on Erik:**
+- Merge + deploy #119 (item 1).
+- Close two leftover Interceptor tabs on `localhost:47813` (Layar/Notulen reference; servers already stopped).
+- #42 Notion test + whether the **Tasks** database fits D25.
+- `release.yml` disable too? JUP IT's reply to #82.
+- Carried from v54: contract-card titles, `jup_contracts` all-users grant, Rully items, O3 acceptance, phone check, Latar Obrolan wording, WhatsApp strings, test-chat deletion, secret rotation if transcripts are shared, JUP WhatsApp number.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-05-v54)
 
 > Prepended by /wrap 2026-10-05 (checkpoint 2026-10-05-v54). Supersedes v53's anchor and its "do next"; v53's and older blocks' constraints still hold unless noted.
