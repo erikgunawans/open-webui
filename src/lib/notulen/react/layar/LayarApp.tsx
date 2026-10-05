@@ -40,7 +40,7 @@ const TONE: Record<string, NoticeTone> = {
 };
 
 export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
-	const [meeting, update, saved] = useMeeting(repo, meetingId, init);
+	const [meeting, update, saved, unreadable] = useMeeting(repo, meetingId, init);
 	const { shown, notify, close } = useNotice();
 	const [now, setNow] = useState(() => new Date());
 	const [selected, setSelected] = useState<string | null>(null);
@@ -90,6 +90,17 @@ export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
 			duration: 0
 		});
 	}, [saved, notify]);
+
+	// Damaged or other-version data was set aside, not shown: say so once, and where to recover it.
+	useEffect(() => {
+		if (!unreadable) return;
+		notify({
+			title: 'Data lama rapat ini tidak dapat dibaca',
+			description: 'Layar dimulai dari template. Unduh data lama dari Notulen untuk dipulihkan.',
+			tone: 'warning',
+			duration: 0
+		});
+	}, [unreadable, notify]);
 
 	const setValue = (db: number, recordId: string, key: string, value: string) =>
 		update((m) => ({

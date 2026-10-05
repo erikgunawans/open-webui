@@ -673,3 +673,9 @@
 	margin-top: var(--jup-s3);
 	max-width: 90ch;
 }
+.nt-unreadable {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--jup-s2);
+	margin-top: var(--jup-s2);
+}

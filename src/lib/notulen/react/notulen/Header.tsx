@@ -4,7 +4,7 @@ import { Download, Monitor, Printer, RotateCcw } from 'lucide-react';
 import { CHECKLIST, toneOf } from '../../agendas';
 import { checklistCount, fmtDate, mainInfo, meetingName } from '../../selectors';
 import { text, type Meeting } from '../../types';
-import type { SaveState } from '../useMeeting';
+import type { SaveState, Unreadable } from '../useMeeting';
 
 // The Notulen header, in the KPI 2026 tab's form: eyebrow, meeting name and a meta line over a
 // heavy rule, the actions to its right (layar, reset, print, the one primary: save). The theme is
@@ -15,6 +15,9 @@ type Props = {
 	meeting: Meeting;
 	layarHref: string;
 	saved: SaveState;
+	/** Stored data that could not be read when the meeting opened; offered for download. */
+	unreadable?: Unreadable;
+	onDownloadOld?: () => void;
 	onReset: () => void;
 	onPrint: () => void;
 	onSave: () => void;
@@ -27,7 +30,16 @@ const clock = (at: number) =>
 		timeZone: 'Asia/Jakarta'
 	});
 
-export const Header = ({ meeting, layarHref, saved, onReset, onPrint, onSave }: Props) => {
+export const Header = ({
+	meeting,
+	layarHref,
+	saved,
+	unreadable = null,
+	onDownloadOld,
+	onReset,
+	onPrint,
+	onSave
+}: Props) => {
 	const mv = mainInfo(meeting)?.values ?? {};
 	const status = text(mv['Status validasi']);
 	const klas = text(mv['Klasifikasi dokumen']);
@@ -94,6 +106,29 @@ export const Header = ({ meeting, layarHref, saved, onReset, onPrint, onSave }: 
 							penyimpanan berhasil lagi.
 						</Alert>
 					)}
+					{unreadable ? (
+						<Alert
+							tone="warning"
+							title="Data lama rapat ini tidak dapat dibaca"
+							className="nt-save-alert"
+							actions={
+								onDownloadOld ? (
+									<Button
+										variant="secondary"
+										size="sm"
+										iconLeft={<Download size={16} aria-hidden="true" />}
+										onClick={onDownloadOld}
+									>
+										Unduh data lama
+									</Button>
+								) : null
+							}
+						>
+							{unreadable.kept
+								? 'Notulen dimulai dari template. Data lama tidak dihapus: salinannya disimpan terpisah di peramban ini dan bisa diunduh untuk dipulihkan oleh admin.'
+								: 'Notulen dimulai dari template, tetapi tidak menimpa data lama karena salinannya tidak bisa dibuat. Unduh data lama sekarang sebelum mengisi.'}
+						</Alert>
+					) : null}
 				</div>
 				<div className="nt-actions">
 					<Button

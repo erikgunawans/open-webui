@@ -35,7 +35,7 @@ const readView = (key: string): View => {
 };
 
 export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey }: NotulenProps) => {
-	const [meeting, update, saved] = useMeeting(repo, meetingId, init);
+	const [meeting, update, saved, unreadable] = useMeeting(repo, meetingId, init);
 	const [view, setView] = useState<View>(() => readView(viewKey));
 	const [confirmReset, setConfirmReset] = useState(false);
 	const { toast } = useToast();
@@ -68,16 +68,36 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey }: Notule
 		downloadSnapshot(meeting, resolvedTheme);
 		toast({
 			title: 'HTML terisi diunduh',
-			description: 'Salinan baca-saja; isian tetap tersimpan di peramban ini.',
+			// Only claim the browser copy when the last write actually landed.
+			description: saved.ok
+				? 'Salinan baca-saja; isian tetap tersimpan di peramban ini.'
+				: 'Simpan file ini baik-baik: isian belum tersimpan di peramban ini.',
 			tone: 'success'
 		});
 	};
 
+	// The unreadable data exactly as it was stored, so an admin can recover it.
+	const downloadOld = () => {
+		if (!unreadable) return;
+		const a = document.createElement('a');
+		a.href = URL.createObjectURL(new Blob([unreadable.raw], { type: 'application/json' }));
+		a.download = `rapat-${meetingId}-data-lama.json`;
+		a.click();
+		URL.revokeObjectURL(a.href);
+	};
+
+	// Reset keeps the meeting it replaced in memory for one Urungkan.
 	const reset = () => {
+		const before = meeting;
 		update(() => init());
 		setConfirmReset(false);
 		go('0');
-		toast({ title: 'Template dikembalikan', tone: 'neutral' });
+		toast({
+			title: 'Template dikembalikan',
+			tone: 'neutral',
+			duration: 15000,
+			action: { label: 'Urungkan', onClick: () => update(() => before) }
+		});
 	};
 
 	const db = /^[0-8]$/.test(view) ? Number(view) : null;
@@ -88,6 +108,8 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey }: Notule
 				meeting={meeting}
 				layarHref={layarHref}
 				saved={saved}
+				unreadable={unreadable}
+				onDownloadOld={downloadOld}
 				onReset={() => setConfirmReset(true)}
 				onPrint={print}
 				onSave={save}
@@ -116,7 +138,7 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey }: Notule
 				open={confirmReset}
 				onClose={() => setConfirmReset(false)}
 				title="Reset notulen?"
-				description="Seluruh isian dikembalikan ke template awal. Tindakan ini tidak dapat dibatalkan."
+				description="Seluruh isian dikembalikan ke template awal. Selama 15 detik setelahnya masih bisa diurungkan; setelah itu tidak."
 				footer={
 					<>
 						<Button variant="ghost" onClick={() => setConfirmReset(false)}>

@@ -1,4 +1,4 @@
-import { Badge, Button } from '@jup/ui';
+import { Alert, Badge, Button } from '@jup/ui';
 import { FilePlus2, Monitor, NotebookPen } from 'lucide-react';
 
 import { toneOf } from '../agendas';
@@ -79,6 +79,9 @@ const Row = ({
 
 export const MeetingList = ({ repo, base, newId, open }: MeetingListProps) => {
 	const meetings = repo.list().filter((m) => m.id !== DEMO_ID);
+	// A meeting the list cannot read would otherwise just vanish. Opening it sets the data aside
+	// and offers it for download (useMeeting), so the way back is one click.
+	const unreadable = repo.unreadableIds().filter((id) => id !== DEMO_ID);
 	// The demo row reads the stored demo when there is one, so its counts match what Layar shows.
 	const demo = repo.get(DEMO_ID) ?? demoMeeting();
 	return (
@@ -106,6 +109,31 @@ export const MeetingList = ({ repo, base, newId, open }: MeetingListProps) => {
 					</div>
 				</div>
 			</header>
+			{unreadable.length ? (
+				<Alert
+					tone="warning"
+					title={`${unreadable.length} notulen tidak dapat dibaca`}
+					className="nt-save-alert"
+				>
+					<p>
+						Datanya rusak atau dibuat versi lain aplikasi, jadi tidak tampil di tabel. Buka untuk
+						memulihkan: data lama disisihkan dan dapat diunduh, tidak dihapus.
+					</p>
+					<div className="nt-unreadable">
+						{unreadable.map((id) => (
+							<Button
+								key={id}
+								variant="secondary"
+								size="sm"
+								iconLeft={<NotebookPen size={16} aria-hidden="true" />}
+								onClick={() => open(`${base}/${id}/notulen`)}
+							>
+								Pulihkan <span className="nt-mono">{id}</span>
+							</Button>
+						))}
+					</div>
+				</Alert>
+			) : null}
 			<section className="nt-tablecard">
 				<div className="nt-tablewrap">
 					<table className="nt-table">
