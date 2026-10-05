@@ -543,16 +543,26 @@
 	}
 }
 @media print {
-	/* Print the notulen alone: not the app sidebar, not the Ruang Pimpinan header and tabs, and
-	 * not clipped to the app's scroll box. */
+	/* "Cetak / PDF" prints the snapshot from a frame (snapshot.tsx). These rules cover the browser's
+	 * own print (Cmd+P) of the page: the notulen alone — not the app sidebar, not the Ruang Pimpinan
+	 * header and tabs — and not clipped by any box around it. `:has(.nt-app)` is every ancestor,
+	 * the app shell's fixed-height, overflow-hidden #main-content included, which otherwise cuts the
+	 * print to one page. */
 	body:has(.nt-app) #sidebar,
-	body:has(.nt-app) .jlp-header {
+	body:has(.nt-app) .jlp-header,
+	body:has(.nt-app) .jlp-tabs {
 		display: none !important;
 	}
-	body:has(.nt-app) .jlp-shell,
-	body:has(.nt-app) .jlp-scroll {
+	body:has(.nt-app),
+	body:has(.nt-app) :has(.nt-app) {
 		height: auto !important;
+		max-height: none !important;
 		overflow: visible !important;
+	}
+	body:has(.nt-app) #main-content {
+		max-width: none !important;
+		margin: 0 !important;
+		border: 0 !important;
 	}
 	.nt-note,
 	.nt-top .nt-actions,
