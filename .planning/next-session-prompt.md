@@ -1,3 +1,37 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-06-v57)
+
+> Prepended by /wrap 2026-10-06 (checkpoint 2026-10-06-v57). Supersedes v56's anchor and its "do next" (#126 Cetak fix is live; the "release.yml disable too?" question is settled by #127); v56's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-06-v57).
+Anchor: `origin/main` at `8c7071d12` **as this was written**, or one commit ahead at this checkpoint's own wrap merge (subject names `2026-10-06-v57`). Verify with `git log --oneline 8c7071d12..origin/main`; any other commit there is a parallel push.
+
+**Current state:**
+- **Live:** `ent-os-00108-4f9` (image `1cf42e84c`; rollback `00107-hqw`). `main` = live + #131 (docs-only critique snapshot). Gateway `jup-gateway-00004-fxv` unchanged. No open PRs.
+- Deploy reload is fixed: live `/_app/version.json` = the commit hash (was `0.11.3` forever), HTML shell `no-cache` (#128 + #130). Rapat Direksi saving hardened and live (#129). Cetak/PDF snapshot-frame print live (#126).
+
+**Do next, in order:**
+1. **Ask Erik for his hand checks** on the live app after ⌘⇧R: (a) Notulen → **Cetak / PDF** prints the whole notulen, no sidebar/RP header; (b) Layar → **Layar penuh**: a decision shows its confirmation on the full screen, Tolak → "Ya, tolak", Urungkan reverts. Fix what he reports. Don't trigger print/full screen/beforeunload through Interceptor.
+2. **On the next deploy, prove the reload fix:** keep a tab open on the app across the deploy, then navigate in it — it must reload itself, no "500: Internal Error". If it still 500s, check `/_app/version.json` changed between builds first.
+3. **Rapat Direksi critique plan, remaining** (snapshot `.impeccable/critique/2026-10-05T16-42-32Z__…rapat.md`, 22/40): issue 2 live meeting flow ("● Di layar" + "Ikuti layar" in the Notulen sidebar, quick Topik/Keputusan/PIC capture) — a design question: **grill it with Erik first** (`/grill-with-docs`, maybe a `/prototype` of the sidebar), not straight to code; issue 3 Notion leftovers (`showTypes` off at `NotulenApp.tsx`, origin labels, "n/m terisi", properti/record → butir/usulan/tindakan, FOOTER, one Informasi seed) → `clarify`/`distill`; issue 5 closing screen on the last agenda + a formal Risalah print template → `typeset`/`delight`; then `polish` (incl. detector findings `layar.css` 8px left border ~601, `transition: width` ~379). Re-run `$impeccable critique` after.
+4. **#42 Notion acceptance with Erik** (unchanged since v54).
+5. **E8 when JUP IT answers #82**; if still unanswered, ask Erik once.
+6. Carried: server-backed `MeetingRepo` only after Erik uses Rapat Direksi; O3 acceptance (PowerPoint + Keynote); phone check; Legal-account Kartu Kontrak; staff-account checks (O1); #47.
+
+**Constraints to honor** (new, plus the blocks below):
+- **`deploy.sh` refuses a dirty tree** — an untracked file counts. Never move files out with a glob over a tracked directory (this session's `mv .impeccable/critique/*.md` took 4 tracked snapshots with it). Critique snapshots ARE committed in this repo.
+- **`.build-hash` is written and removed by `deploy.sh`** around `gcloud builds submit`; gitignored, but uploaded because `.gcloudignore` doesn't read `.gitignore`. Don't add it to `.gcloudignore`/`.dockerignore`. `--tag` builds pass NO build args — never rely on Dockerfile ARGs from `deploy.sh`.
+- **Rapat Direksi storage contract:** `MeetingRepo.save()` returns boolean; `quarantine()` must run before any write over an unreadable key, and nothing may be written to that key if the copy fails; `useMeeting`'s opener is idempotent per page (StrictMode). `check:notulen` + `bunx vitest run src/lib/notulen` after any `.tsx` edit.
+- **Layar feedback renders inside `.lr-viewport`** (`Notice.tsx`), never via @jup/ui toast/Dialog (they portal to body, invisible in full screen).
+- **Disk ~1 GiB free** (swap ~2.4 GB used): `df -h /` + `sysctl vm.swapusage` before any deploy; `~/.npm/_cacache` was cleared; leave `~/.cache/uv` (offline ruff/uv need it).
+- Wait for CI before merging, even docs-only PRs.
+
+**Open items waiting on Erik:**
+- The hand checks in item 1 (and an optional try of closing a tab right after a refused save — the "Leave site?" prompt was not verified).
+- Decisions for critique issue 2 (live flow) when we grill it.
+- Carried: #42 Notion test + Tasks DB vs D25; JUP IT's reply to #82; contract-card titles, `jup_contracts` all-users grant, Rully items, O3 acceptance, phone check, Latar Obrolan wording, WhatsApp strings, test-chat deletion, secret rotation if transcripts are shared, JUP WhatsApp number.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-05-v56)
 
 > Prepended by /wrap 2026-10-05 (checkpoint 2026-10-05-v56). Supersedes v55's anchor and its "do next" (#119 is merged and live); v55's and older blocks' constraints still hold unless noted.
