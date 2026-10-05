@@ -92,6 +92,7 @@ export const kinerjaNotes = (m: Meeting) => {
 	return {
 		pairs: [...labelled(cause), ...(liq ? ([['Likuiditas', liq]] as [string, string][]) : [])],
 		period: [basis, until].filter(Boolean).join(' '),
+		year: isDate(period) ? period.end.slice(0, 4) : '',
 		monthly: m.plan?.revenueMonthly ?? []
 	};
 };

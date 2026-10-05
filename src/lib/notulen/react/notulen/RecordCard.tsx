@@ -124,7 +124,7 @@ export const RecordCard = ({ db, r, index, total, open, showTypes, ...on }: Prop
 						if (!shown.length) return null;
 						return (
 							<section key={g} className="nt-group">
-								<h4 className="nt-group__h">
+								<h3 className="nt-group__h">
 									{g}
 									{g === 'Checklist finalisasi' ? (
 										<span className="nt-mono">
@@ -132,13 +132,13 @@ export const RecordCard = ({ db, r, index, total, open, showTypes, ...on }: Prop
 											· {shown.filter((f) => r.values[f.name] === true).length}/{shown.length}
 										</span>
 									) : null}
-								</h4>
+								</h3>
 								<div className={`nt-grid ${gridClass(g, shown)}`}>{shown.map(field)}</div>
 							</section>
 						);
 					})}
 					<section className="nt-group">
-						<h4 className="nt-group__h">Isi halaman / catatan panjang</h4>
+						<h3 className="nt-group__h">Isi halaman / catatan panjang</h3>
 						<Textarea
 							rows={3}
 							autoResize

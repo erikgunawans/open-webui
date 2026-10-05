@@ -299,7 +299,7 @@
 	gap: var(--jup-s4);
 }
 .lr-g2--chart {
-	grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+	grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); /* reference 1.35fr: the causes list wrapped past its row */
 	flex: 1;
 	min-height: 0;
 }
@@ -440,7 +440,7 @@
 .lr-chart {
 	display: flex;
 	gap: var(--jup-s3);
-	height: 190px;
+	height: 168px; /* reference 190px: with its card header the chart card ran 21px past its row */
 	align-items: stretch;
 	padding-top: var(--jup-s3);
 }
@@ -564,7 +564,7 @@
 	background: var(--jup-surface-card);
 	border: 1px solid var(--jup-border-default);
 	border-left: 8px solid var(--jup-border-strong);
-	padding: 12px var(--jup-s5);
+	padding: var(--jup-s2) var(--jup-s5); /* reference 12px: five rows clipped 4px */
 	font-size: 20px;
 }
 .lr-risk--danger {
@@ -747,7 +747,7 @@
 	font-size: 13px;
 }
 .lr-rail__s {
-	padding: var(--jup-s4) var(--jup-s5);
+	padding: var(--jup-s3) var(--jup-s5); /* reference s4: the rail clipped 7px */
 	display: flex;
 	flex-direction: column;
 	gap: 2px;

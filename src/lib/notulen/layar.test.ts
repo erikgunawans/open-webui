@@ -60,6 +60,8 @@ describe('the Layar read model of the demo meeting', () => {
 	it('reads causes, corrections and liquidity as labelled rows', () => {
 		expect(kinerjaNotes(m).pairs.map(([k]) => k)).toEqual(['Penyebab', 'Koreksi', 'Likuiditas']);
 		expect(kinerjaNotes(m).monthly).toHaveLength(9);
+		expect(kinerjaNotes(m).year).toBe('2026');
+		expect(kinerjaNotes(m).period).toBe('YTD September 2026');
 	});
 
 	it('lists pending decisions and the four nearest open actions', () => {

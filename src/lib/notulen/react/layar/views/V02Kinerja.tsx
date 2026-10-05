@@ -52,7 +52,15 @@ export const V02Kinerja = ({ meeting, agenda }: ViewProps) => {
 				<Nothing what="indikator dengan target dan realisasi" />
 			)}
 			<div className="lr-g2 lr-g2--chart">
-				<Card title="Revenue bulanan vs target" description="Rp miliar" padding="md">
+				<Card
+					title="Revenue bulanan vs target"
+					description={
+						notes.monthly.length
+							? `Rp miliar · ${notes.monthly[0][0]}–${notes.monthly[notes.monthly.length - 1][0]}${notes.year ? ` ${notes.year}` : ''}`
+							: 'Rp miliar'
+					}
+					padding="md"
+				>
 					{notes.monthly.length ? (
 						<>
 							<div className="lr-chart" role="img" aria-label="Revenue bulanan dibanding target">
