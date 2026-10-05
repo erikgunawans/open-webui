@@ -1,3 +1,36 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-05-v56)
+
+> Prepended by /wrap 2026-10-05 (checkpoint 2026-10-05-v56). Supersedes v55's anchor and its "do next" (#119 is merged and live); v55's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-05-v56).
+Anchor: `origin/main` at `de2b97d59` **as this was written**, or one commit ahead at this checkpoint's own wrap merge (subject names `2026-10-05-v56`). Verify with `git log --oneline de2b97d59..origin/main`; any other commit there is a parallel push.
+
+**Current state:**
+- **Live:** `ent-os-00104-wjt` (image `de2b97d59`; rollback `00103-snp`). Gateway `jup-gateway-00004-fxv` unchanged. Main = live. No open feature PRs.
+- Rapat Direksi is live in Ruang Pimpinan: list as a table (#122), Notulen follows the app theme (#122), "Simpan HTML terisi" fixed (#120), Layar inside the inner layer as a 16:9 card, light by default, **Layar penuh**/F for the projector (#123, live-verified geometry + theme). `docs/panduan/` (56 ID docs, #121) is on main.
+
+**Do next, in order:**
+1. **Ask Erik for his two hand checks** (only he can do them): (a) Layar → **Layar penuh** (or F) fills the screen, Esc returns to the panel; (b) Notulen → **Cetak / PDF** preview prints without the sidebar and Ruang Pimpinan header. Fix whatever he reports; don't trigger print or full screen through Interceptor.
+2. **#42 Notion acceptance with Erik** (unchanged from v54/v55): new chat → Alat → Notion → meeting note cites URL; unshared page not found; non-admin refused; one `jup.governance` E1 line per call; then close #42 + #39, I1 live in `.planning/agent-depth-plan.md`.
+3. **E8 when JUP IT answers #82** (v53 item unchanged). If still unanswered, ask Erik once.
+4. Rapat Direksi follow-up only after Erik uses it: server-backed `MeetingRepo` (multi-device, off the browser) and Agenda 8 vs the governed action register (v55 constraint).
+5. Carried: O3 acceptance (PowerPoint + Keynote); phone check; Legal-account Kartu Kontrak; staff-account checks (O1); #47.
+
+**Constraints to honor** (new, plus the blocks below):
+- **Disk + swap before any deploy or local build.** This session hit 0 bytes free (swap 7.5/8 GB + a local vite build + 5000×13000 px screenshots) and every tool call failed, even `df`. `df -h /` and `sysctl vm.swapusage` first; keep screenshots small and delete them; don't run local builds when swap is high.
+- **`gcloud auth print-access-token` before `deploy.sh`.** An expired login kills the deploy mid-build ([[gcloud-reauth-kills-deploy]]); only Erik can run `gcloud auth login`.
+- **Source upload can time out on a slow uplink** (419 MB tarball, `ReadTimeout` 300 s at ~0.9 MB/s): a plain retry worked once; if it fails twice, stop and tell Erik (network or shrink the upload) rather than looping.
+- **Layar is now inside the RP layout** (`src/routes/(app)/ruang-pimpinan/rapat/[id]/layar/+page.svelte`, no `@`). Full-screen is the browser Fullscreen API from a user gesture; Layar theme key defaults light, a stored choice wins.
+- Rapat Direksi data is still localStorage per user — v55 constraints (`check:notulen` after `.tsx` edits, vendored @jup/ui, local build OOM) all hold.
+
+**Open items waiting on Erik:**
+- The two hand checks in item 1.
+- Close the Interceptor tab left on `non-jupe…/ruang-pimpinan/rapat/demo/layar` if unwanted.
+- #42 Notion test + whether the **Tasks** database fits D25; `release.yml` disable too?; JUP IT's reply to #82.
+- Carried from v54/v55: contract-card titles, `jup_contracts` all-users grant, Rully items, O3 acceptance, phone check, Latar Obrolan wording, WhatsApp strings, test-chat deletion, secret rotation if transcripts are shared, JUP WhatsApp number.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-05-v55)
 
 > Prepended by /wrap 2026-10-05 (checkpoint 2026-10-05-v55). Supersedes v54's anchor and its "do next"; v54's and older blocks' constraints still hold unless noted.

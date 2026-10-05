@@ -1,6 +1,18 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-10-05-v55 (latest) — None-JUPe lockup with JUP endorsement, KPI 2026 tab, Rapat Direksi (Notulen + Layar) built as draft #119
+## Checkpoint 2026-10-05-v56 (latest) — Rapat Direksi live: #119 → #123, Layar in the inner layer, docs suite
+
+- **Session (10-05 ~07:30 → 10:00 WIB, after v55):** Erik OK → **#119** merged + deployed (00101) → live "Simpan HTML terisi" threw → **#120** (00102) → Erik: Rapat list + Notulen in the KPI 2026 tab's style → **#122** (00103) → **#121** docs suite merged → Erik: Layar inside the inner layer, light by default → **#123** → one deploy of `main` carrying #121 + #123 → **00104**.
+- **Live:** **`ent-os-00104-wjt`** (image `de2b97d59`, 100%) = `main`; rollback `00103-snp` (`7d35fa3df`), before it `00102-pdt`. Gateway unchanged (`jup-gateway-00004-fxv`).
+- **#120 (`9e144ad35`):** `renderToStaticMarkup` rejects portals (React #257) and @jup/ui's ToastProvider always portals → the snapshot download saved nothing. AgendaView takes `toast` from its caller; snapshot renders without the provider; regression test.
+- **#122 (`7d35fa3df`):** list = one table card (demo as last row); header like KPI's `.kd-head`; @jup/ui tokens re-pointed at app tokens under `.nt-root`; list + Notulen follow the app's light/dark (MutationObserver on `<html>`), Notulen theme switch removed; print hides sidebar + RP header. Live-verified list + theme-follow.
+- **#121 (`4dff941ae`):** `docs/panduan/` — 56 Indonesian Markdown files (Diátaxis: tutorial / cara / penjelasan / referensi), staff, admin/TI, ops runbook, developer onboarding. Docs only; unverified items listed in the PR comment.
+- **#123 (`caefede22`):** Layar route is a normal page under the Ruang Pimpinan layout (was `+page@`): 1920×1080 stage scales into a 16:9 card the panel's width; **Layar penuh** button / F = browser full screen, Esc leaves; theme defaults light (stored choice wins). **Live-verified on 00104:** sidebar + RP header present, Rapat Direksi tab active, frame 1194×672 in a 1242 px panel at scale 0.622, `data-jup-theme=light`, bar shows the button + hint, fresh `entry/app` bundle. Full screen itself needs a real click (not verified by me).
+- **Incidents:** (1) disk hit 0 bytes mid-session (swap 7.5/8 GB + local build + 5000×13000 px screenshots) — every tool call failed until Erik freed space; (2) #121's first deploy died on gcloud re-auth ([[gcloud-reauth-kills-deploy]]); (3) the next deploy died uploading the 419 MB source: `ReadTimeout` (300 s) to storage.googleapis.com at ~0.9 MB/s upload; plain retry succeeded. The #121 image `4dff941ae` was built but never deployed (superseded).
+- **Tests:** notulen vitest 31/31, `check:notulen` clean; CI green on every PR.
+- **Next:** Erik checks Layar penuh/Esc and the Notulen print preview; #42 Notion acceptance; E8 when JUP IT answers #82; server-backed MeetingRepo only after Erik uses Rapat Direksi.
+
+## Checkpoint 2026-10-05-v55 — None-JUPe lockup with JUP endorsement, KPI 2026 tab, Rapat Direksi (Notulen + Layar) built as draft #119
 
 - **Session (10-05 ~05:15 → 07:30 WIB, after v54):** `/next` → #42 needs Erik (asked; no answer yet) → Erik: new top-left logo → **#117** → **00099** → Erik: import claude.ai/design "KPI Dashboard 2026" into Ruang Pimpinan → **#118** → **00100** → Erik: implement the "Notulen + Layar Rapat Direksi" handoff as a Ruang Pimpinan tab → step 0 report + plan → Erik "go" (took the recommendations: React island + one npm lockfile step; localStorage draft now, server repo later) → **PR #119 (draft, not merged, not deployed)**.
 - **Live:** **`ent-os-00100-d89`** (image `560af18d2`, 100%); rollback `00099-vvt` (`00178e63d`), before it `00098-x22`. Gateway unchanged.
