@@ -314,3 +314,8 @@ cypress/screenshots
 
 # Serena MCP tool artifacts
 .serena/
+
+# @jup/ui is vendored as a packed tarball (see Dockerfile); keep it tracked.
+!vendor/*.tgz
+# The handoff's browser bundle of @jup/ui; the vendored package replaces it.
+design_handoff_notulen_rapat_direksi/_ds/

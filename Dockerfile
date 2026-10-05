@@ -53,6 +53,8 @@ WORKDIR /app
 RUN apk add --no-cache git
 
 COPY package.json package-lock.json ./
+# @jup/ui is vendored as a packed tarball (private repo, no registry); npm ci installs it from here.
+COPY vendor ./vendor
 RUN npm ci --force
 
 COPY . .
