@@ -9,6 +9,8 @@ anything we've changed, and record **our** decisions in `docs/adr/` (see `docs/a
 
 ## Index
 
+Start with [00-system-blueprint.md](00-system-blueprint.md) — the system-level view of **the fork** (vendor seams, `backend/jup/`, gateway, deployment, gaps). The files below describe vendor internals.
+
 | File | Scope | Lines read |
 |---|---|---|
 | [01-backend-core.md](01-backend-core.md) | `main.py`, `config.py`, `env.py`, `internal/`, `socket/`, `tasks.py`, `events.py` | ~12K |
