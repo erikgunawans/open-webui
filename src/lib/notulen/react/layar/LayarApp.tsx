@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { agendaPlan, closeMeeting, reopenAt } from '../../layar-model';
+import { agendaPlan, closeMeeting, reopenAt, startLayarSession } from '../../layar-model';
 import type { MeetingRepo } from '../../repo';
 import { ACTION_STATUS, DECISION_STATUS, text, type Meeting } from '../../types';
 import { useMeeting } from '../useMeeting';
@@ -66,6 +66,21 @@ export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
 		[plan.length, update]
 	);
 	useAgendaKeys(cur, go);
+
+	// The agenda timer counts from when the agenda came on screen in this Layar session. A stored
+	// start from an earlier session (a rehearsal, a meeting reopened later) would greet the Board
+	// with a red overrun, so a new session restarts it; a reload of the same tab keeps it.
+	useEffect(() => {
+		let tab: Storage;
+		try {
+			tab = window.sessionStorage;
+		} catch {
+			return;
+		}
+		const started = startLayarSession(meeting, tab, Date.now());
+		if (started) update(() => started);
+		// Once per mount, on the meeting as opened.
+	}, []);
 
 	const finish = () => {
 		if (cur === plan.length - 1) {

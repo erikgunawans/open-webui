@@ -11,7 +11,7 @@ export const V06Stakeholder = ({ meeting, agenda }: ViewProps) => {
 			{rows.length ? (
 				<div className="lr-table lr-table--stake" role="table" aria-label="Isu stakeholder">
 					<div className="lr-tr lr-th" role="row">
-						<span role="columnheader">Stakeholder</span>
+						<span role="columnheader">Pemangku kepentingan</span>
 						<span role="columnheader">Isu / permintaan utama</span>
 						<span role="columnheader">PIC komunikasi</span>
 						<span role="columnheader">Target</span>

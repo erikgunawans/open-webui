@@ -1009,3 +1009,46 @@
 .lr-closing__row:last-child {
 	border-bottom: 0;
 }
+
+/* Projection floor. The stage is read from across a boardroom: statuses were 11–12px badges and
+   labels 14–15px. Measured on every agenda at 1920×1080 (2026-10-06): these sizes keep main, rail
+   and nav free of new clipping. The agenda index keeps its sizes (its presenter line truncates
+   at anything larger); KPI cards hold eight badges and stay one step smaller. */
+.lr-app .jup-badge {
+	font-size: 18px;
+	line-height: 1.2;
+	height: auto;
+	padding: 5px 12px;
+}
+.lr-app .jup-badge::before {
+	width: 8px;
+	height: 8px;
+}
+.lr-app .lr-kpi .jup-badge {
+	font-size: 16px;
+	padding: 3px 10px;
+}
+.lr-app .jup-tag__label {
+	font-size: 16px;
+}
+.lr-main .lr-sub,
+.lr-rail .lr-sub,
+.lr-main .lr-k,
+.lr-rail .lr-k,
+.lr-app .lr-th,
+.lr-app .lr-rail__h,
+.lr-app .lr-legend {
+	font-size: 17px;
+}
+.lr-app .lr-kpi .lr-sub {
+	font-size: 15px;
+}
+.lr-app .lr-bignum .lr-sub {
+	font-size: 22px;
+}
+.lr-app dt {
+	font-size: 16px;
+}
+.lr-app .lr-eyebrow {
+	font-size: 18px;
+}

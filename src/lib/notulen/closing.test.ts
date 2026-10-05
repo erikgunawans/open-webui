@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import { demoMeeting } from './demo';
-import { closeMeeting, closingSummary, jakartaLocal, reopenAt } from './layar-model';
+import {
+	closeMeeting,
+	closingSummary,
+	jakartaLocal,
+	reopenAt,
+	startLayarSession
+} from './layar-model';
 import { mainInfo } from './selectors';
 import { seedMeeting } from './seed';
 
@@ -48,5 +54,38 @@ describe('closing the meeting', () => {
 		expect(s.decisionList.length).toBeGreaterThan(0);
 		expect(s.actions).toBeGreaterThan(0);
 		expect(closingSummary(seedMeeting('r', 0))).toMatchObject({ actions: 0, decisionList: [] });
+	});
+});
+
+describe('starting a Layar session', () => {
+	const tab = () => {
+		const m = new Map<string, string>();
+		return {
+			getItem: (k: string) => m.get(k) ?? null,
+			setItem: (k: string, v: string) => void m.set(k, v)
+		};
+	};
+
+	it('restarts a stale agenda timer once per tab', () => {
+		const t = tab();
+		const m = seedMeeting('r', 0);
+		const started = startLayarSession(m, t, NOON)!;
+		expect(started.session.agendaEnteredAt).toBe(NOON);
+		// A reload of the same tab keeps the running timer.
+		expect(startLayarSession(started, t, NOON + 60_000)).toBeNull();
+	});
+
+	it('leaves a closed meeting alone', () => {
+		expect(startLayarSession(closeMeeting(seedMeeting('r', 0), NOON), tab(), NOON + 1)).toBeNull();
+	});
+
+	it('keeps the stored start when the browser refuses session storage', () => {
+		const blocked = {
+			getItem: () => {
+				throw new DOMException('blocked', 'SecurityError');
+			},
+			setItem: () => {}
+		};
+		expect(startLayarSession(seedMeeting('r', 0), blocked, NOON)).toBeNull();
 	});
 });

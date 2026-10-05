@@ -208,6 +208,27 @@ export const reopenAt = (m: Meeting, i: number, now: number): Meeting => {
 	return { ...m, session: { ...session, currentAgenda: i, agendaEnteredAt: now } };
 };
 
+/**
+ * Start a Layar session: the agenda timer counts from now. Returns null when nothing changes —
+ * this tab already started one (a reload keeps its timer), the meeting is closed, or the browser
+ * gives no session storage (then the stored start stands).
+ */
+export const startLayarSession = (
+	m: Meeting,
+	tab: Pick<Storage, 'getItem' | 'setItem'>,
+	now: number
+): Meeting | null => {
+	const key = `jup-layar-sesi:${m.id}`;
+	try {
+		if (tab.getItem(key)) return null;
+		tab.setItem(key, '1');
+	} catch {
+		return null;
+	}
+	if (m.session.closedAt !== undefined) return null;
+	return { ...m, session: { ...m.session, agendaEnteredAt: now } };
+};
+
 const DECISION_ORDER = [
 	'Disetujui',
 	'Disetujui bersyarat',

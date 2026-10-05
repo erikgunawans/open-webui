@@ -1,5 +1,5 @@
 // Presentation constants shared by Notulen and Layar: agenda copy, groupings and status tones,
-// verbatim from the design handoff (Bahasa Indonesia).
+// from the design handoff, with the English agenda names put into Bahasa Indonesia (Erik, 2026-10-06).
 
 export interface AgendaCopy {
 	eyebrow: string;
@@ -37,11 +37,11 @@ export const AGENDAS: AgendaCopy[] = [
 	},
 	{
 		eyebrow: 'Agenda 01',
-		nav: '1. Strategic Update',
-		title: '1. Strategic Update',
+		nav: '1. Perkembangan Strategis',
+		title: '1. Perkembangan Strategis',
 		focus: 'Perkembangan target dan strategi perusahaan.',
 		unit: 'satu baris untuk setiap sasaran strategis',
-		layar: 'Strategic Update',
+		layar: 'Perkembangan Strategis',
 		no: '01'
 	},
 	{
@@ -66,45 +66,45 @@ export const AGENDAS: AgendaCopy[] = [
 		eyebrow: 'Agenda 04',
 		nav: '4. Program Prioritas',
 		title: '4. Program Prioritas',
-		focus: 'Proyek strategis, investasi, business development, dan transformasi.',
+		focus: 'Proyek strategis, investasi, Perkembangan Bisnis, dan transformasi.',
 		unit: 'satu baris untuk setiap program / proyek',
 		layar: 'Program Prioritas',
 		no: '04'
 	},
 	{
 		eyebrow: 'Agenda 05',
-		nav: '5. Risk & Compliance',
-		title: '5. Risk & Compliance',
+		nav: '5. Risiko & Kepatuhan',
+		title: '5. Risiko & Kepatuhan',
 		focus: 'Risiko utama dan mitigasinya.',
 		unit: 'satu baris untuk setiap risiko / isu kepatuhan',
-		layar: 'Risk & Compliance',
+		layar: 'Risiko & Kepatuhan',
 		no: '05'
 	},
 	{
 		eyebrow: 'Agenda 06',
-		nav: '6. Stakeholder Issues',
-		title: '6. Stakeholder Issues',
+		nav: '6. Isu Pemangku Kepentingan',
+		title: '6. Isu Pemangku Kepentingan',
 		focus: 'Pemegang Saham, regulator, pemerintah, mitra, dan pelanggan.',
-		unit: 'satu baris untuk setiap stakeholder / isu',
-		layar: 'Stakeholder Issues',
+		unit: 'satu baris untuk setiap pemangku kepentingan / isu',
+		layar: 'Isu Pemangku Kepentingan',
 		no: '06'
 	},
 	{
 		eyebrow: 'Agenda 07',
-		nav: '7. Decision Making',
-		title: '7. Decision Making',
+		nav: '7. Pengambilan Keputusan',
+		title: '7. Pengambilan Keputusan',
 		focus: 'Keputusan yang harus disepakati Direksi.',
 		unit: 'satu baris untuk setiap usulan / keputusan',
-		layar: 'Decision Making',
+		layar: 'Pengambilan Keputusan',
 		no: '07'
 	},
 	{
 		eyebrow: 'Agenda 08',
-		nav: '8. Action Plan',
-		title: '8. Action Plan',
+		nav: '8. Rencana Tindak Lanjut',
+		title: '8. Rencana Tindak Lanjut',
 		focus: 'PIC, target waktu, dan indikator penyelesaian.',
 		unit: 'satu baris untuk setiap tindakan / deliverable',
-		layar: 'Action Plan',
+		layar: 'Rencana Tindak Lanjut',
 		no: '08'
 	}
 ];
