@@ -1,6 +1,35 @@
-/* Notulen Rapat Direksi (Screen 1), from design_handoff_notulen_rapat_direksi/Notulen Rapat Direksi.html.
- * Every value is a @jup/ui token (scoped under .jup-root); no hex. Square and flat: the DS owns
- * card, control and chip radii; nothing here adds a shadow. Motion is linear, 120–200ms. */
+/* Notulen Rapat Direksi (Screen 1), from design_handoff_notulen_rapat_direksi/Notulen Rapat Direksi.html,
+ * restyled 2026-10-05 to the KPI 2026 tab's form (src/lib/components/leadership/kpi.css): a header
+ * over a heavy ink rule, the app's card surfaces and radii, mono eyebrows and table heads. Every
+ * value is a token; no hex. Motion is linear, 120–200ms. */
+
+/* The list and the Notulen sit in the app shell, so their @jup/ui semantic tokens point at the
+ * app's own: the same card ground, ring, sunk fill, hairlines and radii the KPI tab draws with,
+ * in both themes (the island follows the app's light/dark; see mount.tsx). The Layar (.lr-root)
+ * keeps the DS values. Selectors match @jup/ui's own `.jup-root[data-jup-theme]` and one more. */
+.jup-root.nt-root,
+.jup-root.nt-root[data-jup-theme] {
+	--jup-surface-page: transparent;
+	--jup-surface-card: var(--jlp-card-bg);
+	--jup-surface-sunken: var(--jlp-sunk);
+	--jup-border-default: var(--jup-ui-hairline);
+	--jup-border-subtle: var(--jup-ui-hairline);
+	--jup-border-strong: var(--jup-ui-hairline-strong);
+	--jup-radius: var(--jup-ui-radius-card);
+	--jup-radius-sm: var(--jup-ui-radius-control);
+	--jup-radius-control: var(--jup-ui-radius-control);
+	--jup-radius-btn: var(--jup-ui-radius-control);
+	--jup-radius-modal: var(--jup-ui-radius-card);
+	background: transparent;
+}
+/* Cards are the KPI tab's surfaces: ring and lift instead of a drawn border. */
+.nt-root .jup-card {
+	border-color: transparent;
+	box-shadow: var(--jlp-card-ring), var(--jlp-card-lift);
+}
+.nt-root .jup-badge {
+	border-radius: 999px;
+}
 
 .nt-app {
 	min-height: 100%;
@@ -24,36 +53,54 @@
 }
 .nt-eyebrow {
 	font-family: var(--jup-font-mono);
-	font-size: var(--jup-size-2xs);
-	letter-spacing: 0.12em;
+	font-size: 0.6875rem;
+	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: var(--jup-text-brand);
+	color: var(--jup-text-secondary);
 }
+.nt-r {
+	text-align: right;
+}
+.nt-sr {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+/* The header: the KPI tab's .kd-head. */
 .nt-top {
-	background: var(--jup-surface-card);
-	border-bottom: 1px solid var(--jup-border-default);
-	position: sticky;
-	top: 0;
-	z-index: 50;
+	margin-top: 1rem;
 }
 .nt-top__in {
-	max-width: 1360px;
-	margin: 0 auto;
-	padding: var(--jup-s5) var(--jup-s6);
 	display: flex;
-	gap: var(--jup-s5);
+	gap: 1rem;
 	align-items: flex-end;
 	justify-content: space-between;
 	flex-wrap: wrap;
+	padding-bottom: 1rem;
+	border-bottom: 2px solid var(--jup-text-primary);
 }
 .nt-h1 {
 	font-family: var(--jup-font-display);
-	font-size: var(--jup-size-2xl);
-	line-height: 1.15;
-	font-weight: var(--jup-weight-semibold);
+	font-size: 1.75rem;
+	line-height: 1.1;
+	font-weight: 700;
 	letter-spacing: -0.02em;
-	margin: var(--jup-s1) 0 var(--jup-s2);
+	margin: 0.25rem 0 0.5rem;
 	text-wrap: balance;
+}
+.nt-note {
+	display: flex;
+	gap: var(--jup-s2);
+	align-items: baseline;
+	flex-wrap: wrap;
+	margin: var(--jup-s2) 0 0;
+	max-width: 90ch;
+	font-size: 0.75rem;
+	color: var(--jup-text-secondary);
+	text-wrap: pretty;
 }
 .nt-top__meta {
 	display: flex;
@@ -64,9 +111,6 @@
 	color: var(--jup-text-secondary);
 }
 .nt-top__tabs {
-	max-width: 1360px;
-	margin: 0 auto;
-	padding: 0 var(--jup-s6);
 	overflow-x: auto;
 }
 .nt-actions {
@@ -76,9 +120,7 @@
 	align-items: center;
 }
 .nt-shell {
-	max-width: 1360px;
-	margin: 0 auto;
-	padding: var(--jup-s6);
+	padding: 1rem 0 0;
 	display: grid;
 	grid-template-columns: 236px minmax(0, 1fr);
 	gap: var(--jup-s6);
@@ -89,11 +131,14 @@
 }
 .nt-side {
 	position: sticky;
-	top: 150px;
+	top: 1rem;
 	display: flex;
 	flex-direction: column;
-	border: 1px solid var(--jup-border-default);
+	padding: var(--jup-s1) 0;
+	overflow: hidden;
+	border-radius: var(--jup-radius);
 	background: var(--jup-surface-card);
+	box-shadow: var(--jlp-card-ring), var(--jlp-card-lift);
 }
 .nt-side__item {
 	all: unset;
@@ -276,8 +321,8 @@
 	flex-direction: column;
 	gap: var(--jup-s2);
 	padding: var(--jup-s3);
+	border-radius: var(--jup-radius-sm);
 	background: var(--jup-surface-sunken);
-	border: 1px solid var(--jup-border-subtle);
 }
 .nt-date__label {
 	font-size: var(--jup-size-sm);
@@ -307,15 +352,17 @@
 	display: flex;
 	align-items: center;
 	padding: var(--jup-s3);
-	border: 1px solid var(--jup-border-subtle);
+	border-radius: var(--jup-radius-sm);
 	background: var(--jup-surface-card);
+	box-shadow: inset 0 0 0 1px var(--jup-border-default);
 }
 .nt-empty {
 	margin: 0;
 	color: var(--jup-text-muted);
 	font-size: var(--jup-size-sm);
 	padding: var(--jup-s4);
-	border: 1px dashed var(--jup-border-default);
+	border: 1px dashed var(--jup-border-strong);
+	border-radius: var(--jup-radius-sm);
 	text-align: center;
 }
 .nt-empty--sm {
@@ -386,6 +433,7 @@
 	display: flex;
 	flex-direction: column;
 	gap: var(--jup-s2);
+	border-radius: var(--jup-radius-sm);
 	background: var(--jup-surface-sunken);
 	padding: var(--jup-s2);
 	min-height: 120px;
@@ -397,8 +445,9 @@
 	padding: var(--jup-s1);
 }
 .nt-tile {
+	border-radius: var(--jup-radius-sm);
 	background: var(--jup-surface-card);
-	border: 1px solid var(--jup-border-default);
+	box-shadow: inset 0 0 0 1px var(--jup-border-default);
 	padding: var(--jup-s3);
 	display: flex;
 	flex-direction: column;
@@ -460,12 +509,16 @@
 	color: var(--jup-text-secondary);
 }
 .nt-foot {
-	font-size: var(--jup-size-xs);
-	color: var(--jup-text-muted);
+	margin: 0;
+	font-size: 0.75rem;
+	color: var(--jup-text-secondary);
+	max-width: 900px;
+	text-wrap: pretty;
+}
+.nt-main > .nt-foot {
 	border-top: 1px solid var(--jup-border-default);
 	padding-top: var(--jup-s4);
 	margin-top: var(--jup-s4);
-	max-width: 90ch;
 }
 @media (max-width: 860px) {
 	.nt-shell {
@@ -488,17 +541,20 @@
 	.nt-side__sep {
 		display: none;
 	}
-	.nt-top {
-		position: static;
-	}
-	.nt-top__in {
-		padding: var(--jup-s4);
-	}
 }
 @media print {
-	.nt-top {
-		position: static;
+	/* Print the notulen alone: not the app sidebar, not the Ruang Pimpinan header and tabs, and
+	 * not clipped to the app's scroll box. */
+	body:has(.nt-app) #sidebar,
+	body:has(.nt-app) .jlp-header {
+		display: none !important;
 	}
+	body:has(.nt-app) .jlp-shell,
+	body:has(.nt-app) .jlp-scroll {
+		height: auto !important;
+		overflow: visible !important;
+	}
+	.nt-note,
 	.nt-top .nt-actions,
 	.nt-side,
 	.nt-top__tabs,
@@ -524,35 +580,75 @@
 	}
 }
 
-/* The downloaded snapshot is read-only: no actions, no delete buttons. */
+/* The downloaded snapshot is read-only: no actions, no delete buttons, no browser-storage note. */
+.nt-snapshot .nt-note,
 .nt-snapshot .nt-top .nt-actions,
 .nt-snapshot .nt-rec .jup-iconbtn,
 .nt-snapshot .nt-ahead .nt-actions {
 	display: none;
 }
-.nt-snapshot .nt-top {
-	position: static;
-}
 
-/* The Rapat Direksi tab's meeting list. */
+/* The Rapat Direksi tab's meeting list: the KPI tab's header, table card and footnote. */
 .nt-list {
 	display: flex;
 	flex-direction: column;
-	gap: var(--jup-s4);
-	padding: var(--jup-s5) 0;
+	gap: 1rem;
 	color: var(--jup-text-primary);
 	font-family: var(--jup-font-sans);
 }
-
-.nt-list__head {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	gap: var(--jup-s3);
-	flex-wrap: wrap;
+.nt-actions--end {
+	justify-content: flex-end;
+	flex-wrap: nowrap;
 }
-
-/* The island's own ground: the DS paper, not the app's section surface. */
-.nt-root {
-	background: var(--jup-surface-page);
+.nt-tablecard {
+	overflow: hidden;
+	border-radius: var(--jup-radius);
+	background: var(--jup-surface-card);
+	box-shadow: var(--jlp-card-ring), var(--jlp-card-lift);
+}
+.nt-tablewrap {
+	overflow-x: auto;
+}
+.nt-table {
+	width: 100%;
+	min-width: 720px;
+	border-collapse: collapse;
+	font-size: 0.8125rem;
+}
+.nt-table th {
+	text-align: left;
+	font-family: var(--jup-font-mono);
+	font-size: 0.6875rem;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--jup-text-secondary);
+	font-weight: 500;
+	padding: 0.5rem 0.75rem;
+	background: var(--jup-surface-sunken);
+	border-bottom: 1px solid var(--jup-border-default);
+	white-space: nowrap;
+}
+.nt-table th.nt-r {
+	text-align: right;
+}
+.nt-table td {
+	padding: 0.625rem 0.75rem;
+	border-bottom: 1px solid var(--jup-border-default);
+	vertical-align: middle;
+}
+.nt-table tbody tr:last-child td {
+	border-bottom: 0;
+}
+.nt-trow__name {
+	font-family: var(--jup-font-display);
+	font-weight: 600;
+	font-size: 0.875rem;
+}
+.nt-trow.is-demo td {
+	background: var(--jup-surface-sunken);
+}
+.nt-tempty {
+	text-align: center;
+	padding: 2rem 0.75rem !important;
+	color: var(--jup-text-muted);
 }

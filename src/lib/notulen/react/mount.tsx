@@ -8,7 +8,9 @@ import '@jup/ui/styles.css';
 // this module lazily (so React loads only on these routes) and owns the island's lifetime.
 //
 // The theme starts at `theme` and the reader's own choice is remembered under `storageKey`, which
-// the route makes per user and per surface (Notulen and Layar are toggled separately).
+// the route makes per user and per surface. `theme: 'app'` instead follows the app's own light/dark
+// (the `dark` class on <html>), as the other Ruang Pimpinan tabs do: the list and the Notulen sit
+// inside the app shell, so a second theme switch there would only disagree with it.
 
 export type Island<P> = { update: (props: P) => void; destroy: () => void };
 
@@ -16,15 +18,21 @@ export const mountIsland = <P extends object>(
 	target: HTMLElement,
 	App: ComponentType<P>,
 	props: P,
-	options: { theme: JupTheme; storageKey: string; className?: string }
+	options: { theme: JupTheme | 'app'; storageKey: string | null; className?: string }
 ): Island<P> => {
 	const root = createRoot(target);
-	const render = (next: P) =>
+	const html = document.documentElement;
+	const follow = options.theme === 'app';
+	const theme = (): JupTheme =>
+		options.theme === 'app' ? (html.classList.contains('dark') ? 'dark' : 'light') : options.theme;
+	let current = props;
+	const render = (next: P) => {
+		current = next;
 		root.render(
 			<StrictMode>
 				<JupUIProvider
-					theme={options.theme}
-					storageKey={options.storageKey}
+					theme={theme()}
+					storageKey={follow ? null : options.storageKey}
 					className={options.className}
 				>
 					<ToastProvider placement="bottom-right">
@@ -33,6 +41,15 @@ export const mountIsland = <P extends object>(
 				</JupUIProvider>
 			</StrictMode>
 		);
+	};
 	render(props);
-	return { update: render, destroy: () => root.unmount() };
+	const watch = follow ? new MutationObserver(() => render(current)) : null;
+	watch?.observe(html, { attributes: true, attributeFilter: ['class'] });
+	return {
+		update: render,
+		destroy: () => {
+			watch?.disconnect();
+			root.unmount();
+		}
+	};
 };

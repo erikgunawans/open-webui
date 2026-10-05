@@ -6,7 +6,10 @@ import { snapshotHtml } from './snapshot';
 describe('Simpan HTML terisi', () => {
 	// A defined document is the live condition: @jup/ui ToastProvider portals only when one exists,
 	// and that portal is what broke "Simpan HTML terisi" in the browser (React #257).
-	(globalThis as { document?: unknown }).document ??= { styleSheets: [] };
+	(globalThis as { document?: unknown }).document ??= {
+		styleSheets: [],
+		querySelector: () => null
+	};
 
 	it('renders the demo meeting to a self-contained page', () => {
 		const html = snapshotHtml(demoMeeting(0), 'light');
