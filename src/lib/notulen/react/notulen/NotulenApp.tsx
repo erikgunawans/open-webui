@@ -21,6 +21,7 @@ export type NotulenProps = {
 	layarHref: string;
 	/** Where the reader's last view is remembered (per user and meeting). */
 	viewKey: string;
+	demo?: boolean;
 };
 
 const readView = (key: string): View => {
@@ -33,13 +34,16 @@ const readView = (key: string): View => {
 	return '0';
 };
 
-export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey }: NotulenProps) => {
+export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: NotulenProps) => {
 	const [meeting, update, saved, unreadable] = useMeeting(repo, meetingId, init);
 	const [view, setView] = useState<View>(() => readView(viewKey));
 	const [confirmReset, setConfirmReset] = useState(false);
 	const { toast } = useToast();
 	const { resolvedTheme } = useJupTheme();
 	const top = useRef<HTMLDivElement>(null);
+	const main = useRef<HTMLElement>(null);
+	// Set by a sidebar choice, so focus follows the reader to the new view (not on first load).
+	const moved = useRef(false);
 
 	useEffect(() => {
 		try {
@@ -53,9 +57,19 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey }: Notule
 		update((m) => ({ ...m, records: m.records.map((x, i) => (i === db ? records : x)) }));
 
 	const go = (v: View) => {
+		moved.current = true;
 		setView(v);
 		top.current?.scrollIntoView({ block: 'start' });
 	};
+
+	// A keyboard or screen-reader user lands on the new view's heading instead of staying in the nav.
+	useEffect(() => {
+		if (!moved.current) return;
+		moved.current = false;
+		const h = main.current?.querySelector<HTMLElement>('h2');
+		h?.setAttribute('tabindex', '-1');
+		h?.focus({ preventScroll: true });
+	}, [view]);
 
 	const print = async () => {
 		const { printRisalah } = await import('./risalah');
@@ -112,10 +126,11 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey }: Notule
 				onReset={() => setConfirmReset(true)}
 				onPrint={print}
 				onSave={save}
+				demo={demo}
 			/>
 			<div className="nt-shell">
 				<Nav meeting={meeting} view={view} onView={go} />
-				<main className="nt-main">
+				<main className="nt-main" ref={main}>
 					{view === 'views' ? (
 						<DerivedViews meeting={meeting} />
 					) : view === 'guide' ? (

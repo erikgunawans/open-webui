@@ -667,3 +667,8 @@
 	gap: var(--jup-s2);
 	margin-top: var(--jup-s2);
 }
+
+/* Headings take focus when the sidebar switches view; no ring unless the reader is on the keyboard. */
+.nt-h2[tabindex='-1']:focus:not(:focus-visible) {
+	outline: none;
+}

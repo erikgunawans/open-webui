@@ -27,14 +27,19 @@ export const AgendaNav = ({
 					aria-current={i === current ? 'step' : undefined}
 					onClick={() => onGo(i)}
 				>
-					<span className="lr-nav__no lr-mono">
-						{st === 'done' ? <Check size={18} strokeWidth={2.25} aria-label="Selesai" /> : a.no}
-					</span>
+					<span className="lr-nav__no lr-mono">{a.no}</span>
 					<span className="lr-nav__t">
 						<span>{a.nav}</span>
 						{a.pemapar ? <span className="lr-sub">{a.pemapar}</span> : null}
 					</span>
-					<span className="lr-mono lr-sub">{a.menit}′</span>
+					{st === 'done' ? (
+						<span className="lr-mono lr-sub lr-nav__done">
+							<Check size={18} strokeWidth={2.25} aria-label="Selesai" />
+							{a.menit}′
+						</span>
+					) : (
+						<span className="lr-mono lr-sub">{a.menit}′</span>
+					)}
 				</button>
 			);
 		})}

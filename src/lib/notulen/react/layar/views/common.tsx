@@ -34,7 +34,7 @@ export const Bar = ({
 	<div className="lr-bar" role="presentation">
 		<div
 			className={`lr-bar__f lr-bar__f--${tone}`}
-			style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}
+			style={{ transform: `scaleX(${Math.max(0, Math.min(100, pct)) / 100})` }}
 		/>
 	</div>
 );

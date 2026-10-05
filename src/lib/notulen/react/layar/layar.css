@@ -232,6 +232,12 @@
 	color: var(--jup-text-brand);
 	border-color: var(--jup-border-default);
 }
+.lr-nav__done {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: var(--jup-text-brand);
+}
 .lr-nav__i--done .lr-nav__t > span:first-child {
 	color: var(--jup-text-secondary);
 }
@@ -376,7 +382,8 @@
 }
 .lr-bar__f {
 	height: 100%;
-	transition: width 0.2s linear;
+	transform-origin: left center;
+	transition: transform 0.2s ease-out;
 }
 .lr-bar__f--brand,
 .lr-bar__f--success {
@@ -598,15 +605,32 @@
 	align-items: center;
 	background: var(--jup-surface-card);
 	border: 1px solid var(--jup-border-default);
-	border-left: 8px solid var(--jup-border-strong);
 	padding: var(--jup-s2) var(--jup-s5); /* reference 12px: five rows clipped 4px */
 	font-size: 20px;
 }
+/* The level reads from a swatch and the word's colour, not a thick side stripe. */
+.lr-risk {
+	--lvl: var(--jup-border-strong);
+}
 .lr-risk--danger {
-	border-left-color: var(--jup-danger);
+	--lvl: var(--jup-danger);
 }
 .lr-risk--warning {
-	border-left-color: var(--jup-warning);
+	--lvl: var(--jup-warning);
+}
+.lr-risk--danger .lr-risk__lvl .lr-strong {
+	color: var(--jup-danger-text);
+}
+.lr-risk--warning .lr-risk__lvl .lr-strong {
+	color: var(--jup-warning-text);
+}
+.lr-risk__lvl .lr-strong::before {
+	content: '';
+	display: inline-block;
+	width: 14px;
+	height: 14px;
+	margin-right: 10px;
+	background: var(--lvl);
 }
 .lr-risk__lvl .lr-strong {
 	font-size: 24px;
@@ -779,7 +803,7 @@
 	border-left: 0;
 }
 .lr-stats .lr-k {
-	font-size: 13px;
+	font-size: 15px;
 }
 .lr-rail__s {
 	padding: var(--jup-s3) var(--jup-s5); /* reference s4: the rail clipped 7px */
@@ -849,7 +873,7 @@
 	display: flex;
 	align-items: center;
 	padding: 0 8px;
-	font-size: 13px;
+	font-size: 15px;
 	color: var(--jup-text-muted);
 }
 .lr-seg.is-done {
@@ -961,6 +985,9 @@
 	.lr-view,
 	.lr-notice {
 		animation: none;
+	}
+	.lr-bar__f {
+		transition: none;
 	}
 }
 .lr-closing__list {

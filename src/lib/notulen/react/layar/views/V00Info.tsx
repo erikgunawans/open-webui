@@ -33,7 +33,7 @@ export const V00Info = ({ meeting, agenda }: ViewProps) => {
 					title="Kehadiran"
 					description={
 						total
-							? `${present.length} dari ${total} Direksi hadir · kuorum ${quorum ? 'terpenuhi' : 'belum terpenuhi'}`
+							? `${present.length} dari ${total} peserta hadir · kuorum ${quorum ? 'terpenuhi' : 'belum terpenuhi'}`
 							: 'Peserta belum diisi'
 					}
 					padding="md"

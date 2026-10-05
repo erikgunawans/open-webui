@@ -21,6 +21,8 @@ type Props = {
 	onReset: () => void;
 	onPrint: () => void;
 	onSave: () => void;
+	/** The fictional demo meeting: marked as on the Layar. */
+	demo?: boolean;
 };
 
 const clock = (at: number) =>
@@ -38,7 +40,8 @@ export const Header = ({
 	onDownloadOld,
 	onReset,
 	onPrint,
-	onSave
+	onSave,
+	demo
 }: Props) => {
 	const mv = mainInfo(meeting)?.values ?? {};
 	const status = text(mv['Status validasi']);
@@ -61,6 +64,11 @@ export const Header = ({
 						{klas ? (
 							<Badge tone={klas === 'Rahasia' ? 'danger' : 'info'} variant="outline">
 								{klas}
+							</Badge>
+						) : null}
+						{demo ? (
+							<Badge tone="warning" variant="subtle">
+								Data dummy
 							</Badge>
 						) : null}
 						{when ? <span className="nt-mono">{when}</span> : null}

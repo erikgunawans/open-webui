@@ -48,7 +48,8 @@ export const mountRapat = (target: HTMLElement, o: Options): Island<object> => {
 				meetingId: o.meetingId,
 				init,
 				layarHref: `${RAPAT_BASE}/${o.meetingId}/layar`,
-				viewKey: `jup-rapat-view:${o.userId}:${o.meetingId}`
+				viewKey: `jup-rapat-view:${o.userId}:${o.meetingId}`,
+				demo
 			},
 			{ theme: 'app', storageKey: null, className: 'nt-root' }
 		) as Island<object>;
