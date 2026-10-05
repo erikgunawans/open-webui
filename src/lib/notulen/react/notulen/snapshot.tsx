@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { JupUIProvider, ToastProvider, type JupResolvedTheme } from '@jup/ui';
+import { JupUIProvider, type JupResolvedTheme } from '@jup/ui';
 
 import { AGENDAS } from '../../agendas';
 import { meetingName } from '../../selectors';
@@ -11,7 +11,8 @@ import { Header } from './Header';
 // "Simpan HTML terisi": a read-only, self-contained copy of the filled notulen (every agenda
 // expanded, then the derived views), with the page's own JUP and notulen styles inlined. Static
 // rendering writes each input's value, each select's choice and each textarea's text into the
-// markup, which a DOM outerHTML would not.
+// markup, which a DOM outerHTML would not. No ToastProvider: it always portals into document.body,
+// which renderToStaticMarkup rejects (React #257) — the live "Simpan HTML terisi" failed on it.
 
 const ownCss = (): string => {
 	const out: string[] = [];
@@ -35,24 +36,23 @@ export const snapshotHtml = (meeting: Meeting, theme: JupResolvedTheme): string 
 	const noop = () => {};
 	const body = renderToStaticMarkup(
 		<JupUIProvider theme={theme} storageKey={null} className="nt-app nt-snapshot">
-			<ToastProvider>
-				<Header meeting={meeting} layarHref="" onReset={noop} onPrint={noop} onSave={noop} />
-				<div className="nt-shell nt-shell--tabs">
-					<main className="nt-main">
-						{AGENDAS.map((_, i) => (
-							<AgendaView
-								key={i}
-								db={i}
-								records={meeting.records[i]}
-								setRecords={noop}
-								showTypes={false}
-								printing
-							/>
-						))}
-						<DerivedViews meeting={meeting} />
-					</main>
-				</div>
-			</ToastProvider>
+			<Header meeting={meeting} layarHref="" onReset={noop} onPrint={noop} onSave={noop} />
+			<div className="nt-shell nt-shell--tabs">
+				<main className="nt-main">
+					{AGENDAS.map((_, i) => (
+						<AgendaView
+							key={i}
+							db={i}
+							records={meeting.records[i]}
+							setRecords={noop}
+							showTypes={false}
+							printing
+							toast={() => ''}
+						/>
+					))}
+					<DerivedViews meeting={meeting} />
+				</main>
+			</div>
 		</JupUIProvider>
 	);
 	return (
