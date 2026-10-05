@@ -87,6 +87,30 @@ export const snapshotHtml = (meeting: Meeting, theme: JupResolvedTheme): string 
 	);
 };
 
+// "Cetak / PDF" prints this same snapshot from a hidden frame, never the app page. The page sits
+// inside the app shell's fixed-height, overflow-hidden panel, and Chrome printed it as one blank
+// page; the snapshot has no shell to clip it. Always light: it is going on paper.
+const PRINT_FRAME_ID = 'nt-print-frame';
+
+export const printSnapshot = (meeting: Meeting): void => {
+	document.getElementById(PRINT_FRAME_ID)?.remove();
+	const frame = document.createElement('iframe');
+	frame.id = PRINT_FRAME_ID;
+	frame.title = 'Cetak notulen';
+	frame.setAttribute('aria-hidden', 'true');
+	frame.tabIndex = -1;
+	frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+	frame.addEventListener('load', () => {
+		const win = frame.contentWindow;
+		if (!win) return;
+		win.addEventListener('afterprint', () => frame.remove());
+		win.focus();
+		win.print();
+	});
+	frame.srcdoc = snapshotHtml(meeting, 'light');
+	document.body.appendChild(frame);
+};
+
 export const downloadSnapshot = (meeting: Meeting, theme: JupResolvedTheme): void => {
 	const url = URL.createObjectURL(
 		new Blob([snapshotHtml(meeting, theme)], { type: 'text/html;charset=utf-8' })

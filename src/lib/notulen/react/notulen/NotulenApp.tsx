@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button, Dialog, useJupTheme, useToast } from '@jup/ui';
 
-import { AGENDAS } from '../../agendas';
 import type { MeetingRepo } from '../../repo';
 import { FOOTER } from '../../schema';
 import type { Meeting, NotulenRecord } from '../../types';
@@ -38,7 +37,6 @@ const readView = (key: string): View => {
 export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey }: NotulenProps) => {
 	const [meeting, update] = useMeeting(repo, meetingId, init);
 	const [view, setView] = useState<View>(() => readView(viewKey));
-	const [printing, setPrinting] = useState(false);
 	const [confirmReset, setConfirmReset] = useState(false);
 	const { toast } = useToast();
 	const { resolvedTheme } = useJupTheme();
@@ -52,12 +50,6 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey }: Notule
 		}
 	}, [view, viewKey]);
 
-	useEffect(() => {
-		const off = () => setPrinting(false);
-		window.addEventListener('afterprint', off);
-		return () => window.removeEventListener('afterprint', off);
-	}, []);
-
 	const setRecords = (db: number) => (records: NotulenRecord[]) =>
 		update((m) => ({ ...m, records: m.records.map((x, i) => (i === db ? records : x)) }));
 
@@ -66,9 +58,9 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey }: Notule
 		top.current?.scrollIntoView({ block: 'start' });
 	};
 
-	const print = () => {
-		setPrinting(true);
-		setTimeout(() => window.print(), 300);
+	const print = async () => {
+		const { printSnapshot } = await import('./snapshot');
+		printSnapshot(meeting);
 	};
 
 	const save = async () => {
@@ -102,22 +94,7 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey }: Notule
 			<div className="nt-shell">
 				<Nav meeting={meeting} view={view} onView={go} />
 				<main className="nt-main">
-					{printing ? (
-						<>
-							{AGENDAS.map((_, i) => (
-								<AgendaView
-									key={`p${i}`}
-									db={i}
-									records={meeting.records[i]}
-									setRecords={setRecords(i)}
-									showTypes={false}
-									printing
-									toast={toast}
-								/>
-							))}
-							<DerivedViews meeting={meeting} />
-						</>
-					) : view === 'views' ? (
+					{view === 'views' ? (
 						<DerivedViews meeting={meeting} />
 					) : view === 'guide' ? (
 						<Guide />
