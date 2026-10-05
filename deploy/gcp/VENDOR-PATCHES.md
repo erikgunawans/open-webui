@@ -971,6 +971,9 @@ vendor's own (SheetJS + `excelToTable`, `DocxPreview`, `pptxToImages`).
   (`dark:hidden`), and **without** the vendor's `from-white to-white/85` wash.
 - `src/lib/stores/index.ts`: the `jupChatBackground` field on `Settings`.
 - The image lives in `static/static/` and `backend/open_webui/static/`, like the None-JUPe mark.
+  It is rendered from Erik's vector `background-jup.svg` at 2560×1440 (2× for sharp logos on
+  retina screens, ~125 KB): `rsvg-convert -w 2560 -h 1440 background-jup.svg`. Do not ship the SVG
+  itself — it is 5.2 MB of embedded PNGs.
 
 **Why:** Erik's call 10-05. He uploaded the JUP slide background through the vendor setting and
 saw no change: the vendor lays a 85–100% white wash over any background so text stays legible, and
