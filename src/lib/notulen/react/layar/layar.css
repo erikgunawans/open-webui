@@ -1,11 +1,45 @@
 /* Layar Rapat Direksi (Screen 2), from design_handoff_notulen_rapat_direksi/Layar Rapat Direksi.html.
  * A fixed 1920x1080 stage, scaled to fit and letterboxed on --jup-surface-inverse. Every value is
- * a @jup/ui token; no hex. */
+ * a token (the frame borrows the app's card radius and ring); no hex. */
 
+/* In the Ruang Pimpinan panel: a 16:9 frame the panel's width (held under the window height), as
+ * a card like the KPI tab's. In full screen it takes the whole screen, letterboxed. */
+.lr-frame {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	margin-top: 1rem;
+}
+.lr-bar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 1rem;
+	flex-wrap: wrap;
+}
+.lr-bar__hint {
+	font-family: var(--jup-font-mono);
+	font-size: 0.6875rem;
+	letter-spacing: 0.04em;
+	color: var(--jup-text-secondary);
+}
 .lr-viewport {
-	position: fixed;
-	inset: 0;
+	position: relative;
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	max-height: calc(100dvh - 2rem);
+	overflow: hidden;
+	border-radius: var(--jup-ui-radius-card, 0);
 	background: var(--jup-surface-inverse);
+	box-shadow: var(--jlp-card-ring, none), var(--jlp-card-lift, none);
+}
+.lr-viewport:fullscreen {
+	width: 100%;
+	height: 100%;
+	max-height: none;
+	aspect-ratio: auto;
+	border-radius: 0;
+	box-shadow: none;
 }
 .lr-stage {
 	position: absolute;

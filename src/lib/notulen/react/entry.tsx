@@ -8,7 +8,7 @@ import { mountIsland, type Island } from './mount';
 
 // The one module the Svelte routes import (lazily). Everything the React screens need is wired
 // here: the per-user repository, the demo meeting, and each surface's theme (the Layar keeps its
-// own, dark by default for a projector; the list and the Notulen follow the app).
+// own, light by default; the list and the Notulen follow the app).
 
 export const RAPAT_BASE = '/ruang-pimpinan/rapat';
 
@@ -35,8 +35,8 @@ export const mountRapat = (target: HTMLElement, o: Options): Island<object> => {
 			target,
 			LayarApp,
 			{ repo, meetingId: o.meetingId, init, demo },
-			// Dark is the suggestion for a projector; the reader's own choice wins once made.
-			{ theme: 'dark', storageKey: themeKey('layar'), className: 'lr-root' }
+			// Light by default (Erik, 2026-10-05); the reader's own choice wins once made.
+			{ theme: 'light', storageKey: themeKey('layar'), className: 'lr-root' }
 		) as Island<object>;
 
 	if (o.surface === 'notulen')
