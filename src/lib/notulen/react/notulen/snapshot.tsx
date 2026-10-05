@@ -29,6 +29,30 @@ const ownCss = (): string => {
 	return out.join('\n');
 };
 
+// The app tokens the island's surfaces point at (notulen.css, `.jup-root.nt-root`). The file has no
+// app stylesheet, so their values as resolved on the page right now go in with it.
+const APP_TOKENS = [
+	'--jlp-card-bg',
+	'--jlp-sunk',
+	'--jlp-card-ring',
+	'--jlp-card-lift',
+	'--jup-ui-hairline',
+	'--jup-ui-hairline-strong',
+	'--jup-ui-radius-card',
+	'--jup-ui-radius-control'
+];
+
+const appTokens = (): string => {
+	const el = document.querySelector('.nt-root');
+	if (!el || typeof getComputedStyle !== 'function') return '';
+	const cs = getComputedStyle(el);
+	const decl = APP_TOKENS.map((t) => [t, cs.getPropertyValue(t).trim()])
+		.filter(([, v]) => v)
+		.map(([t, v]) => `${t}: ${v};`)
+		.join(' ');
+	return decl ? `:root { ${decl} }\n` : '';
+};
+
 const escape = (s: string) =>
 	s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
@@ -58,7 +82,7 @@ export const snapshotHtml = (meeting: Meeting, theme: JupResolvedTheme): string 
 	return (
 		'<!doctype html>\n<html lang="id"><head><meta charset="utf-8">' +
 		'<meta name="viewport" content="width=device-width, initial-scale=1">' +
-		`<title>${escape(meetingName(meeting))}</title><style>${ownCss()}</style></head>` +
+		`<title>${escape(meetingName(meeting))}</title><style>${appTokens()}${ownCss()}</style></head>` +
 		`<body>${body}</body></html>`
 	);
 };

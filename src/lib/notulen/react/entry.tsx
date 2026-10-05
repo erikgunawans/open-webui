@@ -7,7 +7,8 @@ import { NotulenApp } from './notulen/NotulenApp';
 import { mountIsland, type Island } from './mount';
 
 // The one module the Svelte routes import (lazily). Everything the React screens need is wired
-// here: the per-user repository, the demo meeting, and each surface's default theme.
+// here: the per-user repository, the demo meeting, and each surface's theme (the Layar keeps its
+// own, dark by default for a projector; the list and the Notulen follow the app).
 
 export const RAPAT_BASE = '/ruang-pimpinan/rapat';
 
@@ -27,8 +28,7 @@ export const mountRapat = (target: HTMLElement, o: Options): Island<object> => {
 	const repo = new LocalStorageMeetingRepo(localStorage, window, o.userId);
 	const demo = o.meetingId === DEMO_ID;
 	const init = () => (demo ? demoMeeting() : seedMeeting(o.meetingId));
-	const themeKey = (s: Surface) =>
-		`jup-rapat-theme:${s === 'layar' ? 'layar' : 'notulen'}:${o.userId}`;
+	const themeKey = (s: Surface) => `jup-rapat-theme:${s}:${o.userId}`;
 
 	if (o.surface === 'layar')
 		return mountIsland(
@@ -50,13 +50,13 @@ export const mountRapat = (target: HTMLElement, o: Options): Island<object> => {
 				layarHref: `${RAPAT_BASE}/${o.meetingId}/layar`,
 				viewKey: `jup-rapat-view:${o.userId}:${o.meetingId}`
 			},
-			{ theme: 'light', storageKey: themeKey('notulen'), className: 'nt-root' }
+			{ theme: 'app', storageKey: null, className: 'nt-root' }
 		) as Island<object>;
 
 	return mountIsland(
 		target,
 		MeetingList,
 		{ repo, base: RAPAT_BASE, newId: meetingNewId, open: o.navigate },
-		{ theme: 'light', storageKey: themeKey('notulen'), className: 'nt-root' }
+		{ theme: 'app', storageKey: null, className: 'nt-root' }
 	) as Island<object>;
 };

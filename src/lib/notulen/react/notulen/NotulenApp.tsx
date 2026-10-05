@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Button, Dialog, useJupTheme, useToast } from '@jup/ui';
+import { Button, Dialog, useJupTheme, useToast } from '@jup/ui';
 
 import { AGENDAS } from '../../agendas';
 import type { MeetingRepo } from '../../repo';
@@ -102,14 +102,6 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey }: Notule
 			<div className="nt-shell">
 				<Nav meeting={meeting} view={view} onView={go} />
 				<main className="nt-main">
-					{db === 0 && !printing ? (
-						<Alert tone="info" title="Tersimpan di peramban ini">
-							Isian tersimpan otomatis di peramban dan perangkat ini saja, untuk akun Anda; belum
-							ada salinan di server. Layar rapat di tab lain peramban ini ikut berubah, di perangkat
-							lain tidak. Gunakan <strong>Simpan HTML terisi</strong> untuk membuat salinan berisi
-							data.
-						</Alert>
-					) : null}
 					{printing ? (
 						<>
 							{AGENDAS.map((_, i) => (
