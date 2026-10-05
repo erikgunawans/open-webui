@@ -1,10 +1,9 @@
 import { Badge, Card, IconButton, Textarea } from '@jup/ui';
 import { ChevronDown, Trash2 } from 'lucide-react';
 
-import { INFO_GROUPS, SUMMARY_KEYS, toneOf } from '../../agendas';
+import { INFO_GROUPS, ITEM_NOUN, SUMMARY_KEYS, toneOf } from '../../agendas';
 import {
 	DBS,
-	filled,
 	text,
 	titleField,
 	type NotulenRecord,
@@ -13,8 +12,8 @@ import {
 } from '../../types';
 import { PropField } from '../fields/PropField';
 
-// One record: a collapsible card with every property of its database, grouped as the template
-// groups them, and the record's long page body.
+// One entry: a collapsible card with every field of its database, grouped as the template
+// groups them, and the entry's long notes.
 
 const LONG = ['rich_text', 'files'];
 const two = (n: number) => String(n).padStart(2, '0');
@@ -25,7 +24,6 @@ type Props = {
 	index: number;
 	total: number;
 	open: boolean;
-	showTypes: boolean;
 	onToggle: () => void;
 	onChange: (next: NotulenRecord) => void;
 	onDelete: () => void;
@@ -40,7 +38,7 @@ const groupsFor = (db: number): [string, PropDef[]][] => {
 		]);
 	const rest = fields.filter((f) => f.type !== 'title');
 	return [
-		['Properti', rest.filter((f) => !LONG.includes(f.type))],
+		['Rincian', rest.filter((f) => !LONG.includes(f.type))],
 		['Uraian, pembahasan & arahan', rest.filter((f) => LONG.includes(f.type))]
 	];
 };
@@ -52,7 +50,7 @@ const gridClass = (g: string, fs: PropDef[]) =>
 			? 'nt-grid--long'
 			: 'nt-grid--short';
 
-export const RecordCard = ({ db, r, index, total, open, showTypes, ...on }: Props) => {
+export const RecordCard = ({ db, r, index, total, open, ...on }: Props) => {
 	const fields = DBS[db].fields;
 	const tf = titleField(db);
 	const title = text(r.values[tf.name]);
@@ -66,12 +64,10 @@ export const RecordCard = ({ db, r, index, total, open, showTypes, ...on }: Prop
 			f={f}
 			value={r.values[f.name]}
 			timeOn={!!r.time[f.name]}
-			showType={showTypes}
 			onChange={(v) => set(f.name, v)}
 			onTime={(t) => setTime(f.name, t)}
 		/>
 	);
-	const nFilled = fields.filter((f) => filled(r.values[f.name])).length;
 	const bodyId = `nt-rec-${r.id}`;
 
 	return (
@@ -99,10 +95,6 @@ export const RecordCard = ({ db, r, index, total, open, showTypes, ...on }: Prop
 					<span className="nt-mono">
 						{two(index + 1)} / {two(total)}
 					</span>
-					<span>{r.origin}</span>
-					<span className="nt-mono">
-						{nFilled}/{fields.length} terisi
-					</span>
 					{SUMMARY_KEYS.filter((k) => text(r.values[k])).map((k) => (
 						<Badge key={k} tone={toneOf(text(r.values[k]))} dot>
 							{text(r.values[k])}
@@ -111,7 +103,7 @@ export const RecordCard = ({ db, r, index, total, open, showTypes, ...on }: Prop
 				</span>
 			}
 			actions={
-				<IconButton label="Hapus record" size="sm" onClick={on.onDelete}>
+				<IconButton label={`Hapus ${ITEM_NOUN[db]}`} size="sm" onClick={on.onDelete}>
 					<Trash2 size={16} aria-hidden="true" />
 				</IconButton>
 			}
@@ -138,14 +130,14 @@ export const RecordCard = ({ db, r, index, total, open, showTypes, ...on }: Prop
 						);
 					})}
 					<section className="nt-group">
-						<h3 className="nt-group__h">Isi halaman / catatan panjang</h3>
+						<h3 className="nt-group__h">Catatan panjang</h3>
 						<Textarea
 							rows={3}
 							autoResize
 							maxRows={20}
 							value={r.body}
-							placeholder="Catatan panjang untuk record ini…"
-							aria-label="Isi halaman / catatan panjang"
+							placeholder={`Catatan panjang untuk ${ITEM_NOUN[db]} ini…`}
+							aria-label="Catatan panjang"
 							onChange={(e) => on.onChange({ ...r, body: e.target.value })}
 						/>
 					</section>

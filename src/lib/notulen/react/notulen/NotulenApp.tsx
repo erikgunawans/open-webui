@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Button, Dialog, useJupTheme, useToast } from '@jup/ui';
 
 import type { MeetingRepo } from '../../repo';
-import { FOOTER } from '../../schema';
 import type { Meeting, NotulenRecord } from '../../types';
 import { useMeeting } from '../useMeeting';
 import { AgendaView } from './AgendaView';
@@ -127,11 +126,9 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey }: Notule
 							db={db ?? 0}
 							records={meeting.records[db ?? 0]}
 							setRecords={setRecords(db ?? 0)}
-							showTypes
 							toast={toast}
 						/>
 					)}
-					<footer className="nt-foot">{FOOTER}</footer>
 				</main>
 			</div>
 			<Dialog

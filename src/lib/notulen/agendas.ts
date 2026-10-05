@@ -12,6 +12,19 @@ export interface AgendaCopy {
 	no: string;
 }
 
+/** What one entry of each database is called in the UI, by database index. */
+export const ITEM_NOUN = [
+	'butir',
+	'sasaran',
+	'indikator',
+	'isu',
+	'program',
+	'risiko',
+	'butir',
+	'usulan',
+	'tindakan'
+];
+
 export const AGENDAS: AgendaCopy[] = [
 	{
 		eyebrow: 'Informasi rapat',

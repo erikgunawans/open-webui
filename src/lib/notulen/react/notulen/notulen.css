@@ -308,13 +308,6 @@
 	gap: var(--jup-s2);
 	align-items: baseline;
 }
-.nt-type {
-	font-family: var(--jup-font-mono);
-	font-size: var(--jup-size-3xs);
-	font-weight: var(--jup-weight-regular);
-	color: var(--jup-text-muted);
-	text-transform: lowercase;
-}
 .nt-date,
 .nt-multi {
 	display: flex;
@@ -514,11 +507,6 @@
 	color: var(--jup-text-secondary);
 	max-width: 900px;
 	text-wrap: pretty;
-}
-.nt-main > .nt-foot {
-	border-top: 1px solid var(--jup-border-default);
-	padding-top: var(--jup-s4);
-	margin-top: var(--jup-s4);
 }
 @media (max-width: 860px) {
 	.nt-shell {

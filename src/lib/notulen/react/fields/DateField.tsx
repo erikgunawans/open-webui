@@ -17,18 +17,17 @@ type Props = {
 	f: PropDef;
 	value: DateValue | undefined;
 	timeOn: boolean;
-	showType: boolean;
 	onChange: (v: DateValue) => void;
 	onTime: (on: boolean) => void;
 };
 
-export const DateField = ({ f, value, timeOn, showType, onChange, onTime }: Props) => {
+export const DateField = ({ f, value, timeOn, onChange, onTime }: Props) => {
 	const v = value ?? { start: '', end: '' };
 	const type = timeOn ? 'datetime-local' : 'date';
 	return (
 		<div className="nt-date" role="group" aria-label={f.name}>
 			<div className="nt-date__label">
-				<FieldLabel f={f} showType={showType} />
+				<FieldLabel f={f} />
 			</div>
 			<div className="nt-date__row">
 				<Field label="Mulai">

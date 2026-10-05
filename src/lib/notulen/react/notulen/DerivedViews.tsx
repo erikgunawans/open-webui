@@ -17,7 +17,7 @@ import { text, type Meeting, type NotulenRecord } from '../../types';
 const v = (r: NotulenRecord, k: string) => text(r.values[k]);
 const prefixed = (id: string, t: string) => (id ? `${id} — ${t}` : t);
 
-const Empty = () => <p className="nt-empty">Belum ada record yang sesuai.</p>;
+const Empty = () => <p className="nt-empty">Belum ada butir yang sesuai.</p>;
 
 const Row = ({ title, meta, badge }: { title: string; meta: string[]; badge?: string }) => (
 	<li className="nt-vrow">
@@ -45,8 +45,8 @@ export const DerivedViews = ({ meeting }: { meeting: Meeting }) => {
 					Review keputusan, risiko & tindak lanjut
 				</h2>
 				<p className="nt-focus">
-					Dihitung ulang dari record agenda 5, 7, dan 8 setiap kali nilai berubah. Kalender bukan
-					acara kalender pribadi.
+					Dihitung ulang dari agenda 5, 7, dan 8 setiap kali nilai berubah. Kalender bukan acara
+					kalender pribadi.
 				</p>
 			</header>
 			<div className="nt-views">

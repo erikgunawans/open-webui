@@ -1,10 +1,9 @@
-import { INFO2_BODY } from './schema';
 import { STANDARD_MINUTES } from './agendas';
 import type { Meeting, MeetingSession, NotulenRecord, PropValue } from './types';
 
-// A new meeting is the original template's twelve records (README → "Initial records"):
-// Informasi ×2, Strategic ×1, Kinerja ×9 (eight starter indicators and one empty), and one empty
-// form for each of agendas 3–8.
+// A new meeting: one Informasi entry (the template's second; its empty twin and its Notion-only
+// page body are dropped), Strategic ×1, Kinerja ×9 (eight starter indicators and one empty), and
+// one empty form for each of agendas 3–8.
 
 export const newId = (): string =>
 	typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -37,14 +36,7 @@ export const freshSession = (now = Date.now()): MeetingSession => ({
 });
 
 export const seedRecords = (): NotulenRecord[][] => [
-	[
-		record(),
-		record(
-			{ 'Nama rapat': 'Isi nama rapat', 'Status validasi': 'Draft' },
-			INFO2_BODY,
-			'Record sumber'
-		)
-	],
+	[record({ 'Nama rapat': 'Isi nama rapat', 'Status validasi': 'Draft' }, '', 'Record sumber')],
 	[record()],
 	[...KINERJA_STARTERS.map((n) => record({ Indikator: n }, '', 'Indikator awal')), record()],
 	...[3, 4, 5, 6, 7, 8].map(() => [record({}, '', EMPTY_FORM)])
