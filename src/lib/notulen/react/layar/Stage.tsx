@@ -6,7 +6,8 @@ import { Maximize2, Minimize2 } from 'lucide-react';
 // that fills the Ruang Pimpinan panel's width. "Layar penuh" (or F) puts the frame in browser full
 // screen for the projector; Esc leaves it. The scale is recomputed on ResizeObserver, window
 // resize, visibilitychange, and a 500ms interval (a tab loaded in the background can report 0×0
-// until shown). A zero size never sets a zero scale.
+// until shown). A zero size never sets a zero scale. `overlay` renders in the frame but outside the
+// scaled stage (the Layar notice), so it is part of the full-screen element at a readable size.
 
 export const STAGE_W = 1920;
 export const STAGE_H = 1080;
@@ -14,7 +15,7 @@ export const STAGE_H = 1080;
 export const fitScale = (w: number, h: number): number | null =>
 	w > 0 && h > 0 ? Math.min(w / STAGE_W, h / STAGE_H) : null;
 
-export const Stage = ({ children }: { children: ReactNode }) => {
+export const Stage = ({ children, overlay }: { children: ReactNode; overlay?: ReactNode }) => {
 	const [k, setK] = useState(1);
 	const [full, setFull] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
@@ -67,8 +68,8 @@ export const Stage = ({ children }: { children: ReactNode }) => {
 
 	return (
 		<div className="lr-frame">
-			<div className="lr-bar">
-				<span className="lr-bar__hint">
+			<div className="lr-toolbar">
+				<span className="lr-toolbar__hint">
 					← → atau 0–8: pindah agenda · F: layar penuh · Esc: keluar
 				</span>
 				<Button
@@ -90,6 +91,7 @@ export const Stage = ({ children }: { children: ReactNode }) => {
 				<div className="lr-stage" style={{ transform: `translate(-50%,-50%) scale(${k})` }}>
 					{children}
 				</div>
+				{overlay}
 			</div>
 		</div>
 	);

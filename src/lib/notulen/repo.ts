@@ -11,7 +11,8 @@ export type Unsubscribe = () => void;
 
 export interface MeetingRepo {
 	get(id: string): Meeting | null;
-	save(meeting: Meeting): void;
+	/** Store the meeting; false when it could not be stored (it still reaches this tab's listeners). */
+	save(meeting: Meeting): boolean;
 	/** Called with the stored meeting whenever another tab (or this one) saves it. */
 	subscribe(id: string, cb: (meeting: Meeting) => void): Unsubscribe;
 }
@@ -78,14 +79,18 @@ export class LocalStorageMeetingRepo implements MeetingRepo {
 		}
 	}
 
-	save(meeting: Meeting): void {
+	save(meeting: Meeting): boolean {
+		let stored = true;
 		try {
 			this.storage.setItem(this.key(meeting.id), JSON.stringify(meeting));
 		} catch {
-			// Storage full or blocked: the change holds in memory for this visit only.
+			// Storage full or blocked: the change holds in memory for this visit only, and the caller
+			// must say so — the screens promise an automatic save.
+			stored = false;
 		}
 		// The storage event never fires in the tab that wrote, so tell local listeners directly.
 		this.listeners.get(meeting.id)?.forEach((cb) => cb(meeting));
+		return stored;
 	}
 
 	subscribe(id: string, cb: (meeting: Meeting) => void): Unsubscribe {

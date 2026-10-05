@@ -85,6 +85,22 @@ describe('repository', () => {
 		expect(parseMeeting('not json')).toBeNull();
 	});
 
+	it('reports a refused write instead of swallowing it, and still tells this tab', () => {
+		class FullStorage extends MemoryStorage {
+			setItem(): void {
+				throw new DOMException('quota', 'QuotaExceededError');
+			}
+		}
+		const repo = new LocalStorageMeetingRepo(new FullStorage(), events(), 'user-1');
+		const seen: string[] = [];
+		repo.subscribe('rapat-1', (x) => seen.push(x.id));
+		expect(repo.save(seedMeeting('rapat-1'))).toBe(false);
+		expect(seen).toEqual(['rapat-1']);
+		expect(new LocalStorageMeetingRepo(new MemoryStorage(), events()).save(seedMeeting('r'))).toBe(
+			true
+		);
+	});
+
 	it('tells subscribers about local saves and other tabs’ writes, and stops after unsubscribe', () => {
 		const ev = events();
 		const repo = new LocalStorageMeetingRepo(new MemoryStorage(), ev, 'user-1');

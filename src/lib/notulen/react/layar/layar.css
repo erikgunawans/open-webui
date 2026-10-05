@@ -10,21 +10,22 @@
 	gap: 0.75rem;
 	margin-top: 1rem;
 }
-.lr-bar {
+.lr-toolbar {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
 	gap: 1rem;
 	flex-wrap: wrap;
 }
-.lr-bar__hint {
+.lr-toolbar__hint {
 	font-family: var(--jup-font-mono);
-	font-size: 0.6875rem;
+	font-size: 0.75rem;
 	letter-spacing: 0.04em;
 	color: var(--jup-text-secondary);
 }
 .lr-viewport {
 	position: relative;
+	container-type: inline-size;
 	width: 100%;
 	aspect-ratio: 16 / 9;
 	max-height: calc(100dvh - 2rem);
@@ -875,4 +876,90 @@
 /* The decision buttons carry a Lucide check when active, not a typed glyph. */
 .lr-dec__acts .jup-btn svg {
 	flex: none;
+}
+
+/* The Layar's confirmations (Notice.tsx). They sit in the viewport, not the scaled stage, so the
+ * text is sized against the frame's width: readable in the panel and from the back of the room. */
+.lr-notice-region {
+	position: absolute;
+	right: 2.5cqi;
+	bottom: 2.5cqi;
+	z-index: 1;
+	max-width: min(36rem, 60cqi);
+	pointer-events: none;
+}
+.lr-notice {
+	pointer-events: auto;
+	display: flex;
+	align-items: center;
+	gap: 0.75em;
+	padding: 0.75em 1em;
+	font-family: var(--jup-font-sans);
+	font-size: clamp(0.875rem, 1.25cqi, 1.625rem);
+	line-height: 1.35;
+	background: var(--jup-surface-card);
+	color: var(--jup-text-primary);
+	border: 1px solid var(--jup-border-default);
+	border-radius: var(--jup-radius-lg);
+	box-shadow: var(--jup-shadow-lg);
+	animation: lrNotice var(--jup-duration-base, 0.2s) var(--jup-ease-out, ease-out);
+}
+.lr-notice__icon {
+	flex: none;
+	width: 1.4em;
+	height: 1.4em;
+}
+.lr-notice--success .lr-notice__icon {
+	color: var(--jup-success-text);
+}
+.lr-notice--danger .lr-notice__icon {
+	color: var(--jup-danger-text);
+}
+.lr-notice--warning .lr-notice__icon {
+	color: var(--jup-warning-text);
+}
+.lr-notice--neutral .lr-notice__icon {
+	color: var(--jup-text-secondary);
+}
+.lr-notice__body {
+	min-width: 0;
+	flex: 1;
+}
+.lr-notice__title {
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+.lr-notice__desc {
+	color: var(--jup-text-secondary);
+	font-size: 0.875em;
+	overflow-wrap: anywhere;
+}
+@keyframes lrNotice {
+	from {
+		opacity: 0;
+		transform: translateY(0.5em);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+/* Decision 07: Tolak asks once, in place — no modal over the projected screen. */
+.lr-dec__confirm {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	flex-wrap: wrap;
+}
+.lr-dec__confirm-q {
+	font-weight: 600;
+	color: var(--jup-danger-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.lr-view,
+	.lr-notice {
+		animation: none;
+	}
 }

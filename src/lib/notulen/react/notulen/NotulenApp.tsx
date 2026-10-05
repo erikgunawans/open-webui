@@ -35,7 +35,7 @@ const readView = (key: string): View => {
 };
 
 export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey }: NotulenProps) => {
-	const [meeting, update] = useMeeting(repo, meetingId, init);
+	const [meeting, update, saved] = useMeeting(repo, meetingId, init);
 	const [view, setView] = useState<View>(() => readView(viewKey));
 	const [confirmReset, setConfirmReset] = useState(false);
 	const { toast } = useToast();
@@ -87,6 +87,7 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey }: Notule
 			<Header
 				meeting={meeting}
 				layarHref={layarHref}
+				saved={saved}
 				onReset={() => setConfirmReset(true)}
 				onPrint={print}
 				onSave={save}
