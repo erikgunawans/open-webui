@@ -20,6 +20,12 @@ const config = {
 		// poll for new version name every 60 seconds (to trigger reload mechanic in +layout.svelte)
 		version: {
 			name: (() => {
+				// JUP: the image build has no .git (.dockerignore), so `git rev-parse` failed and every
+				// deploy shipped the package.json version — the same name each time. `updated` never
+				// fired, and a tab opened before a deploy hit "500: Internal Error" on its next
+				// navigation (its old chunks are gone). The Dockerfile sets APP_BUILD_HASH per image.
+				const buildHash = process.env.APP_BUILD_HASH;
+				if (buildHash && buildHash !== 'dev-build') return buildHash;
 				try {
 					return child_process.execSync('git rev-parse HEAD').toString().trim();
 				} catch {
