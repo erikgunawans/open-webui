@@ -305,16 +305,21 @@ async def emit_chat_list_event(metadata: dict, chat_id: str):
 class SPAStaticFiles(StaticFiles):
     async def get_response(self, path: str, scope):
         try:
-            return await super().get_response(path, scope)
+            response = await super().get_response(path, scope)
         except (HTTPException, StarletteHTTPException) as ex:
             if ex.status_code == 404:
                 if path.endswith('.js'):
                     # Return 404 for javascript files
                     raise ex
                 else:
-                    return await super().get_response('index.html', scope)
+                    response = await super().get_response('index.html', scope)
             else:
                 raise ex
+        # JUP: the HTML shell names this build's hashed chunks. Without Cache-Control the browser
+        # may reuse a cached shell after a deploy and request chunks the new image no longer has.
+        if response.media_type == 'text/html':
+            response.headers['Cache-Control'] = 'no-cache'
+        return response
 
 
 class CORSStaticFiles(StaticFiles):
