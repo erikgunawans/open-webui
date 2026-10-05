@@ -13,7 +13,7 @@ Rapat Direksi memiliki dua layar: **Notulen** untuk mencatat, dan **Layar** untu
 3. Isi setiap agenda. Isian tersimpan otomatis.
 4. Untuk menampilkan layar rapat, klik **Buka layar**. Layar terbuka di tab baru; pindahkan tab itu ke monitor atau proyektor ruang rapat.
 
-Untuk membuka notulen yang sudah ada, klik **Notulen** pada kartu rapatnya di daftar **Notulen rapat**. Klik **Layar** untuk membuka layarnya.
+Untuk membuka notulen yang sudah ada, klik **Notulen** pada baris rapatnya di tabel **Notulen rapat**. Klik **Layar** untuk membuka layarnya.
 
 ## Mengendalikan Layar
 
@@ -29,7 +29,9 @@ Untuk membuka notulen yang sudah ada, klik **Notulen** pada kartu rapatnya di da
 
 ## Mencoba dengan rapat contoh
 
-Kartu **Rapat contoh** di bagian bawah daftar berisi data dummy (fiktif) untuk mencoba Notulen dan Layar tanpa mengisi rapat sungguhan.
+Baris terakhir tabel, bertanda **Contoh**, adalah rapat contoh berisi data dummy (fiktif) untuk mencoba Notulen dan Layar tanpa mengisi rapat sungguhan.
+
+Tampilan Notulen mengikuti tema terang atau gelap aplikasi. Layar memiliki pengaturan temanya sendiri dan gelap secara bawaan.
 
 ## Yang perlu diketahui
 
