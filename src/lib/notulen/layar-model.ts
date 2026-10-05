@@ -1,6 +1,14 @@
 import { AGENDAS, STANDARD_MINUTES } from './agendas';
-import { deviationTone, fmtShort } from './selectors';
-import { isDate, text, type Meeting, type NotulenRecord, type PropValue } from './types';
+import { actions, decisions, deviationTone, fmtShort, mainInfo, targetOf } from './selectors';
+import {
+	DECISION_STATUS,
+	filled,
+	isDate,
+	text,
+	type Meeting,
+	type NotulenRecord,
+	type PropValue
+} from './types';
 
 // The Layar is a read model of one Meeting. Field mapping per the handoff README ("Production data
 // flow"); every value comes from the schema's own property names. Rows with no title are left out:
@@ -149,3 +157,82 @@ export const decisionId = (r: NotulenRecord, i: number) =>
 	t(r, 'ID keputusan') || `D-${String(i + 1).padStart(2, '0')}`;
 export const actionId = (r: NotulenRecord, i: number) =>
 	t(r, 'ID tindakan') || `A-${String(i + 1).padStart(2, '0')}`;
+
+/** Epoch ms → "2026-10-05T11:58" on the Asia/Jakarta clock (the form every date value uses). */
+export const jakartaLocal = (ms: number): string =>
+	new Date(ms)
+		.toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta', hour12: false })
+		.slice(0, 16)
+		.replace(' ', 'T');
+
+const CLOSED_AT = 'Waktu rapat ditutup';
+
+/**
+ * "Tutup rapat": the last agenda is done and the session is closed at `now`. The Informasi entry's
+ * "Waktu rapat ditutup" takes that time only when it is still empty — a time the secretary typed
+ * wins, and reopening and closing again keeps the first close.
+ */
+export const closeMeeting = (m: Meeting, now: number): Meeting => {
+	const last = m.records.length - 1;
+	const info = mainInfo(m);
+	const stamp = info && !filled(info.values[CLOSED_AT]);
+	return {
+		...m,
+		records: stamp
+			? m.records.map((coll, i) =>
+					i !== 0
+						? coll
+						: coll.map((r) =>
+								r.id === info.id
+									? {
+											...r,
+											values: { ...r.values, [CLOSED_AT]: { start: jakartaLocal(now), end: '' } },
+											time: { ...r.time, [CLOSED_AT]: true }
+										}
+									: r
+							)
+				)
+			: m.records,
+		session: {
+			...m.session,
+			doneAgendas: [...new Set([...m.session.doneAgendas, last])],
+			currentAgenda: last,
+			closedAt: now
+		}
+	};
+};
+
+/** Leave the closing screen for agenda `i`; the meeting runs again. */
+export const reopenAt = (m: Meeting, i: number, now: number): Meeting => {
+	const { closedAt: _closed, ...session } = m.session;
+	return { ...m, session: { ...session, currentAgenda: i, agendaEnteredAt: now } };
+};
+
+const DECISION_ORDER = [
+	'Disetujui',
+	'Disetujui bersyarat',
+	'Ditunda',
+	'Ditolak',
+	'Belum diputuskan'
+];
+
+/** What the closing screen reports: agendas done, decisions by status, actions and their gaps. */
+export const closingSummary = (m: Meeting) => {
+	const decs = decisions(m);
+	const acts = actions(m);
+	const statusOf = (r: NotulenRecord) => t(r, DECISION_STATUS) || 'Belum diputuskan';
+	return {
+		agendasDone: new Set(m.session.doneAgendas).size,
+		agendasTotal: m.records.length,
+		decisions: DECISION_ORDER.map(
+			(s) => [s, decs.filter((r) => statusOf(r) === s).length] as const
+		),
+		decisionList: decs.map((r, i) => ({
+			id: decisionId(r, i),
+			topic: t(r, 'Topik keputusan'),
+			status: statusOf(r)
+		})),
+		actions: acts.length,
+		actionsIncomplete: acts.filter((r) => !t(r, 'PIC utama') || !targetOf(r)).length
+	};
+};

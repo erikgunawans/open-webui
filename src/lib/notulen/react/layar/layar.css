@@ -963,3 +963,22 @@
 		animation: none;
 	}
 }
+.lr-closing__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+}
+.lr-closing__row {
+	display: grid;
+	grid-template-columns: 88px minmax(0, 1fr) auto;
+	gap: var(--jup-s3);
+	align-items: center;
+	font-size: 18px;
+	padding: 10px 0;
+	border-bottom: 1px solid var(--jup-border-default);
+}
+.lr-closing__row:last-child {
+	border-bottom: 0;
+}
