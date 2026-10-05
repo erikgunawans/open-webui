@@ -1,3 +1,37 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-06-v58)
+
+> Prepended by /wrap 2026-10-06 (checkpoint 2026-10-06-v58). Supersedes v57's anchor and its "do next" (hand checks done; Notion leftovers, closing screen + Risalah live); v57's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-06-v58).
+Anchor: `origin/main` at `3f29f3161` **as this was written**, or one commit ahead at this checkpoint's own wrap merge (subject names `2026-10-06-v58`). Verify with `git log --oneline 3f29f3161..origin/main`; a merge of **#135** (`fix/layar-polish`) is also expected if the previous session finished it — anything else is a parallel push.
+
+**Current state:**
+- **Live:** `ent-os-00110-jzv` (image `3f29f3161`; rollback `00109-p5j`). Gateway `jup-gateway-00004-fxv` unchanged.
+- Rapat Direksi: Notion leftovers gone (#133), Layar **Tutup rapat** → Penutupan screen and Notulen **Cetak / PDF** → Risalah (#134), both live-checked. **PR #135** polish (risk swatch, bar transform, 15px stage labels, nav numbers, "peserta hadir", Notulen demo badge, focus to heading) is open; Erik authorized merge + deploy once CI is green.
+
+**Do next, in order:**
+1. **#135:** if not merged, check CI (`gh pr checks 135`); green → merge, `df -h /` + swap + `gcloud auth print-access-token`, `bash deploy/gcp/deploy.sh`, then live check as Erik: Layar 05 risk rows (swatch, no stripe), 00 "peserta hadir", nav done items keep numbers, Notulen demo "Data dummy", sidebar view switch focuses the h2.
+2. **Ask Erik for hand checks:** (a) Notulen → Cetak / PDF shows the Risalah (letterhead + RAHASIA, attendance, tables, signatures, "Halaman x dari y"); (b) Layar penuh → 08 → Tutup rapat reads well on the projector; (c) reload test: a tab open across a deploy navigates without "500: Internal Error". Fix what he reports.
+3. **Re-run `$impeccable critique`** on Rapat Direksi (was 22/40) and commit the snapshot (critique snapshots ARE tracked).
+4. **Critique issue 2 — live meeting flow** ("● Di layar" + "Ikuti layar" in the Notulen sidebar, quick Topik/Keputusan/PIC capture): grill with Erik first (`/grill-with-docs`, maybe `/prototype`), not straight to code.
+5. **#42 Notion acceptance with Erik**; **E8 when JUP IT answers #82** (ask once if still silent).
+6. Carried: server-backed `MeetingRepo` only after Erik uses Rapat Direksi; O3 acceptance (PowerPoint + Keynote); phone check; Legal-account Kartu Kontrak; staff-account checks (O1); #47.
+
+**Constraints to honor** (new, plus the blocks below):
+- **Disk/swap swing fast:** free fell 915 → 872 MiB while deleting 309 MB (swap growing). Need ≥ ~1.5 GiB before `deploy.sh`; if short, ask Erik to close apps (worked: → 3.7 GiB). Remaining big caches (`~/.cache/codex-runtimes` 1.5 GB, `printing-press` 556 MB) only with his OK; leave `huggingface`/`whisper`/`uv`.
+- The SecurityPipeline hook blocks a Bash line combining `rm -rf` with `df -h /` ("recursive deletion of system root") — run separately.
+- `risalah.tsx` owns the print frame (`printRisalah`); `snapshot.tsx` is download-only. Never trigger print or Layar penuh through Interceptor.
+- Closing stamps Informasi › Waktu rapat ditutup only when empty; reopening never clears it. `go()` in LayarApp always reopens (clears `closedAt`).
+- `schema.ts` stays generated (`bun scripts/gen-schema.ts`); its FOOTER/NOTE/INFO2_BODY exports are now unused, don't hand-edit to remove them.
+
+**Open items waiting on Erik:**
+- Hand checks in item 2; confirm or change the Risalah choices (draft notice unless Status validasi = Disetujui, fixed "Jakarta," place line, empty Kinerja starters omitted, hardcoded company name).
+- Demo meeting's Waktu rapat ditutup now holds 02.23 in his browser (clear it in Notulen if wanted).
+- Decisions for critique issue 2 when we grill it.
+- Carried: #42 Notion test + Tasks DB vs D25; JUP IT's reply to #82; contract-card titles, `jup_contracts` all-users grant, Rully items, O3 acceptance, phone check, Latar Obrolan wording, WhatsApp strings, test-chat deletion, secret rotation if transcripts are shared, JUP WhatsApp number.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-06-v57)
 
 > Prepended by /wrap 2026-10-06 (checkpoint 2026-10-06-v57). Supersedes v56's anchor and its "do next" (#126 Cetak fix is live; the "release.yml disable too?" question is settled by #127); v56's and older blocks' constraints still hold unless noted.
