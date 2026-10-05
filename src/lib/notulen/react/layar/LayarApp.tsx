@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { agendaPlan } from '../../layar-model';
+import { agendaPlan, closeMeeting, reopenAt } from '../../layar-model';
 import type { MeetingRepo } from '../../repo';
 import { ACTION_STATUS, DECISION_STATUS, text, type Meeting } from '../../types';
 import { useMeeting } from '../useMeeting';
@@ -20,6 +20,7 @@ import { V05Risiko } from './views/V05Risiko';
 import { V06Stakeholder } from './views/V06Stakeholder';
 import { V07Keputusan } from './views/V07Keputusan';
 import { V08Aksi } from './views/V08Aksi';
+import { V09Penutupan } from './views/V09Penutupan';
 import './layar.css';
 
 // Screen 2: the boardroom display, a read model of the same Meeting the Notulen writes. Agenda
@@ -47,6 +48,9 @@ export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
 	const plan = agendaPlan(meeting);
 	const cur = Math.min(Math.max(meeting.session.currentAgenda, 0), plan.length - 1);
 	const done = meeting.session.doneAgendas;
+	const closedAt = meeting.session.closedAt;
+	// The agenda view on screen; none while the closing screen is up.
+	const onScreen = closedAt === undefined ? cur : -1;
 
 	useEffect(() => {
 		const i = window.setInterval(() => setNow(new Date()), 1000);
@@ -56,16 +60,19 @@ export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
 	const go = useCallback(
 		(i: number) => {
 			if (i < 0 || i >= plan.length) return;
-			update((m) => ({
-				...m,
-				session: { ...m.session, currentAgenda: i, agendaEnteredAt: Date.now() }
-			}));
+			// Any move away from the closing screen reopens the meeting at that agenda.
+			update((m) => reopenAt(m, i, Date.now()));
 		},
 		[plan.length, update]
 	);
 	useAgendaKeys(cur, go);
 
 	const finish = () => {
+		if (cur === plan.length - 1) {
+			update((m) => closeMeeting(m, Date.now()));
+			notify({ title: 'Rapat ditutup', tone: 'success' });
+			return;
+		}
 		update((m) => ({
 			...m,
 			session: {
@@ -157,14 +164,15 @@ export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
 					/>
 					<AgendaNav plan={plan} current={cur} done={done} onGo={go} />
 					<main className="lr-main">
-						{cur === 0 ? <V00Info key={0} {...view} /> : null}
-						{cur === 1 ? <V01Strategi key={1} {...view} /> : null}
-						{cur === 2 ? <V02Kinerja key={2} {...view} /> : null}
-						{cur === 3 ? <V03Isu key={3} {...view} /> : null}
-						{cur === 4 ? <V04Program key={4} {...view} /> : null}
-						{cur === 5 ? <V05Risiko key={5} {...view} /> : null}
-						{cur === 6 ? <V06Stakeholder key={6} {...view} /> : null}
-						{cur === 7 ? (
+						{closedAt !== undefined ? <V09Penutupan meeting={meeting} closedAt={closedAt} /> : null}
+						{onScreen === 0 ? <V00Info key={0} {...view} /> : null}
+						{onScreen === 1 ? <V01Strategi key={1} {...view} /> : null}
+						{onScreen === 2 ? <V02Kinerja key={2} {...view} /> : null}
+						{onScreen === 3 ? <V03Isu key={3} {...view} /> : null}
+						{onScreen === 4 ? <V04Program key={4} {...view} /> : null}
+						{onScreen === 5 ? <V05Risiko key={5} {...view} /> : null}
+						{onScreen === 6 ? <V06Stakeholder key={6} {...view} /> : null}
+						{onScreen === 7 ? (
 							<V07Keputusan
 								key={7}
 								{...view}
@@ -173,7 +181,7 @@ export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
 								onDecide={decide}
 							/>
 						) : null}
-						{cur === 8 ? <V08Aksi key={8} {...view} onAdvance={advance} /> : null}
+						{onScreen === 8 ? <V08Aksi key={8} {...view} onAdvance={advance} /> : null}
 					</main>
 					<Rail
 						meeting={meeting}
@@ -187,8 +195,10 @@ export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
 						plan={plan}
 						current={cur}
 						done={done}
+						closed={closedAt !== undefined}
 						onPrev={() => go(cur - 1)}
 						onFinish={finish}
+						onReopen={() => go(cur)}
 					/>
 				</div>
 			</div>

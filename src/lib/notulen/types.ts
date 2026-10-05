@@ -53,6 +53,8 @@ export interface MeetingSession {
 	doneAgendas: number[];
 	/** Epoch ms when the current agenda was entered; drives the agenda timer. */
 	agendaEnteredAt: number;
+	/** Epoch ms the Layar closed the meeting ("Tutup rapat"); unset while it runs or after reopening. */
+	closedAt?: number;
 }
 
 /**

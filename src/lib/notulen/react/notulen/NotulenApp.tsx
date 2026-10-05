@@ -58,8 +58,8 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey }: Notule
 	};
 
 	const print = async () => {
-		const { printSnapshot } = await import('./snapshot');
-		printSnapshot(meeting);
+		const { printRisalah } = await import('./risalah');
+		printRisalah(meeting);
 	};
 
 	const save = async () => {
