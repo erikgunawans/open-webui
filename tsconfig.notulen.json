@@ -1,0 +1,4 @@
+{
+	"extends": "./tsconfig.json",
+	"include": ["src/lib/notulen/**/*", ".svelte-kit/ambient.d.ts", "src/app.d.ts"]
+}

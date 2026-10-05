@@ -56,6 +56,20 @@ export class LocalStorageMeetingRepo implements MeetingRepo {
 		return `${PREFIX}${this.namespace ? this.namespace + ':' : ''}${id}`;
 	}
 
+	/** The meetings stored for this namespace (this user, this browser), in storage order. */
+	list(): Meeting[] {
+		const prefix = this.key('');
+		const out: Meeting[] = [];
+		for (let i = 0; i < this.storage.length; i++) {
+			const k = this.storage.key(i);
+			if (k?.startsWith(prefix)) {
+				const m = parseMeeting(this.storage.getItem(k));
+				if (m) out.push(m);
+			}
+		}
+		return out;
+	}
+
 	get(id: string): Meeting | null {
 		try {
 			return parseMeeting(this.storage.getItem(this.key(id)));

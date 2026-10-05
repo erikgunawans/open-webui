@@ -21,12 +21,17 @@
 		{ view: 'board', href: '/ruang-pimpinan/board', label: 'Direksi & Komisaris' },
 		{ view: 'rka', href: '/ruang-pimpinan/rka', label: 'RKA & Realisasi' },
 		// KPI is performance against the plan, so it is offered (and served) on the RKA grant.
-		{ view: 'rka', href: '/ruang-pimpinan/kpi', label: 'KPI 2026' }
+		{ view: 'rka', href: '/ruang-pimpinan/kpi', label: 'KPI 2026' },
+		// Notulen and the boardroom display for BOD meetings, offered on the Board grant.
+		{ view: 'board', href: '/ruang-pimpinan/rapat', label: 'Rapat Direksi' }
 	] as const;
 
 	// A tab is offered only for a view the reader holds. That is presentation: a direct URL still
 	// reaches the page, and the server refuses it there.
 	$: tabs = TABS.filter((tab) => $leadershipAccess.views.includes(tab.view));
+
+	// The Notulen brings its own 1360px shell; the section's reading column would squeeze it.
+	$: wide = $page.url.pathname.startsWith('/ruang-pimpinan/rapat');
 
 	$: active = (href: string) =>
 		$page.url.pathname === href || $page.url.pathname.startsWith(`${href}/`);
@@ -45,7 +50,7 @@
 <div class="jlp-shell">
 	<div class="jlp-root jlp-section jlp-board">
 		<div class="jlp-scroll">
-			<div class="jlp-container">
+			<div class="jlp-container" class:jlp-container--wide={wide}>
 				<MobileSidebarToggle />
 				<header class="jlp-header">
 					<div>
