@@ -1,3 +1,38 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-06-v59)
+
+> Prepended by /wrap 2026-10-06 (checkpoint 2026-10-06-v59). Supersedes v58's anchor and its "do next" (#135 shipped, hand checks passed, critique re-run); v58's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-06-v59).
+Anchor: `origin/main` at `80f5b270f` **as this was written**, or one commit ahead at this checkpoint's own wrap merge (subject names `checkpoint-v59` / `2026-10-06-v59`). Verify with `git log --oneline 80f5b270f..origin/main`; merges of **#137** (QHSE IT request doc) or **#138** (critique snapshot) are also expected if Erik merged them — anything else is a parallel push.
+
+**Current state:**
+- **Live:** `ent-os-00112-8bp` (image `80f5b270f` = main; rollback `00111-vkx`). Gateway `jup-gateway-00004-fxv` unchanged.
+- Rapat Direksi: polish (#135) and projector readability + Indonesian agenda names + per-session timer (#139) live and checked as Erik. Erik's hand checks (Risalah print, projector, reload across deploy) all good. Critique 26/40 (was 22).
+- QHSE SOP/template KB: requested, nothing built. Folder lives in Ikhsan's personal OneDrive; plan is to move it to SharePoint site `QHSE-JUP` and grant None-Jupe `Sites.Selected` read (request doc in #137).
+
+**Do next, in order:**
+1. **Grill critique issue 2 — live meeting flow** (`/grill-with-docs`, maybe `/prototype`): "● Di layar" / "Ikuti layar" in the Notulen sidebar, quick Topik/Keputusan/PIC capture, AND the two Notulen P1s it overlaps — working-order field groups per agenda (today alphabetical from `schema.ts` via `RecordCard.groupsFor`; model on `INFO_GROUPS`, empty optional fields behind "Tampilkan semua kolom") and rewriting the Notion-era Panduan (`Guide.tsx`). Also settle: "Disetujui bersyarat" without a written condition; form vs running transcript; who closes the meeting.
+2. Then build: the grilled flow + field order + guide; then the Tutup rapat checkpoint (inline "N usulan belum diputuskan · N tindakan tanpa PIC — Tutup tetap / Kembali ke 07", same pattern as Tolak). Re-run `$impeccable critique` after.
+3. **Merge #137 and #138** (docs only) once CI is green.
+4. **QHSE KB:** confirm Erik sent the JUP IT request + Ikhsan message and his access answer (assumed all staff; ask about incident reports / personal names). While waiting for the grant, grill the QHSE KB (`/grill-with-docs` → `/to-spec` → `/to-tickets`); consider `/to-questionnaire` for Ikhsan (contents, controlled revisions, sensitive docs).
+5. **#42 Notion acceptance with Erik**; **E8 when JUP IT answers #82** (nudge in the same IT message).
+6. Carried: server-backed `MeetingRepo` only after Erik uses Rapat Direksi; O3 acceptance (PowerPoint + Keynote); phone check; Legal-account Kartu Kontrak; staff-account checks (O1); #47.
+
+**Constraints to honor** (new, plus the blocks below):
+- Projection floor lives at the end of `layar.css`; the agenda index (`.lr-nav__t .lr-sub`) must stay 15px ("Dir. Pengembangan Usaha" truncates at 16px). Measure any Layar type change live on all 9 agendas by appending the CSS as the LAST stylesheet via `eval --main` (an `interceptor style inject` lands early in the cascade) and compare per-element sizes before/after.
+- Agenda display names are in `agendas.ts` only; `schema.ts` / `demo-source.ts` keep the English database names (storage keys, generated) — never rename those.
+- `jup-layar-sesi:<meetingId>` in sessionStorage marks a running Layar session; clicking `.lr-nav__i` during verification resets that agenda's timer (fine on demo).
+- No `react-hooks` ESLint plugin is configured: an `eslint-disable … react-hooks/…` comment is itself a lint error. `layar-model.ts` has a pre-existing `_closed` unused-var lint error (not CI-gating).
+- Swap swung to 7.6/8.4 GB this session; disk + swap + `gcloud auth print-access-token` before every deploy still apply.
+
+**Open items waiting on Erik:**
+- Send the JUP IT request (#137 doc) and the Ikhsan WhatsApp text; QHSE access scope (all staff?) and whether any docs carry names/incidents.
+- Risalah choices: draft notice unless Disetujui, fixed "Jakarta,", empty Kinerja omitted, hardcoded company name.
+- "Perkembangan Bisnis" kept capitalised mid-sentence as he wrote it — lowercase if he prefers.
+- Carried: #42 Notion test + Tasks DB vs D25; JUP IT's reply to #82; contract-card titles, `jup_contracts` all-users grant, Rully items, O3 acceptance, phone check, Latar Obrolan wording, WhatsApp strings, test-chat deletion, secret rotation if transcripts are shared, JUP WhatsApp number.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-06-v58)
 
 > Prepended by /wrap 2026-10-06 (checkpoint 2026-10-06-v58). Supersedes v57's anchor and its "do next" (hand checks done; Notion leftovers, closing screen + Risalah live); v57's and older blocks' constraints still hold unless noted.
