@@ -49,18 +49,18 @@ describe('schema', () => {
 describe('seed', () => {
 	const m = seedMeeting('rapat-1', 1000);
 
-	it('is the template’s 12 source records plus one empty form for each of agendas 3–8', () => {
+	it('is one Informasi entry, Strategic, Kinerja’s nine, and one empty form for each of agendas 3–8', () => {
 		expect(m.records).toHaveLength(9);
-		expect(m.records.map((r) => r.length)).toEqual([2, 1, 9, 1, 1, 1, 1, 1, 1]);
+		expect(m.records.map((r) => r.length)).toEqual([1, 1, 9, 1, 1, 1, 1, 1, 1]);
 		const empty = m.records.flat().filter((r) => r.origin.startsWith('Formulir kosong'));
-		expect(m.records.flat().length - empty.length).toBe(12);
+		expect(m.records.flat().length - empty.length).toBe(11);
 		expect(empty).toHaveLength(6);
 	});
 
-	it('names the eight Kinerja starters and marks the second Informasi record Draft', () => {
+	it('names the eight Kinerja starters and marks the Informasi entry Draft', () => {
 		expect(m.records[2].slice(0, 8).map((r) => r.values.Indikator)).toEqual(KINERJA_STARTERS);
-		expect(m.records[0][1].values['Status validasi']).toBe('Draft');
-		expect(m.records[0][1].body.length).toBeGreaterThan(0);
+		expect(m.records[0][0].values['Status validasi']).toBe('Draft');
+		expect(m.records[0][0].values['Nama rapat']).toBe('Isi nama rapat');
 	});
 
 	it('starts the session at agenda 00 with nothing done', () => {

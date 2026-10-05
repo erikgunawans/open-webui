@@ -9,14 +9,7 @@ import { withTime } from './DateField';
 const render = (f: PropDef, value?: PropValue, timeOn = false) =>
 	renderToStaticMarkup(
 		<JupUIProvider storageKey={null}>
-			<PropField
-				f={f}
-				value={value}
-				timeOn={timeOn}
-				showType={false}
-				onChange={() => {}}
-				onTime={() => {}}
-			/>
+			<PropField f={f} value={value} timeOn={timeOn} onChange={() => {}} onTime={() => {}} />
 		</JupUIProvider>
 	);
 

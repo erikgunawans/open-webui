@@ -76,7 +76,6 @@ export const snapshotHtml = (meeting: Meeting, theme: JupResolvedTheme): string 
 							db={i}
 							records={meeting.records[i]}
 							setRecords={noop}
-							showTypes={false}
 							printing
 							toast={() => ''}
 						/>

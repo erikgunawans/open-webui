@@ -11,7 +11,6 @@ type Props = {
 	f: PropDef;
 	value: PropValue | undefined;
 	timeOn: boolean;
-	showType: boolean;
 	onChange: (v: PropValue) => void;
 	onTime: (on: boolean) => void;
 };
@@ -23,8 +22,8 @@ export const numberAffixes = (name: string) => ({
 	suffix: /persen/i.test(name) ? '%' : undefined
 });
 
-export const PropField = ({ f, value, timeOn, showType, onChange, onTime }: Props) => {
-	const label = <FieldLabel f={f} showType={showType} />;
+export const PropField = ({ f, value, timeOn, onChange, onTime }: Props) => {
+	const label = <FieldLabel f={f} />;
 	const hint = f.description ?? undefined;
 
 	switch (f.type) {
@@ -45,7 +44,6 @@ export const PropField = ({ f, value, timeOn, showType, onChange, onTime }: Prop
 					f={f}
 					value={isDate(value) ? value : undefined}
 					timeOn={timeOn}
-					showType={showType}
 					onChange={onChange}
 					onTime={onTime}
 				/>

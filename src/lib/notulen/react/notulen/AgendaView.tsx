@@ -2,18 +2,19 @@ import { useState } from 'react';
 import { Alert, Button, Dialog, type ToastContextValue } from '@jup/ui';
 import { Plus } from 'lucide-react';
 
-import { AGENDAS } from '../../agendas';
+import { AGENDAS, ITEM_NOUN } from '../../agendas';
 import { record } from '../../seed';
-import { DBS, text, titleField, type NotulenRecord } from '../../types';
+import { text, titleField, type NotulenRecord } from '../../types';
 import { RecordCard } from './RecordCard';
 
-// One database (Informasi Rapat or an agenda): its header, its records, add and delete.
+// One database (Informasi Rapat or an agenda): its header, its entries, add and delete.
+
+const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 type Props = {
 	db: number;
 	records: NotulenRecord[];
 	setRecords: (next: NotulenRecord[]) => void;
-	showTypes: boolean;
 	/** Print mode: every record open, no per-record controls. */
 	printing?: boolean;
 	expandAll?: boolean;
@@ -21,16 +22,9 @@ type Props = {
 	toast: ToastContextValue['toast'];
 };
 
-export const AgendaView = ({
-	db,
-	records,
-	setRecords,
-	showTypes,
-	printing,
-	expandAll,
-	toast
-}: Props) => {
+export const AgendaView = ({ db, records, setRecords, printing, expandAll, toast }: Props) => {
 	const a = AGENDAS[db];
+	const noun = ITEM_NOUN[db];
 	const [openIds, setOpenIds] = useState<Set<string>>(
 		() =>
 			new Set(
@@ -45,10 +39,10 @@ export const AgendaView = ({
 	const allOpen = records.every((r) => openIds.has(r.id));
 
 	const add = () => {
-		const r = record({}, '', 'Record baru');
+		const r = record({}, '', 'Baru');
 		setRecords([...records, r]);
 		setOpenIds(new Set([...openIds, r.id]));
-		toast({ title: 'Record ditambahkan', description: a.nav, tone: 'success' });
+		toast({ title: `${cap(noun)} ditambahkan`, description: a.nav, tone: 'success' });
 	};
 	const toggle = (id: string) => {
 		const next = new Set(openIds);
@@ -60,7 +54,7 @@ export const AgendaView = ({
 		if (!toDelete) return;
 		setRecords(records.filter((x) => x.id !== toDelete.id));
 		setToDelete(null);
-		toast({ title: 'Record dihapus', tone: 'neutral' });
+		toast({ title: `${cap(noun)} dihapus`, tone: 'neutral' });
 	};
 
 	return (
@@ -76,7 +70,7 @@ export const AgendaView = ({
 				</p>
 				<div className="nt-ahead__row">
 					<span className="nt-mono nt-muted">
-						{DBS[db].fields.length} properti · {records.length} record
+						{records.length} {noun}
 					</span>
 					<div className="nt-actions">
 						{records.length > 1 ? (
@@ -94,7 +88,7 @@ export const AgendaView = ({
 							iconLeft={<Plus size={16} aria-hidden="true" />}
 							onClick={add}
 						>
-							Tambah record
+							Tambah {noun}
 						</Button>
 					</div>
 				</div>
@@ -113,7 +107,6 @@ export const AgendaView = ({
 						r={r}
 						index={i}
 						total={records.length}
-						showTypes={showTypes}
 						open={!!printing || openIds.has(r.id)}
 						onToggle={() => toggle(r.id)}
 						onChange={(nr) => setRecords(records.map((x) => (x.id === r.id ? nr : x)))}
@@ -122,17 +115,17 @@ export const AgendaView = ({
 				))}
 				{!records.length ? (
 					<div className="nt-empty">
-						Belum ada record. Gunakan <strong>Tambah record</strong>.
+						Belum ada {noun}. Gunakan <strong>Tambah {noun}</strong>.
 					</div>
 				) : null}
 			</div>
 			<Dialog
 				open={!!toDelete}
 				onClose={() => setToDelete(null)}
-				title="Hapus record?"
+				title={`Hapus ${noun}?`}
 				description={
 					toDelete
-						? `${text(toDelete.values[titleField(db).name]) || 'Record tanpa judul'} akan dihapus dari ${a.nav}.`
+						? `${text(toDelete.values[titleField(db).name]) || `${cap(noun)} tanpa judul`} akan dihapus dari ${a.nav}.`
 						: ''
 				}
 				footer={
