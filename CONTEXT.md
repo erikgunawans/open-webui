@@ -103,3 +103,70 @@ _Avoid_: OTP, verification code, PIN
 One question and its answer carried through a Channel on behalf of a mapped user. It is one kind of
 unattended turn: nobody is present to approve an External Call, so one is refused.
 _Avoid_: channel message, bot turn, automation
+
+### Rapat Direksi
+
+**Notulen**:
+The minutes of one Rapat Direksi as the Corsec keeps them while the meeting runs: every Butir
+pembahasan, Usulan and Tindakan, agenda by agenda.
+_Avoid_: notes, workspace, Notion page
+
+**Layar**:
+The projected view of the same meeting the Direksi read from across the room. It shows the Notulen;
+it is not a second copy of it.
+_Avoid_: slides, presentation, deck
+
+**Risalah**:
+The formal record printed from a closed Notulen, built only from its Butir pembahasan, Usulan and
+Tindakan.
+_Avoid_: report, summary, export
+
+**Butir pembahasan**:
+One topic discussed under an agenda.
+_Avoid_: record, baris, row, item
+
+**Usulan**:
+Something put to the Direksi for a decision. It stays Belum diputuskan until it ends in a Keputusan.
+_Avoid_: proposal record, decision item
+
+**Keputusan**:
+How the Direksi end an Usulan: Disetujui, Disetujui bersyarat, Ditunda or Ditolak. A Ditunda
+carries the date the Usulan comes back; without one it is not a Keputusan. Every Keputusan carries
+its Rumusan, the decision in words.
+_Avoid_: status, outcome, resolution
+
+**Pertimbangan**:
+Why the Direksi decided as they did. Separate from the Syarat: reasoning is not a condition.
+_Avoid_: syarat, rationale note
+
+**Syarat**:
+The written condition a Disetujui bersyarat carries. A Keputusan bersyarat does not exist without one.
+_Avoid_: pertimbangan, note, catatan
+
+**Tindakan**:
+A follow-up the Direksi assign, with exactly one PIC and a tenggat.
+_Avoid_: action plan row, task, to-do
+
+**Arahan**:
+The Direksi's direction on a Butir pembahasan, in words. An Arahan that names who and by when is
+also a Tindakan; the Arahan alone is never tracked.
+_Avoid_: instruksi, kesimpulan, directive
+
+**Kolom**:
+One field of a Butir pembahasan, Usulan or Tindakan.
+_Avoid_: properti, property, field
+
+**Kolom inti**:
+The few Kolom of a Butir pembahasan, Usulan or Tindakan the Corsec fills while the meeting runs, in
+working order. Every other Kolom is filled before or after.
+_Avoid_: required fields, mandatory
+
+**Catatan pembahasan**:
+The running notes the Corsec types for one agenda as the discussion moves. Not part of the Risalah
+unless the Corsec says so.
+_Avoid_: transcript, catatan panjang, body
+
+**Tutup rapat**:
+The Corsec ending the meeting. It freezes the Notulen; reopening needs a written reason, and that
+reason appears in the Risalah.
+_Avoid_: finish, end session, close agenda
