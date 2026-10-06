@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Alert, Button, Dialog, type ToastContextValue } from '@jup/ui';
+import { Alert, Button, Checkbox, Dialog, Textarea, type ToastContextValue } from '@jup/ui';
 import { Plus } from 'lucide-react';
 
 import { AGENDAS, ITEM_NOUN } from '../../agendas';
 import { record } from '../../seed';
-import { text, titleField, type NotulenRecord } from '../../types';
+import type { Capture } from '../../capture';
+import { text, titleField, type AgendaNotes, type NotulenRecord } from '../../types';
+import { CaptureStrip } from './CaptureStrip';
 import { RecordCard } from './RecordCard';
 
 // One database (Informasi Rapat or an agenda): its header, its entries, add and delete.
@@ -20,9 +22,23 @@ type Props = {
 	expandAll?: boolean;
 	/** From the caller: the snapshot renders without a ToastProvider, whose portal the server renderer rejects. */
 	toast: ToastContextValue['toast'];
+	/** Live meeting only (absent in the snapshot): the Catat cepat strip and the Catatan pembahasan. */
+	live?: {
+		onCapture: (c: Capture) => void;
+		notes: AgendaNotes;
+		onNotes: (n: AgendaNotes) => void;
+	};
 };
 
-export const AgendaView = ({ db, records, setRecords, printing, expandAll, toast }: Props) => {
+export const AgendaView = ({
+	db,
+	records,
+	setRecords,
+	printing,
+	expandAll,
+	toast,
+	live
+}: Props) => {
 	const a = AGENDAS[db];
 	const noun = ITEM_NOUN[db];
 	const [openIds, setOpenIds] = useState<Set<string>>(
@@ -93,6 +109,32 @@ export const AgendaView = ({ db, records, setRecords, printing, expandAll, toast
 					</div>
 				</div>
 			</header>
+			{live && db >= 1 ? (
+				<>
+					<CaptureStrip db={db} onCapture={live.onCapture} />
+					<section className="nt-notes" aria-labelledby={`nt-notes-${db}`}>
+						<div className="nt-notes__head">
+							<h3 className="nt-group__h" id={`nt-notes-${db}`}>
+								Catatan pembahasan
+							</h3>
+							<Checkbox
+								label="Sertakan di Risalah"
+								checked={live.notes.risalah}
+								onChange={(e) => live.onNotes({ ...live.notes, risalah: e.target.checked })}
+							/>
+						</div>
+						<Textarea
+							rows={3}
+							autoResize
+							maxRows={16}
+							value={live.notes.text}
+							placeholder="Jalannya pembahasan agenda ini, apa adanya…"
+							aria-labelledby={`nt-notes-${db}`}
+							onChange={(e) => live.onNotes({ ...live.notes, text: e.target.value })}
+						/>
+					</section>
+				</>
+			) : null}
 			{db === 2 ? (
 				<Alert tone="info" title="Catatan angka">
 					Deviasi dan progres diisi manual, bukan dihitung otomatis. Masukkan angka persen langsung:

@@ -71,12 +71,21 @@ export interface MeetingPlan {
 	revenueMonthly?: [string, number, number][];
 }
 
+/** One agenda's Catatan pembahasan: the Corsec's running notes. */
+export interface AgendaNotes {
+	text: string;
+	/** "Sertakan di Risalah": printed under the agenda only when set. */
+	risalah: boolean;
+}
+
 export interface Meeting {
 	id: string;
 	/** records[0..8], one collection per database in SCHEMA order. */
 	records: NotulenRecord[][];
 	session: MeetingSession;
 	plan?: MeetingPlan;
+	/** Catatan pembahasan by agenda index ("1"…"8"). Absent on meetings made before 2026-10-06. */
+	notes?: Record<string, AgendaNotes>;
 }
 
 export const DBS = SCHEMA as unknown as readonly DbDef[];

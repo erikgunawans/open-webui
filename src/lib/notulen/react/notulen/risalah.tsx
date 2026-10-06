@@ -100,7 +100,7 @@ const AgendaEntries = ({ db, records }: { db: number; records: NotulenRecord[] }
 		}))
 		// A Kinerja indicator is only its name until a number is entered: the starters print nothing.
 		.filter((x) => (db === 2 ? false : x.title) || x.fields.length || x.r.body.trim());
-	if (!rows.length) return <p className="rs-muted">Tidak ada catatan untuk agenda ini.</p>;
+	if (!rows.length) return <p className="rs-muted">Tidak ada butir pembahasan untuk agenda ini.</p>;
 	return (
 		<>
 			{rows.map(({ r, title, fields }, i) => (
@@ -201,6 +201,17 @@ const Actions = ({ m }: { m: Meeting }) => {
 	);
 };
 
+/** The agenda's Catatan pembahasan, only when the Corsec ticked "Sertakan di Risalah". */
+const Notes = ({ m, db }: { m: Meeting; db: number }) => {
+	const n = m.notes?.[db];
+	return n?.risalah && n.text.trim() ? (
+		<div className="rs-entry">
+			<h4>Catatan pembahasan</h4>
+			<Para>{n.text.trim()}</Para>
+		</div>
+	) : null;
+};
+
 const Signature = ({ role, name }: { role: string; name: string }) => (
 	<div className="rs-sign">
 		<div>{role}</div>
@@ -269,15 +280,18 @@ export const Risalah = ({ meeting }: { meeting: Meeting }) => {
 				<section key={db}>
 					<h2>{AGENDAS[db].title}</h2>
 					<AgendaEntries db={db} records={meeting.records[db]} />
+					<Notes m={meeting} db={db} />
 				</section>
 			))}
 			<section>
 				<h2>{AGENDAS[7].title}</h2>
 				<Decisions m={meeting} />
+				<Notes m={meeting} db={7} />
 			</section>
 			<section>
 				<h2>{AGENDAS[8].title}</h2>
 				<Actions m={meeting} />
+				<Notes m={meeting} db={8} />
 			</section>
 
 			<section className="rs-close">

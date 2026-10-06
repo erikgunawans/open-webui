@@ -1,7 +1,10 @@
-import { Badge, Card, IconButton, Textarea } from '@jup/ui';
+import { useState } from 'react';
+import { Badge, Button, Card, IconButton, Textarea } from '@jup/ui';
 import { ChevronDown, Trash2 } from 'lucide-react';
 
 import { INFO_GROUPS, ITEM_NOUN, SUMMARY_KEYS, toneOf } from '../../agendas';
+import { agendaNo } from '../../capture';
+import { coreFields, otherFields } from '../../kolom';
 import {
 	DBS,
 	text,
@@ -12,8 +15,9 @@ import {
 } from '../../types';
 import { PropField } from '../fields/PropField';
 
-// One entry: a collapsible card with every field of its database, grouped as the template
-// groups them, and the entry's long notes.
+// One entry: a collapsible card. Informasi Rapat shows every kolom in the template's groups; an
+// agenda entry shows its kolom inti in working order, any other kolom already filled, and the rest
+// behind "Tampilkan semua kolom".
 
 const LONG = ['rich_text', 'files'];
 const two = (n: number) => String(n).padStart(2, '0');
@@ -29,19 +33,8 @@ type Props = {
 	onDelete: () => void;
 };
 
-const groupsFor = (db: number): [string, PropDef[]][] => {
-	const fields = DBS[db].fields;
-	if (db === 0)
-		return INFO_GROUPS.map(([g, names]) => [
-			g,
-			names.map((n) => fields.find((f) => f.name === n)!)
-		]);
-	const rest = fields.filter((f) => f.type !== 'title');
-	return [
-		['Rincian', rest.filter((f) => !LONG.includes(f.type))],
-		['Uraian, pembahasan & arahan', rest.filter((f) => LONG.includes(f.type))]
-	];
-};
+const infoGroups = (): [string, PropDef[]][] =>
+	INFO_GROUPS.map(([g, names]) => [g, names.map((n) => DBS[0].fields.find((f) => f.name === n)!)]);
 
 const gridClass = (g: string, fs: PropDef[]) =>
 	g === 'Checklist finalisasi'
@@ -50,8 +43,11 @@ const gridClass = (g: string, fs: PropDef[]) =>
 			? 'nt-grid--long'
 			: 'nt-grid--short';
 
+/** Kolom kept in working order: long text spans the row, short kolom share it. */
+const cellClass = (f: PropDef) =>
+	`nt-cell${LONG.includes(f.type) ? ' nt-cell--long' : f.type === 'date' || f.type === 'multi_select' ? ' nt-cell--wide' : ''}`;
+
 export const RecordCard = ({ db, r, index, total, open, ...on }: Props) => {
-	const fields = DBS[db].fields;
 	const tf = titleField(db);
 	const title = text(r.values[tf.name]);
 	const set = (name: string, v: PropValue) =>
@@ -69,6 +65,23 @@ export const RecordCard = ({ db, r, index, total, open, ...on }: Props) => {
 		/>
 	);
 	const bodyId = `nt-rec-${r.id}`;
+	const [all, setAll] = useState(false);
+	const others = db === 0 ? null : otherFields(db, r);
+	const from = db === 7 || db === 8 ? agendaNo(text(r.values.Agenda)) : '';
+	const ordered = (g: string, fs: PropDef[]) =>
+		fs.length ? (
+			<section key={g} className="nt-group">
+				<h3 className="nt-group__h">{g}</h3>
+				<div className="nt-grid nt-grid--core">
+					{fs.map((f) => (
+						<div key={f.name} className={cellClass(f)}>
+							{field(f)}
+						</div>
+					))}
+				</div>
+			</section>
+		) : null;
+	const showBody = db === 0 || all || !!r.body;
 
 	return (
 		<Card
@@ -95,6 +108,7 @@ export const RecordCard = ({ db, r, index, total, open, ...on }: Props) => {
 					<span className="nt-mono">
 						{two(index + 1)} / {two(total)}
 					</span>
+					{from && db !== Number(from) ? <span className="nt-from">dari Agenda {from}</span> : null}
 					{SUMMARY_KEYS.filter((k) => text(r.values[k])).map((k) => (
 						<Badge key={k} tone={toneOf(text(r.values[k]))} dot>
 							{text(r.values[k])}
@@ -111,36 +125,52 @@ export const RecordCard = ({ db, r, index, total, open, ...on }: Props) => {
 			{open ? (
 				<div className="nt-rec__body" id={bodyId}>
 					<div className="nt-titlefield">{field(tf)}</div>
-					{groupsFor(db).map(([g, fs]) => {
-						const shown = fs.filter((f) => f.type !== 'title');
-						if (!shown.length) return null;
-						return (
-							<section key={g} className="nt-group">
-								<h3 className="nt-group__h">
-									{g}
-									{g === 'Checklist finalisasi' ? (
-										<span className="nt-mono">
-											{' '}
-											· {shown.filter((f) => r.values[f.name] === true).length}/{shown.length}
-										</span>
-									) : null}
-								</h3>
-								<div className={`nt-grid ${gridClass(g, shown)}`}>{shown.map(field)}</div>
-							</section>
-						);
-					})}
-					<section className="nt-group">
-						<h3 className="nt-group__h">Catatan panjang</h3>
-						<Textarea
-							rows={3}
-							autoResize
-							maxRows={20}
-							value={r.body}
-							placeholder={`Catatan panjang untuk ${ITEM_NOUN[db]} ini…`}
-							aria-label="Catatan panjang"
-							onChange={(e) => on.onChange({ ...r, body: e.target.value })}
-						/>
-					</section>
+					{db === 0
+						? infoGroups().map(([g, fs]) => {
+								const shown = fs.filter((f) => f.type !== 'title');
+								return (
+									<section key={g} className="nt-group">
+										<h3 className="nt-group__h">
+											{g}
+											{g === 'Checklist finalisasi' ? (
+												<span className="nt-mono">
+													{' '}
+													· {shown.filter((f) => r.values[f.name] === true).length}/{shown.length}
+												</span>
+											) : null}
+										</h3>
+										<div className={`nt-grid ${gridClass(g, shown)}`}>{shown.map(field)}</div>
+									</section>
+								);
+							})
+						: [
+								ordered('Kolom inti', coreFields(db, r)),
+								ordered('Kolom lain yang terisi', others!.filled),
+								all ? ordered('Kolom lain', others!.empty) : null
+							]}
+					{showBody ? (
+						<section className="nt-group">
+							<h3 className="nt-group__h">Catatan panjang</h3>
+							<Textarea
+								rows={3}
+								autoResize
+								maxRows={20}
+								value={r.body}
+								placeholder={`Catatan panjang untuk ${ITEM_NOUN[db]} ini…`}
+								aria-label="Catatan panjang"
+								onChange={(e) => on.onChange({ ...r, body: e.target.value })}
+							/>
+						</section>
+					) : null}
+					{others && (others.empty.length || !r.body) ? (
+						<div>
+							<Button variant="ghost" size="sm" aria-expanded={all} onClick={() => setAll(!all)}>
+								{all
+									? 'Sembunyikan kolom kosong'
+									: `Tampilkan semua kolom (${others.empty.length})`}
+							</Button>
+						</div>
+					) : null}
 				</div>
 			) : null}
 		</Card>

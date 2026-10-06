@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Button, Dialog, useJupTheme, useToast } from '@jup/ui';
 
 import type { MeetingRepo } from '../../repo';
-import type { Meeting, NotulenRecord } from '../../types';
+import { captureRecord, type Capture } from '../../capture';
+import type { AgendaNotes, Meeting, NotulenRecord } from '../../types';
 import { useMeeting } from '../useMeeting';
 import { AgendaView } from './AgendaView';
 import { DerivedViews } from './DerivedViews';
@@ -44,6 +45,15 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 	const main = useRef<HTMLElement>(null);
 	// Set by a sidebar choice, so focus follows the reader to the new view (not on first load).
 	const moved = useRef(false);
+	// Ikuti layar: Notulen jumps with the Layar until the Corsec opens another agenda by hand.
+	const [follow, setFollow] = useState(true);
+	const onLayar = meeting.session.closedAt ? null : meeting.session.currentAgenda;
+	const lastLayar = useRef(onLayar);
+	useEffect(() => {
+		if (onLayar === lastLayar.current) return;
+		lastLayar.current = onLayar;
+		if (follow && onLayar != null) setView(String(onLayar) as View);
+	}, [onLayar, follow]);
 
 	useEffect(() => {
 		try {
@@ -57,6 +67,7 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 		update((m) => ({ ...m, records: m.records.map((x, i) => (i === db ? records : x)) }));
 
 	const go = (v: View) => {
+		if (onLayar != null) setFollow(v === String(onLayar));
 		moved.current = true;
 		setView(v);
 		top.current?.scrollIntoView({ block: 'start' });
@@ -70,6 +81,26 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 		h?.setAttribute('tabindex', '-1');
 		h?.focus({ preventScroll: true });
 	}, [view]);
+
+	const capture = (c: Capture) => {
+		const { db: to, record } = captureRecord(c);
+		update((m) => ({
+			...m,
+			records: m.records.map((x, i) => (i === to ? [...x, record] : x))
+		}));
+		const where = to === c.from ? '' : ` ke Agenda 0${to}`;
+		toast({
+			title: `${c.kind[0].toUpperCase()}${c.kind.slice(1)} dicatat${where}`,
+			tone: 'success'
+		});
+	};
+	const notesOf = (d: number): AgendaNotes => meeting.notes?.[d] ?? { text: '', risalah: false };
+	const setNotes = (d: number) => (n: AgendaNotes) =>
+		update((m) => ({ ...m, notes: { ...m.notes, [d]: n } }));
+	const followLayar = (on: boolean) => {
+		setFollow(on);
+		if (on && onLayar != null) go(String(onLayar) as View);
+	};
 
 	const print = async () => {
 		const { printRisalah } = await import('./risalah');
@@ -129,7 +160,14 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 				demo={demo}
 			/>
 			<div className="nt-shell">
-				<Nav meeting={meeting} view={view} onView={go} />
+				<Nav
+					meeting={meeting}
+					view={view}
+					onView={go}
+					onLayar={onLayar}
+					follow={follow}
+					onFollow={followLayar}
+				/>
 				<main className="nt-main" ref={main}>
 					{view === 'views' ? (
 						<DerivedViews meeting={meeting} />
@@ -142,6 +180,7 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 							records={meeting.records[db ?? 0]}
 							setRecords={setRecords(db ?? 0)}
 							toast={toast}
+							live={{ onCapture: capture, notes: notesOf(db ?? 0), onNotes: setNotes(db ?? 0) }}
 						/>
 					)}
 				</main>

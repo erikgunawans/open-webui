@@ -40,7 +40,7 @@ export const AGENDAS: AgendaCopy[] = [
 		nav: '1. Perkembangan Strategis',
 		title: '1. Perkembangan Strategis',
 		focus: 'Perkembangan target dan strategi perusahaan.',
-		unit: 'satu baris untuk setiap sasaran strategis',
+		unit: 'satu kartu untuk setiap sasaran strategis',
 		layar: 'Perkembangan Strategis',
 		no: '01'
 	},
@@ -49,7 +49,7 @@ export const AGENDAS: AgendaCopy[] = [
 		nav: '2. Kinerja Perusahaan',
 		title: '2. Kinerja Perusahaan',
 		focus: 'Revenue, EBITDA/laba, cash flow, CAPEX–OPEX, dan KPI.',
-		unit: 'satu baris untuk setiap indikator',
+		unit: 'satu kartu untuk setiap indikator',
 		layar: 'Kinerja Perusahaan',
 		no: '02'
 	},
@@ -58,7 +58,7 @@ export const AGENDAS: AgendaCopy[] = [
 		nav: '3. Isu Lintas Direktorat',
 		title: '3. Isu Lintas Direktorat / Divisi',
 		focus: 'Masalah yang membutuhkan keputusan bersama.',
-		unit: 'satu baris untuk setiap isu',
+		unit: 'satu kartu untuk setiap isu',
 		layar: 'Isu Lintas Direktorat',
 		no: '03'
 	},
@@ -67,7 +67,7 @@ export const AGENDAS: AgendaCopy[] = [
 		nav: '4. Program Prioritas',
 		title: '4. Program Prioritas',
 		focus: 'Proyek strategis, investasi, Perkembangan Bisnis, dan transformasi.',
-		unit: 'satu baris untuk setiap program / proyek',
+		unit: 'satu kartu untuk setiap program / proyek',
 		layar: 'Program Prioritas',
 		no: '04'
 	},
@@ -76,7 +76,7 @@ export const AGENDAS: AgendaCopy[] = [
 		nav: '5. Risiko & Kepatuhan',
 		title: '5. Risiko & Kepatuhan',
 		focus: 'Risiko utama dan mitigasinya.',
-		unit: 'satu baris untuk setiap risiko / isu kepatuhan',
+		unit: 'satu kartu untuk setiap risiko / isu kepatuhan',
 		layar: 'Risiko & Kepatuhan',
 		no: '05'
 	},
@@ -85,7 +85,7 @@ export const AGENDAS: AgendaCopy[] = [
 		nav: '6. Isu Pemangku Kepentingan',
 		title: '6. Isu Pemangku Kepentingan',
 		focus: 'Pemegang Saham, regulator, pemerintah, mitra, dan pelanggan.',
-		unit: 'satu baris untuk setiap pemangku kepentingan / isu',
+		unit: 'satu kartu untuk setiap pemangku kepentingan / isu',
 		layar: 'Isu Pemangku Kepentingan',
 		no: '06'
 	},
@@ -94,7 +94,7 @@ export const AGENDAS: AgendaCopy[] = [
 		nav: '7. Pengambilan Keputusan',
 		title: '7. Pengambilan Keputusan',
 		focus: 'Keputusan yang harus disepakati Direksi.',
-		unit: 'satu baris untuk setiap usulan / keputusan',
+		unit: 'satu kartu untuk setiap usulan / keputusan',
 		layar: 'Pengambilan Keputusan',
 		no: '07'
 	},
@@ -103,7 +103,7 @@ export const AGENDAS: AgendaCopy[] = [
 		nav: '8. Rencana Tindak Lanjut',
 		title: '8. Rencana Tindak Lanjut',
 		focus: 'PIC, target waktu, dan indikator penyelesaian.',
-		unit: 'satu baris untuk setiap tindakan / deliverable',
+		unit: 'satu kartu untuk setiap tindakan / deliverable',
 		layar: 'Rencana Tindak Lanjut',
 		no: '08'
 	}

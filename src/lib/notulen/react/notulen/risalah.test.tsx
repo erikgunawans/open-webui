@@ -38,4 +38,12 @@ describe('Risalah', () => {
 		expect(out).not.toContain('<script>');
 		expect(out.match(/<\/style>/g)).toHaveLength(1);
 	});
+
+	it('prints an agenda\'s Catatan pembahasan only when "Sertakan di Risalah" is ticked', () => {
+		const m2 = seedMeeting('r', 0);
+		m2.notes = { 4: { text: 'Direksi minta jadwal ulang', risalah: false } };
+		expect(risalahHtml(m2)).not.toContain('Direksi minta jadwal ulang');
+		m2.notes[4].risalah = true;
+		expect(risalahHtml(m2)).toContain('Direksi minta jadwal ulang');
+	});
 });
