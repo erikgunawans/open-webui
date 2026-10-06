@@ -11,7 +11,7 @@ import {
 
 import { CHECKLIST, toneOf } from '../../agendas';
 import { checklistCount, fmtDate, mainInfo, meetingName } from '../../selectors';
-import { text, type Meeting } from '../../types';
+import { text, valueLabel, type Meeting } from '../../types';
 import type { SaveState, Unreadable } from '../useMeeting';
 
 // The Notulen header, in the KPI 2026 tab's form: eyebrow, meeting name and a meta line over a
@@ -77,7 +77,7 @@ export const Header = ({
 					<div className="nt-top__meta">
 						{status ? (
 							<Badge tone={toneOf(status)} dot>
-								{status}
+								{valueLabel('Status validasi', status)}
 							</Badge>
 						) : null}
 						{klas ? (

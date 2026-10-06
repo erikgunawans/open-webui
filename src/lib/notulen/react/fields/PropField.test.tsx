@@ -27,11 +27,12 @@ describe('PropField', () => {
 		}
 	});
 
-	it('offers every schema option, plus "— Pilih —" for selects', () => {
+	it('offers every schema option, plus "— Pilih —" for selects without their own empty option', () => {
 		for (const [, f] of all.filter(([, f]) => f.options.length)) {
 			const html = render(f);
 			for (const o of f.options) expect(html).toContain(o.replace(/&/g, '&amp;'));
-			if (f.type !== 'multi_select') expect(html).toContain('— Pilih —');
+			const ownEmpty = f.options.includes('Belum diputuskan');
+			if (f.type !== 'multi_select') expect(html.includes('— Pilih —'), f.name).toBe(!ownEmpty);
 		}
 	});
 

@@ -100,15 +100,27 @@ export interface Meeting {
 export const SYARAT = 'Syarat';
 export const PERTIMBANGAN = 'Pertimbangan / syarat persetujuan';
 export const ARAHAN = 'Kesimpulan / arahan';
+export const RUMUSAN = 'Rumusan keputusan';
 
-// Display names over stored keys (critique, 2026-10-06): "Kesimpulan / arahan" is shown as Arahan
-// (CONTEXT avoids "kesimpulan"), and the English "Agenda" options of 07/08 by the agenda's name.
+// Display names over stored keys (critique, 2026-10-06 and 2026-10-07): "Kesimpulan / arahan" is
+// shown as Arahan (CONTEXT avoids "kesimpulan"), the English "Agenda" options of 07/08 by the
+// agenda's name, and the remaining English labels and options in Indonesian.
+const LABELS: Record<string, string> = {
+	[ARAHAN]: 'Arahan',
+	'Tindakan / deliverable': 'Tindakan',
+	'Risk owner / PIC': 'Pemilik risiko'
+};
+const OPTION_LABELS: Record<string, Record<string, string>> = {
+	'Status validasi': { Draft: 'Konsep', 'Dalam review': 'Ditinjau' }
+};
 const display = (f: PropDef): PropDef =>
-	f.name === ARAHAN
-		? { ...f, label: 'Arahan' }
-		: f.name === 'Agenda'
-			? { ...f, optionLabels: Object.fromEntries(f.options.map((o) => [o, agendaLabel(o)])) }
-			: f;
+	f.name === 'Agenda'
+		? { ...f, optionLabels: Object.fromEntries(f.options.map((o) => [o, agendaLabel(o)])) }
+		: {
+				...f,
+				...(LABELS[f.name] ? { label: LABELS[f.name] } : {}),
+				...(OPTION_LABELS[f.name] ? { optionLabels: OPTION_LABELS[f.name] } : {})
+			};
 
 // The generated schema plus what the 2026-10-06 grill added: Syarat as its own kolom, so the old
 // "Pertimbangan / syarat persetujuan" (same key, kept for stored meetings) now means the reasoning.
@@ -134,6 +146,9 @@ export const labelOf = (f: PropDef) => f.label ?? f.name;
 
 /** How the UI names one stored option of a select kolom. */
 export const optionLabel = (f: PropDef, option: string) => f.optionLabels?.[option] ?? option;
+
+/** The same, by kolom name, for badges that show a stored value outside its field. */
+export const valueLabel = (name: string, value: string) => OPTION_LABELS[name]?.[value] ?? value;
 
 export const DECISION_STATUS = 'Status keputusan';
 export const ACTION_STATUS = 'Status';

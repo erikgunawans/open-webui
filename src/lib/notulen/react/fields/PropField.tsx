@@ -1,5 +1,6 @@
 import { Checkbox, Field, Input, Select, Tag, Textarea } from '@jup/ui';
 
+import { UNDECIDED } from '../../keputusan';
 import { isDate, labelOf, optionLabel, type PropDef, type PropValue } from '../../types';
 import { DateField } from './DateField';
 import { FieldLabel } from './FieldLabel';
@@ -49,19 +50,23 @@ export const PropField = ({ f, value, timeOn, onChange, onTime }: Props) => {
 				/>
 			);
 		case 'select':
-		case 'status':
+		case 'status': {
+			// A kolom whose options already name the empty state (Status keputusan: Belum diputuskan)
+			// shows that option for an empty value, not a second "— Pilih —".
+			const none = f.options.includes(UNDECIDED) ? UNDECIDED : '';
 			return (
 				<Field label={label} hint={hint}>
 					<Select
-						value={str(value)}
+						value={str(value) || none}
 						onChange={(e) => onChange(e.target.value)}
 						options={[
-							{ value: '', label: '— Pilih —' },
+							...(none ? [] : [{ value: '', label: '— Pilih —' }]),
 							...f.options.map((o) => ({ value: o, label: optionLabel(f, o) }))
 						]}
 					/>
 				</Field>
 			);
+		}
 		case 'multi_select': {
 			const arr = Array.isArray(value) ? value : [];
 			return (
@@ -144,7 +149,8 @@ export const PropField = ({ f, value, timeOn, onChange, onTime }: Props) => {
 			);
 		default:
 			return (
-				<Field label={label} hint={hint}>
+				// "Contoh D-01." helps an empty kolom only.
+				<Field label={label} hint={str(value) && hint?.startsWith('Contoh') ? undefined : hint}>
 					<Input value={str(value)} placeholder="Isi…" onChange={(e) => onChange(e.target.value)} />
 				</Field>
 			);

@@ -187,6 +187,7 @@ const TONES: Record<string, Tone> = {
 	Ditunda: 'warning',
 	'Perlu evaluasi': 'warning',
 	'Belum diputuskan': 'warning',
+	'Belum lengkap': 'warning',
 	Terhambat: 'danger',
 	Delayed: 'danger',
 	Ditolak: 'danger',

@@ -6,15 +6,18 @@ import {
 	actions,
 	fmtDate,
 	highRisks,
+	isIncomplete,
 	pendingDecisions,
 	targetOf
 } from '../../selectors';
+import { UNDECIDED } from '../../keputusan';
 import { text, type Meeting, type NotulenRecord } from '../../types';
 
 // "Tampilan pendukung": decisions, risks and follow-ups, recomputed from agendas 5, 7 and 8 on
 // every change, including a decision set on the Layar in another tab.
 
 const v = (r: NotulenRecord, k: string) => text(r.values[k]);
+const NO_STATUS = 'Tanpa status';
 const prefixed = (id: string, t: string) => (id ? `${id} — ${t}` : t);
 
 const Empty = () => <p className="nt-empty">Belum ada butir yang sesuai.</p>;
@@ -42,17 +45,16 @@ export const DerivedViews = ({ meeting }: { meeting: Meeting }) => {
 			<header className="nt-ahead">
 				<div className="nt-eyebrow">Tampilan pendukung</div>
 				<h2 className="nt-h2" id="nt-h-views">
-					Review keputusan, risiko & tindak lanjut
+					Tinjauan keputusan, risiko & tindak lanjut
 				</h2>
 				<p className="nt-focus">
-					Dihitung ulang dari agenda 5, 7, dan 8 setiap kali nilai berubah. Kalender bukan acara
-					kalender pribadi.
+					Dihitung ulang dari agenda 5, 7, dan 8 setiap kali nilai berubah.
 				</p>
 			</header>
 			<div className="nt-views">
 				<Card
 					title="Perlu Keputusan"
-					description="Status: Belum diputuskan, Ditunda, atau kosong."
+					description="Belum diputuskan, Ditunda, atau keputusan yang belum lengkap."
 					actions={<Badge tone="warning">{pending.length}</Badge>}
 				>
 					{pending.length ? (
@@ -62,7 +64,7 @@ export const DerivedViews = ({ meeting }: { meeting: Meeting }) => {
 									key={r.id}
 									title={prefixed(v(r, 'ID keputusan'), v(r, 'Topik keputusan'))}
 									meta={[agendaLabel(v(r, 'Agenda')), v(r, 'PIC pelaksanaan')]}
-									badge={v(r, 'Status keputusan') || 'Belum diisi'}
+									badge={isIncomplete(r) ? 'Belum lengkap' : v(r, 'Status keputusan') || UNDECIDED}
 								/>
 							))}
 						</ul>
@@ -72,7 +74,7 @@ export const DerivedViews = ({ meeting }: { meeting: Meeting }) => {
 				</Card>
 				<Card
 					title="Risiko Tinggi"
-					description="Review mitigasi, PIC dan tenggat."
+					description="Tinjau mitigasi, pemilik risiko, dan tenggat."
 					actions={<Badge tone="danger">{risks.length}</Badge>}
 				>
 					{risks.length ? (
@@ -96,12 +98,14 @@ export const DerivedViews = ({ meeting }: { meeting: Meeting }) => {
 				</Card>
 				<Card
 					className="nt-views__wide"
-					title="Follow-up Board"
+					title="Tindak lanjut Direksi"
 					description="Dikelompokkan berdasarkan Status. Terhambat memerlukan perhatian; Selesai setelah indikator terpenuhi."
 				>
 					<div className="nt-board">
-						{[...ACTION_COLUMNS, 'Belum diisi'].map((s) => {
-							const items = acts.filter((r) => (v(r, 'Status') || 'Belum diisi') === s);
+						{/* Tindakan without a Status get their own column only when there are any. */}
+						{[...ACTION_COLUMNS, NO_STATUS].map((s) => {
+							const items = acts.filter((r) => (v(r, 'Status') || NO_STATUS) === s);
+							if (s === NO_STATUS && !items.length) return null;
 							return (
 								<div key={s} className="nt-col">
 									<div className="nt-col__h">

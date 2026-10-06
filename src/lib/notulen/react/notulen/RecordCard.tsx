@@ -6,11 +6,13 @@ import { INFO_GROUPS, ITEM_NOUN, SUMMARY_KEYS, toneOf } from '../../agendas';
 import { agendaNo } from '../../capture';
 import { decisionGaps } from '../../keputusan';
 import { coreFields, otherFields } from '../../kolom';
+import { isIncomplete } from '../../selectors';
 import {
 	DBS,
 	DECISION_STATUS,
 	labelOf,
 	text,
+	valueLabel,
 	titleField,
 	type NotulenRecord,
 	type PropDef,
@@ -112,6 +114,11 @@ export const RecordCard = ({ db, r, index, total, open, ...on }: Props) => {
 			</section>
 		) : null;
 	const showBody = db === 0 || all || !!r.body;
+	// A status already stored without its kolom (cleared later, or saved before the rule): it is not
+	// a Keputusan yet, so the card says so and the counts keep it with the Usulan that wait.
+	const incomplete = db === 7 && !pending && isIncomplete(r);
+	const gapNames = (ks: string[]) =>
+		ks.map((k) => labelOf(DBS[7].fields.find((f) => f.name === k)!).toLowerCase()).join(' dan ');
 
 	return (
 		<Card
@@ -141,9 +148,10 @@ export const RecordCard = ({ db, r, index, total, open, ...on }: Props) => {
 					{from && db !== Number(from) ? <span className="nt-from">dari Agenda {from}</span> : null}
 					{SUMMARY_KEYS.filter((k) => text(r.values[k])).map((k) => (
 						<Badge key={k} tone={toneOf(text(r.values[k]))} dot>
-							{text(r.values[k])}
+							{valueLabel(k, text(r.values[k]))}
 						</Badge>
 					))}
+					{incomplete ? <Badge tone="warning">Belum lengkap</Badge> : null}
 				</span>
 			}
 			actions={
@@ -157,14 +165,18 @@ export const RecordCard = ({ db, r, index, total, open, ...on }: Props) => {
 					<div className="nt-titlefield">{field(tf)}</div>
 					{pending ? (
 						<Alert tone="warning" title={`Keputusan "${pending}" belum dicatat`}>
-							Dicatat setelah{' '}
-							{gaps
-								.map((k) => labelOf(DBS[7].fields.find((f) => f.name === k)!).toLowerCase())
-								.join(' dan ')}{' '}
-							diisi.{' '}
+							Dicatat setelah {gapNames(gaps)} diisi.{' '}
 							<Button variant="ghost" size="sm" onClick={() => setPending(null)}>
 								Batalkan pilihan
 							</Button>
+						</Alert>
+					) : null}
+					{incomplete ? (
+						<Alert
+							tone="warning"
+							title={`Keputusan "${text(r.values[DECISION_STATUS])}" belum lengkap`}
+						>
+							Isi {gapNames(decisionGaps(r))}. Sampai diisi, usulan ini dihitung belum diputuskan.
 						</Alert>
 					) : null}
 					{db === 0

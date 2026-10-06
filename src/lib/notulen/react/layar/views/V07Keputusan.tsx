@@ -5,7 +5,7 @@ import { Check } from 'lucide-react';
 import { agendaLabel } from '../../../agendas';
 import { decisionGaps, RUMUSAN, ULANG } from '../../../keputusan';
 import { decisionId } from '../../../layar-model';
-import { decisions, isDecided } from '../../../selectors';
+import { decisions, isDecided, isIncomplete } from '../../../selectors';
 import { DECISION_STATUS, SYARAT, isDate, text, type PropValue } from '../../../types';
 import { Head, Nothing, StatusBadge, type ViewProps } from './common';
 
@@ -47,6 +47,7 @@ export const V07Keputusan = ({ meeting, agenda, selected, onSelect, onDecide }: 
 	const [syarat, setSyarat] = useState('');
 	const [ulang, setUlang] = useState('');
 	const asking = !!d && draft?.id === d.id;
+	const incomplete = !!d && isIncomplete(d);
 
 	useEffect(() => {
 		if (!asking) return;
@@ -144,6 +145,11 @@ export const V07Keputusan = ({ meeting, agenda, selected, onSelect, onDecide }: 
 								<div>{text(d.values['PIC pelaksanaan']) || '—'}</div>
 							</div>
 						</div>
+						{incomplete && !asking ? (
+							<p className="lr-k lr-mt">
+								Keputusan ini belum lengkap: pilih keputusannya untuk melengkapinya.
+							</p>
+						) : null}
 						{text(d.values[RUMUSAN]) && !asking ? (
 							<div className="lr-mt">
 								<div className="lr-k">Rumusan keputusan</div>
@@ -223,7 +229,8 @@ export const V07Keputusan = ({ meeting, agenda, selected, onSelect, onDecide }: 
 						) : (
 							<div className="lr-dec__acts">
 								{ACTS.map(([s, variant, label]) => {
-									const on = statusOf(d) === s;
+									// An incomplete status is not a Keputusan yet: choosing it opens its kolom.
+									const on = statusOf(d) === s && !incomplete;
 									return (
 										<Button
 											key={s}

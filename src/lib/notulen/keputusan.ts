@@ -1,7 +1,8 @@
-import { actions, decisions, isDecided } from './selectors';
+import { actions, decisions, waitsByStatus } from './selectors';
 import {
 	AGENDA_DECISIONS,
 	DECISION_STATUS,
+	RUMUSAN,
 	SYARAT,
 	filled,
 	text,
@@ -14,8 +15,8 @@ import {
 // Disetujui bersyarat its Syarat, a Ditunda the date it comes back. The Layar and Notulen record a
 // Keputusan only once these are filled. Tutup rapat checks the whole meeting first.
 
+export { RUMUSAN };
 export const UNDECIDED = 'Belum diputuskan';
-export const RUMUSAN = 'Rumusan keputusan';
 export const ULANG = 'Tanggal pembahasan ulang';
 
 const needs = (status: string): string[] =>
@@ -36,9 +37,9 @@ export const decisionGaps = (r: NotulenRecord, status = text(r.values[DECISION_S
 export const closingGaps = (m: Meeting) => {
 	const decs = decisions(m);
 	const gaps = {
-		undecided: decs.filter((r) => !isDecided(r)).length,
+		undecided: decs.filter(waitsByStatus).length,
 		noPic: actions(m).filter((r) => !text(r.values['PIC utama']).trim()).length,
-		noRumusan: decs.filter((r) => isDecided(r) && !filled(r.values[RUMUSAN])).length
+		noRumusan: decs.filter((r) => !waitsByStatus(r) && !filled(r.values[RUMUSAN])).length
 	};
 	return { ...gaps, any: gaps.undecided + gaps.noPic + gaps.noRumusan > 0 };
 };

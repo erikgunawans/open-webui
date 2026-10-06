@@ -25,9 +25,9 @@ describe('Tutup rapat on the Layar', () => {
 		const gaps = closingGaps(demoMeeting(0));
 		expect(gaps.any).toBe(true);
 		expect(buttons(render(gaps))).toEqual([
-			['Kembali ke 07', 'primary', true],
+			['Batal', 'ghost', false],
 			['Tutup tetap', 'outline', false],
-			['Batal', 'ghost', false]
+			['Kembali ke 07', 'primary', true]
 		]);
 	});
 
@@ -35,8 +35,8 @@ describe('Tutup rapat on the Layar', () => {
 		const gaps = closingGaps(seedMeeting('r', 0));
 		expect(gaps.any).toBe(false);
 		expect(buttons(render(gaps))).toEqual([
-			['Tutup rapat', 'primary', true],
-			['Batal', 'ghost', false]
+			['Batal', 'ghost', false],
+			['Tutup rapat', 'primary', true]
 		]);
 	});
 });

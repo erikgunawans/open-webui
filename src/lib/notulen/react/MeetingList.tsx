@@ -5,7 +5,7 @@ import { toneOf } from '../agendas';
 import { DEMO_ID, demoMeeting } from '../demo';
 import type { LocalStorageMeetingRepo } from '../repo';
 import { fmtDate, mainInfo, meetingName, pendingDecisions } from '../selectors';
-import { text, type Meeting } from '../types';
+import { text, valueLabel, type Meeting } from '../types';
 import './notulen/notulen.css';
 
 // The "Rapat Direksi" tab, in the KPI 2026 tab's form: a header over a heavy rule, then one table
@@ -46,7 +46,7 @@ const Row = ({
 					<Badge variant="outline">Contoh</Badge>
 				) : status ? (
 					<Badge tone={toneOf(status)} dot>
-						{status}
+						{valueLabel('Status validasi', status)}
 					</Badge>
 				) : (
 					<span className="nt-muted">—</span>

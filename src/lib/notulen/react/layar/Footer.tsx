@@ -39,13 +39,17 @@ export const CloseAsk = ({
 }) => (
 	<div className="lr-foot__ask" role="group" aria-label="Tutup rapat">
 		<span className="lr-foot__q">{gaps.any ? gapLine(gaps) : 'Tutup rapat sekarang?'}</span>
+		{/* Same order as the Notulen dialog: Batal, the second choice, the primary last. */}
+		<Button variant="ghost" onClick={onCancel}>
+			Batal
+		</Button>
 		{gaps.any ? (
 			<>
-				<Button variant="primary" autoFocus onClick={onBack}>
-					Kembali ke 07
-				</Button>
 				<Button variant="outline" onClick={onClose}>
 					Tutup tetap
+				</Button>
+				<Button variant="primary" autoFocus onClick={onBack}>
+					Kembali ke 07
 				</Button>
 			</>
 		) : (
@@ -53,9 +57,6 @@ export const CloseAsk = ({
 				Tutup rapat
 			</Button>
 		)}
-		<Button variant="ghost" onClick={onCancel}>
-			Batal
-		</Button>
 	</div>
 );
 
@@ -95,11 +96,11 @@ export const Footer = ({ plan, current, done, closed, gaps, ...on }: Props) => {
 						placeholder="Alasan membuka kembali (dicetak di Risalah)…"
 						aria-label="Alasan membuka kembali"
 					/>
-					<Button type="submit" variant="primary" disabled={!reason.trim()}>
-						Buka kembali
-					</Button>
 					<Button type="button" variant="ghost" onClick={() => setAsking(null)}>
 						Batal
+					</Button>
+					<Button type="submit" variant="primary" disabled={!reason.trim()}>
+						Buka kembali
 					</Button>
 				</form>
 			);

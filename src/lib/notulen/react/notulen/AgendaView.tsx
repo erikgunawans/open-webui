@@ -41,12 +41,14 @@ export const AgendaView = ({
 }: Props) => {
 	const a = AGENDAS[db];
 	const noun = ITEM_NOUN[db];
+	// In a live meeting the entries start as a short list of titles and badges (critique, 2026-10-07:
+	// one open card filled the screen); the editor opens a few, or the first.
 	const [openIds, setOpenIds] = useState<Set<string>>(
 		() =>
 			new Set(
-				records.length <= 2 || expandAll
+				expandAll || records.length === 1 || (!live && records.length <= 2)
 					? records.map((r) => r.id)
-					: records[0]
+					: !live && records[0]
 						? [records[0].id]
 						: []
 			)
@@ -109,32 +111,7 @@ export const AgendaView = ({
 					</div>
 				</div>
 			</header>
-			{live && db >= 1 ? (
-				<>
-					<CaptureStrip db={db} onCapture={live.onCapture} />
-					<section className="nt-notes" aria-labelledby={`nt-notes-${db}`}>
-						<div className="nt-notes__head">
-							<h3 className="nt-group__h" id={`nt-notes-${db}`}>
-								Catatan pembahasan
-							</h3>
-							<Checkbox
-								label="Sertakan di Risalah"
-								checked={live.notes.risalah}
-								onChange={(e) => live.onNotes({ ...live.notes, risalah: e.target.checked })}
-							/>
-						</div>
-						<Textarea
-							rows={3}
-							autoResize
-							maxRows={16}
-							value={live.notes.text}
-							placeholder="Jalannya pembahasan agenda ini, apa adanya…"
-							aria-labelledby={`nt-notes-${db}`}
-							onChange={(e) => live.onNotes({ ...live.notes, text: e.target.value })}
-						/>
-					</section>
-				</>
-			) : null}
+			{live && db >= 1 ? <CaptureStrip db={db} onCapture={live.onCapture} /> : null}
 			{db === 2 ? (
 				<Alert tone="info" title="Catatan angka">
 					Deviasi dan progres diisi manual, bukan dihitung otomatis. Masukkan angka persen langsung:
@@ -161,6 +138,30 @@ export const AgendaView = ({
 					</div>
 				) : null}
 			</div>
+			{/* The running notes follow the entries, so they no longer push the entries down. */}
+			{live && db >= 1 ? (
+				<section className="nt-notes" aria-labelledby={`nt-notes-${db}`}>
+					<div className="nt-notes__head">
+						<h3 className="nt-group__h" id={`nt-notes-${db}`}>
+							Catatan pembahasan
+						</h3>
+						<Checkbox
+							label="Sertakan di Risalah"
+							checked={live.notes.risalah}
+							onChange={(e) => live.onNotes({ ...live.notes, risalah: e.target.checked })}
+						/>
+					</div>
+					<Textarea
+						rows={3}
+						autoResize
+						maxRows={16}
+						value={live.notes.text}
+						placeholder="Jalannya pembahasan agenda ini, apa adanya…"
+						aria-labelledby={`nt-notes-${db}`}
+						onChange={(e) => live.onNotes({ ...live.notes, text: e.target.value })}
+					/>
+				</section>
+			) : null}
 			<Dialog
 				open={!!toDelete}
 				onClose={() => setToDelete(null)}

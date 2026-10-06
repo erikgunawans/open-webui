@@ -62,7 +62,9 @@ export const Nav = ({
 						<span className="nt-side__label">
 							{n.label}
 							{onLayar != null && n.id === String(onLayar) ? (
-								<span className="nt-side__live">● Di layar</span>
+								<span className="nt-side__live">
+									<span aria-hidden="true">● </span>Di layar
+								</span>
 							) : null}
 						</span>
 						{n.badge != null ? <span className="nt-side__n">{n.badge}</span> : null}

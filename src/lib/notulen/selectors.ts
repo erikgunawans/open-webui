@@ -4,6 +4,9 @@ import {
 	AGENDA_DECISIONS,
 	ACTION_STATUS,
 	DECISION_STATUS,
+	RUMUSAN,
+	SYARAT,
+	filled,
 	isDate,
 	text,
 	type DateValue,
@@ -36,18 +39,26 @@ export const checklistCount = (m: Meeting): number => {
 
 const PENDING = ['', 'Belum diputuskan', 'Ditunda'];
 
-/** Decisions with a topic still waiting: status empty, Belum diputuskan or Ditunda. */
-export const pendingDecisions = (m: Meeting): NotulenRecord[] =>
-	m.records[AGENDA_DECISIONS].filter(
-		(r) => text(v(r, 'Topik keputusan')) && PENDING.includes(text(v(r, DECISION_STATUS)))
-	);
+/** Whether the stored status itself still waits: empty, Belum diputuskan or Ditunda. */
+export const waitsByStatus = (r: NotulenRecord): boolean =>
+	PENDING.includes(text(v(r, DECISION_STATUS)));
+
+/** A decided status whose Rumusan (or, for bersyarat, Syarat) is empty: not yet a Keputusan. */
+export const isIncomplete = (r: NotulenRecord): boolean =>
+	!waitsByStatus(r) &&
+	(!filled(v(r, RUMUSAN)) ||
+		(text(v(r, DECISION_STATUS)) === 'Disetujui bersyarat' && !filled(v(r, SYARAT))));
 
 export const decisions = (m: Meeting): NotulenRecord[] =>
 	m.records[AGENDA_DECISIONS].filter((r) => text(v(r, 'Topik keputusan')));
 
-/** Whether an Usulan counts as diputuskan: a Ditunda still waits, so it is pending, not decided. */
-export const isDecided = (r: NotulenRecord): boolean =>
-	!PENDING.includes(text(v(r, DECISION_STATUS)));
+/** Whether an Usulan counts as diputuskan: a Ditunda still waits, and so does a status recorded
+ *  without its Rumusan (CONTEXT: without one it is not a Keputusan). */
+export const isDecided = (r: NotulenRecord): boolean => !waitsByStatus(r) && !isIncomplete(r);
+
+/** Usulan with a topic still waiting for a (complete) Keputusan. */
+export const pendingDecisions = (m: Meeting): NotulenRecord[] =>
+	decisions(m).filter((r) => !isDecided(r));
 
 /** Usulan the Direksi have decided (Disetujui, Disetujui bersyarat, Ditolak): never a Ditunda. */
 export const decidedDecisions = (m: Meeting): NotulenRecord[] => decisions(m).filter(isDecided);
