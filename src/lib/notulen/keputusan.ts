@@ -1,4 +1,4 @@
-import { actions, decisions } from './selectors';
+import { actions, decisions, isDecided } from './selectors';
 import {
 	AGENDA_DECISIONS,
 	DECISION_STATUS,
@@ -31,14 +31,14 @@ const needs = (status: string): string[] =>
 export const decisionGaps = (r: NotulenRecord, status = text(r.values[DECISION_STATUS])) =>
 	needs(status).filter((k) => !filled(r.values[k]));
 
-/** The counts Tutup rapat asks about before the meeting closes. */
+/** The counts Tutup rapat asks about before the meeting closes. A Ditunda still waits, so it counts
+ *  as belum diputuskan here as on the rail (Erik, 2026-10-07), and never also as "tanpa rumusan". */
 export const closingGaps = (m: Meeting) => {
 	const decs = decisions(m);
-	const statusOf = (r: NotulenRecord) => text(r.values[DECISION_STATUS]) || UNDECIDED;
 	const gaps = {
-		undecided: decs.filter((r) => statusOf(r) === UNDECIDED).length,
+		undecided: decs.filter((r) => !isDecided(r)).length,
 		noPic: actions(m).filter((r) => !text(r.values['PIC utama']).trim()).length,
-		noRumusan: decs.filter((r) => statusOf(r) !== UNDECIDED && !filled(r.values[RUMUSAN])).length
+		noRumusan: decs.filter((r) => isDecided(r) && !filled(r.values[RUMUSAN])).length
 	};
 	return { ...gaps, any: gaps.undecided + gaps.noPic + gaps.noRumusan > 0 };
 };

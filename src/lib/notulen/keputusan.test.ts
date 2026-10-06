@@ -50,6 +50,21 @@ describe('Tutup rapat check', () => {
 		);
 	});
 
+	it('counts a Ditunda as belum diputuskan, once, even with its kolom filled', () => {
+		const m = seedMeeting('r', 0);
+		m.records[8] = [];
+		m.records[7] = [
+			record({ 'Topik keputusan': 'Tunda', 'Status keputusan': 'Ditunda' }),
+			record({
+				'Topik keputusan': 'Tunda lengkap',
+				'Status keputusan': 'Ditunda',
+				'Rumusan keputusan': 'Dibahas ulang setelah kajian',
+				'Tanggal pembahasan ulang': { start: '2026-11-02', end: '' }
+			})
+		];
+		expect(closingGaps(m)).toMatchObject({ undecided: 2, noRumusan: 0, any: true });
+	});
+
 	it('has nothing to ask about a meeting without Usulan or Tindakan', () => {
 		const m = seedMeeting('r', 0);
 		m.records[7] = [];

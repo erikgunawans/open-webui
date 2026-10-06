@@ -103,10 +103,11 @@ export const Guide = () => (
 				<h3>Tutup rapat</h3>
 				<p>
 					Tekan <strong>Tutup rapat</strong> di agenda 08 Layar atau di kepala Notulen. Bila masih
-					ada usulan belum diputuskan, tindakan tanpa PIC, atau keputusan tanpa rumusan, jumlahnya
-					ditampilkan lebih dulu: pilih <strong>Tutup tetap</strong> atau{' '}
-					<strong>Kembali ke 07</strong>. Setelah ditutup, Notulen hanya-baca.{' '}
-					<strong>Buka kembali</strong> meminta alasan, dan alasan itu dicetak di Risalah.
+					ada usulan belum diputuskan (usulan Ditunda ikut dihitung), tindakan tanpa PIC, atau
+					keputusan tanpa rumusan, jumlahnya ditampilkan lebih dulu: pilih{' '}
+					<strong>Tutup tetap</strong> atau <strong>Kembali ke 07</strong>. Setelah ditutup, Notulen
+					hanya-baca. <strong>Buka kembali</strong> meminta alasan, dan alasan itu dicetak di
+					Risalah.
 				</p>
 
 				<h2>Setelah rapat</h2>

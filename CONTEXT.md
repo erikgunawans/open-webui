@@ -132,7 +132,8 @@ _Avoid_: proposal record, decision item
 **Keputusan**:
 How the Direksi end an Usulan: Disetujui, Disetujui bersyarat, Ditunda or Ditolak. A Ditunda
 carries the date the Usulan comes back; without one it is not a Keputusan. Every Keputusan carries
-its Rumusan, the decision in words.
+its Rumusan, the decision in words. A Ditunda still waits: the rail and the Tutup rapat check
+count it with the Usulan belum diputuskan.
 _Avoid_: status, outcome, resolution
 
 **Pertimbangan**:
