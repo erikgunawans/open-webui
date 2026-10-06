@@ -77,8 +77,8 @@ const schemaTs =
 			}))
 		}))
 	)} as const;\n\n` +
-	`/** The original template guide, as HTML. Rendered as-is in Panduan. */\n` +
-	`export const GUIDE_HTML = ${json(data.guide)};\n\n` +
+	// The template's guide (data.guide) is not emitted: it taught Notion, and Panduan (Guide.tsx)
+	// is written for this screen by hand since 2026-10-06.
 	`export const FOOTER = ${json(data.footer)};\n\n` +
 	`export const NOTE = ${json(data.note)};\n\n` +
 	`/** The body of the second Informasi record in the initial template. */\n` +
