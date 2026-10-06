@@ -3,10 +3,12 @@ import { Badge } from '@jup/ui';
 import { decisionId } from '../../layar-model';
 import {
 	actions,
+	decidedDecisions,
 	decisions,
 	fmtShort,
 	highRisks,
 	nearestOpenActions,
+	pendingDecisions,
 	targetOf
 } from '../../selectors';
 import { DECISION_STATUS, text, type Meeting } from '../../types';
@@ -26,8 +28,9 @@ export const Rail = ({ meeting, onDecision, onActions }: Props) => {
 	const status = (id: string) =>
 		text(meeting.records[7].find((r) => r.id === id)?.values[DECISION_STATUS]) ||
 		'Belum diputuskan';
-	const pending = all.filter((r) => ['Belum diputuskan', 'Ditunda'].includes(status(r.id)));
-	const decided = all.filter((r) => status(r.id) !== 'Belum diputuskan').length;
+	// Ditunda waits for its date: pending, and not counted as diputuskan (critique, 2026-10-06).
+	const pending = pendingDecisions(meeting);
+	const decided = decidedDecisions(meeting).length;
 	const fresh = actions(meeting).filter(
 		(r) => r.values['Asal tindak lanjut'] === 'Rapat ini'
 	).length;

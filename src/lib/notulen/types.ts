@@ -1,3 +1,4 @@
+import { agendaLabel } from './agendas';
 import { SCHEMA } from './schema';
 
 // The Notulen Rapat Direksi data model. One Meeting holds the nine record collections the
@@ -22,6 +23,8 @@ export interface PropDef {
 	name: string;
 	/** What the UI calls it, when that differs from the stored name. */
 	label?: string;
+	/** What the UI shows for a stored option, when that differs from the option (the stored value). */
+	optionLabels?: Record<string, string>;
 	type: PropType;
 	options: string[];
 	description: string | null;
@@ -96,16 +99,27 @@ export interface Meeting {
 /** Stored keys the generated schema does not have: added here, never by renaming a field. */
 export const SYARAT = 'Syarat';
 export const PERTIMBANGAN = 'Pertimbangan / syarat persetujuan';
+export const ARAHAN = 'Kesimpulan / arahan';
+
+// Display names over stored keys (critique, 2026-10-06): "Kesimpulan / arahan" is shown as Arahan
+// (CONTEXT avoids "kesimpulan"), and the English "Agenda" options of 07/08 by the agenda's name.
+const display = (f: PropDef): PropDef =>
+	f.name === ARAHAN
+		? { ...f, label: 'Arahan' }
+		: f.name === 'Agenda'
+			? { ...f, optionLabels: Object.fromEntries(f.options.map((o) => [o, agendaLabel(o)])) }
+			: f;
 
 // The generated schema plus what the 2026-10-06 grill added: Syarat as its own kolom, so the old
 // "Pertimbangan / syarat persetujuan" (same key, kept for stored meetings) now means the reasoning.
-export const DBS: readonly DbDef[] = (SCHEMA as unknown as readonly DbDef[]).map((d, i) =>
-	i !== 7
-		? d
+export const DBS: readonly DbDef[] = (SCHEMA as unknown as readonly DbDef[]).map((d, i) => {
+	const fields = d.fields.map(display);
+	return i !== 7
+		? { ...d, fields }
 		: {
 				...d,
 				fields: [
-					...d.fields.map((f) => (f.name === PERTIMBANGAN ? { ...f, label: 'Pertimbangan' } : f)),
+					...fields.map((f) => (f.name === PERTIMBANGAN ? { ...f, label: 'Pertimbangan' } : f)),
 					{
 						name: SYARAT,
 						type: 'rich_text' as const,
@@ -113,10 +127,13 @@ export const DBS: readonly DbDef[] = (SCHEMA as unknown as readonly DbDef[]).map
 						description: 'Syarat yang menyertai keputusan Disetujui bersyarat.'
 					}
 				]
-			}
-);
+			};
+});
 
 export const labelOf = (f: PropDef) => f.label ?? f.name;
+
+/** How the UI names one stored option of a select kolom. */
+export const optionLabel = (f: PropDef, option: string) => f.optionLabels?.[option] ?? option;
 
 export const DECISION_STATUS = 'Status keputusan';
 export const ACTION_STATUS = 'Status';

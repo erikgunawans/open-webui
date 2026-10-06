@@ -1,5 +1,13 @@
 import { AGENDAS, STANDARD_MINUTES } from './agendas';
-import { actions, decisions, deviationTone, fmtShort, mainInfo, targetOf } from './selectors';
+import {
+	actions,
+	decisions,
+	deviationTone,
+	fmtShort,
+	isDecided,
+	mainInfo,
+	targetOf
+} from './selectors';
 import {
 	DECISION_STATUS,
 	filled,
@@ -240,6 +248,8 @@ export const closingSummary = (m: Meeting) => {
 	return {
 		agendasDone: new Set(m.session.doneAgendas).size,
 		agendasTotal: m.records.length,
+		/** Usulan decided at the close: a Ditunda is not counted (it comes back on its date). */
+		decided: decs.filter(isDecided).length,
 		decisions: DECISION_ORDER.map(
 			(s) => [s, decs.filter((r) => statusOf(r) === s).length] as const
 		),

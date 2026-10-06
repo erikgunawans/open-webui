@@ -211,3 +211,16 @@ export const DECISION_STATUSES = [
 	'Ditolak'
 ];
 export const ACTION_COLUMNS = ['Belum mulai', 'Berjalan', 'Terhambat', 'Selesai'];
+
+/** The agenda (1–8) a stored "Agenda" option names ("4. Program Prioritas" → 4), or 0. */
+export const agendaNumber = (option: string): number => {
+	const n = Number(/^(\d)\./.exec(option.trim())?.[1]);
+	return n >= 1 && n <= 8 ? n : 0;
+};
+
+/** How the UI names a stored "Agenda" option: the stored English names ("1. Strategic Update")
+ *  are storage keys, so they are shown as the agenda's own name ("1. Perkembangan Strategis"). */
+export const agendaLabel = (option: string): string => {
+	const n = agendaNumber(option);
+	return n ? AGENDAS[n].nav : option;
+};

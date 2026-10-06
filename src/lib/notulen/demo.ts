@@ -1,6 +1,7 @@
 import { RAPAT_DEMO as R } from './demo-source';
 import { record, freshSession } from './seed';
-import type { DateValue, Meeting, NotulenRecord } from './types';
+import { RUMUSAN, ULANG, UNDECIDED } from './keputusan';
+import { SYARAT, type DateValue, type Meeting, type NotulenRecord, type PropValue } from './types';
 
 // The demo meeting: rapat-dummy-data.js (fictional) mapped into a Meeting through the schema's own
 // property names, so the Layar reads it exactly as it reads real minutes. Only what the schema has
@@ -33,6 +34,31 @@ export const idDate = (s: string, year = 2026): DateValue | undefined => {
 const date = (start: string, end = ''): DateValue => ({ start, end });
 const rp = (miliar: number) => Math.round(miliar * 1e9);
 const SOURCE = 'Data dummy';
+
+// The demo's decided Usulan carry what a Keputusan needs (Rumusan, Syarat, the date it comes back),
+// so the demo's own Tutup rapat check does not scold it. The generated source has no such fields.
+const RUMUSAN_DEMO: Record<string, string> = {
+	'D-05':
+		'Direksi menyetujui pembentukan task force rekonsiliasi aset ERP lintas direktorat selama 6 minggu, dipimpin Dit. Keuangan.'
+};
+
+/** The kolom a demo Keputusan needs, filled when the source leaves them out. */
+export const demoKeputusan = (x: { id: string; mohon: string; status: string }) => {
+	const out: Record<string, PropValue> = {};
+	if (!x.status || x.status === UNDECIDED) return out;
+	const mohon = x.mohon.replace(/^Menyetujui /, '').replace(/\.$/, '');
+	out[RUMUSAN] =
+		RUMUSAN_DEMO[x.id] ??
+		(x.status === 'Ditolak'
+			? `Direksi menolak usulan: ${mohon}.`
+			: x.status === 'Ditunda'
+				? `Direksi menunda keputusan atas usulan: ${mohon}.`
+				: `Direksi menyetujui ${mohon}.`);
+	if (x.status === 'Disetujui bersyarat')
+		out[SYARAT] = 'Pelaksanaan menunggu reviu SPI atas metode dan dokumen pendukung.';
+	if (x.status === 'Ditunda') out[ULANG] = { start: '2026-11-02', end: '' };
+	return out;
+};
 
 export const demoMeeting = (now = Date.now()): Meeting => {
 	const m = R.meta;
@@ -174,7 +200,8 @@ export const demoMeeting = (now = Date.now()): Meeting => {
 				'Opsi & rekomendasi': x.rekom,
 				'Kewenangan / persetujuan lanjutan': [...x.kewenangan],
 				'PIC pelaksanaan': x.pic,
-				'Status keputusan': x.status
+				'Status keputusan': x.status,
+				...demoKeputusan(x)
 			},
 			'',
 			SOURCE

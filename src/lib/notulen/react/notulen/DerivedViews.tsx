@@ -1,6 +1,6 @@
 import { Badge, Card } from '@jup/ui';
 
-import { ACTION_COLUMNS, toneOf } from '../../agendas';
+import { ACTION_COLUMNS, agendaLabel, toneOf } from '../../agendas';
 import {
 	actionCalendar,
 	actions,
@@ -61,7 +61,7 @@ export const DerivedViews = ({ meeting }: { meeting: Meeting }) => {
 								<Row
 									key={r.id}
 									title={prefixed(v(r, 'ID keputusan'), v(r, 'Topik keputusan'))}
-									meta={[v(r, 'Agenda'), v(r, 'PIC pelaksanaan')]}
+									meta={[agendaLabel(v(r, 'Agenda')), v(r, 'PIC pelaksanaan')]}
 									badge={v(r, 'Status keputusan') || 'Belum diisi'}
 								/>
 							))}

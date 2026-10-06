@@ -76,9 +76,9 @@ export const Guide = () => (
 				</p>
 				<h3>Arahan</h3>
 				<p>
-					Tulis arahan Direksi di <strong>Kesimpulan / arahan</strong> butir yang dibahas. Bila
-					arahan menyebut siapa dan kapan, catat juga sebagai <strong>Tindakan</strong>: hanya
-					tindakan di 08 yang dipantau.
+					Tulis arahan Direksi di kolom <strong>Arahan</strong> butir yang dibahas. Bila arahan
+					menyebut siapa dan kapan, catat juga sebagai <strong>Tindakan</strong>: hanya tindakan di
+					08 yang dipantau.
 				</p>
 				<h3>Keputusan</h3>
 				<p>

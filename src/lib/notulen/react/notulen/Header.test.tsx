@@ -40,4 +40,11 @@ describe('Notulen save status', () => {
 		expect(html).toContain('Simpan HTML terisi sekarang');
 		expect(html).not.toContain('Tersimpan ·');
 	});
+
+	it('keeps Reset out of the action row, behind Lainnya, and the storage note off the page', () => {
+		const html = render({ ok: true, at: null });
+		expect(html).toContain('Lainnya');
+		expect(html).not.toMatch(/<button[^>]*>(?:(?!<\/button>).)*>Reset<\/span>/);
+		expect(html).not.toContain('class="nt-note"');
+	});
 });

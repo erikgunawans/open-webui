@@ -1,4 +1,4 @@
-import { AGENDAS } from './agendas';
+import { AGENDAS, ITEM_NOUN, agendaNumber } from './agendas';
 import { record } from './seed';
 import {
 	AGENDA_ACTIONS,
@@ -27,8 +27,8 @@ export const agendaOption = (db: number): string => {
 
 /** Two-digit agenda number for a stored "Agenda" option ("4. Program Prioritas" → "04"), or "". */
 export const agendaNo = (option: string): string => {
-	const n = Number(/^(\d)\./.exec(option)?.[1]);
-	return n >= 1 && n <= 8 ? AGENDAS[n].no : '';
+	const n = agendaNumber(option);
+	return n ? AGENDAS[n].no : '';
 };
 
 /** Which kinds the strip offers on agenda `db`: a Butir only where the agenda has its own entries. */
@@ -40,6 +40,12 @@ export const kindsFor = (db: number): CaptureKind[] =>
 			: db >= 1
 				? ['butir', 'usulan', 'tindakan']
 				: [];
+
+/** The strip's name for each kind: a Butir is called by the agenda's own noun (Isu, Risiko, …). */
+export const captureLabel = (k: CaptureKind, db: number): string => {
+	const noun = k === 'butir' ? (ITEM_NOUN[db] ?? 'butir') : k;
+	return noun[0].toUpperCase() + noun.slice(1);
+};
 
 export interface Capture {
 	kind: CaptureKind;

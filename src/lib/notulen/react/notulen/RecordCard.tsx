@@ -192,14 +192,14 @@ export const RecordCard = ({ db, r, index, total, open, ...on }: Props) => {
 							]}
 					{showBody ? (
 						<section className="nt-group">
-							<h3 className="nt-group__h">Catatan panjang</h3>
+							<h3 className="nt-group__h">Catatan lain</h3>
 							<Textarea
 								rows={3}
 								autoResize
 								maxRows={20}
 								value={r.body}
-								placeholder={`Catatan panjang untuk ${ITEM_NOUN[db]} ini…`}
-								aria-label="Catatan panjang"
+								placeholder={`Catatan lain untuk ${ITEM_NOUN[db]} ini…`}
+								aria-label="Catatan lain"
 								onChange={(e) => on.onChange({ ...r, body: e.target.value })}
 							/>
 						</section>

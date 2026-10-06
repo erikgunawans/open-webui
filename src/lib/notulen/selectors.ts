@@ -45,6 +45,13 @@ export const pendingDecisions = (m: Meeting): NotulenRecord[] =>
 export const decisions = (m: Meeting): NotulenRecord[] =>
 	m.records[AGENDA_DECISIONS].filter((r) => text(v(r, 'Topik keputusan')));
 
+/** Whether an Usulan counts as diputuskan: a Ditunda still waits, so it is pending, not decided. */
+export const isDecided = (r: NotulenRecord): boolean =>
+	!PENDING.includes(text(v(r, DECISION_STATUS)));
+
+/** Usulan the Direksi have decided (Disetujui, Disetujui bersyarat, Ditolak): never a Ditunda. */
+export const decidedDecisions = (m: Meeting): NotulenRecord[] => decisions(m).filter(isDecided);
+
 export const highRisks = (m: Meeting): NotulenRecord[] =>
 	m.records[5].filter((r) => v(r, 'Tingkat risiko') === 'Tinggi');
 

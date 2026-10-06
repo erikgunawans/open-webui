@@ -986,11 +986,46 @@
 .lr-dec__form {
 	flex-direction: column;
 	align-items: stretch;
+	gap: var(--jup-s2);
+	padding-top: var(--jup-s3);
 }
 .lr-dec__field {
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
+}
+/* What the Corsec types is read across the room: the size of the lead it sits under. */
+.lr-dec__form .jup-textarea,
+.lr-dec__form .jup-input__control {
+	font-size: 22px;
+	line-height: 1.35;
+}
+.lr-dec__form .jup-input {
+	height: auto;
+	min-height: 48px;
+}
+.lr-dec__detail .lr-g2[hidden] {
+	display: none;
+}
+/* The guard: should a form still outgrow the card, its body scrolls and the buttons stay in view. */
+.lr-dec__detail {
+	min-height: 0;
+	overflow: hidden;
+}
+.lr-dec__detail .jup-card__body {
+	overflow-y: auto;
+	min-height: 0;
+}
+.lr-dec__form .lr-dec__confirm {
+	position: sticky;
+	bottom: 0;
+	flex-wrap: nowrap;
+	background: var(--jup-surface-card);
+	padding-top: var(--jup-s2);
+}
+.lr-dec__confirm > .lr-k {
+	flex: 1 1 auto;
+	min-width: 0;
 }
 .lr-foot__ask {
 	display: flex;

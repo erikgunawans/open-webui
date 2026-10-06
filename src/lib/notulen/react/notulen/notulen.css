@@ -223,7 +223,8 @@
 .nt-focus {
 	margin: 0;
 	color: var(--jup-text-secondary);
-	max-width: 72ch;
+	/* ch is the width of "0": 72ch set ~87 characters of prose per line; 60ch keeps it under 75. */
+	max-width: 60ch;
 	text-wrap: pretty;
 }
 .nt-ahead__row {
@@ -741,10 +742,18 @@
 	color: var(--jup-text-muted);
 }
 
-/* The save status sits inside the storage note; the alert replaces it when the browser refused the
- * last write, and stays until a later write succeeds. */
+/* The save status sits in the meta line, where the data lives in its tooltip; the alert replaces it
+ * when the browser refused the last write, and stays until a later write succeeds. */
 .nt-saved:empty {
 	display: none;
+}
+.nt-saved__badge {
+	display: inline-flex;
+	border-radius: var(--jup-radius-sm, 4px);
+}
+.nt-saved__badge:focus-visible {
+	outline: 2px solid var(--jup-focus-ring);
+	outline-offset: 2px;
 }
 .nt-save-alert {
 	margin-top: var(--jup-s3);

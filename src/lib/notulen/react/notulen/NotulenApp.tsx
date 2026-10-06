@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, Button, Dialog, Textarea, useJupTheme, useToast } from '@jup/ui';
 
 import type { MeetingRepo } from '../../repo';
-import { captureRecord, type Capture } from '../../capture';
+import { captureLabel, captureRecord, type Capture } from '../../capture';
 import { closingGaps, gapLine, reopenMeeting } from '../../keputusan';
 import { closeMeeting, jakartaLocal } from '../../layar-model';
 import type { AgendaNotes, Meeting, NotulenRecord } from '../../types';
@@ -39,7 +39,13 @@ const readView = (key: string): View => {
 
 export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: NotulenProps) => {
 	const [meeting, update, saved, unreadable] = useMeeting(repo, meetingId, init);
-	const [view, setView] = useState<View>(() => readView(viewKey));
+	// Ikuti layar starts on: while the meeting runs, open where the Layar is; once it is closed,
+	// where this reader last was.
+	const [view, setView] = useState<View>(() =>
+		meeting.session.closedAt === undefined
+			? (String(meeting.session.currentAgenda) as View)
+			: readView(viewKey)
+	);
 	const [confirmReset, setConfirmReset] = useState(false);
 	const [asking, setAsking] = useState<null | 'close' | 'reopen'>(null);
 	const [reason, setReason] = useState('');
@@ -94,7 +100,7 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 		}));
 		const where = to === c.from ? '' : ` ke Agenda 0${to}`;
 		toast({
-			title: `${c.kind[0].toUpperCase()}${c.kind.slice(1)} dicatat${where}`,
+			title: `${captureLabel(c.kind, c.from)} dicatat${where}`,
 			tone: 'success'
 		});
 	};
@@ -108,6 +114,12 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 
 	const closed = meeting.session.closedAt !== undefined;
 	const gaps = closingGaps(meeting);
+	// The Tutup rapat dialog opens on its primary. The dialog's focus trap puts focus on its first
+	// control (the close icon) in its own effect; this parent effect runs after it and moves it on.
+	const closeDefault = useRef<HTMLButtonElement>(null);
+	useEffect(() => {
+		if (asking === 'close') closeDefault.current?.focus();
+	}, [asking]);
 	const closeRapat = () => {
 		update((m) => closeMeeting(m, Date.now()));
 		setAsking(null);
@@ -229,20 +241,30 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 						<Button variant="ghost" onClick={() => setAsking(null)}>
 							Batal
 						</Button>
+						{/* With gaps the safe way is the default (primary, focused); closing anyway is a
+						    deliberate second choice. */}
 						{gaps.any ? (
-							<Button
-								variant="secondary"
-								onClick={() => {
-									setAsking(null);
-									go('7');
-								}}
-							>
-								Kembali ke 07
+							<>
+								<Button variant="outline" onClick={closeRapat}>
+									Tutup tetap
+								</Button>
+								<Button
+									ref={closeDefault}
+									variant="primary"
+									autoFocus
+									onClick={() => {
+										setAsking(null);
+										go('7');
+									}}
+								>
+									Kembali ke 07
+								</Button>
+							</>
+						) : (
+							<Button ref={closeDefault} variant="primary" autoFocus onClick={closeRapat}>
+								Tutup rapat
 							</Button>
-						) : null}
-						<Button variant="primary" onClick={closeRapat}>
-							{gaps.any ? 'Tutup tetap' : 'Tutup rapat'}
-						</Button>
+						)}
 					</>
 				}
 			/>

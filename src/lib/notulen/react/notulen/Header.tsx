@@ -1,5 +1,13 @@
-import { Alert, Badge, Button } from '@jup/ui';
-import { Download, Lock, LockOpen, Monitor, Printer, RotateCcw } from 'lucide-react';
+import { Alert, Badge, Button, DropdownMenu, Tooltip } from '@jup/ui';
+import {
+	Download,
+	Lock,
+	LockOpen,
+	Monitor,
+	MoreHorizontal,
+	Printer,
+	RotateCcw
+} from 'lucide-react';
 
 import { CHECKLIST, toneOf } from '../../agendas';
 import { checklistCount, fmtDate, mainInfo, meetingName } from '../../selectors';
@@ -7,9 +15,10 @@ import { text, type Meeting } from '../../types';
 import type { SaveState, Unreadable } from '../useMeeting';
 
 // The Notulen header, in the KPI 2026 tab's form: eyebrow, meeting name and a meta line over a
-// heavy rule, the actions to its right (layar, reset, print, the one primary: save). The theme is
-// the app's, so there is no switch here. The storage note stays in view on every agenda, and says
-// when the last edit was stored — or, when the browser refused it, stops the reader with an alert.
+// heavy rule, the actions to its right (layar, Tutup rapat, print, the one primary: save, and Reset
+// last, inside "Lainnya", away from Tutup rapat). The theme is the app's, so there is no switch
+// here. The saved badge in the meta line says when the last edit was stored, its tooltip where the
+// data lives; when the browser refused a write, an alert stops the reader.
 
 type Props = {
 	meeting: Meeting;
@@ -34,6 +43,10 @@ const clock = (at: number) =>
 		minute: '2-digit',
 		timeZone: 'Asia/Jakarta'
 	});
+
+/** Where the data lives: the saved badge's tooltip (it was a paragraph on every agenda). */
+export const STORAGE_NOTE =
+	'Isian tersimpan otomatis di peramban dan perangkat ini saja, untuk akun Anda; belum ada salinan di server. Gunakan Simpan HTML terisi untuk membuat salinan berisi data.';
 
 export const Header = ({
 	meeting,
@@ -82,23 +95,22 @@ export const Header = ({
 						<span className="nt-mono nt-muted">
 							Checklist {checklistCount(meeting)}/{CHECKLIST.length}
 						</span>
-					</div>
-					<p className="nt-note">
 						<span role="status" className="nt-saved">
-							{saved.ok && saved.at !== null ? (
-								<Badge tone="success" dot>
-									Tersimpan · {clock(saved.at)} WIB
-								</Badge>
-							) : saved.ok ? (
-								<Badge variant="outline">Tersimpan di peramban ini</Badge>
+							{saved.ok ? (
+								<Tooltip content={STORAGE_NOTE} placement="bottom">
+									<span tabIndex={0} className="nt-saved__badge">
+										{saved.at !== null ? (
+											<Badge tone="success" dot>
+												Tersimpan · {clock(saved.at)} WIB
+											</Badge>
+										) : (
+											<Badge variant="outline">Tersimpan di peramban ini</Badge>
+										)}
+									</span>
+								</Tooltip>
 							) : null}
 						</span>
-						<span>
-							Isian tersimpan otomatis di peramban dan perangkat ini saja, untuk akun Anda; belum
-							ada salinan di server. Gunakan <strong>Simpan HTML terisi</strong> untuk membuat
-							salinan berisi data.
-						</span>
-					</p>
+					</div>
 					{saved.ok ? null : (
 						<Alert
 							tone="danger"
@@ -152,14 +164,6 @@ export const Header = ({
 					>
 						Buka layar
 					</Button>
-					<Button
-						variant="ghost"
-						iconLeft={<RotateCcw size={16} aria-hidden="true" />}
-						onClick={onReset}
-						disabled={closed}
-					>
-						Reset
-					</Button>
 					{!onTutup || !onReopen ? null : closed ? (
 						<Button
 							variant="ghost"
@@ -191,6 +195,25 @@ export const Header = ({
 					>
 						Simpan HTML terisi
 					</Button>
+					<DropdownMenu
+						label="Lainnya"
+						align="end"
+						trigger={
+							<Button variant="ghost" iconLeft={<MoreHorizontal size={16} aria-hidden="true" />}>
+								Lainnya
+							</Button>
+						}
+						items={[
+							{
+								id: 'reset',
+								label: 'Reset notulen',
+								icon: <RotateCcw size={16} aria-hidden="true" />,
+								disabled: closed,
+								destructive: true,
+								onSelect: onReset
+							}
+						]}
+					/>
 				</div>
 			</div>
 		</header>

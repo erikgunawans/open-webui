@@ -8,6 +8,8 @@ import {
 	DBS,
 	filled,
 	isDate,
+	labelOf,
+	optionLabel,
 	text,
 	titleField,
 	type Meeting,
@@ -49,9 +51,9 @@ const clock = (x: string) => (x.length > 10 ? x.slice(11, 16).replace(':', '.') 
 export const shown = (f: PropDef, v: PropValue | undefined): string => {
 	if (!filled(v) || f.type === 'checkbox') return '';
 	if (isDate(v)) return fmtDate(v);
-	if (Array.isArray(v)) return v.join(', ');
+	if (Array.isArray(v)) return v.map((o) => optionLabel(f, o)).join(', ');
 	const s = text(v);
-	if (f.type !== 'number') return s.trim();
+	if (f.type !== 'number') return optionLabel(f, s).trim();
 	const n = Number(s.replace(',', '.'));
 	if (!Number.isFinite(n)) return s;
 	const { prefix, suffix } = numberAffixes(f.name);
@@ -97,7 +99,7 @@ const AgendaEntries = ({ db, records }: { db: number; records: NotulenRecord[] }
 			title: text(r.values[tf.name]).trim(),
 			fields: DBS[db].fields
 				.filter((f) => f.type !== 'title')
-				.map((f) => [f.name, shown(f, r.values[f.name])] as const)
+				.map((f) => [labelOf(f), shown(f, r.values[f.name])] as const)
 				.filter(([, s]) => s)
 		}))
 		// A Kinerja indicator is only its name until a number is entered: the starters print nothing.

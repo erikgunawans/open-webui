@@ -36,7 +36,10 @@ export const V09Penutupan = ({ meeting, closedAt }: Props) => {
 			<div className="lr-kpis">
 				<div className="lr-kpi">
 					<div className="lr-kpi__h">Keputusan</div>
-					<div className="lr-kpi__v">{s.decisionList.length}</div>
+					<div className="lr-kpi__v">
+						{s.decided}
+						<span className="lr-sub">/{s.decisionList.length}</span>
+					</div>
 				</div>
 				<div className="lr-kpi">
 					<div className="lr-kpi__h">Disetujui</div>

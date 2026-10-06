@@ -1,6 +1,6 @@
 import { Checkbox, Field, Input, Select, Tag, Textarea } from '@jup/ui';
 
-import { isDate, labelOf, type PropDef, type PropValue } from '../../types';
+import { isDate, labelOf, optionLabel, type PropDef, type PropValue } from '../../types';
 import { DateField } from './DateField';
 import { FieldLabel } from './FieldLabel';
 
@@ -57,7 +57,7 @@ export const PropField = ({ f, value, timeOn, onChange, onTime }: Props) => {
 						onChange={(e) => onChange(e.target.value)}
 						options={[
 							{ value: '', label: '— Pilih —' },
-							...f.options.map((o) => ({ value: o, label: o }))
+							...f.options.map((o) => ({ value: o, label: optionLabel(f, o) }))
 						]}
 					/>
 				</Field>
@@ -74,7 +74,7 @@ export const PropField = ({ f, value, timeOn, onChange, onTime }: Props) => {
 								selected={arr.includes(o)}
 								onClick={() => onChange(arr.includes(o) ? arr.filter((x) => x !== o) : [...arr, o])}
 							>
-								{o}
+								{optionLabel(f, o)}
 							</Tag>
 						))}
 					</div>

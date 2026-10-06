@@ -2,16 +2,10 @@ import { useRef, useState } from 'react';
 import { Button, Input } from '@jup/ui';
 import { Plus } from 'lucide-react';
 
-import { kindsFor, type Capture, type CaptureKind } from '../../capture';
+import { captureLabel, kindsFor, type Capture, type CaptureKind } from '../../capture';
 
 // Catat cepat: one line + Enter, while the discussion moves. A Butir lands in this agenda, an Usulan
 // in 07, a Tindakan (with its PIC and tenggat) in 08.
-
-const LABEL: Record<CaptureKind, string> = {
-	butir: 'Butir',
-	usulan: 'Usulan',
-	tindakan: 'Tindakan'
-};
 
 const PLACEHOLDER: Record<CaptureKind, string> = {
 	butir: 'Topik yang dibahas…',
@@ -67,7 +61,7 @@ export const CaptureStrip = ({
 						iconLeft={<Plus size={14} aria-hidden="true" />}
 						onClick={() => choose(k)}
 					>
-						{LABEL[k]}
+						{captureLabel(k, db)}
 					</Button>
 				))}
 			</div>
@@ -78,7 +72,7 @@ export const CaptureStrip = ({
 					value={title}
 					onChange={(e) => setTitle(e.target.value)}
 					placeholder={PLACEHOLDER[kind]}
-					aria-label={LABEL[kind]}
+					aria-label={captureLabel(kind, db)}
 				/>
 				{kind === 'tindakan' ? (
 					<>
@@ -105,7 +99,7 @@ export const CaptureStrip = ({
 				</Button>
 			</div>
 			<p className="nt-capture__hint">
-				Enter mencatat. {LABEL[kind]} {WHERE[kind]}.
+				Enter mencatat. {captureLabel(kind, db)} {WHERE[kind]}.
 			</p>
 		</form>
 	);

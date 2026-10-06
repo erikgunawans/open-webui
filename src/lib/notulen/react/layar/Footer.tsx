@@ -24,6 +24,41 @@ type Props = {
 
 type Asking = null | 'close' | 'reopen';
 
+/** The Tutup rapat check in place. With gaps the safe way is the default: "Kembali ke 07" is the
+ *  primary and takes focus, so Enter does not close a meeting that still has open Usulan. */
+export const CloseAsk = ({
+	gaps,
+	onClose,
+	onBack,
+	onCancel
+}: {
+	gaps: ReturnType<typeof closingGaps>;
+	onClose: () => void;
+	onBack: () => void;
+	onCancel: () => void;
+}) => (
+	<div className="lr-foot__ask" role="group" aria-label="Tutup rapat">
+		<span className="lr-foot__q">{gaps.any ? gapLine(gaps) : 'Tutup rapat sekarang?'}</span>
+		{gaps.any ? (
+			<>
+				<Button variant="primary" autoFocus onClick={onBack}>
+					Kembali ke 07
+				</Button>
+				<Button variant="outline" onClick={onClose}>
+					Tutup tetap
+				</Button>
+			</>
+		) : (
+			<Button variant="primary" autoFocus onClick={onClose}>
+				Tutup rapat
+			</Button>
+		)}
+		<Button variant="ghost" onClick={onCancel}>
+			Batal
+		</Button>
+	</div>
+);
+
 export const Footer = ({ plan, current, done, closed, gaps, ...on }: Props) => {
 	const last = current === plan.length - 1;
 	const [asking, setAsking] = useState<Asking>(null);
@@ -76,20 +111,12 @@ export const Footer = ({ plan, current, done, closed, gaps, ...on }: Props) => {
 			);
 		if (last && asking === 'close')
 			return (
-				<div className="lr-foot__ask" role="group" aria-label="Tutup rapat">
-					<span className="lr-foot__q">{gaps.any ? gapLine(gaps) : 'Tutup rapat sekarang?'}</span>
-					<Button variant="primary" autoFocus onClick={on.onClose}>
-						{gaps.any ? 'Tutup tetap' : 'Tutup rapat'}
-					</Button>
-					{gaps.any ? (
-						<Button variant="outline" onClick={on.onBackToDecisions}>
-							Kembali ke 07
-						</Button>
-					) : null}
-					<Button variant="ghost" onClick={() => setAsking(null)}>
-						Batal
-					</Button>
-				</div>
+				<CloseAsk
+					gaps={gaps}
+					onClose={on.onClose}
+					onBack={on.onBackToDecisions}
+					onCancel={() => setAsking(null)}
+				/>
 			);
 		return (
 			<>

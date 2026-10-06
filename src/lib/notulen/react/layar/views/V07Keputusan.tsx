@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { Button, Card, Input, Tag, Textarea } from '@jup/ui';
 import { Check } from 'lucide-react';
 
+import { agendaLabel } from '../../../agendas';
 import { decisionGaps, RUMUSAN, ULANG } from '../../../keputusan';
 import { decisionId } from '../../../layar-model';
-import { decisions } from '../../../selectors';
+import { decisions, isDecided } from '../../../selectors';
 import { DECISION_STATUS, SYARAT, isDate, text, type PropValue } from '../../../types';
 import { Head, Nothing, StatusBadge, type ViewProps } from './common';
 
@@ -39,7 +40,7 @@ export const V07Keputusan = ({ meeting, agenda, selected, onSelect, onDecide }: 
 	const d = list.find((x) => x.id === selected) ?? list[0];
 	const statusOf = (r: (typeof list)[number]) =>
 		text(r.values[DECISION_STATUS]) || 'Belum diputuskan';
-	const decided = list.filter((x) => statusOf(x) !== 'Belum diputuskan').length;
+	const decided = list.filter(isDecided).length;
 	// The Keputusan being written for one Usulan; any other selection drops it.
 	const [draft, setDraft] = useState<{ id: string; status: string } | null>(null);
 	const [rumusan, setRumusan] = useState('');
@@ -112,14 +113,16 @@ export const V07Keputusan = ({ meeting, agenda, selected, onSelect, onDecide }: 
 						<div className="lr-dec__top">
 							<span className="lr-mono lr-k">
 								{decisionId(d, list.indexOf(d))}
-								{text(d.values.Agenda) ? ` · ${text(d.values.Agenda)}` : ''}
+								{text(d.values.Agenda) ? ` · ${agendaLabel(text(d.values.Agenda))}` : ''}
 							</span>
 							<StatusBadge s={statusOf(d)} />
 						</div>
 						<div className="lr-h3 lr-h3--lg">{text(d.values['Topik keputusan'])}</div>
 						<div className="lr-k lr-mt">Keputusan yang dimohonkan</div>
 						<p className="lr-lead">{text(d.values['Keputusan yang dimohonkan']) || '—'}</p>
-						<div className="lr-g2 lr-g2--tight">
+						{/* While a Keputusan is written, the form takes this room: the stage does not scroll, so
+						    anything left here pushed "Catat keputusan" below the clip (critique, 2026-10-06). */}
+						<div className="lr-g2 lr-g2--tight" hidden={asking}>
 							<div>
 								<div className="lr-k">Rekomendasi</div>
 								<div>{text(d.values['Opsi & rekomendasi']) || '—'}</div>
@@ -175,7 +178,7 @@ export const V07Keputusan = ({ meeting, agenda, selected, onSelect, onDecide }: 
 										autoFocus
 										rows={2}
 										autoResize
-										maxRows={5}
+										maxRows={3}
 										value={rumusan}
 										onChange={(e) => setRumusan(e.target.value)}
 										placeholder="Keputusan Direksi, dalam kalimat…"
@@ -187,7 +190,7 @@ export const V07Keputusan = ({ meeting, agenda, selected, onSelect, onDecide }: 
 										<Textarea
 											rows={2}
 											autoResize
-											maxRows={5}
+											maxRows={3}
 											value={syarat}
 											onChange={(e) => setSyarat(e.target.value)}
 											placeholder="Syarat yang harus dipenuhi…"
