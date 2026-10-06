@@ -1,3 +1,38 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-07-v60)
+
+> Prepended by /wrap 2026-10-07 (checkpoint 2026-10-07-v60). Supersedes v59's anchor and its "do next" (critique issue 2 grilled + built, critique re-run, its fixes merged); v59's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-07-v60). Invoke the `RapatDireksi` skill for any Rapat Direksi work.
+Anchor: `origin/main` at `98dc39ba8` **as this was written**, or one commit ahead at this checkpoint's own wrap merge (subject names `checkpoint-v60` / `2026-10-07-v60`). Verify with `git log --oneline 98dc39ba8..origin/main`; anything else there is a parallel push.
+
+**Current state:**
+- **Live at wrap:** `ent-os-00113-fn5` (`e832b27a9`: live flow #142–#144, verified as Erik). **`98dc39ba8` (#146, all critique fixes) was DEPLOYING when this was written** — `gcloud run services describe ent-os --region asia-southeast2 --format='value(status.latestReadyRevisionName)'` should show 00114; if it is still 00113, check `pgrep -fl deploy.sh` and redeploy (`bash deploy/gcp/deploy.sh` from a clean `main`).
+- Critique 27/40 (#145); #146 fixes its P0/P1/P2s and is measured only in the local harness.
+
+**Do next, in order:**
+1. **Confirm 00114 = `98dc39ba8` and live-verify #146 as Erik** on `/ruang-pimpinan/rapat/demo/notulen` + `/layar` (read-only, cancel every form): Layar 07 bersyarat/Tunda form buttons inside `.lr-main` (getBoundingClientRect), Tutup check focuses "Kembali ke 07", Agenda select shows "1. Perkembangan Strategis", "Arahan" label, header ~155px + Lainnya menu, Notulen opens on the Layar's agenda. Erik's demo copy is stored in his browser: the demo Rumusan appear only after Lainnya → Reset (his call).
+2. **Fix the reopen dialog focus** (Buka kembali focuses its close icon, not the reason textarea — same ref+effect pattern as the Tutup dialog in `NotulenApp.tsx`).
+3. **Re-run `$impeccable critique`** (dual-agent) after 00114; persist + PR the snapshot.
+4. **Ask Erik** whether the Tutup check should count Ditunda as "belum diputuskan" (currently not: a dated Ditunda is a complete Keputusan) — one line in `keputusan.ts` `closingGaps`.
+5. **QHSE KB:** did Erik send the JUP IT request (#137 doc) + Ikhsan message? Access scope (all staff?) and sensitive content (names/incidents)? While waiting: grill the QHSE KB (`/grill-with-docs` → `/to-spec` → `/to-tickets`).
+6. **#42 Notion acceptance with Erik**; **E8 when JUP IT answers #82**.
+7. Carried: server-backed `MeetingRepo` only after Erik uses Rapat Direksi for real; O3 acceptance (PowerPoint + Keynote); phone check; Legal-account Kartu Kontrak; staff-account checks (O1); #47.
+
+**Constraints to honor** (new, plus the blocks below):
+- Rapat Direksi decisions from the 2026-10-06 grill are settled (vocabulary in `CONTEXT.md`, flow + kolom-inti table in the `RapatDireksi` skill). Never rename stored keys; display names go through `label` / `optionLabels` (`types.ts` `DBS`) or `agendas.ts`. Schema count is 151 (150 + `Syarat`).
+- Local harness for Rapat Direksi: the skill's "Local harness" section (Vite on 5199 mounting `entry.tsx`; files in the session scratchpad are gone — recreate from the skill).
+- The PAI security hook blocks `rm -rf <dir>/*`; ask Erik to run cache deletions himself (`! rm -rf ~/Library/Caches/*`).
+- Deploy identity is `alesha-bot@axiara.ai` (Owner); its token expires — `gcloud auth print-access-token` before every deploy, `! gcloud auth login` if it fails. Disk + swap check before every deploy (disk swung 12 GiB → 240 MiB within hours).
+- Never switch branches in the main checkout while `deploy.sh` runs — use a worktree.
+
+**Open items waiting on Erik:**
+- Ditunda in the Tutup check (item 4); whether to Reset his demo copy to see the demo Rumusan.
+- JUP IT request + Ikhsan message for QHSE; QHSE access scope and sensitive docs.
+- Risalah choices (draft notice unless Disetujui, fixed "Jakarta,", empty Kinerja omitted, hardcoded company name); "Perkembangan Bisnis" casing.
+- Carried: #42 Notion test + Tasks DB vs D25; JUP IT's reply to #82; contract-card titles, `jup_contracts` all-users grant, Rully items, O3 acceptance, phone check, Latar Obrolan wording, WhatsApp strings, test-chat deletion, secret rotation if transcripts are shared, JUP WhatsApp number.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-06-v59)
 
 > Prepended by /wrap 2026-10-06 (checkpoint 2026-10-06-v59). Supersedes v58's anchor and its "do next" (#135 shipped, hand checks passed, critique re-run); v58's and older blocks' constraints still hold unless noted.
