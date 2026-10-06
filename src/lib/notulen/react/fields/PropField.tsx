@@ -1,6 +1,6 @@
 import { Checkbox, Field, Input, Select, Tag, Textarea } from '@jup/ui';
 
-import { isDate, type PropDef, type PropValue } from '../../types';
+import { isDate, labelOf, type PropDef, type PropValue } from '../../types';
 import { DateField } from './DateField';
 import { FieldLabel } from './FieldLabel';
 
@@ -31,7 +31,7 @@ export const PropField = ({ f, value, timeOn, onChange, onTime }: Props) => {
 			return (
 				<div className="nt-check">
 					<Checkbox
-						label={f.name}
+						label={labelOf(f)}
 						hint={hint}
 						checked={value === true}
 						onChange={(e) => onChange(e.target.checked)}
@@ -67,7 +67,7 @@ export const PropField = ({ f, value, timeOn, onChange, onTime }: Props) => {
 			return (
 				<div className="nt-multi">
 					<div className="nt-date__label">{label}</div>
-					<div className="nt-tags" role="group" aria-label={f.name}>
+					<div className="nt-tags" role="group" aria-label={labelOf(f)}>
 						{f.options.map((o) => (
 							<Tag
 								key={o}

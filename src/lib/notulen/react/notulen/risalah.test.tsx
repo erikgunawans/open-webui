@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { demoMeeting } from '../../demo';
 import { decisionId } from '../../layar-model';
 import { decisions } from '../../selectors';
-import { seedMeeting } from '../../seed';
+import { record, seedMeeting } from '../../seed';
 import { text } from '../../types';
 import { risalahHtml } from './risalah';
 
@@ -45,5 +45,21 @@ describe('Risalah', () => {
 		expect(risalahHtml(m2)).not.toContain('Direksi minta jadwal ulang');
 		m2.notes[4].risalah = true;
 		expect(risalahHtml(m2)).toContain('Direksi minta jadwal ulang');
+	});
+
+	it('prints the Syarat from its own kolom and every reopening with its reason', () => {
+		const m2 = seedMeeting('r', 0);
+		m2.records[7] = [
+			record({
+				'Topik keputusan': 'Kemitraan PLTS',
+				'Status keputusan': 'Disetujui bersyarat',
+				'Rumusan keputusan': 'Disetujui.',
+				Syarat: 'Setelah review Legal'
+			})
+		];
+		m2.session.reopenings = [{ at: Date.UTC(2026, 9, 5, 5, 0), reason: 'D-03 dilengkapi' }];
+		const out = risalahHtml(m2);
+		expect(out).toContain('Syarat: Setelah review Legal');
+		expect(out).toContain('Dibuka kembali pukul 12.00 WIB: D-03 dilengkapi');
 	});
 });

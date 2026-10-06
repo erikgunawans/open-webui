@@ -39,9 +39,9 @@ const events = () => {
 };
 
 describe('schema', () => {
-	it('has 9 databases and 150 properties, each with exactly one title', () => {
+	it('has 9 databases and 151 kolom (150 from the template + Syarat), each with exactly one title', () => {
 		expect(SCHEMA).toHaveLength(9);
-		expect(DBS.reduce((n, db) => n + db.fields.length, 0)).toBe(150);
+		expect(DBS.reduce((n, db) => n + db.fields.length, 0)).toBe(151);
 		DBS.forEach((_, i) => expect(titleField(i)).toBeDefined());
 	});
 });

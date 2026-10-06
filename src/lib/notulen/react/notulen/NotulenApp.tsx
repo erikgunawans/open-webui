@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, Dialog, useJupTheme, useToast } from '@jup/ui';
+import { Alert, Button, Dialog, Textarea, useJupTheme, useToast } from '@jup/ui';
 
 import type { MeetingRepo } from '../../repo';
 import { captureRecord, type Capture } from '../../capture';
+import { closingGaps, gapLine, reopenMeeting } from '../../keputusan';
+import { closeMeeting, jakartaLocal } from '../../layar-model';
 import type { AgendaNotes, Meeting, NotulenRecord } from '../../types';
 import { useMeeting } from '../useMeeting';
 import { AgendaView } from './AgendaView';
@@ -39,6 +41,8 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 	const [meeting, update, saved, unreadable] = useMeeting(repo, meetingId, init);
 	const [view, setView] = useState<View>(() => readView(viewKey));
 	const [confirmReset, setConfirmReset] = useState(false);
+	const [asking, setAsking] = useState<null | 'close' | 'reopen'>(null);
+	const [reason, setReason] = useState('');
 	const { toast } = useToast();
 	const { resolvedTheme } = useJupTheme();
 	const top = useRef<HTMLDivElement>(null);
@@ -102,6 +106,21 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 		if (on && onLayar != null) go(String(onLayar) as View);
 	};
 
+	const closed = meeting.session.closedAt !== undefined;
+	const gaps = closingGaps(meeting);
+	const closeRapat = () => {
+		update((m) => closeMeeting(m, Date.now()));
+		setAsking(null);
+		toast({ title: 'Rapat ditutup', description: 'Notulen kini hanya-baca.', tone: 'success' });
+	};
+	const reopen = () => {
+		if (!reason.trim()) return;
+		update((m) => reopenMeeting(m, reason, Date.now()));
+		setAsking(null);
+		setReason('');
+		toast({ title: 'Rapat dibuka kembali', description: reason.trim(), tone: 'warning' });
+	};
+
 	const print = async () => {
 		const { printRisalah } = await import('./risalah');
 		printRisalah(meeting);
@@ -157,8 +176,17 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 				onReset={() => setConfirmReset(true)}
 				onPrint={print}
 				onSave={save}
+				onTutup={() => setAsking('close')}
+				onReopen={() => setAsking('reopen')}
 				demo={demo}
 			/>
+			{closed ? (
+				<Alert tone="info" title="Rapat ditutup" className="nt-closed">
+					Ditutup pukul {jakartaLocal(meeting.session.closedAt!).slice(11).replace(':', '.')} WIB.
+					Notulen hanya-baca; untuk mengubahnya, gunakan <strong>Buka kembali</strong> dan tulis
+					alasannya.
+				</Alert>
+			) : null}
 			<div className="nt-shell">
 				<Nav
 					meeting={meeting}
@@ -169,22 +197,80 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 					onFollow={followLayar}
 				/>
 				<main className="nt-main" ref={main}>
-					{view === 'views' ? (
-						<DerivedViews meeting={meeting} />
-					) : view === 'guide' ? (
-						<Guide />
-					) : (
-						<AgendaView
-							key={view}
-							db={db ?? 0}
-							records={meeting.records[db ?? 0]}
-							setRecords={setRecords(db ?? 0)}
-							toast={toast}
-							live={{ onCapture: capture, notes: notesOf(db ?? 0), onNotes: setNotes(db ?? 0) }}
-						/>
-					)}
+					<fieldset className="nt-freeze" disabled={closed}>
+						{view === 'views' ? (
+							<DerivedViews meeting={meeting} />
+						) : view === 'guide' ? (
+							<Guide />
+						) : (
+							<AgendaView
+								key={view}
+								db={db ?? 0}
+								records={meeting.records[db ?? 0]}
+								setRecords={setRecords(db ?? 0)}
+								toast={toast}
+								live={{ onCapture: capture, notes: notesOf(db ?? 0), onNotes: setNotes(db ?? 0) }}
+							/>
+						)}
+					</fieldset>
 				</main>
 			</div>
+			<Dialog
+				open={asking === 'close'}
+				onClose={() => setAsking(null)}
+				title="Tutup rapat?"
+				description={
+					gaps.any
+						? `${gapLine(gaps)}. Setelah ditutup, Notulen hanya-baca.`
+						: 'Semua usulan sudah diputuskan. Setelah ditutup, Notulen hanya-baca.'
+				}
+				footer={
+					<>
+						<Button variant="ghost" onClick={() => setAsking(null)}>
+							Batal
+						</Button>
+						{gaps.any ? (
+							<Button
+								variant="secondary"
+								onClick={() => {
+									setAsking(null);
+									go('7');
+								}}
+							>
+								Kembali ke 07
+							</Button>
+						) : null}
+						<Button variant="primary" onClick={closeRapat}>
+							{gaps.any ? 'Tutup tetap' : 'Tutup rapat'}
+						</Button>
+					</>
+				}
+			/>
+			<Dialog
+				open={asking === 'reopen'}
+				onClose={() => setAsking(null)}
+				title="Buka kembali rapat?"
+				description="Alasannya dicetak di Risalah."
+				footer={
+					<>
+						<Button variant="ghost" onClick={() => setAsking(null)}>
+							Batal
+						</Button>
+						<Button variant="primary" disabled={!reason.trim()} onClick={reopen}>
+							Buka kembali
+						</Button>
+					</>
+				}
+			>
+				<Textarea
+					autoFocus
+					rows={3}
+					value={reason}
+					onChange={(e) => setReason(e.target.value)}
+					placeholder="Alasan membuka kembali…"
+					aria-label="Alasan membuka kembali"
+				/>
+			</Dialog>
 			<Dialog
 				open={confirmReset}
 				onClose={() => setConfirmReset(false)}

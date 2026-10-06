@@ -1,5 +1,5 @@
 import { Alert, Badge, Button } from '@jup/ui';
-import { Download, Monitor, Printer, RotateCcw } from 'lucide-react';
+import { Download, Lock, LockOpen, Monitor, Printer, RotateCcw } from 'lucide-react';
 
 import { CHECKLIST, toneOf } from '../../agendas';
 import { checklistCount, fmtDate, mainInfo, meetingName } from '../../selectors';
@@ -21,6 +21,9 @@ type Props = {
 	onReset: () => void;
 	onPrint: () => void;
 	onSave: () => void;
+	/** Tutup rapat, or Buka kembali once closed: both ask first (NotulenApp). */
+	onTutup?: () => void;
+	onReopen?: () => void;
 	/** The fictional demo meeting: marked as on the Layar. */
 	demo?: boolean;
 };
@@ -41,8 +44,11 @@ export const Header = ({
 	onReset,
 	onPrint,
 	onSave,
+	onTutup,
+	onReopen,
 	demo
 }: Props) => {
+	const closed = meeting.session.closedAt !== undefined;
 	const mv = mainInfo(meeting)?.values ?? {};
 	const status = text(mv['Status validasi']);
 	const klas = text(mv['Klasifikasi dokumen']);
@@ -150,9 +156,27 @@ export const Header = ({
 						variant="ghost"
 						iconLeft={<RotateCcw size={16} aria-hidden="true" />}
 						onClick={onReset}
+						disabled={closed}
 					>
 						Reset
 					</Button>
+					{!onTutup || !onReopen ? null : closed ? (
+						<Button
+							variant="ghost"
+							iconLeft={<LockOpen size={16} aria-hidden="true" />}
+							onClick={onReopen}
+						>
+							Buka kembali
+						</Button>
+					) : (
+						<Button
+							variant="ghost"
+							iconLeft={<Lock size={16} aria-hidden="true" />}
+							onClick={onTutup}
+						>
+							Tutup rapat
+						</Button>
+					)}
 					<Button
 						variant="secondary"
 						iconLeft={<Printer size={16} aria-hidden="true" />}

@@ -18,7 +18,10 @@ export type PropType =
 	| 'url';
 
 export interface PropDef {
+	/** The stored name: the storage key. Never renamed. */
 	name: string;
+	/** What the UI calls it, when that differs from the stored name. */
+	label?: string;
 	type: PropType;
 	options: string[];
 	description: string | null;
@@ -53,8 +56,10 @@ export interface MeetingSession {
 	doneAgendas: number[];
 	/** Epoch ms when the current agenda was entered; drives the agenda timer. */
 	agendaEnteredAt: number;
-	/** Epoch ms the Layar closed the meeting ("Tutup rapat"); unset while it runs or after reopening. */
+	/** Epoch ms the meeting was closed ("Tutup rapat"); unset while it runs or after reopening. */
 	closedAt?: number;
+	/** Every "Buka kembali" after a close, with the reason the Corsec gave; printed in the Risalah. */
+	reopenings?: { at: number; reason: string }[];
 }
 
 /**
@@ -88,7 +93,30 @@ export interface Meeting {
 	notes?: Record<string, AgendaNotes>;
 }
 
-export const DBS = SCHEMA as unknown as readonly DbDef[];
+/** Stored keys the generated schema does not have: added here, never by renaming a field. */
+export const SYARAT = 'Syarat';
+export const PERTIMBANGAN = 'Pertimbangan / syarat persetujuan';
+
+// The generated schema plus what the 2026-10-06 grill added: Syarat as its own kolom, so the old
+// "Pertimbangan / syarat persetujuan" (same key, kept for stored meetings) now means the reasoning.
+export const DBS: readonly DbDef[] = (SCHEMA as unknown as readonly DbDef[]).map((d, i) =>
+	i !== 7
+		? d
+		: {
+				...d,
+				fields: [
+					...d.fields.map((f) => (f.name === PERTIMBANGAN ? { ...f, label: 'Pertimbangan' } : f)),
+					{
+						name: SYARAT,
+						type: 'rich_text' as const,
+						options: [],
+						description: 'Syarat yang menyertai keputusan Disetujui bersyarat.'
+					}
+				]
+			}
+);
+
+export const labelOf = (f: PropDef) => f.label ?? f.name;
 
 export const DECISION_STATUS = 'Status keputusan';
 export const ACTION_STATUS = 'Status';

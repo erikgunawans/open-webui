@@ -1,13 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { demoMeeting } from './demo';
-import {
-	closeMeeting,
-	closingSummary,
-	jakartaLocal,
-	reopenAt,
-	startLayarSession
-} from './layar-model';
+import { closeMeeting, closingSummary, jakartaLocal, startLayarSession } from './layar-model';
+import { reopenMeeting } from './keputusan';
 import { mainInfo } from './selectors';
 import { seedMeeting } from './seed';
 
@@ -31,7 +26,7 @@ describe('closing the meeting', () => {
 
 	it('keeps a closing time already filled in', () => {
 		const first = closeMeeting(seedMeeting('r', 0), NOON);
-		const again = closeMeeting(reopenAt(first, 8, NOON + 60_000), NOON + 3_600_000);
+		const again = closeMeeting(reopenMeeting(first, 'Tambahan', NOON + 60_000), NOON + 3_600_000);
 		expect(mainInfo(again)!.values['Waktu rapat ditutup']).toEqual({
 			start: '2026-10-05T11:58',
 			end: ''
@@ -39,11 +34,14 @@ describe('closing the meeting', () => {
 		expect(again.session.closedAt).toBe(NOON + 3_600_000);
 	});
 
-	it('reopens at the chosen agenda without the closing mark', () => {
-		const m = reopenAt(closeMeeting(seedMeeting('r', 0), NOON), 3, NOON + 1);
+	it('reopens only with a reason, keeps it, and stays on the last agenda', () => {
+		const closed = closeMeeting(seedMeeting('r', 0), NOON);
+		expect(reopenMeeting(closed, '  ', NOON + 1)).toBe(closed);
+		const m = reopenMeeting(closed, ' Usulan D-03 belum lengkap ', NOON + 1);
 		expect('closedAt' in m.session).toBe(false);
-		expect(m.session.currentAgenda).toBe(3);
+		expect(m.session.currentAgenda).toBe(8);
 		expect(m.session.agendaEnteredAt).toBe(NOON + 1);
+		expect(m.session.reopenings).toEqual([{ at: NOON + 1, reason: 'Usulan D-03 belum lengkap' }]);
 	});
 
 	it('summarises decisions by status and actions missing a PIC or target', () => {

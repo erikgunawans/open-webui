@@ -978,7 +978,35 @@
 }
 .lr-dec__confirm-q {
 	font-weight: 600;
+	color: var(--jup-text-primary);
+}
+.lr-dec__confirm-q.is-danger {
 	color: var(--jup-danger-text);
+}
+.lr-dec__form {
+	flex-direction: column;
+	align-items: stretch;
+}
+.lr-dec__field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.lr-foot__ask {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex: 1;
+	justify-content: flex-end;
+	flex-wrap: wrap;
+}
+.lr-foot__ask .jup-input,
+.lr-foot__ask > div:first-child {
+	flex: 1 1 320px;
+}
+.lr-foot__q {
+	font-weight: 600;
+	color: var(--jup-warning-text);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -168,7 +168,8 @@ export const jakartaLocal = (ms: number): string =>
 const CLOSED_AT = 'Waktu rapat ditutup';
 
 /**
- * "Tutup rapat": the last agenda is done and the session is closed at `now`. The Informasi entry's
+ * "Tutup rapat": the last agenda is done and the session is closed at `now`. A closed meeting is
+ * frozen: only "Buka kembali" with a reason (keputusan.ts reopenMeeting) runs it again. The Informasi entry's
  * "Waktu rapat ditutup" takes that time only when it is still empty — a time the secretary typed
  * wins, and reopening and closing again keeps the first close.
  */
@@ -200,12 +201,6 @@ export const closeMeeting = (m: Meeting, now: number): Meeting => {
 			closedAt: now
 		}
 	};
-};
-
-/** Leave the closing screen for agenda `i`; the meeting runs again. */
-export const reopenAt = (m: Meeting, i: number, now: number): Meeting => {
-	const { closedAt: _closed, ...session } = m.session;
-	return { ...m, session: { ...session, currentAgenda: i, agendaEnteredAt: now } };
 };
 
 /**

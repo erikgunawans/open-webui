@@ -761,3 +761,16 @@
 .nt-h2[tabindex='-1']:focus:not(:focus-visible) {
 	outline: none;
 }
+
+/* A closed meeting freezes the Notulen: the agenda sits in a disabled fieldset (every field,
+ * strip and delete button off at once); the sidebar, print and save stay usable. */
+.nt-freeze {
+	border: 0;
+	margin: 0;
+	padding: 0;
+	min-width: 0;
+	display: contents;
+}
+.nt-closed {
+	margin: 0 var(--jup-s6);
+}

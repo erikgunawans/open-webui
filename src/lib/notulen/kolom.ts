@@ -1,4 +1,12 @@
-import { DBS, DECISION_STATUS, filled, text, type NotulenRecord, type PropDef } from './types';
+import {
+	DBS,
+	DECISION_STATUS,
+	SYARAT,
+	filled,
+	text,
+	type NotulenRecord,
+	type PropDef
+} from './types';
 
 // Kolom inti: the few kolom of each agenda the Corsec fills while the meeting runs, in working
 // order (Erik, 2026-10-06). Every other kolom sits behind "Tampilkan semua kolom" unless it already
@@ -55,7 +63,7 @@ const CORE: Record<number, string[]> = {
 
 /** Kolom a Keputusan brings into the kolom inti, right after Status keputusan. */
 const BY_DECISION: Record<string, string[]> = {
-	'Disetujui bersyarat': ['Pertimbangan / syarat persetujuan'],
+	'Disetujui bersyarat': [SYARAT],
 	Ditunda: [
 		'Tanggal pembahasan ulang',
 		'Data tambahan untuk keputusan ditunda',
@@ -70,11 +78,18 @@ const byName = (db: number, names: string[]): PropDef[] =>
 		return f;
 	});
 
-/** The kolom inti of one entry, in working order, without its title kolom. */
-export const coreFields = (db: number, r: NotulenRecord): PropDef[] => {
+/**
+ * The kolom inti of one entry, in working order, without its title kolom. `status` stands in for
+ * a Keputusan chosen but not yet recorded, so its kolom show while they are being filled.
+ */
+export const coreFields = (
+	db: number,
+	r: NotulenRecord,
+	status = text(r.values[DECISION_STATUS])
+): PropDef[] => {
 	const names = [...(CORE[db] ?? [])];
 	if (db === 7) {
-		const extra = BY_DECISION[text(r.values[DECISION_STATUS])] ?? [];
+		const extra = BY_DECISION[status] ?? [];
 		names.splice(names.indexOf(DECISION_STATUS) + 1, 0, ...extra);
 	}
 	return byName(db, names);
@@ -86,9 +101,10 @@ export const coreFields = (db: number, r: NotulenRecord): PropDef[] => {
  */
 export const otherFields = (
 	db: number,
-	r: NotulenRecord
+	r: NotulenRecord,
+	status?: string
 ): { filled: PropDef[]; empty: PropDef[] } => {
-	const core = new Set(coreFields(db, r).map((f) => f.name));
+	const core = new Set(coreFields(db, r, status).map((f) => f.name));
 	const rest = DBS[db].fields.filter((f) => f.type !== 'title' && !core.has(f.name));
 	return {
 		filled: rest.filter((f) => filled(r.values[f.name])),

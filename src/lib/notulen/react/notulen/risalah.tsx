@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import { AGENDAS } from '../../agendas';
-import { actionId, decisionId, people } from '../../layar-model';
+import { actionId, decisionId, jakartaLocal, people } from '../../layar-model';
 import { actions, decisions, fmtDate, mainInfo, meetingName, targetOf } from '../../selectors';
 import {
 	DBS,
@@ -13,7 +13,9 @@ import {
 	type Meeting,
 	type NotulenRecord,
 	type PropDef,
-	type PropValue
+	type PropValue,
+	PERTIMBANGAN,
+	SYARAT
 } from '../../types';
 import { numberAffixes } from '../fields/PropField';
 
@@ -142,7 +144,12 @@ const Decisions = ({ m }: { m: Meeting }) => {
 			<tbody>
 				{all.map((r) => {
 					const rumusan = val(7, r, 'Rumusan keputusan');
-					const syarat = val(7, r, 'Pertimbangan / syarat persetujuan');
+					// Syarat has its own kolom since 2026-10-06; older meetings kept it in Pertimbangan.
+					const syarat =
+						val(7, r, SYARAT) ||
+						(val(7, r, 'Status keputusan') === 'Disetujui bersyarat'
+							? val(7, r, PERTIMBANGAN)
+							: '');
 					const ulang = val(7, r, 'Tanggal pembahasan ulang');
 					return (
 						<tr key={r.id}>
@@ -301,6 +308,11 @@ export const Risalah = ({ meeting }: { meeting: Meeting }) => {
 						? `Rapat ditutup pukul ${clock(closedAt)} WIB.`
 						: 'Waktu penutupan rapat belum dicatat.'}
 				</p>
+				{(meeting.session.reopenings ?? []).map((x) => (
+					<p key={x.at} className="rs-pre">
+						Dibuka kembali pukul {clock(jakartaLocal(x.at))} WIB: {x.reason}
+					</p>
+				))}
 				{val(0, info, 'Rapat berikutnya') || val(0, info, 'Topik rapat berikutnya') ? (
 					<p>
 						Rapat berikutnya: {val(0, info, 'Rapat berikutnya') || 'tanggal belum ditetapkan'}

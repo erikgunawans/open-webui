@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Button, Card, Tag } from '@jup/ui';
+import { Button, Card, Input, Tag, Textarea } from '@jup/ui';
 import { Check } from 'lucide-react';
 
+import { decisionGaps, RUMUSAN, ULANG } from '../../../keputusan';
 import { decisionId } from '../../../layar-model';
 import { decisions } from '../../../selectors';
-import { DECISION_STATUS, text } from '../../../types';
+import { DECISION_STATUS, SYARAT, isDate, text, type PropValue } from '../../../types';
 import { Head, Nothing, StatusBadge, type ViewProps } from './common';
 
-// 07 Decision Making: the Board decides live. A status written here goes straight into
-// "7. Decision Making › Status keputusan" of the Meeting; clicking the active status again reverts
-// it to "Belum diputuskan". Tolak asks once, in place (no modal over the projected screen); every
-// change can also be taken back from the Layar notice.
+// 07 Pengambilan Keputusan: the Board decides live. Choosing a Keputusan opens its kolom in place
+// (no modal over the projected screen): the Rumusan always, the Syarat for Disetujui bersyarat, the
+// date it comes back for Ditunda — typed where the room reads them as they are written. The
+// Keputusan is recorded only once they are filled (Erik, 2026-10-06). Clicking the active status
+// again reverts it to "Belum diputuskan"; every change can be taken back from the Layar notice.
 
 const ACTS: [status: string, active: 'primary' | 'secondary' | 'danger', label: string][] = [
 	['Disetujui', 'primary', 'Setujui'],
@@ -22,7 +24,14 @@ const ACTS: [status: string, active: 'primary' | 'secondary' | 'danger', label: 
 type Props = ViewProps & {
 	selected: string | null;
 	onSelect: (recordId: string) => void;
-	onDecide: (recordId: string, status: string) => void;
+	onDecide: (recordId: string, status: string, values?: Record<string, PropValue>) => void;
+};
+
+const QUESTION: Record<string, string> = {
+	Disetujui: 'Setujui usulan ini',
+	'Disetujui bersyarat': 'Setujui dengan syarat',
+	Ditunda: 'Tunda usulan ini',
+	Ditolak: 'Tolak usulan ini'
 };
 
 export const V07Keputusan = ({ meeting, agenda, selected, onSelect, onDecide }: Props) => {
@@ -31,27 +40,43 @@ export const V07Keputusan = ({ meeting, agenda, selected, onSelect, onDecide }: 
 	const statusOf = (r: (typeof list)[number]) =>
 		text(r.values[DECISION_STATUS]) || 'Belum diputuskan';
 	const decided = list.filter((x) => statusOf(x) !== 'Belum diputuskan').length;
-	// The record whose rejection is awaiting a second click; any other selection drops it.
-	const [confirming, setConfirming] = useState<string | null>(null);
-	const asking = !!d && confirming === d.id;
+	// The Keputusan being written for one Usulan; any other selection drops it.
+	const [draft, setDraft] = useState<{ id: string; status: string } | null>(null);
+	const [rumusan, setRumusan] = useState('');
+	const [syarat, setSyarat] = useState('');
+	const [ulang, setUlang] = useState('');
+	const asking = !!d && draft?.id === d.id;
 
 	useEffect(() => {
 		if (!asking) return;
 		const onKey = (e: KeyboardEvent) => {
-			if (e.key === 'Escape') setConfirming(null);
+			if (e.key === 'Escape') setDraft(null);
 		};
 		window.addEventListener('keydown', onKey);
 		return () => window.removeEventListener('keydown', onKey);
 	}, [asking]);
 
 	const choose = (id: string, status: string, on: boolean) => {
-		if (!on && status === 'Ditolak') {
-			setConfirming(id);
+		if (on) {
+			setDraft(null);
+			onDecide(id, 'Belum diputuskan');
 			return;
 		}
-		setConfirming(null);
-		onDecide(id, on ? 'Belum diputuskan' : status);
+		const r = list.find((x) => x.id === id);
+		const u = r?.values[ULANG];
+		setRumusan(text(r?.values[RUMUSAN]));
+		setSyarat(text(r?.values[SYARAT]));
+		setUlang(isDate(u) ? u.start.slice(0, 10) : '');
+		setDraft({ id, status });
 	};
+
+	const values = (): Record<string, PropValue> => ({
+		[RUMUSAN]: rumusan.trim(),
+		...(draft?.status === 'Disetujui bersyarat' ? { [SYARAT]: syarat.trim() } : {}),
+		...(draft?.status === 'Ditunda' && ulang ? { [ULANG]: { start: ulang, end: '' } } : {})
+	});
+	const missing =
+		d && draft ? decisionGaps({ ...d, values: { ...d.values, ...values() } }, draft.status) : [];
 
 	return (
 		<div className="lr-view">
@@ -116,28 +141,82 @@ export const V07Keputusan = ({ meeting, agenda, selected, onSelect, onDecide }: 
 								<div>{text(d.values['PIC pelaksanaan']) || '—'}</div>
 							</div>
 						</div>
-						{asking ? (
-							<div
-								className="lr-dec__acts lr-dec__confirm"
-								role="group"
-								aria-label="Konfirmasi tolak"
-							>
-								<span className="lr-dec__confirm-q">Tolak usulan ini?</span>
-								<Button
-									variant="danger"
-									size="lg"
-									autoFocus
-									onClick={() => {
-										setConfirming(null);
-										onDecide(d.id, 'Ditolak');
-									}}
-								>
-									Ya, tolak
-								</Button>
-								<Button variant="outline" size="lg" onClick={() => setConfirming(null)}>
-									Batal
-								</Button>
+						{text(d.values[RUMUSAN]) && !asking ? (
+							<div className="lr-mt">
+								<div className="lr-k">Rumusan keputusan</div>
+								<p className="lr-lead">{text(d.values[RUMUSAN])}</p>
+								{text(d.values[SYARAT]) ? (
+									<>
+										<div className="lr-k">Syarat</div>
+										<p className="lr-lead">{text(d.values[SYARAT])}</p>
+									</>
+								) : null}
 							</div>
+						) : null}
+						{asking && draft ? (
+							<form
+								className="lr-dec__acts lr-dec__form"
+								aria-label={QUESTION[draft.status]}
+								onSubmit={(e) => {
+									e.preventDefault();
+									if (missing.length) return;
+									onDecide(d.id, draft.status, values());
+									setDraft(null);
+								}}
+							>
+								<span
+									className={`lr-dec__confirm-q${draft.status === 'Ditolak' ? ' is-danger' : ''}`}
+								>
+									{QUESTION[draft.status]}
+								</span>
+								<label className="lr-dec__field">
+									<span className="lr-k">Rumusan keputusan</span>
+									<Textarea
+										autoFocus
+										rows={2}
+										autoResize
+										maxRows={5}
+										value={rumusan}
+										onChange={(e) => setRumusan(e.target.value)}
+										placeholder="Keputusan Direksi, dalam kalimat…"
+									/>
+								</label>
+								{draft.status === 'Disetujui bersyarat' ? (
+									<label className="lr-dec__field">
+										<span className="lr-k">Syarat</span>
+										<Textarea
+											rows={2}
+											autoResize
+											maxRows={5}
+											value={syarat}
+											onChange={(e) => setSyarat(e.target.value)}
+											placeholder="Syarat yang harus dipenuhi…"
+										/>
+									</label>
+								) : null}
+								{draft.status === 'Ditunda' ? (
+									<label className="lr-dec__field">
+										<span className="lr-k">Dibahas ulang pada</span>
+										<Input type="date" value={ulang} onChange={(e) => setUlang(e.target.value)} />
+									</label>
+								) : null}
+								<div className="lr-dec__confirm">
+									<Button
+										type="submit"
+										variant={draft.status === 'Ditolak' ? 'danger' : 'primary'}
+										size="lg"
+										disabled={missing.length > 0}
+									>
+										Catat keputusan
+									</Button>
+									<Button type="button" variant="outline" size="lg" onClick={() => setDraft(null)}>
+										Batal
+									</Button>
+									{missing.length ? (
+										<span className="lr-k">Isi dulu: {missing.join(', ').toLowerCase()}</span>
+									) : null}
+								</div>
+							</form>
 						) : (
 							<div className="lr-dec__acts">
 								{ACTS.map(([s, variant, label]) => {

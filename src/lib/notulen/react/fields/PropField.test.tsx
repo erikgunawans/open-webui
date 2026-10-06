@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { JupUIProvider } from '@jup/ui';
 
-import { DBS, type PropDef, type PropValue } from '../../types';
+import { DBS, labelOf, type PropDef, type PropValue } from '../../types';
 import { PropField, numberAffixes } from './PropField';
 import { withTime } from './DateField';
 
@@ -16,13 +16,13 @@ const render = (f: PropDef, value?: PropValue, timeOn = false) =>
 const all = DBS.flatMap((db) => db.fields.map((f) => [db.name, f] as const));
 
 describe('PropField', () => {
-	it('renders an editable control for every one of the 150 properties', () => {
-		expect(all).toHaveLength(150);
+	it('renders an editable control for every one of the 151 kolom (150 template + Syarat)', () => {
+		expect(all).toHaveLength(151);
 		for (const [db, f] of all) {
 			const html = render(f);
 			expect(html, `${db} › ${f.name}`).toMatch(/<(input|textarea|select|button)\b/);
 			expect(html, `${db} › ${f.name}`).toContain(
-				f.name.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+				labelOf(f).replace(/&/g, '&amp;').replace(/</g, '&lt;')
 			);
 		}
 	});

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { agendaPlan, closeMeeting, reopenAt, startLayarSession } from '../../layar-model';
+import { agendaPlan, closeMeeting, startLayarSession } from '../../layar-model';
+import { closingGaps, decide as decideIn, reopenMeeting } from '../../keputusan';
 import type { MeetingRepo } from '../../repo';
-import { ACTION_STATUS, DECISION_STATUS, text, type Meeting } from '../../types';
+import { ACTION_STATUS, text, type Meeting, type PropValue } from '../../types';
 import { useMeeting } from '../useMeeting';
 import { AgendaNav } from './AgendaNav';
 import { Footer } from './Footer';
@@ -59,11 +60,15 @@ export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
 
 	const go = useCallback(
 		(i: number) => {
-			if (i < 0 || i >= plan.length) return;
-			// Any move away from the closing screen reopens the meeting at that agenda.
-			update((m) => reopenAt(m, i, Date.now()));
+			// A closed meeting is frozen: moving around never reopens it (Buka kembali does, with a reason).
+			if (i < 0 || i >= plan.length || closedAt !== undefined) return;
+			update((m) =>
+				m.session.currentAgenda === i
+					? m
+					: { ...m, session: { ...m.session, currentAgenda: i, agendaEnteredAt: Date.now() } }
+			);
 		},
-		[plan.length, update]
+		[plan.length, update, closedAt]
 	);
 	useAgendaKeys(cur, go);
 
@@ -82,12 +87,18 @@ export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
 		// Once per mount, on the meeting as opened.
 	}, []);
 
+	const closeRapat = () => {
+		update((m) => closeMeeting(m, Date.now()));
+		notify({ title: 'Rapat ditutup', description: 'Notulen kini hanya-baca.', tone: 'success' });
+	};
+	const reopen = (reason: string) => {
+		update((m) => reopenMeeting(m, reason, Date.now()));
+		notify({ title: 'Rapat dibuka kembali', description: reason, tone: 'warning' });
+	};
+
 	const finish = () => {
-		if (cur === plan.length - 1) {
-			update((m) => closeMeeting(m, Date.now()));
-			notify({ title: 'Rapat ditutup', tone: 'success' });
-			return;
-		}
+		// The last agenda's primary opens the Tutup rapat check in the footer instead.
+		if (cur === plan.length - 1) return;
 		update((m) => ({
 			...m,
 			session: {
@@ -138,16 +149,28 @@ export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
 
 	// Every live status change can be taken back from the notice: a mis-tap in front of the Board
 	// should cost one click, not three.
-	const decide = (recordId: string, status: string) => {
+	const decide = (recordId: string, status: string, values: Record<string, PropValue> = {}) => {
 		const r = meeting.records[7].find((x) => x.id === recordId);
-		const before = text(r?.values[DECISION_STATUS]) || 'Belum diputuskan';
-		setValue(7, recordId, DECISION_STATUS, status);
-		const id = text(r?.values['ID keputusan']);
+		if (!r) return;
+		const before = r.values;
+		const next = decideIn(meeting, recordId, status, values);
+		if (!next) return;
+		update(() => next);
+		const id = text(r.values['ID keputusan']);
 		notify({
 			title: `${id ? `${id} · ` : ''}${status}`,
-			description: text(r?.values['Topik keputusan']),
+			description: text(r.values['Topik keputusan']),
 			tone: TONE[status] ?? 'warning',
-			action: { label: 'Urungkan', onClick: () => setValue(7, recordId, DECISION_STATUS, before) }
+			action: {
+				label: 'Urungkan',
+				onClick: () =>
+					update((m) => ({
+						...m,
+						records: m.records.map((coll, i) =>
+							i !== 7 ? coll : coll.map((x) => (x.id === recordId ? { ...x, values: before } : x))
+						)
+					}))
+			}
 		});
 	};
 
@@ -213,7 +236,10 @@ export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
 						closed={closedAt !== undefined}
 						onPrev={() => go(cur - 1)}
 						onFinish={finish}
-						onReopen={() => go(cur)}
+						gaps={closingGaps(meeting)}
+						onClose={closeRapat}
+						onBackToDecisions={() => go(7)}
+						onReopen={reopen}
 					/>
 				</div>
 			</div>

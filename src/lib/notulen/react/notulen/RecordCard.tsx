@@ -1,12 +1,15 @@
-import { useState } from 'react';
-import { Badge, Button, Card, IconButton, Textarea } from '@jup/ui';
+import { useEffect, useState } from 'react';
+import { Alert, Badge, Button, Card, IconButton, Textarea } from '@jup/ui';
 import { ChevronDown, Trash2 } from 'lucide-react';
 
 import { INFO_GROUPS, ITEM_NOUN, SUMMARY_KEYS, toneOf } from '../../agendas';
 import { agendaNo } from '../../capture';
+import { decisionGaps } from '../../keputusan';
 import { coreFields, otherFields } from '../../kolom';
 import {
 	DBS,
+	DECISION_STATUS,
+	labelOf,
 	text,
 	titleField,
 	type NotulenRecord,
@@ -54,19 +57,46 @@ export const RecordCard = ({ db, r, index, total, open, ...on }: Props) => {
 		on.onChange({ ...r, values: { ...r.values, [name]: v } });
 	const setTime = (name: string, t: boolean) =>
 		on.onChange({ ...r, time: { ...r.time, [name]: t } });
-	const field = (f: PropDef) => (
-		<PropField
-			key={f.name}
-			f={f}
-			value={r.values[f.name]}
-			timeOn={!!r.time[f.name]}
-			onChange={(v) => set(f.name, v)}
-			onTime={(t) => setTime(f.name, t)}
-		/>
-	);
+	// A Keputusan chosen in 07 is recorded only once its kolom are filled (Rumusan; Syarat for
+	// bersyarat; the date for Ditunda). Until then it waits here and its kolom join the kolom inti.
+	const [pending, setPending] = useState<string | null>(null);
+	const gaps = pending ? decisionGaps(r, pending) : [];
+	useEffect(() => {
+		if (pending && !decisionGaps(r, pending).length) {
+			set(DECISION_STATUS, pending);
+			setPending(null);
+		}
+	});
+	const chooseDecision = (v: PropValue) => {
+		const status = text(v);
+		if (!status || !decisionGaps(r, status).length) {
+			setPending(null);
+			set(DECISION_STATUS, v);
+		} else setPending(status);
+	};
+	const field = (f: PropDef) =>
+		db === 7 && f.name === DECISION_STATUS ? (
+			<PropField
+				key={f.name}
+				f={f}
+				value={pending ?? r.values[f.name]}
+				timeOn={false}
+				onChange={chooseDecision}
+				onTime={() => undefined}
+			/>
+		) : (
+			<PropField
+				key={f.name}
+				f={f}
+				value={r.values[f.name]}
+				timeOn={!!r.time[f.name]}
+				onChange={(v) => set(f.name, v)}
+				onTime={(t) => setTime(f.name, t)}
+			/>
+		);
 	const bodyId = `nt-rec-${r.id}`;
 	const [all, setAll] = useState(false);
-	const others = db === 0 ? null : otherFields(db, r);
+	const others = db === 0 ? null : otherFields(db, r, pending ?? undefined);
 	const from = db === 7 || db === 8 ? agendaNo(text(r.values.Agenda)) : '';
 	const ordered = (g: string, fs: PropDef[]) =>
 		fs.length ? (
@@ -125,6 +155,18 @@ export const RecordCard = ({ db, r, index, total, open, ...on }: Props) => {
 			{open ? (
 				<div className="nt-rec__body" id={bodyId}>
 					<div className="nt-titlefield">{field(tf)}</div>
+					{pending ? (
+						<Alert tone="warning" title={`Keputusan "${pending}" belum dicatat`}>
+							Dicatat setelah{' '}
+							{gaps
+								.map((k) => labelOf(DBS[7].fields.find((f) => f.name === k)!).toLowerCase())
+								.join(' dan ')}{' '}
+							diisi.{' '}
+							<Button variant="ghost" size="sm" onClick={() => setPending(null)}>
+								Batalkan pilihan
+							</Button>
+						</Alert>
+					) : null}
 					{db === 0
 						? infoGroups().map(([g, fs]) => {
 								const shown = fs.filter((f) => f.type !== 'title');
@@ -144,7 +186,7 @@ export const RecordCard = ({ db, r, index, total, open, ...on }: Props) => {
 								);
 							})
 						: [
-								ordered('Kolom inti', coreFields(db, r)),
+								ordered('Kolom inti', coreFields(db, r, pending ?? undefined)),
 								ordered('Kolom lain yang terisi', others!.filled),
 								all ? ordered('Kolom lain', others!.empty) : null
 							]}
