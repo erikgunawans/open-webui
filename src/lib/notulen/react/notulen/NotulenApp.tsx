@@ -116,9 +116,12 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 	const gaps = closingGaps(meeting);
 	// The Tutup rapat dialog opens on its primary. The dialog's focus trap puts focus on its first
 	// control (the close icon) in its own effect; this parent effect runs after it and moves it on.
+	// Buka kembali opens on its reason field, for the same reason.
 	const closeDefault = useRef<HTMLButtonElement>(null);
+	const reopenReason = useRef<HTMLTextAreaElement>(null);
 	useEffect(() => {
 		if (asking === 'close') closeDefault.current?.focus();
+		if (asking === 'reopen') reopenReason.current?.focus();
 	}, [asking]);
 	const closeRapat = () => {
 		update((m) => closeMeeting(m, Date.now()));
@@ -285,6 +288,7 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 				}
 			>
 				<Textarea
+					ref={reopenReason}
 					autoFocus
 					rows={3}
 					value={reason}
