@@ -171,3 +171,22 @@ _Avoid_: transcript, catatan panjang, body
 The Corsec ending the meeting. It freezes the Notulen; reopening needs a written reason, and that
 reason appears in the Risalah.
 _Avoid_: finish, end session, close agenda
+
+### SharePoint (D26)
+
+**Situs terdaftar**:
+A SharePoint site Asisten JUP may reach: JUP IT granted the app the site, and it is on the app's
+allowlist. QHSE-JUP is the first. A site not on the list does not exist to Asisten JUP, even if the
+user can open it in SharePoint.
+_Avoid_: connected site, library, drive
+
+**Koneksi Microsoft**:
+A user's own sign-in that lets Asisten JUP act in SharePoint as that user. Without it Asisten JUP
+answers only "Hubungkan akun Microsoft Anda" for SharePoint questions, never from somewhere else.
+_Avoid_: integration, service account, shared login
+
+**Folder Keluaran**:
+`Keluaran Asisten JUP`, the one folder per Situs terdaftar that Asisten JUP may upload into, after
+the user approves each upload. The site owner creates it; Asisten JUP never creates, renames or
+overwrites anything.
+_Avoid_: output folder, upload location, drop folder
