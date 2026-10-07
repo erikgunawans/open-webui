@@ -190,3 +190,44 @@ _Avoid_: integration, service account, shared login
 the user approves each upload. The site owner creates it; Asisten JUP never creates, renames or
 overwrites anything.
 _Avoid_: output folder, upload location, drop folder
+
+### Ruang Pimpinan
+
+**Laporan Bulanan**:
+The financial figures for one month that Finance submits and a second person approves, by report
+line and by Unit pelaporan. The Direksi and Komisaris see only an approved Laporan Bulanan.
+_Avoid_: dashboard data, realisasi, paket keuangan, laporan keuangan
+
+**Versi**:
+One approved state of a Laporan Bulanan or an RKA dasar. A correction is a new Versi; an earlier
+Versi is never changed, and whatever cited it still shows it ("Maret 2026 · Versi 2").
+_Avoid_: revision, update, edit
+
+**Templat Konsolidasi**:
+The fixed workbook Finance fills to submit a Laporan Bulanan or an RKA dasar. Finance keeps
+consolidating in its own files; the Templat is what it hands over.
+_Avoid_: Excel, upload file, form
+
+**Unit pelaporan**:
+One unit the Laporan Bulanan breaks out. JUP konsolidasi is the sum of every Unit pelaporan and
+Eliminasi & penyesuaian.
+_Avoid_: business unit, divisi, entity, segment
+
+**Eliminasi & penyesuaian**:
+Amounts that belong to no Unit pelaporan: eliminations between units and Finance's manual
+adjustments. Shown on their own, never folded into a unit.
+_Avoid_: adjustment, other, lain-lain
+
+**RKA dasar**:
+The approved annual budget, phased by month, that realisasi is compared against. A forecast never
+replaces it.
+_Avoid_: budget, target, plan, baseline
+
+**RKA Perubahan**:
+A revised RKA dasar approved during the year. It is a new Versi; the original stays.
+_Avoid_: revised budget, re-forecast
+
+**Realisasi KPI**:
+The quarterly results of the KPI JUP, submitted by the KPI owner and approved before the Direksi see
+them.
+_Avoid_: KPI input, capaian, score

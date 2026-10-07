@@ -1,3 +1,39 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-07-v62)
+
+> Prepended by /wrap 2026-10-07 (checkpoint 2026-10-07-v62). Supersedes v61's anchor and its "do next" (SharePoint grilled → D26, spike passed, JUP IT doc drafted); v61's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-07-v62). Invoke the `RapatDireksi` skill for any Rapat Direksi work.
+Anchor: `origin/main` at `1651e0da9` **as this was written**, plus up to two expected merges by Erik: **#153** (D26 docs) and **#154** (D27 vocabulary + this checkpoint, subject names `checkpoint-v62` / `2026-10-07-v62`). Verify with `git log --oneline 1651e0da9..origin/main`; anything else is a parallel push.
+
+**Current state:**
+- **Live:** unchanged, `ent-os-00116-mgk` (`e70c916ef`). Nothing deployed this session.
+- **D26 SharePoint:** decided + spike passed; waits on JUP IT applying the request doc (`deploy/gcp/sharepoint-d26-request-jup-it.id.md`). Not attached.
+- **D27 Ruang Pimpinan data:** decided; step 1 = server Notulen, spec **#155**, tickets **#156–#161** (`ready-for-agent`, sub-issues of #155, native blocked-by links).
+
+**Do next, in order:**
+1. **`/implement` #156** (shared Notulen repository contract suite + `list()` on `MeetingRepo`; no blockers). `/clear` between tickets.
+2. **`/implement` #157** (server storage: leadership migration `jl0003`, revisions + conflict, `rapat.write` grant, server repo, mount selection). Then #158, #159, #161 in any order; #160 after #159.
+3. When JUP IT confirms the D26 grants: first SharePoint build ticket = the vendor's own OAuth callback end-to-end with `mcp:jup-sharepoint` (`/to-spec` → `/to-tickets` for I2 then). Then clean up the spike (Erik deletes app `b05e9e7e-…` + site `SpikeAsistenJUP`; wipe `.token`/`.env` in the old scratchpad `…/bc6c0a23-…/scratchpad/spike/`).
+4. When Finance's consolidation file arrives: fix the Unit pelaporan list + report-line codes, then spec D27 step 3 (Templat Konsolidasi). D27 step 2 (Realisasi KPI form) can be specced any time.
+5. **#42 Notion acceptance**; **E8 when JUP IT answers #82**.
+6. Carried: re-run `$impeccable critique` on Rapat after Erik uses it in a real meeting; O3 acceptance (PowerPoint + Keynote); phone check; Legal-account Kartu Kontrak; staff-account checks (O1); #47.
+
+**Constraints to honor** (new, plus the blocks below):
+- **Do not merge PRs yourself**: the permission classifier flags it as "Merge Without Review". Erik merges.
+- Real data in Ruang Pimpinan = three separate OKs from Erik (deploy; switch from illustrative to records; group grant). The `rapat.write` grant is one of those.
+- Leadership migrations: new revision on the separate graph (`jl0003`, down `jl0002`), schema written out explicitly; update the model-vs-migration table set and the migration HEAD test. Import idempotency is by sha256 of the bytes → serialise candidate batches canonically.
+- D26: never print the spike secret/token; SharePoint folder grants via the **list-item** endpoint only. Under D20 the server is not attached until JUP IT applies the grants and Erik OKs.
+- Worktrees `ent-os-new-jup-qhse` and `ent-os-wt-project-list` are not this session's — don't touch. `rm` on its own Bash line.
+
+**Open items waiting on Erik:**
+- Merge **#153** and **#154** when CI is green.
+- Send the JUP IT doc (check: Ikhsan's email, 12-month secret, Legal step in the same doc) and tell JUP IT about the spike app/site.
+- One recent **Finance consolidation file** (numbers blanked OK) → unblocks D27 step 3.
+- Pilot SharePoint member names before go-live.
+- Carried: Reset his Rapat demo copy?; Risalah choices; #42 Notion test; JUP IT reply to #82; contract-card titles, `jup_contracts` grant, Rully items, O3, phone check, WhatsApp items, secret rotation.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-07-v61)
 
 > Prepended by /wrap 2026-10-07 (checkpoint 2026-10-07-v61). Supersedes v60's anchor and its "do next" (00114 verified, reopen focus fixed, critique re-run, Ditunda decided, critique-4 live); v60's and older blocks' constraints still hold unless noted.
