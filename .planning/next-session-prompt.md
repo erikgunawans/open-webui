@@ -1,3 +1,38 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-07-v61)
+
+> Prepended by /wrap 2026-10-07 (checkpoint 2026-10-07-v61). Supersedes v60's anchor and its "do next" (00114 verified, reopen focus fixed, critique re-run, Ditunda decided, critique-4 live); v60's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-07-v61).
+Anchor: `origin/main` at `e70c916ef` **as this was written**, or one commit ahead at this checkpoint's own wrap merge (subject names `checkpoint-v61` / `2026-10-07-v61`). Verify with `git log --oneline e70c916ef..origin/main`; anything else there is a parallel push.
+
+**Current state:**
+- **Live:** `ent-os-00116-mgk` (`e70c916ef` = main; rollback `00115-khv`). Rapat Direksi critique-4 (#151) + Ditunda rule (#149) + reopen focus (#148) live and verified as Erik. Critique 27/40 held (#150); the fixes are not yet re-scored.
+- **SharePoint integration decided in principle** (Erik, 10-07): delegated (each user's own account), per site, read + upload, QHSE-JUP first. Design in PROGRESS v61. Nothing built, no D26 yet.
+
+**Do next, in order:**
+1. **`/grill-with-docs` the SharePoint integration** (Erik's chosen flow): upload folder scope (recommend one folder, e.g. `Keluaran Asisten JUP`), file types for `baca_dokumen`, what an unconnected user sees, and whether QHSE becomes live lookup only or also a KB collection (reconcile with the v59 QHSE KB plan). Record vocabulary in `CONTEXT.md`, decision as **D26** in `~/jup/DECISIONS.md` (D20 requires it: writes + egress).
+2. **`/prototype` spike** before any build: vendor `oauth_2.1_static` (`backend/open_webui/utils/oauth.py`) against Entra (no DCR; MCP protected-resource metadata → `login.microsoftonline.com/<tenant>/v2.0`), delegated `Sites.Selected`, and drive search inside one site. Run it against a tenant Erik controls (axiara), not JUP's.
+3. **One JUP IT request doc** (replaces #137's app-only ask): delegated `Sites.Selected` + `offline_access` + admin consent on None-JUPe (`095f7f79-…`), our OAuth callback as redirect URI, QHSE-JUP grant (`read`, `write` on the upload folder), AND re-share Legal "SCAN PERJANJIAN" (Graph now 403 "sharing link no longer exists").
+4. Then `/to-spec` → `/to-tickets` → `/implement`; add ledger row **I2** in `.planning/agent-depth-plan.md`.
+5. **#42 Notion acceptance with Erik** (ledger "Next": I1); **E8 when JUP IT answers #82**.
+6. Carried: re-run `$impeccable critique` on Rapat only after Erik uses it in a real meeting; server-backed `MeetingRepo` same; O3 acceptance (PowerPoint + Keynote); phone check; Legal-account Kartu Kontrak; staff-account checks (O1); #47.
+
+**Constraints to honor** (new, plus the blocks below):
+- Rapat Direksi: invoke the `RapatDireksi` skill (updated 10-07: Belum lengkap rule, Ditunda in Tutup, button order, display-label layer). A status without Rumusan is "Belum lengkap", never decided (`selectors.ts` `isIncomplete`). Display names only via `types.ts` `LABELS` / `OPTION_LABELS` / `valueLabel`; stored keys and option values never change.
+- Under D20 a SharePoint server is NOT pre-approved (writes + egress): no attach before D26 is recorded; upload goes through E5 approval; every deploy and Entra/IT change still needs Erik's per-change OK.
+- None-JUPe's app token today = `Files.SelectedOperations.Selected` only. Probe Graph read-only, never print the secret (`none-jupe-graph-secret`); `legal-kb/graph.ts` `graph()` resolves the Legal share first and now throws 403 — fetch a token directly for other probes.
+- Disk: `~/.npm` refills from other sessions' `npx`; delete `~/.npm/_cacache` only (leave a fresh `_npx/<hash>`). `df -h /` + swap + `gcloud auth print-access-token` before every deploy. Run `rm` on its own Bash line (the PAI hook blocks it next to other paths).
+- Worktrees `ent-os-new-jup-qhse` (`feat/qhse-kb`, empty) and `ent-os-wt-project-list` are not this session's — don't touch.
+
+**Open items waiting on Erik:**
+- What "I got all the access" means for QHSE (a site URL? a share link to the app? the folder shared with him?).
+- SharePoint grill answers (item 1); go-ahead for D26 + the JUP IT doc.
+- Whether to Reset his demo copy (D-01/D-02/D-05 show Belum lengkap).
+- Risalah choices (draft notice unless Disetujui, fixed "Jakarta,", empty Kinerja omitted, hardcoded company name); "Perkembangan Bisnis" casing.
+- Carried: #42 Notion test + Tasks DB vs D25; JUP IT's reply to #82; contract-card titles, `jup_contracts` all-users grant, Rully items, O3 acceptance, phone check, Latar Obrolan wording, WhatsApp strings, test-chat deletion, secret rotation if transcripts are shared, JUP WhatsApp number.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-07-v60)
 
 > Prepended by /wrap 2026-10-07 (checkpoint 2026-10-07-v60). Supersedes v59's anchor and its "do next" (critique issue 2 grilled + built, critique re-run, its fixes merged); v59's and older blocks' constraints still hold unless noted.
