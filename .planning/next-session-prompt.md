@@ -1,3 +1,81 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-09-v68)
+
+> Prepended by /wrap 2026-10-09 (checkpoint 2026-10-09-v68). Supersedes v67's anchor and "do next". v67's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-09-v68). Invoke the `RapatDireksi` skill for any Rapat Direksi work.
+Anchor: `origin/main` at `5c8700e27` **as this was written**, or one commit ahead at this checkpoint's own merge (`chore(session): checkpoint 2026-10-09-v67 …` — PR #169 carries v67 + v68). Verify with `git log --oneline -2 origin/main`; anything else is a parallel push.
+
+**Current state:**
+- **Live:** `ent-os-00117-6wq` (`5c8700e27`, 100%) — all of D27 step 1 (#156–#161, #160, story 16). Rollback `ent-os-00116-mgk` (`e70c916ef`).
+- **Server Notulen is ON** for every board viewer (records source live since 09-25). Only Erik holds `rapat.write` (group "Ruang Pimpinan — uji"); everyone else is read-only.
+- **Erik's real browser meeting `rd-2026-10-05-0702`** is still in his Chrome localStorage; the list offers Pindahkan ke server.
+
+**Do next, in order:**
+1. **Move `rd-2026-10-05-0702` — Erik already said yes (10-09).** `df -h /` first. Live list at `https://non-jupe.jup.co.id/ruang-pimpinan/rapat` → fresh tab, `/api/v1/auths/` 200, host guard → click **Pindahkan ke server** → expect "moved"; confirm it lists from the server and the localStorage key is gone. Do NOT open its old URL before the move (reads the server → empty template).
+2. Live-verify on that meeting: Notulen opens from the server; (only with Erik's OK, it is real data) Tutup rapat → one batch in Impor yang ditinjau; read-only view as a reader without `rapat.write` (needs a second account — ask Erik).
+3. Corsec: Erik agreed `rapat.write` for him + the Corsec, but no Corsec account exists. Ask who; once they have signed in, create group "Rapat Direksi — Corsec" (board view + `jup_consolidated` + `rapat.write`, nothing else) — group writes replace the whole `permissions` object, so send it complete.
+4. When JUP IT confirms the D26 grants: vendor OAuth callback with `mcp:jup-sharepoint`; then spike cleanup (Erik deletes app `b05e9e7e-…` + site `SpikeAsistenJUP`; wipe `.token`/`.env` in `…/bc6c0a23-…/scratchpad/spike/`).
+5. When Finance's consolidation file arrives: fix Unit pelaporan list + report-line codes, spec D27 step 3. D27 step 2 (Realisasi KPI form) can be specced any time.
+6. Carried: #42 Notion acceptance (I1); E8 when JUP IT answers #82; `$impeccable critique` on Rapat after a real meeting; O3; phone check; Legal-account Kartu Kontrak; O1 staff checks; #47.
+
+**Constraints to honor** (plus the blocks below):
+- **Erik merges PRs** unless he names one for me to merge.
+- Every deploy and every DB/config write needs Erik's per-change OK (the move in item 1 already has it).
+- Records source is ON: any change to meeting routes is live for all board viewers on the next deploy.
+- One freeze rule (`refusedWhileClosed`) mirrored on the server; read-only = `readOnlyRepo` + `useMeeting` guard; never weaken a contract case.
+- **Disk:** swap growth alone can fill it in minutes (hit ENOSPC 10-09). `df -h /` + `sysctl vm.swapusage` before pytest, Postgres, deploys or browser writes. Never put a stdin read in a Bash chain. `rm` on its own line; zsh `echo ---`.
+
+**Open items waiting on Erik:**
+- Who the Corsec is (and whether board view for them is acceptable).
+- OK to close `rd-2026-10-05-0702` for real to test the Tindakan batch, or a test meeting instead.
+- A second account without `rapat.write` to see the read-only view live.
+- Send the JUP IT doc (check Ikhsan's email, 12-month secret, Legal step) and tell JUP IT about the spike app/site.
+- One recent Finance consolidation file (numbers blanked OK) → unblocks D27 step 3.
+- Pilot SharePoint member names before go-live.
+- Carried: Risalah choices; #42 Notion test; JUP IT reply to #82; contract-card titles, `jup_contracts` grant, Rully items, O3, phone check, WhatsApp items, secret rotation.
+
+---
+
+# Next session — ent-os-new-jup (checkpoint 2026-10-09-v67)
+
+> Prepended by /wrap 2026-10-09 (checkpoint 2026-10-09-v67). Supersedes v66's anchor and "do next". v66's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-09-v67). Invoke the `RapatDireksi` skill for any Rapat Direksi work.
+Anchor: `origin/main` at `40d8b2130` **as this was written**, or one commit ahead at this checkpoint's own merge (`chore(session): checkpoint 2026-10-09-v67 …`). Verify with `git log --oneline -2 origin/main`; anything else is a parallel push.
+
+**Current state:**
+- **Live:** unchanged, `ent-os-00116-mgk` (`e70c916ef`). `main` holds #156–#159 and #161 (server Notulen, close/reopen freeze, poll hardening, Pindahkan ke server), none deployed.
+- **D27 step 1:** only **#160** left.
+- **Test gap:** meeting endpoint tests run on SQLite only, locally; CI's Runtime suite skips them and has no Postgres.
+- **D26 SharePoint:** waits on JUP IT applying `deploy/gcp/sharepoint-d26-request-jup-it.id.md`.
+
+**Do next, in order:**
+1. **#160** — Tindakan → review queue (import idempotency by sha256; serialise candidate batches canonically). Branch from main. Migration next is `jl0004` (down `jl0003`) if it needs one.
+2. Ask Erik where **story 16** (read-only Notulen for board readers without `rapat.write`) goes — today their edits show the failed-save alert.
+3. Ask Erik about deploying D27 step 1 (#157–#161) — real data in Ruang Pimpinan still needs his three separate OKs (deploy; illustrative → records; group grant incl. `rapat.write`). After deploy: live-verify Pindahkan ke server as Erik via Interceptor.
+4. Disk is 2.3 GiB now: run the meeting endpoint tests on local pgserver Postgres (port 55432, `JUP_TEST_POSTGRES_URL=postgresql+psycopg://postgres@127.0.0.1:55432/postgres`; re-fetch with `uv run --no-project --with pgserver`).
+5. When JUP IT confirms the D26 grants: vendor OAuth callback with `mcp:jup-sharepoint`; then spike cleanup (Erik deletes app `b05e9e7e-…` + site `SpikeAsistenJUP`; wipe `.token`/`.env` in `…/bc6c0a23-…/scratchpad/spike/`).
+6. When Finance's consolidation file arrives: fix Unit pelaporan list + report-line codes, spec D27 step 3. D27 step 2 (Realisasi KPI form) can be specced any time.
+7. Carried: #42 Notion acceptance; E8 when JUP IT answers #82; `$impeccable critique` on Rapat after a real meeting; O3; phone check; Legal-account Kartu Kontrak; O1 staff checks; #47.
+
+**Constraints to honor** (plus the blocks below):
+- **Erik merges PRs** unless he names one for me to merge.
+- A PR retarget is an `edited` event: only the regression check runs. Re-push (amend `--date=now`) for full CI. Stacked PRs get no CI.
+- A browser meeting copy is removed only when the server confirms it AND it is unchanged; quarantine is never touched (`migrate.ts`).
+- One freeze rule: `repo.ts` `refusedWhileClosed`, mirrored on the server. Contract suite = server repo's acceptance; never weaken a case.
+- Meeting routes stay behind `JUP_LEADERSHIP_ACTIONS_SOURCE=records`.
+- Swap is nearly full (7.9/8 GB): `df -h /` + `sysctl vm.swapusage` before anything large. Never put a stdin read in a Bash chain. `rm` on its own line; zsh `echo ---`.
+
+**Open items waiting on Erik:**
+- Where story 16 (read-only Notulen without `rapat.write`) belongs.
+- Whether / when to deploy D27 step 1 (and the three OKs for real data).
+- Send the JUP IT doc (check Ikhsan's email, 12-month secret, Legal step) and tell JUP IT about the spike app/site.
+- One recent Finance consolidation file (numbers blanked OK) → unblocks D27 step 3.
+- Pilot SharePoint member names before go-live.
+- Carried: reset his Rapat demo copy?; Risalah choices; #42 Notion test; JUP IT reply to #82; contract-card titles, `jup_contracts` grant, Rully items, O3, phone check, WhatsApp items, secret rotation.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-09-v66)
 
 > Prepended by /wrap 2026-10-09 (checkpoint 2026-10-09-v66). Supersedes v65's anchor and "do next". v65's and older blocks' constraints still hold unless noted.
