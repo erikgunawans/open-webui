@@ -22,7 +22,8 @@ import type { Meeting } from './types';
 // - Tutup rapat and Buka kembali go to their own endpoints (the server audits them and refuses
 //   every save to a closed meeting); which one a write needs follows from whether the meeting was
 //   closed when the server last answered and whether the meeting being sent is.
-// - Live view: while a meeting has subscribers, the server is polled for a newer revision.
+// - Live view: while a meeting has subscribers, the server is polled for a newer revision (one
+//   poll at a time). A failed poll changes nothing on screen; the next one catches up.
 
 /** A stored meeting as the server sends it. The document is checked here before it is trusted. */
 export type StoredMeeting = { id: string; revision: number; document: unknown };
@@ -114,6 +115,8 @@ export class ServerMeetingRepo implements MeetingRepo {
 	private timers = new Map<string, ReturnType<typeof setTimeout>>();
 	private inFlight = new Set<string>();
 	private polls = new Map<string, ReturnType<typeof setInterval>>();
+	/** Meetings whose poll has not been answered yet. */
+	private polling = new Set<string>();
 	private timing: ServerRepoTiming;
 
 	private constructor(
@@ -296,13 +299,17 @@ export class ServerMeetingRepo implements MeetingRepo {
 	private async poll(id: string) {
 		const entry = this.entries.get(id);
 		// Local edits on their way win until the server answers them; the revision check catches
-		// anything written elsewhere in between.
-		if (entry?.dirty || this.inFlight.has(id)) return;
+		// anything written elsewhere in between. On a slow network the previous poll may still be
+		// waiting: the next one is skipped rather than stacked behind it.
+		if (entry?.dirty || this.inFlight.has(id) || this.polling.has(id)) return;
+		this.polling.add(id);
 		let stored: StoredMeeting | null;
 		try {
 			stored = await this.api.get(id);
 		} catch {
 			return; // Keep the last state; the next poll tries again.
+		} finally {
+			this.polling.delete(id);
 		}
 		if (!stored) return;
 		const latest = this.entries.get(id);

@@ -24,6 +24,10 @@ class FakeServer {
 	/** Requests answered with this error instead, oldest first (0 = the network did not answer). */
 	failures: number[] = [];
 	writes = 0;
+	/** Single-meeting reads (the polls) asked for. */
+	gets = 0;
+	/** While set, a read waits for this before it answers (a slow network). */
+	slow: Promise<void> | null = null;
 
 	put(id: string, raw: string) {
 		let closed = false;
@@ -68,6 +72,8 @@ class FakeServer {
 				return [...this.rows.keys()].map((id) => this.stored(id)!);
 			},
 			get: async (id) => {
+				this.gets++;
+				if (this.slow) await this.slow;
 				this.answer();
 				return this.stored(id);
 			},
@@ -307,6 +313,74 @@ describe('ServerMeetingRepo', () => {
 		expect(server.rows.get('rapat-1')!.closed).toBe(true);
 		// Now this tab knows it is closed: further edits are refused before they leave.
 		expect(repo.save(at(closedElsewhere, 2))).toBe(false);
+	});
+
+	it('a Layar on another PC shows a change made elsewhere within one poll', async () => {
+		const server = new FakeServer();
+		const m = seedMeeting('rapat-1');
+		server.put('rapat-1', JSON.stringify(m));
+		const layar = await ServerMeetingRepo.open(server.api());
+		const seen: number[] = [];
+		layar.subscribe('rapat-1', (x) => seen.push(x.session.currentAgenda));
+		server.put('rapat-1', JSON.stringify(at(m, 4)));
+		await vi.advanceTimersByTimeAsync(2000);
+		expect(seen).toEqual([4]);
+		expect(layar.get('rapat-1')).toEqual(at(m, 4));
+	});
+
+	it('a failed poll keeps the last state on screen and the next one catches up', async () => {
+		const server = new FakeServer();
+		const m = seedMeeting('rapat-1');
+		server.put('rapat-1', JSON.stringify(at(m, 2)));
+		const layar = await ServerMeetingRepo.open(server.api());
+		const seen: number[] = [];
+		layar.subscribe('rapat-1', (x) => seen.push(x.session.currentAgenda));
+		server.put('rapat-1', JSON.stringify(at(m, 5)));
+		server.failures = [0, 503];
+		await vi.advanceTimersByTimeAsync(4000); // two polls, both refused
+		expect(seen).toEqual([]);
+		expect(layar.get('rapat-1')).toEqual(at(m, 2));
+		expect(layar.status('rapat-1')).toBe('saved');
+		await vi.advanceTimersByTimeAsync(2000); // the network is back
+		expect(seen).toEqual([5]);
+	});
+
+	it('polls only while a screen has the meeting open', async () => {
+		const server = new FakeServer();
+		server.put('rapat-1', JSON.stringify(seedMeeting('rapat-1')));
+		const repo = await ServerMeetingRepo.open(server.api());
+		await vi.advanceTimersByTimeAsync(10_000);
+		expect(server.gets).toBe(0);
+		const first = repo.subscribe('rapat-1', () => {});
+		const second = repo.subscribe('rapat-1', () => {});
+		await vi.advanceTimersByTimeAsync(4000);
+		expect(server.gets).toBe(2); // one poll per tick, however many screens watch
+		first();
+		await vi.advanceTimersByTimeAsync(2000);
+		expect(server.gets).toBe(3);
+		second();
+		await vi.advanceTimersByTimeAsync(10_000);
+		expect(server.gets).toBe(3);
+	});
+
+	it('a slow poll is not stacked: the next tick waits for its answer', async () => {
+		const server = new FakeServer();
+		const m = seedMeeting('rapat-1');
+		server.put('rapat-1', JSON.stringify(m));
+		const repo = await ServerMeetingRepo.open(server.api());
+		const seen: number[] = [];
+		repo.subscribe('rapat-1', (x) => seen.push(x.session.currentAgenda));
+		let answer!: () => void;
+		server.slow = new Promise((resolve) => (answer = resolve));
+		server.put('rapat-1', JSON.stringify(at(m, 6)));
+		await vi.advanceTimersByTimeAsync(10_000);
+		expect(server.gets).toBe(1);
+		server.slow = null;
+		answer();
+		await vi.advanceTimersByTimeAsync(0);
+		expect(seen).toEqual([6]);
+		await vi.advanceTimersByTimeAsync(2000);
+		expect(server.gets).toBe(2);
 	});
 
 	it('refuses to open when the server refuses the list', async () => {
