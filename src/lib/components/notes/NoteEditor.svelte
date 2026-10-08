@@ -77,6 +77,7 @@
 	import Spinner from '../common/Spinner.svelte';
 	import Mic from '../icons/Mic.svelte';
 	import VoiceRecording from '../chat/MessageInput/VoiceRecording.svelte';
+	import { mergeIncomingFiles, savableFiles, settleUpload } from './note-files';
 	import DeleteConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 
 	import AccessButton from '../common/AccessButton.svelte';
@@ -185,7 +186,8 @@
 			if (!Array.isArray(note?.access_grants)) {
 				note.access_grants = [];
 			}
-			files = res.data.files || [];
+			// JUP: a placeholder stored by an older build can never finish uploading.
+			files = savableFiles(res.data.files);
 
 			$socket?.emit('join-note', {
 				note_id: id,
@@ -214,7 +216,8 @@
 			const res = await updateNoteById(localStorage.token, id, {
 				title: note?.title === '' ? $i18n.t('Untitled') : note.title,
 				data: {
-					files: files
+					// JUP: never save an upload placeholder (see note-files.ts).
+					files: savableFiles(files)
 				},
 				access_grants: note?.access_grants ?? []
 			}).catch((e) => {
@@ -523,7 +526,8 @@ ${content}
 
 				fileItem.url = `${uploadedFile.id}`;
 
-				files = files;
+				// JUP: a note echo may have replaced fileItem during the upload; match by itemId.
+				files = settleUpload(files, tempItemId, fileItem);
 			} else {
 				files = files.filter((item) => item?.itemId !== tempItemId);
 			}
@@ -874,7 +878,8 @@ ${content}
 		}
 
 		if (_note.data && 'files' in _note.data) {
-			files = _note.data.files ?? [];
+			// JUP: keep local uploads still in flight (see note-files.ts).
+			files = mergeIncomingFiles(_note.data.files, files);
 			note.data.files = files.length > 0 ? files : null;
 		}
 
