@@ -10,6 +10,11 @@ was based on and lands only if that is still the stored one; the update is condi
 two instances racing on the same meeting cannot both win. A stale save is refused with the current
 revision and nothing is written: no last-writer-wins.
 
+**Tutup rapat.** A meeting is closed on the server (`close_meeting`), and from then on every save is
+refused, from any machine, until it is reopened (`reopen_meeting`) with a written reason. The
+reopening (when, why, who) is kept beside the document; the document carries the reason too, so the
+Risalah prints it. Closing again freezes it again. A plain save never opens or closes a meeting.
+
 Who may read and write is the router's check (`policy.py`); this module decides only what is stored.
 """
 
@@ -45,6 +50,26 @@ class MeetingExists(Exception):
     def __init__(self, revision: int) -> None:
         super().__init__('a meeting with this id is already stored')
         self.revision = revision
+
+
+class MeetingClosed(Exception):
+    """The meeting is closed: nothing changes it until it is reopened with a reason."""
+
+    def __init__(self, revision: int) -> None:
+        super().__init__('the meeting is closed')
+        self.revision = revision
+
+
+class MeetingOpen(Exception):
+    """Reopening a meeting that is not closed."""
+
+    def __init__(self, revision: int) -> None:
+        super().__init__('the meeting is not closed')
+        self.revision = revision
+
+
+class MissingReason(ValueError):
+    """A reopening without a written reason."""
 
 
 class StaleRevision(Exception):
@@ -106,11 +131,7 @@ def validate_document(document: Any, meeting_id: str | None = None) -> str:
         raise MalformedMeeting(f'a meeting holds exactly {AGENDA_COLLECTIONS} record collections')
     if not all(isinstance(collection, list) for collection in records):
         raise MalformedMeeting('every record collection is a list')
-    session = document.get('session')
-    if not isinstance(session, dict):
-        raise MalformedMeeting('the meeting has no session')
-    if not _is_int(session.get('currentAgenda')) or not isinstance(session.get('doneAgendas'), list):
-        raise MalformedMeeting('the session needs a current agenda and its done agendas')
+    _validate_session(document.get('session'))
     try:
         text = json.dumps(document, ensure_ascii=False, separators=(',', ':'), allow_nan=False)
     except (TypeError, ValueError) as error:
@@ -118,6 +139,23 @@ def validate_document(document: Any, meeting_id: str | None = None) -> str:
     if len(text.encode('utf-8')) > MAX_BYTES:
         raise MalformedMeeting('the meeting is too large')
     return text
+
+
+def _validate_session(session: Any) -> None:
+    """A current agenda and its done agendas; a closing time and reopenings only in their shape."""
+    if not isinstance(session, dict):
+        raise MalformedMeeting('the meeting has no session')
+    if not _is_int(session.get('currentAgenda')) or not isinstance(session.get('doneAgendas'), list):
+        raise MalformedMeeting('the session needs a current agenda and its done agendas')
+    if session.get('closedAt') is not None and not _is_int(session.get('closedAt')):
+        raise MalformedMeeting('the closing time is not a time')
+    if session.get('reopenings') is not None and not isinstance(session.get('reopenings'), list):
+        raise MalformedMeeting('the reopenings are a list')
+
+
+def _closed(document: dict[str, Any]) -> bool:
+    """The document says the meeting is closed (the client's `session.closedAt`)."""
+    return document['session'].get('closedAt') is not None
 
 
 def _stored(row: Any) -> StoredMeeting:
@@ -162,7 +200,8 @@ def create_meeting(connection: Any, document: Any, *, author: str) -> StoredMeet
                     owner_user_id=author,
                     document=text,
                     revision=1,
-                    closed_at=None,
+                    # A meeting that arrives closed (one moved from a browser) is closed here too.
+                    closed_at=now if _closed(document) else None,
                     reopenings='[]',
                     created_by=author,
                     created_at=now,
@@ -180,17 +219,101 @@ def create_meeting(connection: Any, document: Any, *, author: str) -> StoredMeet
 
 
 def save_meeting(connection: Any, meeting_id: str, document: Any, *, base_revision: int, author: str) -> StoredMeeting:
-    """Replace the meeting if `base_revision` is still the stored one; StaleRevision otherwise."""
+    """Replace the meeting if `base_revision` is still the stored one and it is open.
+
+    StaleRevision when the revision moved, MeetingClosed when the meeting is closed. A save that
+    would close the meeting is malformed: closing is `close_meeting`, so it is always audited.
+    """
     text = validate_document(document, meeting_id)
+    if _closed(document):
+        raise MalformedMeeting('a meeting is closed with Tutup rapat, not by saving it')
     result = connection.execute(
         update(meeting_table)
-        .where(meeting_table.c.id == meeting_id, meeting_table.c.revision == base_revision)
+        .where(
+            meeting_table.c.id == meeting_id,
+            meeting_table.c.revision == base_revision,
+            meeting_table.c.closed_at.is_(None),
+        )
         .values(document=text, revision=base_revision + 1, updated_by=author, updated_at=_now_ms())
     )
+    return _written(connection, meeting_id, result)
+
+
+def close_meeting(connection: Any, meeting_id: str, document: Any, *, base_revision: int, author: str) -> StoredMeeting:
+    """Tutup rapat: store the closing document and freeze the meeting.
+
+    The document is the meeting as the Corsec closed it (its `session.closedAt` set, the closing time
+    stamped). Refused like a save when the revision moved or the meeting is already closed.
+    """
+    text = validate_document(document, meeting_id)
+    if not _closed(document):
+        raise MalformedMeeting('the closing document carries no closing time')
+    now = _now_ms()
+    result = connection.execute(
+        update(meeting_table)
+        .where(
+            meeting_table.c.id == meeting_id,
+            meeting_table.c.revision == base_revision,
+            meeting_table.c.closed_at.is_(None),
+        )
+        .values(document=text, revision=base_revision + 1, closed_at=now, updated_by=author, updated_at=now)
+    )
+    return _written(connection, meeting_id, result)
+
+
+def reopen_meeting(
+    connection: Any, meeting_id: str, document: Any, *, base_revision: int, reason: str, author: str
+) -> StoredMeeting:
+    """Buka kembali: open a closed meeting again, keeping when, why and who.
+
+    The reason must be written, and the document must carry it as its last reopening (that is what
+    the Risalah prints). MeetingOpen when the meeting is not closed.
+    """
+    reason = reason.strip()
+    if not reason:
+        raise MissingReason('a meeting is reopened only with a written reason')
+    text = validate_document(document, meeting_id)
+    if _closed(document):
+        raise MalformedMeeting('the reopened document is still closed')
+    written = document['session'].get('reopenings') or []
+    last = written[-1] if written else None
+    if not isinstance(last, dict) or not isinstance(last.get('reason'), str) or last['reason'].strip() != reason:
+        raise MalformedMeeting('the reopened document does not carry this reason')
+    current = read_meeting(connection, meeting_id)
+    if current is None:
+        raise MeetingNotFound(meeting_id)
+    now = _now_ms()
+    kept = [*current.reopenings, {'at': now, 'reason': reason, 'by': author}]
+    # The revision guard makes the read above safe: if anything wrote in between, nothing is written.
+    result = connection.execute(
+        update(meeting_table)
+        .where(
+            meeting_table.c.id == meeting_id,
+            meeting_table.c.revision == base_revision,
+            meeting_table.c.closed_at.is_not(None),
+        )
+        .values(
+            document=text,
+            revision=base_revision + 1,
+            closed_at=None,
+            reopenings=json.dumps(kept, ensure_ascii=False),
+            updated_by=author,
+            updated_at=now,
+        )
+    )
+    return _written(connection, meeting_id, result, reopening=True)
+
+
+def _written(connection: Any, meeting_id: str, result: Any, *, reopening: bool = False) -> StoredMeeting:
+    """The stored meeting after a conditional update, or why the update matched nothing."""
     if result.rowcount != 1:
         current = read_meeting(connection, meeting_id)
         if current is None:
             raise MeetingNotFound(meeting_id)
+        if reopening and current.closed_at is None:
+            raise MeetingOpen(current.revision)
+        if not reopening and current.closed_at is not None:
+            raise MeetingClosed(current.revision)
         raise StaleRevision(current.revision)
     stored = read_meeting(connection, meeting_id)
     assert stored is not None

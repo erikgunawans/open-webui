@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { reopenMeeting } from './keputusan';
+import { closeMeeting } from './layar-model';
 import { seedMeeting } from './seed';
 import type { MeetingRepo } from './repo';
 import type { Meeting } from './types';
@@ -73,6 +75,48 @@ export const meetingRepoContract = (name: string, harness: () => RepoHarness) =>
 			h.writeElsewhere('user-1', 'rapat-1', JSON.stringify(at(m, 5)));
 			await h.settle();
 			expect(seen).toEqual([3, 7]);
+		});
+
+		it('a closed meeting refuses changes until it is reopened with a reason', async () => {
+			const h = harness();
+			const repo = await h.open('user-1');
+			const m = seedMeeting('rapat-1');
+			repo.save(m);
+			await h.settle();
+			const closed = closeMeeting(m, 1_000);
+			expect(repo.save(closed)).toBe(true);
+			await h.settle();
+
+			const seen: Meeting[] = [];
+			repo.subscribe('rapat-1', (x) => seen.push(x));
+			const session = { ...closed.session };
+			delete session.closedAt;
+			const blankReason = {
+				...closed,
+				session: { ...session, reopenings: [{ at: 2_000, reason: '   ' }] }
+			};
+			expect(repo.save(at(closed, 3))).toBe(false);
+			expect(repo.save({ ...closed, notes: { 1: { text: 'diubah', risalah: false } } })).toBe(
+				false
+			);
+			expect(repo.save(blankReason)).toBe(false);
+			await h.settle();
+			expect(seen).toEqual([]);
+			expect(repo.get('rapat-1')).toEqual(closed);
+			expect((await h.open('user-1')).get('rapat-1')).toEqual(closed);
+
+			const reopened = reopenMeeting(closed, 'Koreksi agenda 07', 2_000);
+			expect(repo.save(reopened)).toBe(true);
+			expect(repo.save(at(reopened, 3))).toBe(true);
+			await h.settle();
+			expect((await h.open('user-1')).get('rapat-1')).toEqual(at(reopened, 3));
+
+			// Closing again freezes it again.
+			const again = closeMeeting(at(reopened, 3), 3_000);
+			expect(repo.save(again)).toBe(true);
+			expect(repo.save(at(again, 5))).toBe(false);
+			await h.settle();
+			expect((await h.open('user-1')).get('rapat-1')).toEqual(again);
 		});
 
 		it('lists every meeting', async () => {

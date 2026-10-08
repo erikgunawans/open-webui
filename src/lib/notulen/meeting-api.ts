@@ -19,6 +19,9 @@ export const httpMeetingApi = (o: MeetingApiOptions): MeetingApi => {
 	const url = (id?: string) =>
 		`${o.base}/leadership/meetings${id === undefined ? '' : `/${encodeURIComponent(id)}`}${query}`;
 
+	const action = (id: string, verb: 'close' | 'reopen') =>
+		`${o.base}/leadership/meetings/${encodeURIComponent(id)}/${verb}${query}`;
+
 	const call = async (method: string, target: string, json?: unknown): Promise<Response> => {
 		let res: Response;
 		try {
@@ -60,6 +63,18 @@ export const httpMeetingApi = (o: MeetingApiOptions): MeetingApi => {
 		},
 		create: async (meeting: Meeting) => (await call('POST', url(), { document: meeting })).json(),
 		save: async (id, baseRevision, meeting: Meeting) =>
-			(await call('PUT', url(id), { base_revision: baseRevision, document: meeting })).json()
+			(await call('PUT', url(id), { base_revision: baseRevision, document: meeting })).json(),
+		close: async (id, baseRevision, meeting: Meeting) =>
+			(
+				await call('POST', action(id, 'close'), { base_revision: baseRevision, document: meeting })
+			).json(),
+		reopen: async (id, baseRevision, reason, meeting: Meeting) =>
+			(
+				await call('POST', action(id, 'reopen'), {
+					base_revision: baseRevision,
+					reason,
+					document: meeting
+				})
+			).json()
 	};
 };

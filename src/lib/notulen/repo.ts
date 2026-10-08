@@ -25,7 +25,10 @@ export interface MeetingRepo {
 	 */
 	unreadableIds?(): string[];
 	get(id: string): Meeting | null;
-	/** Store the meeting; false when it could not be stored (it still reaches this tab's listeners). */
+	/**
+	 * Store the meeting; false when it could not be stored (it still reaches this tab's listeners).
+	 * A change a closed meeting refuses (`refusedWhileClosed`) is false and reaches no one.
+	 */
 	save(meeting: Meeting): boolean;
 	/**
 	 * When something is stored under `id` that is not a readable Meeting (damaged, or written by a
@@ -48,6 +51,24 @@ export interface MeetingRepo {
 	/** Send pending changes now (the page is being hidden or closed). */
 	flush?(): void;
 }
+
+/**
+ * Tutup rapat freezes a meeting: while `stored` is closed, the only change it takes is Buka kembali —
+ * `next` open again, with exactly one more reopening that has a written reason (keputusan.ts
+ * `reopenMeeting`). Every repository refuses anything else; the server enforces the same.
+ */
+export const refusedWhileClosed = (stored: Meeting | null, next: Meeting): boolean => {
+	if (stored?.session.closedAt === undefined) return false;
+	const before = stored.session.reopenings ?? [];
+	const after = next.session.reopenings ?? [];
+	const reason = after[after.length - 1]?.reason;
+	return !(
+		next.session.closedAt === undefined &&
+		after.length === before.length + 1 &&
+		typeof reason === 'string' &&
+		!!reason.trim()
+	);
+};
 
 const PREFIX = 'jup-rapat-direksi:v1:';
 /** Unreadable data moved aside by quarantine(), kept for recovery rather than overwritten. */
@@ -126,6 +147,7 @@ export class LocalStorageMeetingRepo implements MeetingRepo {
 	}
 
 	save(meeting: Meeting): boolean {
+		if (refusedWhileClosed(this.get(meeting.id), meeting)) return false;
 		let stored = true;
 		try {
 			this.storage.setItem(this.key(meeting.id), JSON.stringify(meeting));

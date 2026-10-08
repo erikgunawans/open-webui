@@ -40,6 +40,24 @@ describe('httpMeetingApi', () => {
 		expect(listed).toEqual([{ id: 'rd-1', revision: 1, document: {} }]);
 	});
 
+	it('closes and reopens through their own routes, the reason with the reopening', async () => {
+		const sent: Sent[] = [];
+		const api = respond(200, { id: 'rd-1', revision: 5 }, sent);
+		const m = seedMeeting('rd-1');
+		expect(await api.close('rd-1', 4, m)).toEqual({ id: 'rd-1', revision: 5 });
+		await api.reopen('rd-1', 5, 'Koreksi', m);
+		expect(sent.map((s) => [s.init.method, s.url])).toEqual([
+			['POST', '/api/v1/leadership/meetings/rd-1/close?scope_id=jup-consolidated'],
+			['POST', '/api/v1/leadership/meetings/rd-1/reopen?scope_id=jup-consolidated']
+		]);
+		expect(JSON.parse(sent[0].init.body as string)).toEqual({ base_revision: 4, document: m });
+		expect(JSON.parse(sent[1].init.body as string)).toEqual({
+			base_revision: 5,
+			reason: 'Koreksi',
+			document: m
+		});
+	});
+
 	it('carries the stored revision of a conflict', async () => {
 		const api = respond(409, { detail: { message: 'changed elsewhere', revision: 7 } });
 		await expect(api.save('rd-1', 3, seedMeeting('rd-1'))).rejects.toMatchObject({

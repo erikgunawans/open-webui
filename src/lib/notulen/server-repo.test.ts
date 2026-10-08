@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { reopenMeeting } from './keputusan';
+import { closeMeeting } from './layar-model';
 import { meetingRepoContract } from './repo.contract';
 import { seedMeeting } from './seed';
 import {
@@ -12,16 +14,34 @@ import type { Meeting } from './types';
 
 // The server repository against a fake HTTP layer that answers the way the leadership API does:
 // a create of a stored id and a save on a stale revision are 409s carrying the stored revision, a
-// save of an unknown meeting is 404. Time is fake, so `settle` runs the save, retry and poll timers.
+// save of an unknown meeting is 404, and a closed meeting refuses saves (409) until a reopening.
+// Time is fake, so `settle` runs the save, retry and poll timers.
 
 class FakeServer {
-	rows = new Map<string, { raw: string; revision: number }>();
+	rows = new Map<string, { raw: string; revision: number; closed: boolean }>();
+	/** The endpoint each accepted write went to, in order. */
+	calls: string[] = [];
 	/** Requests answered with this error instead, oldest first (0 = the network did not answer). */
 	failures: number[] = [];
 	writes = 0;
 
 	put(id: string, raw: string) {
-		this.rows.set(id, { raw, revision: (this.rows.get(id)?.revision ?? 0) + 1 });
+		let closed = false;
+		try {
+			closed = JSON.parse(raw)?.session?.closedAt !== undefined;
+		} catch {
+			closed = false;
+		}
+		this.rows.set(id, { raw, revision: (this.rows.get(id)?.revision ?? 0) + 1, closed });
+	}
+
+	/** The checks the server makes before any write to a stored meeting. */
+	private writable(id: string, base: number, wantClosed: boolean) {
+		const row = this.rows.get(id);
+		if (!row) throw new MeetingApiError(404, 'no such meeting');
+		if (row.closed !== wantClosed)
+			throw new MeetingApiError(409, wantClosed ? 'not closed' : 'closed', row.revision);
+		if (row.revision !== base) throw new MeetingApiError(409, 'stale', row.revision);
 	}
 
 	private stored(id: string): StoredMeeting | null {
@@ -56,15 +76,37 @@ class FakeServer {
 				const row = this.rows.get(m.id);
 				if (row) throw new MeetingApiError(409, 'exists', row.revision);
 				this.writes++;
+				this.calls.push('create');
 				this.put(m.id, JSON.stringify(m));
 				return { revision: 1 };
 			},
 			save: async (id, base, m: Meeting) => {
 				this.answer();
-				const row = this.rows.get(id);
-				if (!row) throw new MeetingApiError(404, 'no such meeting');
-				if (row.revision !== base) throw new MeetingApiError(409, 'stale', row.revision);
+				this.writable(id, base, false);
+				if (m.session.closedAt !== undefined) throw new MeetingApiError(422, 'close it');
 				this.writes++;
+				this.calls.push('save');
+				this.put(id, JSON.stringify(m));
+				return { revision: base + 1 };
+			},
+			close: async (id, base, m: Meeting) => {
+				this.answer();
+				this.writable(id, base, false);
+				if (m.session.closedAt === undefined) throw new MeetingApiError(422, 'not closing');
+				this.writes++;
+				this.calls.push('close');
+				this.put(id, JSON.stringify(m));
+				return { revision: base + 1 };
+			},
+			reopen: async (id, base, reason, m: Meeting) => {
+				this.answer();
+				if (!reason.trim()) throw new MeetingApiError(422, 'no reason');
+				this.writable(id, base, true);
+				const last = m.session.reopenings?.at(-1)?.reason;
+				if (m.session.closedAt !== undefined || last !== reason)
+					throw new MeetingApiError(422, 'not this reopening');
+				this.writes++;
+				this.calls.push('reopen');
 				this.put(id, JSON.stringify(m));
 				return { revision: base + 1 };
 			}
@@ -213,6 +255,58 @@ describe('ServerMeetingRepo', () => {
 		expect(repo.status('rapat-1')).toBe('failed');
 		expect(server.writes).toBe(0);
 		expect(server.failures).toEqual([]);
+	});
+
+	it('closes and reopens through their own endpoints', async () => {
+		const server = new FakeServer();
+		const repo = await ServerMeetingRepo.open(server.api());
+		const m = seedMeeting('rapat-1');
+		repo.save(m);
+		await settle();
+		const closed = closeMeeting(m, 1000);
+		repo.save(closed);
+		await settle();
+		const reopened = reopenMeeting(closed, 'Koreksi agenda 07', 2000);
+		repo.save(reopened);
+		await settle();
+		repo.save(at(reopened, 3));
+		await settle();
+		expect(server.calls).toEqual(['create', 'close', 'reopen', 'save']);
+		expect(repo.status('rapat-1')).toBe('saved');
+		expect(agendaOnServer(server, 'rapat-1')).toBe(3);
+	});
+
+	it('a reopening closed again before it was sent reaches the server as both', async () => {
+		const server = new FakeServer();
+		const repo = await ServerMeetingRepo.open(server.api());
+		const closed = closeMeeting(seedMeeting('rapat-1'), 1000);
+		repo.save(closed);
+		await settle();
+		const again = closeMeeting(reopenMeeting(closed, 'Koreksi', 2000), 3000);
+		repo.save(reopenMeeting(closed, 'Koreksi', 2000));
+		repo.save(again);
+		await settle();
+		expect(server.calls).toEqual(['create', 'reopen', 'close']);
+		expect(repo.status('rapat-1')).toBe('saved');
+		expect(JSON.parse(server.rows.get('rapat-1')!.raw)).toEqual(again);
+	});
+
+	it('closed on another machine: this tab’s later edits are refused and kept, not lost', async () => {
+		const server = new FakeServer();
+		const repo = await ServerMeetingRepo.open(server.api());
+		const m = seedMeeting('rapat-1');
+		repo.save(m);
+		await settle();
+		const closedElsewhere = closeMeeting(m, 1000);
+		server.put('rapat-1', JSON.stringify(closedElsewhere));
+		repo.save(at(m, 4));
+		await settle();
+		expect(repo.status('rapat-1')).toBe('conflict');
+		expect(repo.get('rapat-1')).toEqual(closedElsewhere);
+		expect(repo.conflict('rapat-1')).toEqual(at(m, 4));
+		expect(server.rows.get('rapat-1')!.closed).toBe(true);
+		// Now this tab knows it is closed: further edits are refused before they leave.
+		expect(repo.save(at(closedElsewhere, 2))).toBe(false);
 	});
 
 	it('refuses to open when the server refuses the list', async () => {

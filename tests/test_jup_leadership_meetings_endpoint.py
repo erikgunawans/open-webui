@@ -343,3 +343,194 @@ def test_every_create_and_save_is_audited_without_content(client, directory, cap
     # The minutes themselves never reach the trail.
     assert not any('Rapat Direksi Oktober' in line or 'Pembahasan berjalan' in line for line in lines)
     assert json.dumps(_meeting()) not in '\n'.join(lines)
+
+
+# --- Tutup rapat and Buka kembali (#159) -------------------------------------------------------
+
+ID = 'rd-2026-10-08-ab12'
+CLOSED_AT = 1_759_910_000_000
+
+
+def _closed(agenda: int = 8, reopenings: list | None = None) -> dict:
+    """The document as the Corsec closes it: `session.closedAt` set."""
+    document = _meeting(agenda=agenda)
+    document['session'] |= {'closedAt': CLOSED_AT, 'doneAgendas': [agenda]}
+    if reopenings is not None:
+        document['session']['reopenings'] = reopenings
+    return document
+
+
+def _reopened(reason: str, before: list | None = None) -> dict:
+    """The document as Buka kembali leaves it: no closing time, the reason as its last reopening."""
+    document = _meeting(agenda=8)
+    document['session'] |= {
+        'doneAgendas': [8],
+        'reopenings': [*(before or []), {'at': 1_759_920_000_000, 'reason': reason}],
+    }
+    return document
+
+
+def _close(client, base: int, document: dict | None = None):
+    return client.post(
+        f'{BASE}/meetings/{ID}/close{Q}', json={'base_revision': base, 'document': document or _closed()}
+    )
+
+
+def _reopen(client, base: int, reason: str, document: dict | None = None):
+    return client.post(
+        f'{BASE}/meetings/{ID}/reopen{Q}',
+        json={'base_revision': base, 'reason': reason, 'document': document or _reopened(reason.strip())},
+    )
+
+
+def _created_and_closed(client, directory) -> None:
+    _as_corsec(client, directory)
+    assert client.post(MEETINGS, json={'document': _meeting()}).status_code == 201
+    closed = _close(client, 1)
+    assert closed.status_code == 200, closed.text
+    assert closed.json()['revision'] == 2
+
+
+def test_closing_stores_the_closing_document_and_marks_the_meeting_closed(client, directory) -> None:
+    _created_and_closed(client, directory)
+    read = client.get(_one(ID)).json()
+    assert read['revision'] == 2
+    assert read['document'] == _closed()
+    assert isinstance(read['closed_at'], int)
+    assert read['reopenings'] == []
+
+
+def test_a_closed_meeting_refuses_every_save_from_any_machine(client, directory) -> None:
+    _created_and_closed(client, directory)
+    # The current revision, the stale one, and a second machine signed in as the Corsec too.
+    for base in (2, 1):
+        refused = client.put(_one(ID), json={'base_revision': base, 'document': _meeting(agenda=4)})
+        assert refused.status_code == 409
+        assert refused.json()['detail']['revision'] == 2
+        assert 'closed' in refused.json()['detail']['message']
+    _sign_in_as(client, user_id='corsec-2')
+    assert client.put(_one(ID), json={'base_revision': 2, 'document': _meeting(agenda=4)}).status_code == 409
+    read = client.get(_one(ID)).json()
+    assert read['revision'] == 2 and read['document'] == _closed()
+
+
+def test_closing_a_closed_meeting_again_is_refused(client, directory) -> None:
+    _created_and_closed(client, directory)
+    again = _close(client, 2)
+    assert again.status_code == 409
+    assert again.json()['detail']['revision'] == 2
+
+
+def test_a_plain_save_never_closes_a_meeting(client, directory) -> None:
+    _as_corsec(client, directory)
+    client.post(MEETINGS, json={'document': _meeting()})
+    assert client.put(_one(ID), json={'base_revision': 1, 'document': _closed()}).status_code == 422
+    read = client.get(_one(ID)).json()
+    assert read['revision'] == 1 and read['closed_at'] is None
+
+
+def test_closing_needs_a_closing_document_and_the_current_revision(client, directory) -> None:
+    _as_corsec(client, directory)
+    client.post(MEETINGS, json={'document': _meeting()})
+    assert _close(client, 1, _meeting(agenda=8)).status_code == 422
+    client.put(_one(ID), json={'base_revision': 1, 'document': _meeting(agenda=2)})
+    stale = _close(client, 1)
+    assert stale.status_code == 409 and stale.json()['detail']['revision'] == 2
+    assert client.get(_one(ID)).json()['closed_at'] is None
+
+
+@pytest.mark.parametrize('reason', ['', '   \n '], ids=['empty', 'blank'])
+def test_reopening_without_a_reason_is_refused(client, directory, reason) -> None:
+    _created_and_closed(client, directory)
+    refused = _reopen(client, 2, reason, _reopened('x'))
+    assert refused.status_code == 422
+    read = client.get(_one(ID)).json()
+    assert read['revision'] == 2 and read['closed_at'] is not None and read['reopenings'] == []
+
+
+def test_reopening_with_a_reason_opens_it_and_keeps_when_why_and_who(client, directory) -> None:
+    _created_and_closed(client, directory)
+    reopened = _reopen(client, 2, '  Keputusan agenda 07 perlu dikoreksi. ')
+    assert reopened.status_code == 200, reopened.text
+    assert reopened.json()['revision'] == 3
+
+    read = client.get(_one(ID)).json()
+    assert read['closed_at'] is None
+    [kept] = read['reopenings']
+    assert kept['reason'] == 'Keputusan agenda 07 perlu dikoreksi.'
+    assert kept['by'] == 'corsec-1'
+    assert isinstance(kept['at'], int)
+    # The document carries the reason too: that is what the Risalah prints.
+    assert read['document']['session']['reopenings'][-1]['reason'] == 'Keputusan agenda 07 perlu dikoreksi.'
+    # Open again: saves land.
+    assert client.put(_one(ID), json={'base_revision': 3, 'document': _reopened('x')}).status_code == 200
+
+
+def test_the_reopened_document_must_carry_the_reason_and_not_be_closed(client, directory) -> None:
+    _created_and_closed(client, directory)
+    assert _reopen(client, 2, 'Alasan A', _reopened('Alasan B')).status_code == 422
+    assert _reopen(client, 2, 'Alasan A', _meeting(agenda=8)).status_code == 422
+    assert _reopen(client, 2, 'Alasan A', _closed(reopenings=[{'at': 1, 'reason': 'Alasan A'}])).status_code == 422
+    assert client.get(_one(ID)).json()['closed_at'] is not None
+
+
+def test_reopening_an_open_meeting_or_on_a_stale_revision_is_a_conflict(client, directory) -> None:
+    _as_corsec(client, directory)
+    client.post(MEETINGS, json={'document': _meeting()})
+    not_closed = _reopen(client, 1, 'Alasan')
+    assert not_closed.status_code == 409 and not_closed.json()['detail']['revision'] == 1
+    _close(client, 1)
+    stale = _reopen(client, 1, 'Alasan')
+    assert stale.status_code == 409 and stale.json()['detail']['revision'] == 2
+    assert client.get(_one(ID)).json()['closed_at'] is not None
+
+
+def test_closing_again_freezes_it_again_and_every_reopening_is_kept(client, directory) -> None:
+    _created_and_closed(client, directory)
+    first = [{'at': 1_759_920_000_000, 'reason': 'Pertama'}]
+    assert _reopen(client, 2, 'Pertama').status_code == 200
+    assert _close(client, 3, _closed(reopenings=first)).status_code == 200
+    assert client.put(_one(ID), json={'base_revision': 4, 'document': _meeting()}).status_code == 409
+    assert _reopen(client, 4, 'Kedua', _reopened('Kedua', before=first)).status_code == 200
+
+    read = client.get(_one(ID)).json()
+    assert read['revision'] == 5 and read['closed_at'] is None
+    assert [r['reason'] for r in read['reopenings']] == ['Pertama', 'Kedua']
+    assert [r['reason'] for r in read['document']['session']['reopenings']] == ['Pertama', 'Kedua']
+
+
+def test_a_meeting_created_closed_is_closed_on_the_server(client, directory) -> None:
+    _as_corsec(client, directory)
+    assert client.post(MEETINGS, json={'document': _closed()}).status_code == 201
+    assert client.get(_one(ID)).json()['closed_at'] is not None
+    assert client.put(_one(ID), json={'base_revision': 1, 'document': _meeting()}).status_code == 409
+
+
+def test_closing_and_reopening_need_the_write_grant(client, directory) -> None:
+    _as_corsec(client, directory)
+    client.post(MEETINGS, json={'document': _meeting()})
+    directory.groups = [_grant(write=None)]
+    _sign_in_as(client, user_id='direksi-1')
+    assert _close(client, 1).status_code == 403
+    directory.groups = [_grant(write=True)]
+    _close(client, 1)
+    directory.groups = [_grant(write=None)]
+    assert _reopen(client, 2, 'Alasan').status_code == 403
+    assert client.get(_one(ID)).json()['closed_at'] is not None
+
+
+def test_closing_and_reopening_are_audited_without_the_reason(client, directory, caplog) -> None:
+    caplog.set_level('INFO', logger='jup.governance')
+    _created_and_closed(client, directory)
+    _reopen(client, 2, '')
+    _reopen(client, 2, 'Rahasia alasan pembukaan')
+
+    writes = [line for line in _audit_lines(caplog) if "'leadership_write'" in line]
+    close, refused, reopen = writes[-3:]
+    assert "'operation': 'meeting_close'" in close and "'result': 'recorded'" in close and "'closed': True" in close
+    assert "'operation': 'meeting_reopen'" in refused and "'result': 'MissingReason'" in refused
+    assert (
+        "'operation': 'meeting_reopen'" in reopen and "'result': 'recorded'" in reopen and "'closed': False" in reopen
+    )
+    assert all("'user': 'corsec-1'" in line and f"'meeting_id': '{ID}'" in line for line in writes[-3:])
+    assert not any('Rahasia' in line for line in _audit_lines(caplog))

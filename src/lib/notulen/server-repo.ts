@@ -1,4 +1,10 @@
-import { parseMeeting, type MeetingRepo, type SaveStatus, type Unsubscribe } from './repo';
+import {
+	parseMeeting,
+	refusedWhileClosed,
+	type MeetingRepo,
+	type SaveStatus,
+	type Unsubscribe
+} from './repo';
 import type { Meeting } from './types';
 
 // The meeting repository backed by the server (D27 step 1): any machine the Corsec signs in on
@@ -13,6 +19,9 @@ import type { Meeting } from './types';
 //   `conflict(id)` and reports 'conflict'. Nothing is overwritten on either side.
 // - A failed write is kept and retried, and reported as 'failed' until one lands. A refusal the
 //   server will repeat (no write grant, a malformed meeting) is reported and not retried.
+// - Tutup rapat and Buka kembali go to their own endpoints (the server audits them and refuses
+//   every save to a closed meeting); which one a write needs follows from whether the meeting was
+//   closed when the server last answered and whether the meeting being sent is.
 // - Live view: while a meeting has subscribers, the server is polled for a newer revision.
 
 /** A stored meeting as the server sends it. The document is checked here before it is trusted. */
@@ -37,6 +46,15 @@ export interface MeetingApi {
 	get(id: string): Promise<StoredMeeting | null>;
 	create(meeting: Meeting): Promise<{ revision: number }>;
 	save(id: string, baseRevision: number, meeting: Meeting): Promise<{ revision: number }>;
+	/** Tutup rapat: store the closing meeting; the server refuses saves until a reopening. */
+	close(id: string, baseRevision: number, meeting: Meeting): Promise<{ revision: number }>;
+	/** Buka kembali: `meeting` is open again and carries `reason` as its last reopening. */
+	reopen(
+		id: string,
+		baseRevision: number,
+		reason: string,
+		meeting: Meeting
+	): Promise<{ revision: number }>;
 }
 
 export type ServerRepoTiming = {
@@ -63,6 +81,19 @@ type Entry = {
 	revision: number;
 	/** A local change not yet accepted by the server. */
 	dirty: boolean;
+	/** Whether the server held the meeting closed when it last answered. */
+	closed: boolean;
+};
+
+const isClosed = (m: Meeting) => m.session.closedAt !== undefined;
+
+const lastReason = (m: Meeting) => m.session.reopenings?.at(-1)?.reason ?? '';
+
+/** The meeting as Buka kembali left it, before it was closed again. */
+const opened = (m: Meeting): Meeting => {
+	const session = { ...m.session };
+	delete session.closedAt;
+	return { ...m, session };
 };
 
 const readable = (stored: StoredMeeting): Meeting | null => {
@@ -98,7 +129,12 @@ export class ServerMeetingRepo implements MeetingRepo {
 		for (const stored of await api.list()) {
 			const meeting = readable(stored);
 			if (meeting)
-				repo.entries.set(meeting.id, { meeting, revision: stored.revision, dirty: false });
+				repo.entries.set(meeting.id, {
+					meeting,
+					revision: stored.revision,
+					dirty: false,
+					closed: isClosed(meeting)
+				});
 		}
 		return repo;
 	}
@@ -111,10 +147,19 @@ export class ServerMeetingRepo implements MeetingRepo {
 		return this.entries.get(id)?.meeting ?? null;
 	}
 
-	/** Accepted into this tab at once; sending follows. The outcome arrives through `onStatus`. */
+	/**
+	 * Accepted into this tab at once; sending follows. The outcome arrives through `onStatus`.
+	 * A change a closed meeting refuses is false at once and reaches no one.
+	 */
 	save(meeting: Meeting): boolean {
 		const entry = this.entries.get(meeting.id);
-		this.entries.set(meeting.id, { meeting, revision: entry?.revision ?? 0, dirty: true });
+		if (refusedWhileClosed(entry?.meeting ?? null, meeting)) return false;
+		this.entries.set(meeting.id, {
+			meeting,
+			revision: entry?.revision ?? 0,
+			dirty: true,
+			closed: entry?.closed ?? false
+		});
 		this.notify(meeting.id, meeting);
 		this.setStatus(meeting.id, 'saving');
 		this.schedule(meeting.id, this.timing.saveEveryMs);
@@ -186,13 +231,10 @@ export class ServerMeetingRepo implements MeetingRepo {
 		this.inFlight.add(id);
 		const sent = entry.meeting;
 		try {
-			const { revision } =
-				entry.revision === 0
-					? await this.api.create(sent)
-					: await this.api.save(id, entry.revision, sent);
+			const revision = await this.write(id, entry, sent);
 			const now = this.entries.get(id)!;
 			const changedSince = now.meeting !== sent;
-			this.entries.set(id, { ...now, revision, dirty: changedSince });
+			this.entries.set(id, { ...now, revision, dirty: changedSince, closed: isClosed(sent) });
 			this.conflicts.delete(id);
 			if (changedSince) this.schedule(id, this.timing.saveEveryMs);
 			else this.setStatus(id, 'saved');
@@ -206,6 +248,22 @@ export class ServerMeetingRepo implements MeetingRepo {
 		} finally {
 			this.inFlight.delete(id);
 		}
+	}
+
+	/** Send `sent` the way its change needs; answers the revision the server now holds. */
+	private async write(id: string, entry: Entry, sent: Meeting): Promise<number> {
+		if (entry.revision === 0) return (await this.api.create(sent)).revision;
+		let { revision } = entry;
+		if (entry.closed) {
+			// Buka kembali (and perhaps closed again before it was sent: the reopening goes first).
+			const reopened = isClosed(sent) ? opened(sent) : sent;
+			({ revision } = await this.api.reopen(id, revision, lastReason(sent), reopened));
+			this.entries.set(id, { ...this.entries.get(id)!, revision, closed: false });
+			if (!isClosed(sent)) return revision;
+		}
+		return isClosed(sent)
+			? (await this.api.close(id, revision, sent)).revision
+			: (await this.api.save(id, revision, sent)).revision;
 	}
 
 	/** The server holds a newer meeting: show it, and keep what this tab could not store. */
@@ -225,7 +283,12 @@ export class ServerMeetingRepo implements MeetingRepo {
 			return;
 		}
 		this.conflicts.set(id, local);
-		this.entries.set(id, { meeting: current, revision: stored.revision, dirty: false });
+		this.entries.set(id, {
+			meeting: current,
+			revision: stored.revision,
+			dirty: false,
+			closed: isClosed(current)
+		});
 		this.notify(id, current);
 		this.setStatus(id, 'conflict');
 	}
@@ -246,7 +309,12 @@ export class ServerMeetingRepo implements MeetingRepo {
 		if (latest?.dirty || stored.revision <= (latest?.revision ?? 0)) return;
 		const meeting = readable(stored);
 		if (!meeting) return;
-		this.entries.set(id, { meeting, revision: stored.revision, dirty: false });
+		this.entries.set(id, {
+			meeting,
+			revision: stored.revision,
+			dirty: false,
+			closed: isClosed(meeting)
+		});
 		this.notify(id, meeting);
 	}
 

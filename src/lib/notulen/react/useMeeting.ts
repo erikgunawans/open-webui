@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { MeetingRepo } from '../repo';
+import { refusedWhileClosed, type MeetingRepo } from '../repo';
 import type { Meeting } from '../types';
 
 // One Meeting, read from the repository and kept current by its subscription: a save from this
@@ -113,6 +113,8 @@ export const useMeeting = (repo: MeetingRepo, id: string, init: () => Meeting) =
 	const update = useCallback(
 		(change: (m: Meeting) => Meeting) => {
 			const next = change(current.current);
+			// A closed meeting takes only Buka kembali; anything else is no change at all.
+			if (refusedWhileClosed(current.current, next)) return;
 			current.current = next;
 			if (frozen) {
 				setMeeting(next);

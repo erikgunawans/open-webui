@@ -1391,7 +1391,8 @@ async def post_candidate_review(
 # --- Rapat Direksi meetings (D27 step 1) ---------------------------------------------------
 #
 # The Corsec's Notulen, saved on the server so any machine the Corsec signs in on shows the same
-# meeting. Meetings belong to the Direksi & Komisaris view: reading them is the board read grant,
+# meeting. Tutup rapat freezes it on the server (`/close`); only Buka kembali with a written reason
+# (`/reopen`) opens it again. Meetings belong to the Direksi & Komisaris view: reading them is the board read grant,
 # writing them is `rapat.write` on top of it. They are records, so they are served only while the
 # server runs on the records store (`JUP_LEADERSHIP_ACTIONS_SOURCE=records`); the illustrative
 # demo meeting never leaves the browser.
@@ -1424,7 +1425,7 @@ def _meeting_writer(permissions: dict[str, Any], scope_id: str, audit_result: Ca
 
 
 def _meeting_refusal(error: Exception) -> HTTPException:
-    if isinstance(error, meetings.MalformedMeeting):
+    if isinstance(error, (meetings.MalformedMeeting, meetings.MissingReason)):
         return HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error))
     if isinstance(error, meetings.MeetingNotFound):
         return HTTPException(status.HTTP_404_NOT_FOUND, 'No such meeting.')
@@ -1438,6 +1439,16 @@ def _meeting_refusal(error: Exception) -> HTTPException:
             status.HTTP_409_CONFLICT,
             {'message': 'This meeting changed elsewhere since it was loaded.', 'revision': error.actual},
         )
+    if isinstance(error, meetings.MeetingClosed):
+        return HTTPException(
+            status.HTTP_409_CONFLICT,
+            {'message': 'This meeting is closed. Reopen it with a reason first.', 'revision': error.revision},
+        )
+    if isinstance(error, meetings.MeetingOpen):
+        return HTTPException(
+            status.HTTP_409_CONFLICT,
+            {'message': 'This meeting is not closed.', 'revision': error.revision},
+        )
     raise error
 
 
@@ -1446,6 +1457,9 @@ _MEETING_REFUSALS = (
     meetings.MeetingNotFound,
     meetings.MeetingExists,
     meetings.StaleRevision,
+    meetings.MeetingClosed,
+    meetings.MeetingOpen,
+    meetings.MissingReason,
 )
 
 
@@ -1507,6 +1521,11 @@ class MeetingSaveIn(BaseModel):
     # The revision this document was based on; anything else is a conflict and nothing is written.
     base_revision: int = Field(ge=1)
     document: dict[str, Any]
+
+
+class MeetingReopenIn(MeetingSaveIn):
+    # Checked for content in `meetings.reopen_meeting`; bounded here so the audit line stays small.
+    reason: str = Field(max_length=2000)
 
 
 @router.post('/meetings', status_code=status.HTTP_201_CREATED)
@@ -1583,3 +1602,94 @@ async def put_meeting(
     _audit('recorded', revision=stored.revision)
     # The document is the caller's own; the revision and the stamps are what it needs back.
     return {key: value for key, value in stored.view().items() if key != 'document'}
+
+
+async def _meeting_transition(
+    operation: str,
+    meeting_id: str,
+    scope_id: str,
+    form: MeetingSaveIn,
+    user: Any,
+    permissions: dict[str, Any],
+    engine: Any,
+    run: Callable[[Any], Any],
+) -> dict[str, Any]:
+    """Close or reopen: the same grant, audit and answer as a save."""
+
+    def _audit(result: str, **fields: Any) -> None:
+        audit(
+            'leadership_write',
+            user=user.id,
+            operation=operation,
+            meeting_id=meeting_id,
+            base_revision=form.base_revision,
+            result=result,
+            **fields,
+        )
+
+    _meeting_writer(permissions, scope_id, _audit)
+
+    def _run() -> Any:
+        with engine.begin() as connection:
+            return run(connection)
+
+    try:
+        stored = await run_in_threadpool(_run)
+    except _MEETING_REFUSALS as error:
+        _audit(type(error).__name__)
+        raise _meeting_refusal(error) from error
+    _audit('recorded', revision=stored.revision, closed=stored.closed_at is not None)
+    return {key: value for key, value in stored.view().items() if key != 'document'}
+
+
+@router.post('/meetings/{meeting_id}/close')
+async def post_meeting_close(
+    meeting_id: str,
+    scope_id: Scope,
+    form: MeetingSaveIn,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """Tutup rapat: store the closing document; every later save is refused until a reopening."""
+    return await _meeting_transition(
+        'meeting_close',
+        meeting_id,
+        scope_id,
+        form,
+        user,
+        permissions,
+        engine,
+        lambda connection: meetings.close_meeting(
+            connection, meeting_id, form.document, base_revision=form.base_revision, author=user.id
+        ),
+    )
+
+
+@router.post('/meetings/{meeting_id}/reopen')
+async def post_meeting_reopen(
+    meeting_id: str,
+    scope_id: Scope,
+    form: MeetingReopenIn,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """Buka kembali: open a closed meeting again. The written reason is required and kept."""
+    return await _meeting_transition(
+        'meeting_reopen',
+        meeting_id,
+        scope_id,
+        form,
+        user,
+        permissions,
+        engine,
+        lambda connection: meetings.reopen_meeting(
+            connection,
+            meeting_id,
+            form.document,
+            base_revision=form.base_revision,
+            reason=form.reason,
+            author=user.id,
+        ),
+    )
