@@ -115,6 +115,24 @@ class FakeServer {
 				this.calls.push('reopen');
 				this.put(id, JSON.stringify(m));
 				return { revision: base + 1 };
+			},
+			move: async (meetings: Meeting[]) => {
+				this.answer();
+				return meetings.map((m) => {
+					const row = this.rows.get(m.id);
+					if (row)
+						return {
+							id: m.id,
+							result: 'on_server' as const,
+							revision: row.revision,
+							confirmed: row.raw === JSON.stringify(m),
+							reason: null
+						};
+					this.writes++;
+					this.calls.push('move');
+					this.put(m.id, JSON.stringify(m));
+					return { id: m.id, result: 'moved' as const, revision: 1, confirmed: true, reason: null };
+				});
 			}
 		};
 	}
@@ -387,5 +405,38 @@ describe('ServerMeetingRepo', () => {
 		const server = new FakeServer();
 		server.failures = [403];
 		await expect(ServerMeetingRepo.open(server.api())).rejects.toMatchObject({ status: 403 });
+	});
+
+	it('moves meetings once: a confirmed one joins the cache, a stored one is never overwritten', async () => {
+		const server = new FakeServer();
+		const kept = at(seedMeeting('rapat-2'), 6);
+		server.put('rapat-2', JSON.stringify(kept));
+		const repo = await ServerMeetingRepo.open(server.api());
+
+		const results = await repo.move([at(seedMeeting('rapat-1'), 3), at(seedMeeting('rapat-2'), 1)]);
+		expect(results.map((r) => [r.id, r.result, r.confirmed])).toEqual([
+			['rapat-1', 'moved', true],
+			['rapat-2', 'on_server', false]
+		]);
+		expect(repo.list().map((m) => m.id)).toEqual(['rapat-2', 'rapat-1']);
+		expect(repo.get('rapat-1')!.session.currentAgenda).toBe(3);
+		// The server's version stands, on the server and in this tab.
+		expect(repo.get('rapat-2')).toEqual(kept);
+		expect(agendaOnServer(server, 'rapat-2')).toBe(6);
+
+		// A moved meeting saves like any other: on the revision the move answered.
+		repo.save(at(repo.get('rapat-1')!, 4));
+		await settle();
+		expect(server.calls).toEqual(['move', 'save']);
+		expect(repo.status('rapat-1')).toBe('saved');
+	});
+
+	it('a refused move rejects and adds nothing', async () => {
+		const server = new FakeServer();
+		const repo = await ServerMeetingRepo.open(server.api());
+		server.failures = [403];
+		await expect(repo.move([seedMeeting('rapat-1')])).rejects.toMatchObject({ status: 403 });
+		expect(repo.list()).toEqual([]);
+		expect(await repo.move([])).toEqual([]);
 	});
 });

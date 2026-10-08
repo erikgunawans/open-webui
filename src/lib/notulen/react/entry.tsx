@@ -1,5 +1,6 @@
 import { DEMO_ID, demoMeeting } from '../demo';
 import { httpMeetingApi } from '../meeting-api';
+import { meetingsToMove, moveToServer } from '../migrate';
 import { LocalStorageMeetingRepo, type MeetingRepo } from '../repo';
 import { newId, seedMeeting } from '../seed';
 import { ServerMeetingRepo } from '../server-repo';
@@ -26,7 +27,13 @@ type Options = {
 	/** Client-side navigation, so the Svelte router keeps its state. */
 	navigate: (href: string) => void;
 	/** Given only when the server keeps records: meetings are then stored there. */
-	server?: { apiBase: string; token: string; scopeId: string };
+	server?: {
+		apiBase: string;
+		token: string;
+		scopeId: string;
+		/** The reader holds `rapat.write`: the list then offers Pindahkan ke server. */
+		write?: boolean;
+	};
 };
 
 const meetingNewId = () => `rd-${new Date().toISOString().slice(0, 10)}-${newId().slice(0, 4)}`;
@@ -34,10 +41,11 @@ const meetingNewId = () => `rd-${new Date().toISOString().slice(0, 10)}-${newId(
 export const mountRapat = async (target: HTMLElement, o: Options): Promise<Island<object>> => {
 	const local = new LocalStorageMeetingRepo(localStorage, window, o.userId);
 	const demo = o.meetingId === DEMO_ID;
-	const repo: MeetingRepo =
+	const server =
 		o.server && !demo
 			? await ServerMeetingRepo.open(httpMeetingApi({ ...o.server, base: o.server.apiBase }))
-			: local;
+			: null;
+	const repo: MeetingRepo = server ?? local;
 	const init = () => (demo ? demoMeeting() : seedMeeting(o.meetingId));
 	const themeKey = (s: Surface) => `jup-rapat-theme:${s}:${o.userId}`;
 
@@ -68,7 +76,17 @@ export const mountRapat = async (target: HTMLElement, o: Options): Promise<Islan
 	return mountIsland(
 		target,
 		MeetingList,
-		{ repo, demoRepo: local, base: RAPAT_BASE, newId: meetingNewId, open: o.navigate },
+		{
+			repo,
+			demoRepo: local,
+			base: RAPAT_BASE,
+			newId: meetingNewId,
+			open: o.navigate,
+			move:
+				server && o.server?.write
+					? { pending: () => meetingsToMove(local), run: () => moveToServer(local, server) }
+					: undefined
+		},
 		{ theme: 'app', storageKey: null, className: 'nt-root' }
 	) as Island<object>;
 };

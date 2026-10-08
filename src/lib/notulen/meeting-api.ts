@@ -1,4 +1,9 @@
-import { MeetingApiError, type MeetingApi, type StoredMeeting } from './server-repo';
+import {
+	MeetingApiError,
+	type MeetingApi,
+	type MoveResult,
+	type StoredMeeting
+} from './server-repo';
 import type { Meeting } from './types';
 
 // The leadership API's meeting routes (`/leadership/meetings`), as the server repository needs
@@ -18,6 +23,8 @@ export const httpMeetingApi = (o: MeetingApiOptions): MeetingApi => {
 	const query = `?scope_id=${encodeURIComponent(o.scopeId)}`;
 	const url = (id?: string) =>
 		`${o.base}/leadership/meetings${id === undefined ? '' : `/${encodeURIComponent(id)}`}${query}`;
+
+	const moveUrl = `${o.base}/leadership/meetings/move${query}`;
 
 	const action = (id: string, verb: 'close' | 'reopen') =>
 		`${o.base}/leadership/meetings/${encodeURIComponent(id)}/${verb}${query}`;
@@ -75,6 +82,12 @@ export const httpMeetingApi = (o: MeetingApiOptions): MeetingApi => {
 					reason,
 					document: meeting
 				})
-			).json()
+			).json(),
+		move: async (meetings: Meeting[]) =>
+			(
+				(await (await call('POST', moveUrl, { documents: meetings })).json()) as {
+					results: MoveResult[];
+				}
+			).results
 	};
 };

@@ -87,4 +87,18 @@ describe('httpMeetingApi', () => {
 		expect(error).toBeInstanceOf(MeetingApiError);
 		expect(error.status).toBe(0);
 	});
+
+	it('moves browser meetings in one POST and answers one result per meeting', async () => {
+		const sent: Sent[] = [];
+		const result = { id: 'rd-1', result: 'moved', revision: 1, confirmed: true, reason: null };
+		const api = respond(200, { results: [result] }, sent);
+		const m = seedMeeting('rd-1');
+		expect(await api.move([m])).toEqual([result]);
+		expect(sent[0].init.method).toBe('POST');
+		expect(sent[0].url).toBe('/api/v1/leadership/meetings/move?scope_id=jup-consolidated');
+		expect(JSON.parse(sent[0].init.body as string)).toEqual({ documents: [m] });
+		await expect(respond(403, { detail: 'restricted' }).move([m])).rejects.toMatchObject({
+			status: 403
+		});
+	});
 });

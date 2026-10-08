@@ -1564,6 +1564,43 @@ async def post_meeting(
     return stored.view()
 
 
+class MeetingMoveIn(BaseModel):
+    # The meetings one browser holds; far more than a Corsec keeps, small enough for one request.
+    documents: list[Any] = Field(min_length=1, max_length=200)
+
+
+@router.post('/meetings/move')
+async def post_meetings_move(
+    scope_id: Scope,
+    form: MeetingMoveIn,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """Pindahkan ke server: create each meeting if absent, never overwrite; one result per meeting.
+
+    Each meeting is its own transaction, so one refusal leaves the others moved. The browser removes
+    its copy only of a meeting answered `confirmed`.
+    """
+
+    def _audit(result: str, **fields: Any) -> None:
+        audit('leadership_write', user=user.id, operation='meeting_move', result=result, **fields)
+
+    _meeting_writer(permissions, scope_id, _audit)
+
+    def _run() -> list[Any]:
+        results = []
+        for document in form.documents:
+            with engine.begin() as connection:
+                results.append(meetings.move_meeting(connection, document, author=user.id))
+        return results
+
+    results = await run_in_threadpool(_run)
+    for moved in results:
+        _audit(moved.result, meeting_id=moved.id, revision=moved.revision, confirmed=moved.confirmed)
+    return {'results': [moved.view() for moved in results]}
+
+
 @router.put('/meetings/{meeting_id}')
 async def put_meeting(
     meeting_id: str,

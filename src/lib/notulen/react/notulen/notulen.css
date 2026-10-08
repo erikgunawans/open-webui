@@ -762,6 +762,15 @@
 	margin-top: var(--jup-s3);
 	max-width: 90ch;
 }
+.nt-move-results {
+	margin: var(--jup-s2) 0 0;
+	padding-left: 1.25em;
+	display: grid;
+	gap: var(--jup-s1);
+}
+.nt-save-alert .nt-actions {
+	margin-top: var(--jup-s2);
+}
 .nt-unreadable {
 	display: flex;
 	flex-wrap: wrap;

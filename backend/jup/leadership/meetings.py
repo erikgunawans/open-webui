@@ -15,6 +15,10 @@ refused, from any machine, until it is reopened (`reopen_meeting`) with a writte
 reopening (when, why, who) is kept beside the document; the document carries the reason too, so the
 Risalah prints it. Closing again freezes it again. A plain save never opens or closes a meeting.
 
+**Pindahkan ke server.** Meetings a browser kept before the server did are moved once
+(`move_meeting`): created if absent, never written over. The answer says whether the stored meeting
+is exactly the one sent, because only then may the browser drop its own copy.
+
 Who may read and write is the router's check (`policy.py`); this module decides only what is stored.
 """
 
@@ -216,6 +220,51 @@ def create_meeting(connection: Any, document: Any, *, author: str) -> StoredMeet
     stored = read_meeting(connection, meeting_id)
     assert stored is not None
     return stored
+
+
+@dataclass(frozen=True)
+class MoveResult:
+    """What became of one meeting a browser moved: `moved`, `on_server` or `refused`."""
+
+    id: str | None
+    result: str
+    revision: int | None = None
+    # The server now holds exactly the document sent: the browser's copy is safe to remove.
+    confirmed: bool = False
+    # Why it was refused; says what is wrong, never what the meeting contains.
+    reason: str | None = None
+
+    def view(self) -> dict[str, Any]:
+        return {
+            'id': self.id,
+            'result': self.result,
+            'revision': self.revision,
+            'confirmed': self.confirmed,
+            'reason': self.reason,
+        }
+
+
+def move_meeting(connection: Any, document: Any, *, author: str) -> MoveResult:
+    """Create the meeting if no meeting has its id; an existing one is never touched.
+
+    A meeting already on the server is `on_server`, confirmed only when the stored document is the
+    one sent (an earlier move whose browser copy was not removed). A malformed one is `refused`.
+    """
+    doc_id = document.get('id') if isinstance(document, dict) else None
+    doc_id = doc_id if isinstance(doc_id, str) and _ID.fullmatch(doc_id) else None
+    try:
+        stored = create_meeting(connection, document, author=author)
+    except MalformedMeeting as error:
+        return MoveResult(id=doc_id, result='refused', reason=str(error))
+    except MeetingExists as error:
+        existing = read_meeting(connection, document['id'])
+        return MoveResult(
+            id=doc_id,
+            result='on_server',
+            revision=existing.revision if existing else error.revision,
+            confirmed=existing is not None and existing.document == document,
+        )
+    return MoveResult(id=stored.id, result='moved', revision=stored.revision, confirmed=True)
 
 
 def save_meeting(connection: Any, meeting_id: str, document: Any, *, base_revision: int, author: str) -> StoredMeeting:

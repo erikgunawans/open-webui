@@ -161,6 +161,22 @@ export class LocalStorageMeetingRepo implements MeetingRepo {
 		return stored;
 	}
 
+	/**
+	 * Remove this browser's copy of `meeting`, only while it is still exactly that meeting (a tab
+	 * may have changed it since). Unreadable and quarantined data is never touched. True when gone.
+	 */
+	remove(meeting: Meeting): boolean {
+		try {
+			const key = this.key(meeting.id);
+			const raw = this.storage.getItem(key);
+			if (raw === null || raw !== JSON.stringify(meeting)) return false;
+			this.storage.removeItem(key);
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
 	quarantine(id: string): { raw: string; kept: boolean } | null {
 		let raw: string | null;
 		try {

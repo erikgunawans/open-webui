@@ -534,3 +534,103 @@ def test_closing_and_reopening_are_audited_without_the_reason(client, directory,
     )
     assert all("'user': 'corsec-1'" in line and f"'meeting_id': '{ID}'" in line for line in writes[-3:])
     assert not any('Rahasia' in line for line in _audit_lines(caplog))
+
+
+# --- Pindahkan ke server (#161) ----------------------------------------------------------------
+
+MOVE = f'{BASE}/meetings/move{Q}'
+
+
+def _move(client, *documents: dict):
+    return client.post(MOVE, json={'documents': list(documents)})
+
+
+def test_moving_creates_each_meeting_and_answers_one_result_per_meeting(client, directory) -> None:
+    _as_corsec(client, directory)
+    response = _move(client, _meeting('rd-a'), _meeting('rd-b', agenda=4))
+    assert response.status_code == 200, response.text
+    assert response.json()['results'] == [
+        {'id': 'rd-a', 'result': 'moved', 'revision': 1, 'confirmed': True, 'reason': None},
+        {'id': 'rd-b', 'result': 'moved', 'revision': 1, 'confirmed': True, 'reason': None},
+    ]
+    read = client.get(_one('rd-b')).json()
+    assert read['document'] == _meeting('rd-b', agenda=4)
+    assert read['owner_user_id'] == 'corsec-1'
+
+
+def test_moving_never_overwrites_a_meeting_already_on_the_server(client, directory) -> None:
+    _as_corsec(client, directory)
+    client.post(MEETINGS, json={'document': _meeting('rd-a', agenda=6)})
+    client.put(_one('rd-a'), json={'base_revision': 1, 'document': _meeting('rd-a', agenda=7)})
+
+    results = _move(client, _meeting('rd-a', agenda=0)).json()['results']
+    # A different copy: on the server already, and not confirmed, so the browser keeps its own.
+    assert results == [{'id': 'rd-a', 'result': 'on_server', 'revision': 2, 'confirmed': False, 'reason': None}]
+    read = client.get(_one('rd-a')).json()
+    assert read['revision'] == 2 and read['document']['session']['currentAgenda'] == 7
+
+
+def test_moving_the_same_meeting_again_is_confirmed_without_a_write(client, directory) -> None:
+    _as_corsec(client, directory)
+    _move(client, _meeting('rd-a'))
+    again = _move(client, _meeting('rd-a')).json()['results']
+    assert again == [{'id': 'rd-a', 'result': 'on_server', 'revision': 1, 'confirmed': True, 'reason': None}]
+    assert client.get(_one('rd-a')).json()['revision'] == 1
+
+
+def test_a_malformed_meeting_is_refused_and_the_others_still_move(client, directory) -> None:
+    _as_corsec(client, directory)
+    broken = MALFORMED['eight collections'] | {'id': 'rd-broken'}
+    results = _move(client, _meeting('rd-a'), broken, 'not a meeting', _meeting('rd-b')).json()['results']
+    assert [(r['id'], r['result'], r['confirmed']) for r in results] == [
+        ('rd-a', 'moved', True),
+        ('rd-broken', 'refused', False),
+        (None, 'refused', False),
+        ('rd-b', 'moved', True),
+    ]
+    assert results[1]['reason'] == 'a meeting holds exactly 9 record collections'
+    assert [m['id'] for m in client.get(MEETINGS).json()['meetings']] == ['rd-a', 'rd-b']
+
+
+def test_a_meeting_moved_closed_arrives_closed(client, directory) -> None:
+    _as_corsec(client, directory)
+    assert _move(client, _closed()).json()['results'][0]['result'] == 'moved'
+    assert client.get(_one(ID)).json()['closed_at'] is not None
+    assert client.put(_one(ID), json={'base_revision': 1, 'document': _meeting()}).status_code == 409
+
+
+def test_moving_needs_the_write_grant_and_the_records_store(client, directory, monkeypatch) -> None:
+    directory.groups = [_grant(write=None)]
+    _sign_in_as(client, user_id='direksi-1')
+    assert _move(client, _meeting('rd-a')).status_code == 403
+    _as_corsec(client, directory)
+    assert client.get(MEETINGS).json()['meetings'] == []
+    monkeypatch.setenv('JUP_LEADERSHIP_ACTIONS_SOURCE', 'sample')
+    assert _move(client, _meeting('rd-a')).status_code == 503
+
+
+@pytest.mark.parametrize('documents', [[], [_meeting(f'rd-{n}') for n in range(201)]], ids=['none', '201'])
+def test_a_move_carries_one_to_two_hundred_meetings(client, directory, documents) -> None:
+    _as_corsec(client, directory)
+    assert client.post(MOVE, json={'documents': documents}).status_code == 422
+    assert client.get(MEETINGS).json()['meetings'] == []
+
+
+def test_every_moved_meeting_is_audited_without_content(client, directory, caplog) -> None:
+    caplog.set_level('INFO', logger='jup.governance')
+    _as_corsec(client, directory)
+    client.post(MEETINGS, json={'document': _meeting('rd-a', agenda=3)})
+    _move(client, _meeting('rd-a'), _meeting('rd-b'), MALFORMED['no session'])
+    directory.groups = [_grant(write=None)]
+    _move(client, _meeting('rd-c'))
+
+    moves = [line for line in _audit_lines(caplog) if "'operation': 'meeting_move'" in line]
+    assert len(moves) == 4
+    assert (
+        "'result': 'on_server'" in moves[0] and "'meeting_id': 'rd-a'" in moves[0] and "'confirmed': False" in moves[0]
+    )
+    assert "'result': 'moved'" in moves[1] and "'meeting_id': 'rd-b'" in moves[1]
+    assert "'result': 'refused'" in moves[2]
+    assert "'result': 'refused'" in moves[3] and 'meeting_id' not in moves[3]
+    assert all("'user': 'corsec-1'" in line for line in moves)
+    assert not any('Rapat Direksi Oktober' in line or 'Pembahasan berjalan' in line for line in _audit_lines(caplog))

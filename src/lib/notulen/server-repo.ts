@@ -22,6 +22,8 @@ import type { Meeting } from './types';
 // - Tutup rapat and Buka kembali go to their own endpoints (the server audits them and refuses
 //   every save to a closed meeting); which one a write needs follows from whether the meeting was
 //   closed when the server last answered and whether the meeting being sent is.
+// - Pindahkan ke server: `move` sends meetings this browser kept before the server did, once; the
+//   server creates each one only if no meeting has its id, and the moved ones join the cache.
 // - Live view: while a meeting has subscribers, the server is polled for a newer revision (one
 //   poll at a time). A failed poll changes nothing on screen; the next one catches up.
 
@@ -40,6 +42,19 @@ export class MeetingApiError extends Error {
 	}
 }
 
+/**
+ * What became of one meeting moved from a browser (`POST /meetings/move`): `moved`, already
+ * `on_server` (never overwritten), or `refused`. `confirmed` is true only when the server holds
+ * exactly the meeting sent, the one case in which the browser may drop its copy.
+ */
+export type MoveResult = {
+	id: string | null;
+	result: 'moved' | 'on_server' | 'refused';
+	revision: number | null;
+	confirmed: boolean;
+	reason: string | null;
+};
+
 /** The HTTP surface the repository needs; `src/lib/apis/leadership` provides the real one. */
 export interface MeetingApi {
 	list(): Promise<StoredMeeting[]>;
@@ -56,6 +71,8 @@ export interface MeetingApi {
 		reason: string,
 		meeting: Meeting
 	): Promise<{ revision: number }>;
+	/** Pindahkan ke server: create each meeting if absent; one result per meeting, in order. */
+	move(meetings: Meeting[]): Promise<MoveResult[]>;
 }
 
 export type ServerRepoTiming = {
@@ -167,6 +184,28 @@ export class ServerMeetingRepo implements MeetingRepo {
 		this.setStatus(meeting.id, 'saving');
 		this.schedule(meeting.id, this.timing.saveEveryMs);
 		return true;
+	}
+
+	/**
+	 * Pindahkan ke server: send meetings kept in a browser, once. A confirmed one is now in this
+	 * repository too; one already on the server keeps the server's version. Rejects when the server
+	 * refuses the whole request (no write grant, not reached).
+	 */
+	async move(meetings: Meeting[]): Promise<MoveResult[]> {
+		if (!meetings.length) return [];
+		const results = await this.api.move(meetings);
+		meetings.forEach((meeting, i) => {
+			const r = results[i];
+			if (!r?.confirmed || r.id !== meeting.id || typeof r.revision !== 'number') return;
+			if (this.entries.get(meeting.id)?.revision) return;
+			this.entries.set(meeting.id, {
+				meeting,
+				revision: r.revision,
+				dirty: false,
+				closed: isClosed(meeting)
+			});
+		});
+		return results;
 	}
 
 	/** The server checks every meeting before storing it, so nothing unreadable is ever held. */

@@ -31,7 +31,12 @@
 				userId: $user?.id ?? 'anonim',
 				navigate: (href) => goto(href),
 				server: server
-					? { apiBase: WEBUI_API_BASE_URL, token: localStorage.token, scopeId: LEADERSHIP_SCOPE }
+					? {
+							apiBase: WEBUI_API_BASE_URL,
+							token: localStorage.token,
+							scopeId: LEADERSHIP_SCOPE,
+							write: $leadershipAccess.operations.includes('rapat.write')
+						}
 					: undefined
 			});
 			// Left before the meetings arrived: nothing to show any more.

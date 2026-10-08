@@ -1,8 +1,10 @@
 import { Alert, Badge, Button } from '@jup/ui';
-import { FilePlus2, Monitor, NotebookPen } from 'lucide-react';
+import { CloudUpload, FilePlus2, Monitor, NotebookPen } from 'lucide-react';
+import { useState } from 'react';
 
 import { toneOf } from '../agendas';
 import { DEMO_ID, demoMeeting } from '../demo';
+import type { MoveOutcome, MoveReport } from '../migrate';
 import type { MeetingRepo } from '../repo';
 import { fmtDate, mainInfo, meetingName, pendingDecisions } from '../selectors';
 import { text, valueLabel, type Meeting } from '../types';
@@ -19,6 +21,95 @@ export type MeetingListProps = {
 	base: string;
 	newId: () => string;
 	open: (href: string) => void;
+	/**
+	 * Given when meetings are on the server and the reader may write them: the meetings this
+	 * browser still holds from before, and the one-time move (`migrate.ts`).
+	 */
+	move?: { pending: () => Meeting[]; run: () => Promise<MoveReport> };
+};
+
+const OUTCOME: Record<MoveOutcome['result'], string> = {
+	moved: 'Dipindahkan ke server',
+	on_server: 'Sudah ada di server',
+	kept: 'Di server sudah ada notulen lain dengan nomor ini; salinan di peramban tetap disimpan',
+	refused: 'Ditolak server; salinan di peramban tetap disimpan'
+};
+
+const MoveOffer = ({
+	move,
+	onMoved
+}: {
+	move: NonNullable<MeetingListProps['move']>;
+	/** The table reads the repository again: moved meetings are listed at once. */
+	onMoved: () => void;
+}) => {
+	const [busy, setBusy] = useState(false);
+	const [report, setReport] = useState<{ names: Map<string, string>; report: MoveReport } | null>(
+		null
+	);
+	const pending = move.pending();
+	if (!pending.length && !report) return null;
+	const run = async () => {
+		const names = new Map(pending.map((m) => [m.id, meetingName(m)]));
+		setBusy(true);
+		try {
+			setReport({ names, report: await move.run() });
+		} finally {
+			setBusy(false);
+			onMoved();
+		}
+	};
+	const done = report?.report.ok ? report.report.outcomes : [];
+	return (
+		<Alert
+			tone={report && !report.report.ok ? 'warning' : 'info'}
+			title={
+				pending.length
+					? `${pending.length} notulen masih tersimpan di peramban ini`
+					: 'Semua notulen dari peramban ini sudah di server'
+			}
+			className="nt-save-alert"
+		>
+			{pending.length ? (
+				<p>
+					Notulen ini dibuat sebelum rapat disimpan di server. Pindahkan sekali agar terbuka dari
+					perangkat mana pun. Notulen yang sudah ada di server tidak ditimpa, dan salinan di
+					peramban dihapus hanya setelah server menyimpannya.
+				</p>
+			) : null}
+			{report && !report.report.ok ? (
+				<p role="alert">
+					{report.report.status === 403
+						? 'Akun Anda belum memiliki izin menulis notulen.'
+						: 'Server tidak dapat dihubungi atau menolak permintaan.'}{' '}
+					Tidak ada yang dipindahkan; salinan di peramban tetap disimpan.
+				</p>
+			) : null}
+			{done.length ? (
+				<ul className="nt-move-results" aria-live="polite">
+					{done.map((o) => (
+						<li key={o.id}>
+							<strong>{report?.names.get(o.id) ?? o.id}</strong>{' '}
+							<span className="nt-mono nt-muted">{o.id}</span> — {OUTCOME[o.result]}
+						</li>
+					))}
+				</ul>
+			) : null}
+			{pending.length ? (
+				<div className="nt-actions">
+					<Button
+						variant="secondary"
+						size="sm"
+						disabled={busy}
+						iconLeft={<CloudUpload size={16} aria-hidden="true" />}
+						onClick={() => void run()}
+					>
+						{busy ? 'Memindahkan…' : 'Pindahkan ke server'}
+					</Button>
+				</div>
+			) : null}
+		</Alert>
+	);
 };
 
 const Row = ({
@@ -80,7 +171,15 @@ const Row = ({
 	);
 };
 
-export const MeetingList = ({ repo, demoRepo = repo, base, newId, open }: MeetingListProps) => {
+export const MeetingList = ({
+	repo,
+	demoRepo = repo,
+	base,
+	newId,
+	open,
+	move
+}: MeetingListProps) => {
+	const [, setMoves] = useState(0);
 	const remote = !!repo.remote;
 	const meetings = repo.list().filter((m) => m.id !== DEMO_ID);
 	// A meeting the list cannot read would otherwise just vanish. Opening it sets the data aside
@@ -118,6 +217,7 @@ export const MeetingList = ({ repo, demoRepo = repo, base, newId, open }: Meetin
 					</div>
 				</div>
 			</header>
+			{remote && move ? <MoveOffer move={move} onMoved={() => setMoves((n) => n + 1)} /> : null}
 			{unreadable.length ? (
 				<Alert
 					tone="warning"
