@@ -1,3 +1,120 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-08-v65)
+
+> Prepended by /wrap 2026-10-08 (checkpoint 2026-10-08-v65). Supersedes v64's "do next" (#159 built → PR #165); v64's anchor still holds because nothing merged. v64's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-08-v65). Invoke the `RapatDireksi` skill for any Rapat Direksi work.
+Anchor: `origin/main` at `bc84432fb` **as this was written**, plus up to two expected merges by Erik: **#163** (checkpoints v63–v65, subject names `checkpoint-v63`) and **#164** (`feat(rapat): Notulen saved on the server (#157)`). Verify with `git log --oneline bc84432fb..origin/main`; anything else is a parallel push.
+
+**Current state:**
+- **Live:** unchanged, `ent-os-00116-mgk` (`e70c916ef`). Nothing deployed.
+- **D27 step 1:** #156 merged; #157 = PR **#164** (CI green, unmerged); **#159 = PR #165** (`a2f80f7c8`, base `feat/notulen-server`, CI not yet run — it only runs on PRs into main/dev). Remaining tickets: #158, #161, then #160 (after #159).
+- **D26 SharePoint:** waits on JUP IT applying `deploy/gcp/sharepoint-d26-request-jup-it.id.md`.
+
+**Do next, in order:**
+1. If #164 is merged: confirm #165 retargeted to `main` (else `gh pr edit 165 --base main`), watch its CI (backend pytest runs Postgres there — first Postgres run of the close/reopen tests), fix any red, ask Erik to merge. Never merge on my own.
+2. **#158** (Layar poll hardening: stop polling when no meeting open, a failed poll keeps state; the basic poll is in `server-repo.ts` `poll`/`subscribe`). Branch from `feat/notulen-close` if #165 is unmerged, else from main. Then **#161** (move browser meetings once — a closed one arrives closed: `create_meeting` already handles it), then **#160** (Tindakan → review queue). `/clear` between tickets.
+3. Ask Erik where **story 16** (read-only Notulen for board readers without `rapat.write`) goes — today their edits show the failed-save alert.
+4. When JUP IT confirms the D26 grants: first SharePoint build ticket = vendor OAuth callback end-to-end with `mcp:jup-sharepoint` (`/to-spec` → `/to-tickets`); then spike cleanup (Erik deletes app `b05e9e7e-…` + site `SpikeAsistenJUP`; wipe `.token`/`.env` in `…/bc6c0a23-…/scratchpad/spike/`).
+5. When Finance's consolidation file arrives: fix the Unit pelaporan list + report-line codes, spec D27 step 3. D27 step 2 (Realisasi KPI form) can be specced any time.
+6. **#42 Notion acceptance**; **E8 when JUP IT answers #82**. Carried: `$impeccable critique` on Rapat after a real meeting; O3 acceptance; phone check; Legal-account Kartu Kontrak; staff-account checks (O1); #47.
+
+**Constraints to honor** (plus the blocks below):
+- **Erik merges PRs** unless he names one for me to merge.
+- **Stacked PRs get no CI** until their base is main/dev — never call a stacked PR green.
+- One freeze rule: `repo.ts` `refusedWhileClosed`; the server mirrors it. Close/reopen are separate endpoints; a plain PUT never opens or closes. The reopen **reason is never audited**.
+- Contract suite = the server repo's acceptance; never weaken a case. Server-only behaviour → `server-repo.test.ts` (its `FakeServer` mirrors the API's close/reopen rules).
+- Meeting routes stay behind `JUP_LEADERSHIP_ACTIONS_SOURCE=records`; real data in Ruang Pimpinan = three separate OKs from Erik (deploy; illustrative → records; group grant incl. `rapat.write`).
+- Leadership migrations: next is `jl0004` (down `jl0003`). Import idempotency by sha256 → serialise candidate batches canonically (#160).
+- **Disk ~300 MiB** — `df -h /` + swap before anything large; SQLite pytest is fine, no Postgres / dev server / build until Erik frees space. Never put a stdin read in a Bash chain. `rm` on its own line; zsh `echo ---`.
+
+**Open items waiting on Erik:**
+- Merge **#163** (checkpoints) and **#164** (#157); then #165 after its CI.
+- Free disk space (~300 MiB; swap 8.7 GB).
+- Where story 16 (read-only Notulen without `rapat.write`) belongs.
+- Send the JUP IT doc (check Ikhsan's email, 12-month secret, Legal step) and tell JUP IT about the spike app/site.
+- One recent **Finance consolidation file** (numbers blanked OK) → unblocks D27 step 3.
+- Pilot SharePoint member names before go-live.
+- Carried: reset his Rapat demo copy?; Risalah choices; #42 Notion test; JUP IT reply to #82; contract-card titles, `jup_contracts` grant, Rully items, O3, phone check, WhatsApp items, secret rotation.
+
+---
+
+# Next session — ent-os-new-jup (checkpoint 2026-10-08-v64)
+
+> Prepended by /wrap 2026-10-08 (checkpoint 2026-10-08-v64). Supersedes v63's "do next" (#157 built → PR #164); v63's anchor still holds because nothing merged. v63's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-08-v64). Invoke the `RapatDireksi` skill for any Rapat Direksi work.
+Anchor: `origin/main` at `bc84432fb` **as this was written**, plus up to two expected merges by Erik: **#163** (checkpoints v63 + v64, subject names `checkpoint-v63`) and **#164** (`feat(rapat): Notulen saved on the server (#157)`). Verify with `git log --oneline bc84432fb..origin/main`; anything else is a parallel push.
+
+**Current state:**
+- **Live:** unchanged, `ent-os-00116-mgk` (`e70c916ef`). Nothing deployed.
+- **D27 step 1:** #156 merged; **#157 built = PR #164** (CI green, awaiting Erik's merge): `jl0003` `leadership_meeting`, `/meetings` API with revisions, `rapat.write`, `ServerMeetingRepo` + `httpMeetingApi`, `capabilities.records` selects it. Next tickets #158, #159, #161 (any order), #160 after #159.
+- **D26 SharePoint:** waits on JUP IT applying `deploy/gcp/sharepoint-d26-request-jup-it.id.md`.
+
+**Do next, in order:**
+1. If #164 is not merged yet: check its CI, ask Erik to merge (never merge on my own). Build the next ticket on top of `feat/notulen-server` only if Erik hasn't merged; otherwise branch from main.
+2. **#159** (Tutup rapat frozen on the server: close + reopen-with-reason endpoints, writes to a closed meeting refused (`closed_at`/`reopenings` columns already exist), Risalah shows reopenings; contract case "a closed meeting refuses changes" in `repo.contract.ts` for both repos). Then #158 (poll hardening: stop when no meeting open, failed poll keeps state — the basic poll already lives in `server-repo.ts`), #161 (move browser meetings once), #160 after #159. `/clear` between tickets.
+3. Ask Erik where **story 16** (read-only Notulen for board readers without `rapat.write`) goes — today their edits show the failed-save alert.
+4. When JUP IT confirms the D26 grants: first SharePoint build ticket = vendor OAuth callback end-to-end with `mcp:jup-sharepoint` (`/to-spec` → `/to-tickets`); then spike cleanup (Erik deletes app `b05e9e7e-…` + site `SpikeAsistenJUP`; wipe `.token`/`.env` in `…/bc6c0a23-…/scratchpad/spike/`).
+5. When Finance's consolidation file arrives: fix the Unit pelaporan list + report-line codes, spec D27 step 3. D27 step 2 (Realisasi KPI form) can be specced any time.
+6. **#42 Notion acceptance**; **E8 when JUP IT answers #82**. Carried: `$impeccable critique` on Rapat after a real meeting; O3 acceptance; phone check; Legal-account Kartu Kontrak; staff-account checks (O1); #47.
+
+**Constraints to honor** (plus the blocks below):
+- **Erik merges PRs** unless he names one for me to merge.
+- Contract suite = the server repo's acceptance; never weaken a case. Server-only behaviour → `server-repo.test.ts`; the per-user case is browser-only by design (PR #164 explains).
+- Meeting routes stay behind `JUP_LEADERSHIP_ACTIONS_SOURCE=records`; real data in Ruang Pimpinan = three separate OKs from Erik (deploy; illustrative → records; group grant incl. `rapat.write`).
+- Leadership migrations: next is `jl0004` (down `jl0003`), schema written out; bump `EXPECTED_TABLES` / HEAD test. Import idempotency by sha256 → serialise candidate batches canonically (#160).
+- Postgres for tests: pgserver binaries at `~/.cache/uv/archive-v0/yifT04ZYbxQsCNS_/…/pgserver/pginstall/bin` (re-fetch with `uv run --no-project --with pgserver` if wiped), port 55432, `JUP_TEST_POSTGRES_URL=postgresql+psycopg://postgres@127.0.0.1:55432/postgres`.
+- **Disk is at ~582 MiB** — `df -h /` + swap before anything large; no local dev server / build until cleared. Never put `cat > /dev/null` (or any stdin read) in a Bash chain — it hangs to the timeout.
+- Worktrees `ent-os-new-jup-qhse` and `ent-os-wt-project-list` are not this session's. `rm` on its own Bash line. In zsh use `echo ---`, not `echo ====`.
+
+**Open items waiting on Erik:**
+- Merge **#163** (checkpoints) and **#164** (#157).
+- Where story 16 (read-only Notulen without `rapat.write`) belongs.
+- Free disk space (582 MiB; swap 8.8 GB).
+- Send the JUP IT doc (check Ikhsan's email, 12-month secret, Legal step) and tell JUP IT about the spike app/site.
+- One recent **Finance consolidation file** (numbers blanked OK) → unblocks D27 step 3.
+- Pilot SharePoint member names before go-live.
+- Carried: reset his Rapat demo copy?; Risalah choices; #42 Notion test; JUP IT reply to #82; contract-card titles, `jup_contracts` grant, Rully items, O3, phone check, WhatsApp items, secret rotation.
+
+---
+
+# Next session — ent-os-new-jup (checkpoint 2026-10-08-v63)
+
+> Prepended by /wrap 2026-10-08 (checkpoint 2026-10-08-v63). Supersedes v62's anchor and its "do next" (#156 done and merged; #153/#154 merged); v62's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-08-v63). Invoke the `RapatDireksi` skill for any Rapat Direksi work.
+Anchor: `origin/main` at `bc84432fb` **as this was written**, or one commit ahead at this checkpoint's own wrap merge (subject names `checkpoint-v63` / `2026-10-08-v63`). Verify with `git log --oneline bc84432fb..origin/main`; anything else is a parallel push.
+
+**Current state:**
+- **Live:** unchanged, `ent-os-00116-mgk` (`e70c916ef`). Nothing deployed since.
+- **D27 step 1 (server Notulen, spec #155):** #156 done (shared `meetingRepoContract` in `src/lib/notulen/repo.contract.ts`, `list()` on `MeetingRepo`). Next tickets #157–#161 (`ready-for-agent`).
+- **D26 SharePoint:** waits on JUP IT applying `deploy/gcp/sharepoint-d26-request-jup-it.id.md` (now on main).
+
+**Do next, in order:**
+1. **Implement #157** (server storage): leadership migration `jl0003` (down `jl0002`) + model; endpoints list/get/create/save-with-base-revision; 403s (no board view / no `rapat.write` / admin without grants); server `MeetingRepo` passing `meetingRepoContract` via a fake-HTTP harness (`settle` = advance fake timers) + new cases (conflict keeps local edits; failed save retried + reported); mount picks the server repo only when records are enabled; audit every create/save; replay both CI workflows locally. `/clear` between tickets.
+2. Then #158, #159, #161 in any order; #160 after #159.
+3. When JUP IT confirms the D26 grants: first SharePoint build ticket = the vendor's own OAuth callback end-to-end with `mcp:jup-sharepoint` (`/to-spec` → `/to-tickets`). Then spike cleanup (Erik deletes app `b05e9e7e-…` + site `SpikeAsistenJUP`; wipe `.token`/`.env` in `…/bc6c0a23-…/scratchpad/spike/`).
+4. When Finance's consolidation file arrives: fix the Unit pelaporan list + report-line codes, spec D27 step 3. D27 step 2 (Realisasi KPI form) can be specced any time.
+5. **#42 Notion acceptance**; **E8 when JUP IT answers #82**.
+6. Carried: re-run `$impeccable critique` on Rapat after a real meeting; O3 acceptance; phone check; Legal-account Kartu Kontrak; staff-account checks (O1); #47.
+
+**Constraints to honor** (plus the blocks below):
+- **Erik merges PRs** unless he explicitly asks me to merge a named PR (he did for #153/#154/#162 and it worked). Never merge on my own initiative.
+- The contract suite is the server repo's acceptance: never weaken a contract case to make the server pass; server-only behaviour goes in its own test file beside its contract run.
+- Real data in Ruang Pimpinan = three separate OKs from Erik (deploy; illustrative → records; group grant incl. `rapat.write`).
+- Leadership migrations: separate graph, schema written out explicitly; update the model-vs-migration table set and the migration HEAD test. Import idempotency by sha256 → serialise candidate batches canonically.
+- D26: never print the spike secret/token; folder grants via the list-item endpoint only; not attached until JUP IT applies the grants and Erik OKs.
+- Worktrees `ent-os-new-jup-qhse` and `ent-os-wt-project-list` are not this session's. `rm` on its own Bash line. In zsh, `echo ====` errors (`=` expansion) — use `echo ---`.
+
+**Open items waiting on Erik:**
+- Merge this checkpoint PR when CI is green.
+- Send the JUP IT doc (check Ikhsan's email, 12-month secret, Legal step) and tell JUP IT about the spike app/site.
+- One recent **Finance consolidation file** (numbers blanked OK) → unblocks D27 step 3.
+- Pilot SharePoint member names before go-live.
+- Carried: reset his Rapat demo copy?; Risalah choices; #42 Notion test; JUP IT reply to #82; contract-card titles, `jup_contracts` grant, Rully items, O3, phone check, WhatsApp items, secret rotation.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-07-v62)
 
 > Prepended by /wrap 2026-10-07 (checkpoint 2026-10-07-v62). Supersedes v61's anchor and its "do next" (SharePoint grilled → D26, spike passed, JUP IT doc drafted); v61's and older blocks' constraints still hold unless noted.
