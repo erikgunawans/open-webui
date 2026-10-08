@@ -109,6 +109,12 @@ export const Guide = () => (
 					hanya-baca. <strong>Buka kembali</strong> meminta alasan, dan alasan itu dicetak di
 					Risalah.
 				</p>
+				<p>
+					Bila Notulen tersimpan di server, setiap Tindakan di 08 ikut dikirim ke{' '}
+					<strong>Impor yang ditinjau</strong> di Ruang Pimpinan saat rapat ditutup. Peninjau
+					menerima, menautkan, atau menolaknya. Menutup lagi tanpa mengubah Tindakan tidak mengirim
+					ulang; Tindakan yang diubah dikirim lagi untuk ditinjau.
+				</p>
 
 				<h2>Setelah rapat</h2>
 				<ol>

@@ -634,3 +634,217 @@ def test_every_moved_meeting_is_audited_without_content(client, directory, caplo
     assert "'result': 'refused'" in moves[3] and 'meeting_id' not in moves[3]
     assert all("'user': 'corsec-1'" in line for line in moves)
     assert not any('Rapat Direksi Oktober' in line or 'Pembahasan berjalan' in line for line in _audit_lines(caplog))
+
+
+# --- Tindakan into the review queue at Tutup rapat (#160) ----------------------------------
+
+
+def _tindakan(record_id: str, title: str, pic: str = '', due: str = '', id_tindakan: str = '', **extra) -> dict:
+    values: dict = {
+        'Tindakan / deliverable': title,
+        'Agenda': '4. Program Prioritas',
+        'Asal tindak lanjut': 'Rapat ini',
+    }
+    if pic:
+        values['PIC utama'] = pic
+    if due:
+        values['Target waktu'] = {'start': due, 'end': ''}
+    if id_tindakan:
+        values['ID tindakan'] = id_tindakan
+    return {'id': record_id, 'values': values | extra, 'body': '', 'time': {}, 'origin': 'Record baru'}
+
+
+def _with_tindakan(document: dict, *tindakan: dict) -> dict:
+    document = copy.deepcopy(document)
+    document['records'][0][0]['values']['Tanggal & waktu'] = {'start': '2026-10-08T09:00', 'end': ''}
+    document['records'][8] = list(tindakan)
+    return document
+
+
+TINDAKAN = (
+    _tindakan('t1', 'Kirim revisi RKAP ke Dekom', pic='Dir. Keuangan', due='2026-10-31', id_tindakan='AP-01'),
+    _tindakan('t2', 'Susun kajian tarif air', pic='Dir. Operasi', due='2026-11-15T10:00'),
+)
+
+
+def _engine(client):
+    from open_webui.routers import jup_leadership
+
+    return client.app.dependency_overrides[jup_leadership.leadership_engine]()
+
+
+def _batches(client) -> list[dict]:
+    from jup.leadership import imports
+
+    with _engine(client).connect() as connection:
+        return [imports.read_batch(connection, row['id']) for row in imports.list_batches(connection)]
+
+
+def _close_with(client, directory, base: int, document: dict):
+    response = _close(client, base, document)
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def _created(client, directory, *tindakan: dict) -> dict:
+    _as_corsec(client, directory)
+    document = _with_tindakan(_meeting(), *tindakan)
+    assert client.post(MEETINGS, json={'document': document}).status_code == 201
+    return document
+
+
+def _closing(document: dict) -> dict:
+    document = copy.deepcopy(document)
+    document['session'] |= {'closedAt': CLOSED_AT, 'doneAgendas': [8]}
+    return document
+
+
+def _reopening(document: dict, reason: str = 'Tindakan perlu dikoreksi.') -> dict:
+    document = copy.deepcopy(document)
+    document['session'].pop('closedAt', None)
+    document['session']['reopenings'] = [*document['session'].get('reopenings', []), {'at': 1, 'reason': reason}]
+    return document
+
+
+def _close_reopen_close(client, base: int, closed: dict, reclosed: dict) -> dict:
+    reopened = _reopening(closed)
+    assert _reopen(client, base, 'Tindakan perlu dikoreksi.', reopened).status_code == 200
+    again = _close(client, base + 1, _closing(reclosed))
+    assert again.status_code == 200, again.text
+    return again.json()
+
+
+def test_closing_puts_every_tindakan_in_one_review_batch_mapped_from_the_notulen(client, directory, caplog) -> None:
+    caplog.set_level('INFO')
+    document = _created(client, directory, *TINDAKAN)
+    answer = _close_with(client, directory, 1, _closing(document))
+    assert answer['import_batch']['created'] is True
+
+    [batch] = _batches(client)
+    assert batch['id'] == answer['import_batch']['id']
+    assert batch['source_filename'] == f'Rapat Direksi, 2026-10-08, {ID}'
+    assert batch['meeting_date'] == '2026-10-08'
+    assert batch['uploaded_by'] == 'corsec-1'
+    assert batch['status'] == 'open'
+    first, second = batch['candidates']
+    assert [first['match_kind'], second['match_kind']] == ['new', 'new']
+    assert first['review_state'] == 'pending' and first['verification'] == 'unverified'
+    assert {k: first['payload'][k] for k in ('key', 'external_id', 'title', 'owner_label', 'due', 'slide')} == {
+        'key': 't1',
+        'external_id': 'AP-01',
+        'title': 'Kirim revisi RKAP ke Dekom',
+        'owner_label': 'Dir. Keuangan',
+        'due': {'precision': 'date', 'value': '2026-10-31'},
+        'slide': '4. Program Prioritas · Tindakan 1',
+    }
+    assert first['payload']['source_document'] == f'Rapat Direksi, 2026-10-08, {ID}'
+    # No ID tindakan: the record id is the external id. A datetime keeps only its day.
+    assert second['payload']['external_id'] == 't2'
+    assert second['payload']['due'] == {'precision': 'date', 'value': '2026-11-15'}
+    assert second['payload']['slide'] == '4. Program Prioritas · Tindakan 2'
+
+    lines = [line for line in _audit_lines(caplog) if 'import_upload' in line]
+    assert len(lines) == 1
+    assert batch['id'] in lines[0] and 'meeting_close' in lines[0] and 'recorded' in lines[0]
+
+
+def test_closing_an_unchanged_meeting_again_creates_no_new_batch(client, directory, caplog) -> None:
+    caplog.set_level('INFO')
+    document = _created(client, directory, *TINDAKAN)
+    first = _close_with(client, directory, 1, _closing(document))
+    again = _close_reopen_close(client, 2, _closing(document), document)
+    assert again['import_batch'] == {'id': first['import_batch']['id'], 'created': False}
+    assert len(_batches(client)) == 1
+    assert any('replayed' in line for line in _audit_lines(caplog) if 'import_upload' in line)
+
+
+def test_an_accepted_tindakan_matches_its_reference_on_re_close_and_is_never_duplicated(client, directory) -> None:
+    from sqlalchemy import func, select
+
+    from jup.leadership import imports
+    from jup.leadership.models import action
+
+    document = _created(client, directory, *TINDAKAN)
+    _close_with(client, directory, 1, _closing(document))
+    [batch] = _batches(client)
+    for candidate in batch['candidates']:
+        imports.review_candidate(_engine(client), candidate_id=candidate['id'], decision='accept', reviewer='rev-1')
+
+    # Reopened and closed again with one more Tindakan: the file changed, so a new batch.
+    added = _with_tindakan(_meeting(), *TINDAKAN, _tindakan('t3', 'Laporkan progres SPAM', pic='Dir. Operasi'))
+    again = _close_reopen_close(client, 2, _closing(document), added)
+    assert again['import_batch']['created'] is True
+    newest = next(b for b in _batches(client) if b['id'] == again['import_batch']['id'])
+    kinds = {c['candidate_key']: c['match_kind'] for c in newest['candidates']}
+    assert kinds == {'t1': 'external_ref', 't2': 'external_ref', 't3': 'new'}
+    for candidate in newest['candidates']:
+        if candidate['match_kind'] == 'external_ref':
+            imports.review_candidate(_engine(client), candidate_id=candidate['id'], decision='accept', reviewer='rev-1')
+    with _engine(client).connect() as connection:
+        assert connection.execute(select(func.count()).select_from(action)).scalar() == 2
+
+
+def test_a_changed_tindakan_comes_through_again_with_its_difference(client, directory) -> None:
+    from jup.leadership import imports
+
+    document = _created(client, directory, *TINDAKAN)
+    _close_with(client, directory, 1, _closing(document))
+    [batch] = _batches(client)
+    first = next(c for c in batch['candidates'] if c['candidate_key'] == 't1')
+    imports.review_candidate(_engine(client), candidate_id=first['id'], decision='accept', reviewer='rev-1')
+
+    moved = _tindakan('t1', 'Kirim revisi RKAP ke Dekom', pic='Dir. Keuangan', due='2026-11-30', id_tindakan='AP-01')
+    again = _close_reopen_close(client, 2, _closing(document), _with_tindakan(_meeting(), moved, TINDAKAN[1]))
+    newest = next(b for b in _batches(client) if b['id'] == again['import_batch']['id'])
+    changed = next(c for c in newest['candidates'] if c['candidate_key'] == 't1')
+    assert changed['match_kind'] == 'conflict'
+    assert changed['matched_action_id'] is not None
+    assert changed['conflict'] == {
+        'due': {
+            'recorded': {'precision': 'date', 'value': '2026-10-31'},
+            'candidate': {'precision': 'date', 'value': '2026-11-30'},
+        }
+    }
+    # The unaccepted one stays a new-action candidate.
+    assert next(c for c in newest['candidates'] if c['candidate_key'] == 't2')['match_kind'] == 'new'
+
+
+def test_a_tindakan_without_pic_or_date_is_marked_missing_with_a_reason(client, directory) -> None:
+    document = _created(client, directory, _tindakan('t1', 'Tindak lanjuti temuan audit'))
+    _close_with(client, directory, 1, _closing(document))
+    [batch] = _batches(client)
+    [candidate] = batch['candidates']
+    payload = candidate['payload']
+    assert payload['owner_label'] is None and payload['due'] is None
+    assert payload['missing']['owner_label'] == 'PIC utama belum diisi di Notulen'
+    assert payload['missing']['due'] == 'Target waktu belum diisi di Notulen'
+
+
+def test_a_meeting_without_tindakan_closes_without_a_batch(client, directory, caplog) -> None:
+    caplog.set_level('INFO')
+    document = _created(client, directory, _tindakan('t1', '   '))
+    answer = _close_with(client, directory, 1, _closing(document))
+    assert answer['import_batch'] is None
+    assert _batches(client) == []
+    assert not [line for line in _audit_lines(caplog) if 'import_upload' in line]
+
+
+def test_an_id_tindakan_used_twice_falls_back_to_record_ids_and_still_closes(client, directory) -> None:
+    document = _created(
+        client,
+        directory,
+        _tindakan('t1', 'Satu', id_tindakan='AP-01'),
+        _tindakan('t2', 'Dua', id_tindakan='AP-01'),
+    )
+    _close_with(client, directory, 1, _closing(document))
+    [batch] = _batches(client)
+    payloads = {c['candidate_key']: c['payload'] for c in batch['candidates']}
+    assert payloads['t1']['external_id'] == 't1' and payloads['t2']['external_id'] == 't2'
+    assert payloads['t1']['source_metadata']['id_tindakan_duplicate'] is True
+
+
+def test_a_refused_close_creates_no_batch(client, directory) -> None:
+    document = _created(client, directory, *TINDAKAN)
+    client.put(_one(ID), json={'base_revision': 1, 'document': document})
+    assert _close(client, 1, _closing(document)).status_code == 409
+    assert _batches(client) == []

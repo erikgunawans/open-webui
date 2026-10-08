@@ -47,7 +47,7 @@ from fastapi.routing import APIRoute
 from pydantic import BaseModel, Field
 
 from jup.governance import audit
-from jup.leadership import closure, imports, meetings, migrate, snapshots
+from jup.leadership import closure, imports, meetings, migrate, snapshots, tindakan
 from jup.leadership import evidence as evidence_commands
 from jup.leadership.actions import (
     REPORTING_TZ,
@@ -1427,6 +1427,10 @@ def _meeting_writer(permissions: dict[str, Any], scope_id: str, audit_result: Ca
 def _meeting_refusal(error: Exception) -> HTTPException:
     if isinstance(error, (meetings.MalformedMeeting, meetings.MissingReason)):
         return HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error))
+    if isinstance(error, imports.InvalidCandidates):
+        return HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, f'The Tindakan cannot go to the review queue: {error}'
+        )
     if isinstance(error, meetings.MeetingNotFound):
         return HTTPException(status.HTTP_404_NOT_FOUND, 'No such meeting.')
     if isinstance(error, meetings.MeetingExists):
@@ -1460,6 +1464,7 @@ _MEETING_REFUSALS = (
     meetings.MeetingClosed,
     meetings.MeetingOpen,
     meetings.MissingReason,
+    imports.InvalidCandidates,
 )
 
 
@@ -1688,19 +1693,33 @@ async def post_meeting_close(
     permissions: dict[str, Any] = Depends(leadership_permissions),
     engine: Any = Depends(leadership_engine),
 ) -> dict[str, Any]:
-    """Tutup rapat: store the closing document; every later save is refused until a reopening."""
-    return await _meeting_transition(
-        'meeting_close',
-        meeting_id,
-        scope_id,
-        form,
-        user,
-        permissions,
-        engine,
-        lambda connection: meetings.close_meeting(
+    """Tutup rapat: store the closing document; every later save is refused until a reopening.
+
+    In the same transaction the meeting's Tindakan become one import batch for the review queue
+    (`tindakan.import_at_close`); closing an unchanged meeting again creates no second batch.
+    """
+    batches: list[Any] = []
+
+    def _close(connection: Any) -> Any:
+        stored = meetings.close_meeting(
             connection, meeting_id, form.document, base_revision=form.base_revision, author=user.id
-        ),
-    )
+        )
+        batches.append(tindakan.import_at_close(connection, form.document, closer=user.id))
+        return stored
+
+    answer = await _meeting_transition('meeting_close', meeting_id, scope_id, form, user, permissions, engine, _close)
+    batch = batches[0] if batches else None
+    if batch is not None:
+        audit(
+            'leadership_write',
+            user=user.id,
+            operation='import_upload',
+            meeting_id=meeting_id,
+            source='meeting_close',
+            result='recorded' if batch.created else 'replayed',
+            batch_id=batch.id,
+        )
+    return answer | {'import_batch': None if batch is None else {'id': batch.id, 'created': batch.created}}
 
 
 @router.post('/meetings/{meeting_id}/reopen')
