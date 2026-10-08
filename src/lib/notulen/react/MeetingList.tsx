@@ -9,10 +9,13 @@ import { text, valueLabel, type Meeting } from '../types';
 import './notulen/notulen.css';
 
 // The "Rapat Direksi" tab, in the KPI 2026 tab's form: a header over a heavy rule, then one table
-// of the reader's meetings on this browser, with the demo meeting as its last row.
+// of the reader's meetings (on the server when records are enabled, else on this browser), with
+// the demo meeting as its last row.
 
 export type MeetingListProps = {
 	repo: MeetingRepo;
+	/** Where the demo meeting lives: always this browser. Defaults to `repo`. */
+	demoRepo?: MeetingRepo;
 	base: string;
 	newId: () => string;
 	open: (href: string) => void;
@@ -77,13 +80,14 @@ const Row = ({
 	);
 };
 
-export const MeetingList = ({ repo, base, newId, open }: MeetingListProps) => {
+export const MeetingList = ({ repo, demoRepo = repo, base, newId, open }: MeetingListProps) => {
+	const remote = !!repo.remote;
 	const meetings = repo.list().filter((m) => m.id !== DEMO_ID);
 	// A meeting the list cannot read would otherwise just vanish. Opening it sets the data aside
 	// and offers it for download (useMeeting), so the way back is one click.
 	const unreadable = (repo.unreadableIds?.() ?? []).filter((id) => id !== DEMO_ID);
 	// The demo row reads the stored demo when there is one, so its counts match what Layar shows.
-	const demo = repo.get(DEMO_ID) ?? demoMeeting();
+	const demo = demoRepo.get(DEMO_ID) ?? demoMeeting();
 	return (
 		<div className="nt-list">
 			<header className="nt-top">
@@ -92,9 +96,14 @@ export const MeetingList = ({ repo, base, newId, open }: MeetingListProps) => {
 						<div className="nt-eyebrow">Rapat Direksi</div>
 						<h2 className="nt-h1">Notulen rapat</h2>
 						<div className="nt-top__meta">
-							<Badge variant="outline">Tersimpan di peramban ini</Badge>
+							<Badge variant="outline">
+								{remote ? 'Tersimpan di server' : 'Tersimpan di peramban ini'}
+							</Badge>
 							<span className="nt-muted">
-								{meetings.length} notulen · Layar mengikuti dari tab lain peramban yang sama
+								{meetings.length} notulen ·{' '}
+								{remote
+									? 'Layar mengikuti dari perangkat mana pun'
+									: 'Layar mengikuti dari tab lain peramban yang sama'}
 							</span>
 						</div>
 					</div>
@@ -156,7 +165,8 @@ export const MeetingList = ({ repo, base, newId, open }: MeetingListProps) => {
 							) : (
 								<tr>
 									<td colSpan={5} className="nt-tempty">
-										Belum ada notulen di peramban ini. Gunakan <strong>Rapat baru</strong>.
+										Belum ada notulen {remote ? 'di server' : 'di peramban ini'}. Gunakan{' '}
+										<strong>Rapat baru</strong>.
 									</td>
 								</tr>
 							)}
@@ -165,12 +175,19 @@ export const MeetingList = ({ repo, base, newId, open }: MeetingListProps) => {
 					</table>
 				</div>
 			</section>
-			<p className="nt-foot">
-				Notulen dan status rapat tersimpan di peramban dan perangkat ini saja, untuk akun Anda;
-				belum ada salinan di server. Layar rapat mengikuti Notulen dari tab lain di peramban yang
-				sama, bukan dari perangkat lain. Simpan salinan dengan <strong>Simpan HTML terisi</strong>{' '}
-				setelah rapat.
-			</p>
+			{remote ? (
+				<p className="nt-foot">
+					Notulen dan status rapat tersimpan di server dan terbuka dari perangkat mana pun tempat
+					Anda masuk. Rapat contoh tetap tersimpan di peramban ini saja.
+				</p>
+			) : (
+				<p className="nt-foot">
+					Notulen dan status rapat tersimpan di peramban dan perangkat ini saja, untuk akun Anda;
+					belum ada salinan di server. Layar rapat mengikuti Notulen dari tab lain di peramban yang
+					sama, bukan dari perangkat lain. Simpan salinan dengan <strong>Simpan HTML terisi</strong>{' '}
+					setelah rapat.
+				</p>
+			)}
 		</div>
 	);
 };

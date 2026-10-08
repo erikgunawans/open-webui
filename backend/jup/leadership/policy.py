@@ -25,6 +25,8 @@ follows from a read grant, and none from the admin role.
   needs the publication policy (`JUP_LEADERSHIP_PUBLICATION_POLICY`, in `snapshots.py`).
 - `imports.review`: uploading a deck's candidate file, reading the review queue, and accepting,
   linking or rejecting candidates (`jup.leadership.imports`).
+- `rapat.write`: writing the Notulen of a Rapat Direksi (`jup.leadership.meetings`), held by the
+  Corsec. Reading meetings is the board read grant; writing them is this grant on top of it.
 """
 
 from typing import Any
@@ -47,6 +49,7 @@ DEFAULT_PERMISSIONS: dict[str, Any] = {
             'bod': {'review': False},
             'snapshots': {'publish': False},
             'imports': {'review': False},
+            'rapat': {'write': False},
         }
     }
 }
@@ -76,6 +79,7 @@ CAPABILITIES: dict[str, tuple[str, str]] = {
     'bod.review': ('bod', 'review'),
     'snapshots.publish': ('snapshots', 'publish'),
     'imports.review': ('imports', 'review'),
+    'rapat.write': ('rapat', 'write'),
 }
 
 

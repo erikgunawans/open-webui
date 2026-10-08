@@ -115,14 +115,36 @@ export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
 	// of the same change), and it stays up until the next notice after a write that succeeded.
 	useEffect(() => {
 		if (saved.ok) return;
+		notify(
+			repo.remote
+				? {
+						title: 'Perubahan belum tersimpan di server',
+						description:
+							'Server tidak terjangkau atau menolak penyimpanan; aplikasi mencoba lagi. Jangan tutup tab ini sebelum tersimpan.',
+						tone: 'danger',
+						duration: 0
+					}
+				: {
+						title: 'Perubahan belum tersimpan di peramban ini',
+						description:
+							'Penyimpanan penuh atau diblokir. Simpan salinan dari Notulen sebelum tab ini ditutup.',
+						tone: 'danger',
+						duration: 0
+					}
+		);
+	}, [saved, notify, repo]);
+
+	// A move on this screen lost to a change made on another machine: the newer one is now shown.
+	useEffect(() => {
+		if (!saved.conflict) return;
 		notify({
-			title: 'Perubahan belum tersimpan di peramban ini',
+			title: 'Rapat diubah di perangkat lain',
 			description:
-				'Penyimpanan penuh atau diblokir. Simpan salinan dari Notulen sebelum tab ini ditutup.',
-			tone: 'danger',
+				'Layar memuat versi terbaru dari server. Ulangi langkah terakhir bila masih diperlukan.',
+			tone: 'warning',
 			duration: 0
 		});
-	}, [saved, notify]);
+	}, [saved.conflict, notify]);
 
 	// Damaged or other-version data was set aside, not shown: say so once, and where to recover it.
 	useEffect(() => {

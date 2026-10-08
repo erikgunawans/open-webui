@@ -40,6 +40,7 @@ EXPECTED_TABLES = {
     'leadership_import_batch',
     'leadership_import_candidate',
     'leadership_external_ref',
+    'leadership_meeting',
 }
 
 PIC = 'user-pic-1'

@@ -7,10 +7,17 @@ import type { Meeting } from './types';
 // What every MeetingRepo must do, whatever it stores to. Each implementation's test file runs this
 // suite with its own harness; a case that only one storage can have (a full localStorage, a server
 // conflict) belongs in that implementation's own file, next to its run of the contract.
+//
+// Who sees whose meetings is not in here, because the two stores answer it differently: the
+// browser keeps each account's meetings apart on a shared browser (its own file), while the server
+// shows every meeting to every board reader and refuses everyone else (its HTTP tests).
 
 export interface RepoHarness {
-	/** A repository for `user`. Repositories opened from one harness share one store. */
-	open(user: string): MeetingRepo;
+	/**
+	 * A repository for `user`, ready to read. Repositories opened from one harness share one store.
+	 * A server-backed one loads what the server holds first, so opening may be asynchronous.
+	 */
+	open(user: string): MeetingRepo | Promise<MeetingRepo>;
 	/**
 	 * Store `raw` (JSON, possibly malformed) as meeting `id` of `user`, the way another tab or
 	 * machine would, so the repositories of that user can see it.
@@ -29,18 +36,18 @@ export const meetingRepoContract = (name: string, harness: () => RepoHarness) =>
 	describe(`${name} — MeetingRepo contract`, () => {
 		it('round-trips a meeting and has nothing under an unknown id', async () => {
 			const h = harness();
-			const repo = h.open('user-1');
+			const repo = await h.open('user-1');
 			const m = seedMeeting('rapat-1');
 			repo.save(m);
 			await h.settle();
 			expect(repo.get('rapat-1')).toEqual(m);
-			expect(h.open('user-1').get('rapat-1')).toEqual(m);
+			expect((await h.open('user-1')).get('rapat-1')).toEqual(m);
 			expect(repo.get('other')).toBeNull();
 		});
 
 		it('refuses malformed data: it never reads as a meeting nor reaches subscribers', async () => {
 			const h = harness();
-			const repo = h.open('user-1');
+			const repo = await h.open('user-1');
 			const seen: string[] = [];
 			repo.subscribe('rapat-1', (x) => seen.push(x.id));
 			h.writeElsewhere('user-1', 'rapat-1', '{"id":"rapat-1"}');
@@ -53,7 +60,7 @@ export const meetingRepoContract = (name: string, harness: () => RepoHarness) =>
 
 		it('tells subscribers about local saves and writes from elsewhere, and stops after unsubscribe', async () => {
 			const h = harness();
-			const repo = h.open('user-1');
+			const repo = await h.open('user-1');
 			const seen: number[] = [];
 			const off = repo.subscribe('rapat-1', (x) => seen.push(x.session.currentAgenda));
 			const m = seedMeeting('rapat-1');
@@ -68,9 +75,9 @@ export const meetingRepoContract = (name: string, harness: () => RepoHarness) =>
 			expect(seen).toEqual([3, 7]);
 		});
 
-		it('lists every meeting of this user', async () => {
+		it('lists every meeting', async () => {
 			const h = harness();
-			const repo = h.open('user-1');
+			const repo = await h.open('user-1');
 			repo.save(seedMeeting('rapat-1'));
 			repo.save(seedMeeting('rapat-2'));
 			await h.settle();
@@ -80,15 +87,5 @@ export const meetingRepoContract = (name: string, harness: () => RepoHarness) =>
 					.map((m) => m.id)
 					.sort()
 			).toEqual(['rapat-1', 'rapat-2']);
-		});
-
-		it('keeps two users’ meetings apart', async () => {
-			const h = harness();
-			const a = h.open('user-a');
-			const b = h.open('user-b');
-			a.save(seedMeeting('rapat-1'));
-			await h.settle();
-			expect(b.get('rapat-1')).toBeNull();
-			expect(b.list()).toEqual([]);
 		});
 	});

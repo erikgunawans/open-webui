@@ -146,10 +146,10 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 		downloadSnapshot(meeting, resolvedTheme);
 		toast({
 			title: 'HTML terisi diunduh',
-			// Only claim the browser copy when the last write actually landed.
+			// Only claim the stored copy when the last write actually landed.
 			description: saved.ok
-				? 'Salinan baca-saja; isian tetap tersimpan di peramban ini.'
-				: 'Simpan file ini baik-baik: isian belum tersimpan di peramban ini.',
+				? `Salinan baca-saja; isian tetap tersimpan di ${repo.remote ? 'server' : 'peramban ini'}.`
+				: `Simpan file ini baik-baik: isian belum tersimpan di ${repo.remote ? 'server' : 'peramban ini'}.`,
 			tone: 'success'
 		});
 	};
@@ -162,6 +162,13 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 		a.download = `rapat-${meetingId}-data-lama.json`;
 		a.click();
 		URL.revokeObjectURL(a.href);
+	};
+
+	// The edits a conflicting save could not store, as a readable HTML copy to re-enter from.
+	const downloadConflict = async () => {
+		if (!saved.conflict) return;
+		const { downloadSnapshot } = await import('./snapshot');
+		downloadSnapshot(saved.conflict, resolvedTheme);
 	};
 
 	// Reset keeps the meeting it replaced in memory for one Urungkan.
@@ -194,6 +201,8 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 				onTutup={() => setAsking('close')}
 				onReopen={() => setAsking('reopen')}
 				demo={demo}
+				remote={!!repo.remote}
+				onDownloadConflict={downloadConflict}
 			/>
 			{closed ? (
 				<Alert tone="info" title="Rapat ditutup" className="nt-closed">

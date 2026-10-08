@@ -1,13 +1,20 @@
 import type { Meeting } from './types';
 
-// Where a Meeting lives. Both screens go through this interface only, so the localStorage
-// implementation below can be swapped for an API or realtime backend without touching them.
+// Where a Meeting lives. Both screens go through this interface only: the localStorage
+// implementation below, or the server-backed one (`server-repo.ts`) when Ruang Pimpinan keeps
+// records on the server.
 //
 // localStorage is per browser on one device: the `storage` event keeps tabs of the SAME browser in
 // step (a laptop tab and a display tab on one machine). A secretariat laptop and a separate
-// boardroom PC need a server-backed repo.
+// boardroom PC need the server-backed repo.
 
 export type Unsubscribe = () => void;
+
+/**
+ * Where a server-backed meeting's last change stands: stored, on its way, refused or unreachable
+ * (kept and retried), or refused because the meeting changed elsewhere first (`conflict`).
+ */
+export type SaveStatus = 'saved' | 'saving' | 'failed' | 'conflict';
 
 export interface MeetingRepo {
 	/** Every readable meeting this user has, in storage order. */
@@ -29,6 +36,17 @@ export interface MeetingRepo {
 	quarantine(id: string): { raw: string; kept: boolean } | null;
 	/** Called with the stored meeting whenever another tab (or this one) saves it. */
 	subscribe(id: string, cb: (meeting: Meeting) => void): Unsubscribe;
+
+	// A repository that stores somewhere else than this tab saves in the background: `save` only
+	// accepts the change, and these report what became of it. The browser repository has none.
+	/** True when meetings are kept on the server rather than in this browser. */
+	readonly remote?: boolean;
+	status?(id: string): SaveStatus;
+	onStatus?(id: string, cb: (status: SaveStatus) => void): Unsubscribe;
+	/** The local edits a conflicting write could not store, until a later write lands. */
+	conflict?(id: string): Meeting | null;
+	/** Send pending changes now (the page is being hidden or closed). */
+	flush?(): void;
 }
 
 const PREFIX = 'jup-rapat-direksi:v1:';

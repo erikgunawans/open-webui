@@ -47,7 +47,7 @@ from fastapi.routing import APIRoute
 from pydantic import BaseModel, Field
 
 from jup.governance import audit
-from jup.leadership import closure, imports, migrate, snapshots
+from jup.leadership import closure, imports, meetings, migrate, snapshots
 from jup.leadership import evidence as evidence_commands
 from jup.leadership.actions import (
     REPORTING_TZ,
@@ -171,6 +171,7 @@ async def get_capabilities(permissions: dict[str, Any] = Depends(leadership_perm
             'views': [],
             'scope_ids': [],
             'operations': [],
+            'records': False,
             'reason': 'Ruang Pimpinan is not enabled on this server.',
         }
     views = allowed_views(permissions)
@@ -187,8 +188,19 @@ async def get_capabilities(permissions: dict[str, Any] = Depends(leadership_perm
             if (operation != 'bod.review' or closure.configured_policy() is not None)
             and (operation != 'snapshots.publish' or snapshots.configured_publication_policy() is not None)
         ],
+        # Whether this server keeps records (actions, meetings) rather than the illustrative sample.
+        # Rapat Direksi stores its meetings on the server only when this is true.
+        'records': bool(views) and _records_enabled(),
         'reason': None if views else 'This account has no Ruang Pimpinan view.',
     }
+
+
+def _records_enabled() -> bool:
+    """The records store is configured and migrated; a misconfigured source counts as off."""
+    try:
+        return _actions_source() == 'records' and migrate.schema_ready()
+    except HTTPException:
+        return False
 
 
 def leadership_engine() -> Any:
@@ -1374,3 +1386,200 @@ async def post_candidate_review(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)) from error
     _audit(reviewed['review_state'], action_id=reviewed['action_id'])
     return reviewed
+
+
+# --- Rapat Direksi meetings (D27 step 1) ---------------------------------------------------
+#
+# The Corsec's Notulen, saved on the server so any machine the Corsec signs in on shows the same
+# meeting. Meetings belong to the Direksi & Komisaris view: reading them is the board read grant,
+# writing them is `rapat.write` on top of it. They are records, so they are served only while the
+# server runs on the records store (`JUP_LEADERSHIP_ACTIONS_SOURCE=records`); the illustrative
+# demo meeting never leaves the browser.
+
+
+def _meetings_ready(audit_unavailable: Callable[[str], None]) -> None:
+    _records_ready(audit_unavailable)
+    try:
+        source = _actions_source()
+    except HTTPException:
+        audit_unavailable('unavailable')
+        raise
+    if source != 'records':
+        audit_unavailable('unavailable')
+        raise _unavailable('Rapat Direksi meetings are kept on the server only when records are enabled.')
+
+
+def _meeting_reader(permissions: dict[str, Any], scope_id: str, audit_result: Callable[[str], None]) -> None:
+    if not may_read(permissions, 'board', scope_id):
+        audit_result('refused')
+        raise _refuse()
+    _meetings_ready(audit_result)
+
+
+def _meeting_writer(permissions: dict[str, Any], scope_id: str, audit_result: Callable[[str], None]) -> None:
+    if not may(permissions, 'rapat.write', 'board', scope_id):
+        audit_result('refused')
+        raise _refuse()
+    _meetings_ready(audit_result)
+
+
+def _meeting_refusal(error: Exception) -> HTTPException:
+    if isinstance(error, meetings.MalformedMeeting):
+        return HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error))
+    if isinstance(error, meetings.MeetingNotFound):
+        return HTTPException(status.HTTP_404_NOT_FOUND, 'No such meeting.')
+    if isinstance(error, meetings.MeetingExists):
+        return HTTPException(
+            status.HTTP_409_CONFLICT,
+            {'message': 'A meeting with this id is already on the server.', 'revision': error.revision},
+        )
+    if isinstance(error, meetings.StaleRevision):
+        return HTTPException(
+            status.HTTP_409_CONFLICT,
+            {'message': 'This meeting changed elsewhere since it was loaded.', 'revision': error.actual},
+        )
+    raise error
+
+
+_MEETING_REFUSALS = (
+    meetings.MalformedMeeting,
+    meetings.MeetingNotFound,
+    meetings.MeetingExists,
+    meetings.StaleRevision,
+)
+
+
+@router.get('/meetings')
+async def get_meetings(
+    scope_id: Scope,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """Every Rapat Direksi meeting on the server, whole, oldest first."""
+
+    def _audit(result: str, **fields: Any) -> None:
+        audit('leadership_read', user=user.id, operation='meetings', result=result, **fields)
+
+    _meeting_reader(permissions, scope_id, _audit)
+
+    def _list() -> list[dict[str, Any]]:
+        with engine.connect() as connection:
+            return [stored.view() for stored in meetings.list_meetings(connection)]
+
+    listed = await run_in_threadpool(_list)
+    _audit('served', meetings=len(listed))
+    return {'meetings': listed}
+
+
+@router.get('/meetings/{meeting_id}')
+async def get_meeting(
+    meeting_id: str,
+    scope_id: Scope,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """One meeting and its revision."""
+
+    def _audit(result: str, **fields: Any) -> None:
+        audit('leadership_read', user=user.id, operation='meeting', meeting_id=meeting_id, result=result, **fields)
+
+    _meeting_reader(permissions, scope_id, _audit)
+
+    def _read() -> Any:
+        with engine.connect() as connection:
+            return meetings.read_meeting(connection, meeting_id)
+
+    stored = await run_in_threadpool(_read)
+    if stored is None:
+        _audit('not_found')
+        raise HTTPException(status.HTTP_404_NOT_FOUND, 'No such meeting.')
+    _audit('served', revision=stored.revision)
+    return stored.view()
+
+
+class MeetingCreateIn(BaseModel):
+    document: dict[str, Any]
+
+
+class MeetingSaveIn(BaseModel):
+    # The revision this document was based on; anything else is a conflict and nothing is written.
+    base_revision: int = Field(ge=1)
+    document: dict[str, Any]
+
+
+@router.post('/meetings', status_code=status.HTTP_201_CREATED)
+async def post_meeting(
+    scope_id: Scope,
+    form: MeetingCreateIn,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """A new meeting at revision 1. An id already on the server is a conflict, never an overwrite."""
+    meeting_id = form.document.get('id')
+
+    def _audit(result: str, **fields: Any) -> None:
+        audit(
+            'leadership_write',
+            user=user.id,
+            operation='meeting_create',
+            meeting_id=meeting_id if isinstance(meeting_id, str) else None,
+            result=result,
+            **fields,
+        )
+
+    _meeting_writer(permissions, scope_id, _audit)
+
+    def _run() -> Any:
+        with engine.begin() as connection:
+            return meetings.create_meeting(connection, form.document, author=user.id)
+
+    try:
+        stored = await run_in_threadpool(_run)
+    except _MEETING_REFUSALS as error:
+        _audit(type(error).__name__)
+        raise _meeting_refusal(error) from error
+    _audit('recorded', revision=stored.revision)
+    return stored.view()
+
+
+@router.put('/meetings/{meeting_id}')
+async def put_meeting(
+    meeting_id: str,
+    scope_id: Scope,
+    form: MeetingSaveIn,
+    user=Depends(get_verified_user),
+    permissions: dict[str, Any] = Depends(leadership_permissions),
+    engine: Any = Depends(leadership_engine),
+) -> dict[str, Any]:
+    """Replace the meeting, if `base_revision` is still the stored one. Answers the new revision."""
+
+    def _audit(result: str, **fields: Any) -> None:
+        audit(
+            'leadership_write',
+            user=user.id,
+            operation='meeting_save',
+            meeting_id=meeting_id,
+            base_revision=form.base_revision,
+            result=result,
+            **fields,
+        )
+
+    _meeting_writer(permissions, scope_id, _audit)
+
+    def _run() -> Any:
+        with engine.begin() as connection:
+            return meetings.save_meeting(
+                connection, meeting_id, form.document, base_revision=form.base_revision, author=user.id
+            )
+
+    try:
+        stored = await run_in_threadpool(_run)
+    except _MEETING_REFUSALS as error:
+        _audit(type(error).__name__)
+        raise _meeting_refusal(error) from error
+    _audit('recorded', revision=stored.revision)
+    # The document is the caller's own; the revision and the stamps are what it needs back.
+    return {key: value for key, value in stored.view().items() if key != 'document'}

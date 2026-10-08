@@ -206,6 +206,26 @@ import_candidate = Table(
     UniqueConstraint('batch_id', 'candidate_key', name='uq_leadership_import_candidate_key'),
 )
 
+# One Rapat Direksi meeting: the Corsec's Notulen as one document (D27). Written whole on every
+# save, each save naming the revision it was based on, so two machines never overwrite each other.
+meeting = Table(
+    'leadership_meeting',
+    metadata,
+    _id(primary_key=True),
+    Column('owner_user_id', String(_USER), nullable=False),
+    # The Notulen document exactly as the client holds it (records, session, plan, notes), checked
+    # structurally before it is stored. JSON in Text, like every other structured column here.
+    Column('document', Text, nullable=False),
+    Column('revision', Integer, nullable=False),
+    # Tutup rapat on the server, and every Buka kembali with its reason (a JSON list).
+    Column('closed_at', BigInteger, nullable=True),
+    Column('reopenings', Text, nullable=False),
+    Column('created_by', String(_USER), nullable=False),
+    Column('created_at', BigInteger, nullable=False),
+    Column('updated_by', String(_USER), nullable=False),
+    Column('updated_at', BigInteger, nullable=False),
+)
+
 # The only way an imported row matches an existing action: a reviewed reference from a source
 # deck and slide to an owner-confirmed id.
 external_ref = Table(

@@ -43,6 +43,7 @@ def test_the_defaults_are_all_false_and_complete() -> None:
         'bod': {'review': False},
         'snapshots': {'publish': False},
         'imports': {'review': False},
+        'rapat': {'write': False},
     }
 
 
@@ -162,3 +163,20 @@ def test_bod_review_needs_its_own_grant_and_the_read_grant() -> None:
     assert not may(_bod(), 'actions.submit', 'board', SCOPE)
     assert not may(_with(), 'bod.review', 'board', SCOPE)
     assert allowed_operations(_bod()) == ['bod.review']
+
+
+def test_rapat_write_needs_its_own_grant_and_the_board_read_grant() -> None:
+    def _corsec(write: object = True, board: bool = True, scope: bool = True) -> dict:
+        grants = _with(board=board, scope=scope, submit=False)
+        grants['jup']['ruang_pimpinan']['rapat'] = {'write': write}
+        return grants
+
+    assert may(_corsec(), 'rapat.write', 'board', SCOPE)
+    assert not may(_corsec(write=False), 'rapat.write', 'board', SCOPE)
+    assert not may(_corsec(write='true'), 'rapat.write', 'board', SCOPE)
+    # Writing meetings never opens a view the reader cannot read.
+    assert not may(_corsec(board=False), 'rapat.write', 'board', SCOPE)
+    assert not may(_corsec(scope=False), 'rapat.write', 'board', SCOPE)
+    # The board read grant alone writes nothing.
+    assert 'rapat.write' not in allowed_operations(_with(submit=False))
+    assert allowed_operations(_corsec()) == ['rapat.write']

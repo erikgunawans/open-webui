@@ -53,6 +53,18 @@ meetingRepoContract('LocalStorageMeetingRepo', () => {
 });
 
 describe('LocalStorageMeetingRepo', () => {
+	// Two accounts can share one browser; neither reads the other's meetings. (The server shows
+	// every meeting to every board reader instead, so this is the browser's own case.)
+	it('keeps two users’ meetings apart', () => {
+		const storage = new MemoryStorage();
+		const ev = events();
+		const a = new LocalStorageMeetingRepo(storage, ev, 'user-a');
+		const b = new LocalStorageMeetingRepo(storage, ev, 'user-b');
+		a.save(seedMeeting('rapat-1'));
+		expect(b.get('rapat-1')).toBeNull();
+		expect(b.list()).toEqual([]);
+	});
+
 	it('parses only a whole meeting', () => {
 		const m = seedMeeting('r');
 		expect(parseMeeting(JSON.stringify(m))).toEqual(m);

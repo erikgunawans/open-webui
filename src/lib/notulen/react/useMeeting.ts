@@ -9,8 +9,17 @@ import type { Meeting } from '../types';
 /**
  * The outcome of this tab's last write. `at` is null until the first edit of this visit. A failed
  * write is sticky until a later one succeeds: the change lives only in this tab until then.
+ *
+ * A server-backed repository saves in the background, so two more states exist there: `pending`
+ * while a change is on its way, and `conflict` holding the local edits a write could not store
+ * because the meeting changed on another machine first (the screen shows the server's version).
  */
-export type SaveState = { ok: boolean; at: number | null };
+export type SaveState = {
+	ok: boolean;
+	at: number | null;
+	pending?: boolean;
+	conflict?: Meeting | null;
+};
 
 /**
  * Stored data that could not be read when this meeting opened (damaged, or from another version).
@@ -61,16 +70,44 @@ export const useMeeting = (repo: MeetingRepo, id: string, init: () => Meeting) =
 		[repo, id]
 	);
 
+	// A repository that saves in the background reports each write's outcome here.
+	useEffect(() => {
+		if (!repo.onStatus) return;
+		return repo.onStatus(id, (status) =>
+			setSaved((prev) => {
+				if (status === 'saving') return { ...prev, pending: true };
+				if (status === 'saved') return { ok: true, at: Date.now(), pending: false, conflict: null };
+				if (status === 'failed') return { ...prev, ok: false, pending: false };
+				return { ...prev, ok: true, pending: false, conflict: repo.conflict?.(id) ?? null };
+			})
+		);
+	}, [repo, id]);
+
+	// Send what is pending when the page is hidden or closed, or the screen is left, rather than a
+	// second later.
+	useEffect(() => {
+		if (!repo.flush) return;
+		const flush = () => repo.flush?.();
+		const onHide = () => document.visibilityState === 'hidden' && flush();
+		window.addEventListener('pagehide', flush);
+		document.addEventListener('visibilitychange', onHide);
+		return () => {
+			window.removeEventListener('pagehide', flush);
+			document.removeEventListener('visibilitychange', onHide);
+			flush();
+		};
+	}, [repo]);
+
 	// While the last write is unconfirmed, closing or reloading the tab loses it: let the browser ask.
 	useEffect(() => {
-		if (saved.ok) return;
+		if (saved.ok && !saved.pending) return;
 		const hold = (e: BeforeUnloadEvent) => {
 			e.preventDefault();
 			e.returnValue = '';
 		};
 		window.addEventListener('beforeunload', hold);
 		return () => window.removeEventListener('beforeunload', hold);
-	}, [saved.ok]);
+	}, [saved.ok, saved.pending]);
 
 	/** Apply a change to the latest meeting and save it; the subscription re-renders. */
 	const update = useCallback(
@@ -82,7 +119,9 @@ export const useMeeting = (repo: MeetingRepo, id: string, init: () => Meeting) =
 				setSaved({ ok: false, at: Date.now() });
 				return;
 			}
-			setSaved({ ok: repo.save(next), at: Date.now() });
+			const stored = repo.save(next);
+			// A background save reports its own outcome (onStatus); the browser's is known now.
+			if (!repo.onStatus) setSaved({ ok: stored, at: Date.now() });
 		},
 		[repo, frozen]
 	);

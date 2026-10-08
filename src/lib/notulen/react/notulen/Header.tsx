@@ -35,6 +35,10 @@ type Props = {
 	onReopen?: () => void;
 	/** The fictional demo meeting: marked as on the Layar. */
 	demo?: boolean;
+	/** Kept on the server (records enabled), not in this browser. */
+	remote?: boolean;
+	/** The local edits a conflicting save could not store, offered for download. */
+	onDownloadConflict?: () => void;
 };
 
 const clock = (at: number) =>
@@ -48,6 +52,10 @@ const clock = (at: number) =>
 export const STORAGE_NOTE =
 	'Isian tersimpan otomatis di peramban dan perangkat ini saja, untuk akun Anda; belum ada salinan di server. Gunakan Simpan HTML terisi untuk membuat salinan berisi data.';
 
+/** The same, for a meeting kept on the server. */
+export const SERVER_NOTE =
+	'Isian tersimpan otomatis di server, sekitar sekali per detik, dan terbuka dari perangkat mana pun tempat Anda masuk.';
+
 export const Header = ({
 	meeting,
 	layarHref,
@@ -59,7 +67,9 @@ export const Header = ({
 	onSave,
 	onTutup,
 	onReopen,
-	demo
+	demo,
+	remote = false,
+	onDownloadConflict
 }: Props) => {
 	const closed = meeting.session.closedAt !== undefined;
 	const mv = mainInfo(meeting)?.values ?? {};
@@ -97,14 +107,18 @@ export const Header = ({
 						</span>
 						<span role="status" className="nt-saved">
 							{saved.ok ? (
-								<Tooltip content={STORAGE_NOTE} placement="bottom">
+								<Tooltip content={remote ? SERVER_NOTE : STORAGE_NOTE} placement="bottom">
 									<span tabIndex={0} className="nt-saved__badge">
-										{saved.at !== null ? (
+										{saved.pending ? (
+											<Badge variant="outline">Menyimpan…</Badge>
+										) : saved.at !== null ? (
 											<Badge tone="success" dot>
 												Tersimpan · {clock(saved.at)} WIB
 											</Badge>
 										) : (
-											<Badge variant="outline">Tersimpan di peramban ini</Badge>
+											<Badge variant="outline">
+												{remote ? 'Tersimpan di server' : 'Tersimpan di peramban ini'}
+											</Badge>
 										)}
 									</span>
 								</Tooltip>
@@ -114,7 +128,11 @@ export const Header = ({
 					{saved.ok ? null : (
 						<Alert
 							tone="danger"
-							title="Perubahan terakhir belum tersimpan"
+							title={
+								remote
+									? 'Perubahan terakhir belum tersimpan di server'
+									: 'Perubahan terakhir belum tersimpan'
+							}
 							className="nt-save-alert"
 							actions={
 								<Button
@@ -127,11 +145,34 @@ export const Header = ({
 								</Button>
 							}
 						>
-							Penyimpanan peramban ini penuh atau diblokir, jadi isian hanya ada di tab ini dan
-							hilang bila tab ditutup. Unduh salinannya sekarang; peringatan ini hilang begitu
-							penyimpanan berhasil lagi.
+							{remote
+								? 'Server tidak terjangkau atau menolak penyimpanan, jadi isian terbaru hanya ada di tab ini. Aplikasi mencoba lagi bila server sedang tidak terjangkau. Unduh salinannya sekarang; peringatan ini hilang begitu penyimpanan berhasil lagi.'
+								: 'Penyimpanan peramban ini penuh atau diblokir, jadi isian hanya ada di tab ini dan hilang bila tab ditutup. Unduh salinannya sekarang; peringatan ini hilang begitu penyimpanan berhasil lagi.'}
 						</Alert>
 					)}
+					{saved.conflict ? (
+						<Alert
+							tone="warning"
+							title="Rapat ini diubah di perangkat lain"
+							className="nt-save-alert"
+							actions={
+								onDownloadConflict ? (
+									<Button
+										variant="secondary"
+										size="sm"
+										iconLeft={<Download size={16} aria-hidden="true" />}
+										onClick={onDownloadConflict}
+									>
+										Unduh perubahan saya
+									</Button>
+								) : null
+							}
+						>
+							Versi terbaru dari server sudah dimuat, jadi perubahan terakhir Anda tidak menimpanya.
+							Perubahan itu tidak hilang: unduh untuk memasukkannya kembali. Peringatan ini hilang
+							begitu penyimpanan berikutnya berhasil.
+						</Alert>
+					) : null}
 					{unreadable ? (
 						<Alert
 							tone="warning"

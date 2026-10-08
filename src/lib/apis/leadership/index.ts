@@ -12,7 +12,9 @@ export type Operation =
 	| 'actions.assign'
 	| 'bod.review'
 	| 'snapshots.publish'
-	| 'imports.review';
+	| 'imports.review'
+	// Writing Rapat Direksi Notulen (the Corsec).
+	| 'rapat.write';
 
 export type Capabilities = {
 	enabled: boolean;
@@ -21,6 +23,8 @@ export type Capabilities = {
 	// Each is its own grant on top of a view grant. `bod.review` and `snapshots.publish` are
 	// listed only while the server has the matching policy configured.
 	operations: Operation[];
+	// The server keeps records (actions, Rapat Direksi meetings) rather than the illustrative sample.
+	records: boolean;
 	reason: string | null;
 };
 

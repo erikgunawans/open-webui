@@ -1,14 +1,19 @@
 import { DEMO_ID, demoMeeting } from '../demo';
-import { LocalStorageMeetingRepo } from '../repo';
+import { httpMeetingApi } from '../meeting-api';
+import { LocalStorageMeetingRepo, type MeetingRepo } from '../repo';
 import { newId, seedMeeting } from '../seed';
+import { ServerMeetingRepo } from '../server-repo';
 import { LayarApp } from './layar/LayarApp';
 import { MeetingList } from './MeetingList';
 import { NotulenApp } from './notulen/NotulenApp';
 import { mountIsland, type Island } from './mount';
 
 // The one module the Svelte routes import (lazily). Everything the React screens need is wired
-// here: the per-user repository, the demo meeting, and each surface's theme (the Layar keeps its
-// own, light by default; the list and the Notulen follow the app).
+// here: the repository, the demo meeting, and each surface's theme (the Layar keeps its own, light
+// by default; the list and the Notulen follow the app).
+//
+// The repository is the server's when the server keeps Ruang Pimpinan records (`server` is given),
+// and this browser's otherwise. The illustrative demo meeting always stays in this browser.
 
 export const RAPAT_BASE = '/ruang-pimpinan/rapat';
 
@@ -20,13 +25,19 @@ type Options = {
 	userId: string;
 	/** Client-side navigation, so the Svelte router keeps its state. */
 	navigate: (href: string) => void;
+	/** Given only when the server keeps records: meetings are then stored there. */
+	server?: { apiBase: string; token: string; scopeId: string };
 };
 
 const meetingNewId = () => `rd-${new Date().toISOString().slice(0, 10)}-${newId().slice(0, 4)}`;
 
-export const mountRapat = (target: HTMLElement, o: Options): Island<object> => {
-	const repo = new LocalStorageMeetingRepo(localStorage, window, o.userId);
+export const mountRapat = async (target: HTMLElement, o: Options): Promise<Island<object>> => {
+	const local = new LocalStorageMeetingRepo(localStorage, window, o.userId);
 	const demo = o.meetingId === DEMO_ID;
+	const repo: MeetingRepo =
+		o.server && !demo
+			? await ServerMeetingRepo.open(httpMeetingApi({ ...o.server, base: o.server.apiBase }))
+			: local;
 	const init = () => (demo ? demoMeeting() : seedMeeting(o.meetingId));
 	const themeKey = (s: Surface) => `jup-rapat-theme:${s}:${o.userId}`;
 
@@ -57,7 +68,7 @@ export const mountRapat = (target: HTMLElement, o: Options): Island<object> => {
 	return mountIsland(
 		target,
 		MeetingList,
-		{ repo, base: RAPAT_BASE, newId: meetingNewId, open: o.navigate },
+		{ repo, demoRepo: local, base: RAPAT_BASE, newId: meetingNewId, open: o.navigate },
 		{ theme: 'app', storageKey: null, className: 'nt-root' }
 	) as Island<object>;
 };

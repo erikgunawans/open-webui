@@ -2,8 +2,9 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import { leadershipAccess } from '$lib/stores/leadership';
 
-	// Rapat Direksi is offered to readers holding the Direksi & Komisaris view. Its data never
-	// leaves this browser (localStorage), so this gate is presentation, like the section's tabs.
+	// Rapat Direksi is offered to readers holding the Direksi & Komisaris view. This gate is
+	// presentation, like the section's tabs: when meetings are kept on the server (records on), the
+	// server checks the grant on every request; otherwise they never leave this browser.
 </script>
 
 {#if $leadershipAccess.loading}
