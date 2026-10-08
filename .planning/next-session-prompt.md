@@ -1,3 +1,45 @@
+# Next session — ent-os-new-jup (checkpoint 2026-10-09-v66)
+
+> Prepended by /wrap 2026-10-09 (checkpoint 2026-10-09-v66). Supersedes v65's anchor and "do next". v65's and older blocks' constraints still hold unless noted.
+
+Resume ent-os-new-jup — read PROGRESS.md first (top checkpoint 2026-10-09-v66). Invoke the `RapatDireksi` skill for any Rapat Direksi work.
+Anchor: `origin/main` at `b2c0530b8` **as this was written**, or one commit ahead at this checkpoint's own merge (`chore(session): checkpoint 2026-10-09-v66 …`). Verify with `git log --oneline -2 origin/main`; anything else is a parallel push.
+
+**Current state:**
+- **Live:** unchanged, `ent-os-00116-mgk` (`e70c916ef`). Nothing deployed; `main` now holds #156, #157, #159, #158 (server Notulen, close/reopen freeze, poll hardening).
+- **D27 step 1:** #156, #157, #158, #159 merged and closed. Remaining: **#161**, then **#160**.
+- **Postgres gap:** CI pytest has no Postgres; the meeting/close/reopen tests have run on SQLite only.
+- **D26 SharePoint:** waits on JUP IT applying `deploy/gcp/sharepoint-d26-request-jup-it.id.md`.
+
+**Do next, in order:**
+1. **#161** — move browser (localStorage) meetings to the server once. A closed meeting arrives closed (`create_meeting` sets `closed_at` when the document carries `closedAt`). Branch from main. `/clear` before #160.
+2. **#160** — Tindakan → review queue (import idempotency by sha256; serialise candidate batches canonically).
+3. Ask Erik where **story 16** (read-only Notulen for board readers without `rapat.write`) goes — today their edits show the failed-save alert.
+4. When disk allows: run the meeting endpoint tests on local pgserver Postgres (port 55432, `JUP_TEST_POSTGRES_URL=postgresql+psycopg://postgres@127.0.0.1:55432/postgres`; binaries under `~/.cache/uv`, re-fetch with `uv run --no-project --with pgserver`).
+5. When JUP IT confirms the D26 grants: first SharePoint build ticket = vendor OAuth callback with `mcp:jup-sharepoint`; then spike cleanup (Erik deletes app `b05e9e7e-…` + site `SpikeAsistenJUP`; wipe `.token`/`.env` in `…/bc6c0a23-…/scratchpad/spike/`).
+6. When Finance's consolidation file arrives: fix Unit pelaporan list + report-line codes, spec D27 step 3. D27 step 2 (Realisasi KPI form) can be specced any time.
+7. Carried: #42 Notion acceptance; E8 when JUP IT answers #82; `$impeccable critique` on Rapat after a real meeting; O3; phone check; Legal-account Kartu Kontrak; O1 staff checks; #47.
+
+**Constraints to honor** (plus the blocks below):
+- **Erik merges PRs** unless he names one for me to merge.
+- A PR retarget is an `edited` event: only the regression check runs. Re-push (amend `--date=now`) for the full CI. Stacked PRs get no CI.
+- One freeze rule: `repo.ts` `refusedWhileClosed`, mirrored on the server; close/reopen are separate endpoints; the reopen reason is never audited.
+- `ServerMeetingRepo` polls one at a time per meeting, only while subscribed; a failed poll never changes the screen.
+- Contract suite = the server repo's acceptance; never weaken a case.
+- Meeting routes stay behind `JUP_LEADERSHIP_ACTIONS_SOURCE=records`; real data in Ruang Pimpinan = three separate OKs from Erik.
+- Leadership migrations: next is `jl0004` (down `jl0003`).
+- **Disk ~200 MiB** — `df -h /` + swap before anything large; SQLite pytest and vitest only. Never put a stdin read in a Bash chain. `rm` on its own line; zsh `echo ---`.
+
+**Open items waiting on Erik:**
+- Free disk space (202 MiB at last check).
+- Where story 16 (read-only Notulen without `rapat.write`) belongs.
+- Send the JUP IT doc (check Ikhsan's email, 12-month secret, Legal step) and tell JUP IT about the spike app/site.
+- One recent Finance consolidation file (numbers blanked OK) → unblocks D27 step 3.
+- Pilot SharePoint member names before go-live.
+- Carried: reset his Rapat demo copy?; Risalah choices; #42 Notion test; JUP IT reply to #82; contract-card titles, `jup_contracts` grant, Rully items, O3, phone check, WhatsApp items, secret rotation.
+
+---
+
 # Next session — ent-os-new-jup (checkpoint 2026-10-08-v65)
 
 > Prepended by /wrap 2026-10-08 (checkpoint 2026-10-08-v65). Supersedes v64's "do next" (#159 built → PR #165); v64's anchor still holds because nothing merged. v64's and older blocks' constraints still hold unless noted.

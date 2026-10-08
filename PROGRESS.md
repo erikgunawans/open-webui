@@ -1,6 +1,14 @@
 # PROGRESS — ent-os-new-jup
 
-## Checkpoint 2026-10-08-v65 (latest) — #159 built: Tutup rapat frozen on the server (PR #165, stacked on #164)
+## Checkpoint 2026-10-09-v66 (latest) — #164, #163, #165, #166 merged: #157, #159, #158 done; #161 next
+
+- **Session (10-08 night → 10-09):** Erik merged #164 (#157) and #163 (checkpoints v63–v65), then asked me to merge **#165** (#159) on green and **#166** (#158). `main` = `b2c0530b8`. Issues #157, #159, #158 closed. Nothing deployed: live still `ent-os-00116-mgk` (`e70c916ef`).
+- **#165 CI:** after #164 squash-merged, rebased `--onto origin/main` and retargeted; the retarget is an `edited` event that ran only the regression check, so I amended (`--date=now`) and force-pushed to get the full run. All green.
+- **Correction:** backend CI has **no Postgres** (`.github/workflows/backend.yaml` never sets `JUP_TEST_POSTGRES_URL`). The close/reopen and meeting tests have only ever run on SQLite. The v65 handoff's "first Postgres run in CI" was wrong. A local pgserver run closes that gap when disk allows.
+- **#158 (PR #166, `b2c0530b8`):** polling already existed from #157. Real gap fixed: polls stacked on a slow network (`setInterval` fired regardless of an unanswered `get`); `ServerMeetingRepo.polling` set now skips a tick while one is waiting. Four tests in `server-repo.test.ts`: change from another PC within one poll; failed polls keep the screen and status, next catches up; polls only while subscribed (one per tick for any number of screens, none after the last unsubscribes); slow poll not stacked (mutation-checked). Vitest notulen 111/111, `check:notulen`, eslint, prettier; CI green (frontend only).
+- **Ops:** disk **202 MiB free** at session start. No Postgres, dev server or build.
+
+## Checkpoint 2026-10-08-v65 — #159 built: Tutup rapat frozen on the server (PR #165, stacked on #164)
 
 - **Session (10-08 evening, after v64):** `/next` → #164 still unmerged (CI green) → **#159** on branch `feat/notulen-close` cut from `origin/feat/notulen-server` → PR **#165** (`a2f80f7c8`), base `feat/notulen-server`. **CI has not run:** workflows only trigger on PRs into `main`/`dev`; it runs when #164 merges and GitHub retargets #165 to `main`. Not merged, not deployed.
 - **Live:** unchanged, `ent-os-00116-mgk` (`e70c916ef`). `main` = `bc84432fb`.
