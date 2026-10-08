@@ -25,7 +25,8 @@ const ACTS: [status: string, active: 'primary' | 'secondary' | 'danger', label: 
 type Props = ViewProps & {
 	selected: string | null;
 	onSelect: (recordId: string) => void;
-	onDecide: (recordId: string, status: string, values?: Record<string, PropValue>) => void;
+	/** Absent for a read-only reader: the Keputusan are shown, not taken. */
+	onDecide?: (recordId: string, status: string, values?: Record<string, PropValue>) => void;
 };
 
 const QUESTION: Record<string, string> = {
@@ -61,7 +62,7 @@ export const V07Keputusan = ({ meeting, agenda, selected, onSelect, onDecide }: 
 	const choose = (id: string, status: string, on: boolean) => {
 		if (on) {
 			setDraft(null);
-			onDecide(id, 'Belum diputuskan');
+			onDecide?.(id, 'Belum diputuskan');
 			return;
 		}
 		const r = list.find((x) => x.id === id);
@@ -169,7 +170,7 @@ export const V07Keputusan = ({ meeting, agenda, selected, onSelect, onDecide }: 
 								onSubmit={(e) => {
 									e.preventDefault();
 									if (missing.length) return;
-									onDecide(d.id, draft.status, values());
+									onDecide?.(d.id, draft.status, values());
 									setDraft(null);
 								}}
 							>
@@ -226,7 +227,7 @@ export const V07Keputusan = ({ meeting, agenda, selected, onSelect, onDecide }: 
 									) : null}
 								</div>
 							</form>
-						) : (
+						) : !onDecide ? null : (
 							<div className="lr-dec__acts">
 								{ACTS.map(([s, variant, label]) => {
 									// An incomplete status is not a Keputusan yet: choosing it opens its kolom.

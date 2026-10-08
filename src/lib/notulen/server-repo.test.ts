@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { reopenMeeting } from './keputusan';
 import { closeMeeting } from './layar-model';
+import { readOnlyRepo } from './repo';
 import { meetingRepoContract } from './repo.contract';
 import { seedMeeting } from './seed';
 import {
@@ -438,5 +439,30 @@ describe('ServerMeetingRepo', () => {
 		await expect(repo.move([seedMeeting('rapat-1')])).rejects.toMatchObject({ status: 403 });
 		expect(repo.list()).toEqual([]);
 		expect(await repo.move([])).toEqual([]);
+	});
+});
+
+describe('read-only (story 16: board view without rapat.write)', () => {
+	it('sends no write, sets nothing aside, and still follows changes made elsewhere', async () => {
+		const server = new FakeServer();
+		server.put('rapat-1', JSON.stringify(seedMeeting('rapat-1')));
+		const repo = readOnlyRepo(await ServerMeetingRepo.open(server.api()));
+		expect(repo.readOnly).toBe(true);
+		expect(repo.remote).toBe(true);
+		const seen: number[] = [];
+		const stop = repo.subscribe('rapat-1', (m) => seen.push(m.session.currentAgenda));
+
+		expect(repo.save(at(seedMeeting('rapat-1'), 4))).toBe(false);
+		expect(repo.save(seedMeeting('rapat-baru'))).toBe(false);
+		expect(repo.quarantine('rapat-1')).toBeNull();
+		await settle();
+		expect(server.writes).toBe(0);
+		expect(server.calls).toEqual([]);
+
+		server.put('rapat-1', JSON.stringify(at(seedMeeting('rapat-1'), 6)));
+		await settle();
+		expect(seen.at(-1)).toBe(6);
+		expect(repo.get('rapat-1')?.session.currentAgenda).toBe(6);
+		stop();
 	});
 });

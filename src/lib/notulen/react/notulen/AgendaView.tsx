@@ -24,7 +24,8 @@ type Props = {
 	toast: ToastContextValue['toast'];
 	/** Live meeting only (absent in the snapshot): the Catat cepat strip and the Catatan pembahasan. */
 	live?: {
-		onCapture: (c: Capture) => void;
+		/** Absent for a reader without the write grant: no Catat cepat strip. */
+		onCapture?: (c: Capture) => void;
 		notes: AgendaNotes;
 		onNotes: (n: AgendaNotes) => void;
 	};
@@ -111,7 +112,7 @@ export const AgendaView = ({
 					</div>
 				</div>
 			</header>
-			{live && db >= 1 ? <CaptureStrip db={db} onCapture={live.onCapture} /> : null}
+			{live?.onCapture && db >= 1 ? <CaptureStrip db={db} onCapture={live.onCapture} /> : null}
 			{db === 2 ? (
 				<Alert tone="info" title="Catatan angka">
 					Deviasi dan progres diisi manual, bukan dihitung otomatis. Masukkan angka persen langsung:

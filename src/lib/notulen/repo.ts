@@ -50,7 +50,30 @@ export interface MeetingRepo {
 	conflict?(id: string): Meeting | null;
 	/** Send pending changes now (the page is being hidden or closed). */
 	flush?(): void;
+	/**
+	 * The reader may look but not write (board view without `rapat.write`, story 16): `save` stores
+	 * nothing and returns false, and the screens show no edit controls.
+	 */
+	readonly readOnly?: boolean;
 }
+
+/**
+ * `repo` for a reader without the write grant: every read and subscription passes through, and no
+ * write leaves this tab. Nothing is seeded or set aside either.
+ */
+export const readOnlyRepo = (repo: MeetingRepo): MeetingRepo => ({
+	readOnly: true,
+	remote: repo.remote,
+	list: () => repo.list(),
+	unreadableIds: repo.unreadableIds ? () => repo.unreadableIds?.() ?? [] : undefined,
+	get: (id) => repo.get(id),
+	save: () => false,
+	quarantine: () => null,
+	subscribe: (id, cb) => repo.subscribe(id, cb),
+	status: repo.status ? (id) => repo.status!(id) : undefined,
+	onStatus: repo.onStatus ? (id, cb) => repo.onStatus!(id, cb) : undefined,
+	conflict: repo.conflict ? (id) => repo.conflict!(id) : undefined
+});
 
 /**
  * Tutup rapat freezes a meeting: while `stored` is closed, the only change it takes is Buka kembali —

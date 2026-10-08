@@ -113,6 +113,7 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 	};
 
 	const closed = meeting.session.closedAt !== undefined;
+	const readOnly = !!repo.readOnly;
 	const gaps = closingGaps(meeting);
 	// The Tutup rapat dialog opens on its primary. The dialog's focus trap puts focus on its first
 	// control (the close icon) in its own effect; this parent effect runs after it and moves it on.
@@ -195,16 +196,22 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 				saved={saved}
 				unreadable={unreadable}
 				onDownloadOld={downloadOld}
-				onReset={() => setConfirmReset(true)}
+				onReset={readOnly ? undefined : () => setConfirmReset(true)}
 				onPrint={print}
 				onSave={save}
-				onTutup={() => setAsking('close')}
-				onReopen={() => setAsking('reopen')}
+				onTutup={readOnly ? undefined : () => setAsking('close')}
+				onReopen={readOnly ? undefined : () => setAsking('reopen')}
+				readOnly={readOnly}
 				demo={demo}
 				remote={!!repo.remote}
 				onDownloadConflict={downloadConflict}
 			/>
-			{closed ? (
+			{readOnly ? (
+				<Alert tone="info" title="Hanya baca" className="nt-closed">
+					Anda dapat membaca dan mencetak notulen ini, tetapi tidak mengubahnya. Isian diperbarui
+					sendiri saat Corsec mencatat.
+				</Alert>
+			) : closed ? (
 				<Alert tone="info" title="Rapat ditutup" className="nt-closed">
 					Ditutup pukul {jakartaLocal(meeting.session.closedAt!).slice(11).replace(':', '.')} WIB.
 					Notulen hanya-baca; untuk mengubahnya, gunakan <strong>Buka kembali</strong> dan tulis
@@ -221,7 +228,7 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 					onFollow={followLayar}
 				/>
 				<main className="nt-main" ref={main}>
-					<fieldset className="nt-freeze" disabled={closed}>
+					<fieldset className="nt-freeze" disabled={closed || readOnly}>
 						{view === 'views' ? (
 							<DerivedViews meeting={meeting} />
 						) : view === 'guide' ? (
@@ -233,7 +240,11 @@ export const NotulenApp = ({ repo, meetingId, init, layarHref, viewKey, demo }: 
 								records={meeting.records[db ?? 0]}
 								setRecords={setRecords(db ?? 0)}
 								toast={toast}
-								live={{ onCapture: capture, notes: notesOf(db ?? 0), onNotes: setNotes(db ?? 0) }}
+								live={{
+									onCapture: readOnly ? undefined : capture,
+									notes: notesOf(db ?? 0),
+									onNotes: setNotes(db ?? 0)
+								}}
 							/>
 						)}
 					</fieldset>

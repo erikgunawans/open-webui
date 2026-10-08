@@ -27,7 +27,8 @@ type Props = {
 	/** Stored data that could not be read when the meeting opened; offered for download. */
 	unreadable?: Unreadable;
 	onDownloadOld?: () => void;
-	onReset: () => void;
+	/** Absent for a read-only reader: no Reset notulen. */
+	onReset?: () => void;
 	onPrint: () => void;
 	onSave: () => void;
 	/** Tutup rapat, or Buka kembali once closed: both ask first (NotulenApp). */
@@ -35,6 +36,8 @@ type Props = {
 	onReopen?: () => void;
 	/** The fictional demo meeting: marked as on the Layar. */
 	demo?: boolean;
+	/** A reader without the write grant (story 16): marked Hanya baca. */
+	readOnly?: boolean;
 	/** Kept on the server (records enabled), not in this browser. */
 	remote?: boolean;
 	/** The local edits a conflicting save could not store, offered for download. */
@@ -68,6 +71,7 @@ export const Header = ({
 	onTutup,
 	onReopen,
 	demo,
+	readOnly = false,
 	remote = false,
 	onDownloadConflict
 }: Props) => {
@@ -100,13 +104,14 @@ export const Header = ({
 								Data dummy
 							</Badge>
 						) : null}
+						{readOnly ? <Badge variant="outline">Hanya baca</Badge> : null}
 						{when ? <span className="nt-mono">{when}</span> : null}
 						{where ? <span>{where}</span> : null}
 						<span className="nt-mono nt-muted">
 							Checklist {checklistCount(meeting)}/{CHECKLIST.length}
 						</span>
 						<span role="status" className="nt-saved">
-							{saved.ok ? (
+							{saved.ok && !readOnly ? (
 								<Tooltip content={remote ? SERVER_NOTE : STORAGE_NOTE} placement="bottom">
 									<span tabIndex={0} className="nt-saved__badge">
 										{saved.pending ? (
@@ -236,25 +241,27 @@ export const Header = ({
 					>
 						Simpan HTML terisi
 					</Button>
-					<DropdownMenu
-						label="Lainnya"
-						align="end"
-						trigger={
-							<Button variant="ghost" iconLeft={<MoreHorizontal size={16} aria-hidden="true" />}>
-								Lainnya
-							</Button>
-						}
-						items={[
-							{
-								id: 'reset',
-								label: 'Reset notulen',
-								icon: <RotateCcw size={16} aria-hidden="true" />,
-								disabled: closed,
-								destructive: true,
-								onSelect: onReset
+					{onReset ? (
+						<DropdownMenu
+							label="Lainnya"
+							align="end"
+							trigger={
+								<Button variant="ghost" iconLeft={<MoreHorizontal size={16} aria-hidden="true" />}>
+									Lainnya
+								</Button>
 							}
-						]}
-					/>
+							items={[
+								{
+									id: 'reset',
+									label: 'Reset notulen',
+									icon: <RotateCcw size={16} aria-hidden="true" />,
+									disabled: closed,
+									destructive: true,
+									onSelect: onReset
+								}
+							]}
+						/>
+					) : null}
 				</div>
 			</div>
 		</header>

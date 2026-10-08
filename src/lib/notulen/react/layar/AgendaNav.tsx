@@ -13,7 +13,8 @@ export const AgendaNav = ({
 	plan: AgendaPlan[];
 	current: number;
 	done: number[];
-	onGo: (i: number) => void;
+	/** Absent for a read-only reader: the list shows where the meeting is, it does not move it. */
+	onGo?: (i: number) => void;
 }) => (
 	<nav className="lr-nav" aria-label="Agenda rapat">
 		<div className="lr-k lr-nav__h">Agenda · {plan.reduce((n, a) => n + a.menit, 0)} menit</div>
@@ -25,7 +26,8 @@ export const AgendaNav = ({
 					key={a.no}
 					className={`lr-nav__i lr-nav__i--${st}`}
 					aria-current={i === current ? 'step' : undefined}
-					onClick={() => onGo(i)}
+					disabled={!onGo}
+					onClick={() => onGo?.(i)}
 				>
 					<span className="lr-nav__no lr-mono">{a.no}</span>
 					<span className="lr-nav__t">

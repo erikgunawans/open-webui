@@ -1,7 +1,7 @@
 import { DEMO_ID, demoMeeting } from '../demo';
 import { httpMeetingApi } from '../meeting-api';
 import { meetingsToMove, moveToServer } from '../migrate';
-import { LocalStorageMeetingRepo, type MeetingRepo } from '../repo';
+import { LocalStorageMeetingRepo, readOnlyRepo, type MeetingRepo } from '../repo';
 import { newId, seedMeeting } from '../seed';
 import { ServerMeetingRepo } from '../server-repo';
 import { LayarApp } from './layar/LayarApp';
@@ -14,7 +14,8 @@ import { mountIsland, type Island } from './mount';
 // by default; the list and the Notulen follow the app).
 //
 // The repository is the server's when the server keeps Ruang Pimpinan records (`server` is given),
-// and this browser's otherwise. The illustrative demo meeting always stays in this browser.
+// and this browser's otherwise. The illustrative demo meeting always stays in this browser, and
+// stays editable; a server meeting is read-only for a reader without `rapat.write`.
 
 export const RAPAT_BASE = '/ruang-pimpinan/rapat';
 
@@ -31,7 +32,10 @@ type Options = {
 		apiBase: string;
 		token: string;
 		scopeId: string;
-		/** The reader holds `rapat.write`: the list then offers Pindahkan ke server. */
+		/**
+		 * The reader holds `rapat.write`. Without it every server meeting is read-only (story 16);
+		 * with it the list also offers Pindahkan ke server.
+		 */
 		write?: boolean;
 	};
 };
@@ -45,7 +49,7 @@ export const mountRapat = async (target: HTMLElement, o: Options): Promise<Islan
 		o.server && !demo
 			? await ServerMeetingRepo.open(httpMeetingApi({ ...o.server, base: o.server.apiBase }))
 			: null;
-	const repo: MeetingRepo = server ?? local;
+	const repo: MeetingRepo = server ? (o.server?.write ? server : readOnlyRepo(server)) : local;
 	const init = () => (demo ? demoMeeting() : seedMeeting(o.meetingId));
 	const themeKey = (s: Surface) => `jup-rapat-theme:${s}:${o.userId}`;
 

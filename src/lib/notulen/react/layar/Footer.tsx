@@ -20,6 +20,8 @@ type Props = {
 	onClose: () => void;
 	onBackToDecisions: () => void;
 	onReopen: (reason: string) => void;
+	/** A reader without the write grant (story 16): the timeline only, the Corsec moves the Layar. */
+	readOnly?: boolean;
 };
 
 type Asking = null | 'close' | 'reopen';
@@ -60,7 +62,7 @@ export const CloseAsk = ({
 	</div>
 );
 
-export const Footer = ({ plan, current, done, closed, gaps, ...on }: Props) => {
+export const Footer = ({ plan, current, done, closed, gaps, readOnly, ...on }: Props) => {
 	const last = current === plan.length - 1;
 	const [asking, setAsking] = useState<Asking>(null);
 	const [reason, setReason] = useState('');
@@ -79,6 +81,7 @@ export const Footer = ({ plan, current, done, closed, gaps, ...on }: Props) => {
 	}, [asking]);
 
 	const acts = () => {
+		if (readOnly) return <span className="lr-k">Hanya baca · mengikuti Corsec</span>;
 		if (closed && asking === 'reopen')
 			return (
 				<form

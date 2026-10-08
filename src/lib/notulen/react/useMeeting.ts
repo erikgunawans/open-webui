@@ -39,6 +39,8 @@ const open = (repo: MeetingRepo, id: string, init: () => Meeting): Opened => {
 	const earlier = setAside.get(repo)?.get(id) ?? null;
 	const stored = repo.get(id);
 	if (stored) return { meeting: stored, saved: { ok: true, at: null }, unreadable: earlier };
+	// A reader without the write grant sees the template and writes nothing, not even the first save.
+	if (repo.readOnly) return { meeting: init(), saved: { ok: true, at: null }, unreadable: null };
 	const unreadable = earlier ?? repo.quarantine(id);
 	if (unreadable) {
 		const byId = setAside.get(repo) ?? new Map();
@@ -112,6 +114,8 @@ export const useMeeting = (repo: MeetingRepo, id: string, init: () => Meeting) =
 	/** Apply a change to the latest meeting and save it; the subscription re-renders. */
 	const update = useCallback(
 		(change: (m: Meeting) => Meeting) => {
+			// Read-only (story 16): no change is taken, and none is reported as a failed save.
+			if (repo.readOnly) return;
 			const next = change(current.current);
 			// A closed meeting takes only Buka kembali; anything else is no change at all.
 			if (refusedWhileClosed(current.current, next)) return;

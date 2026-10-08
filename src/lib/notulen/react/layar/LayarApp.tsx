@@ -50,6 +50,8 @@ export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
 	const cur = Math.min(Math.max(meeting.session.currentAgenda, 0), plan.length - 1);
 	const done = meeting.session.doneAgendas;
 	const closedAt = meeting.session.closedAt;
+	// Board view without `rapat.write` (story 16): a mirror of the Corsec's Layar, no write controls.
+	const readOnly = !!repo.readOnly;
 	// The agenda view on screen; none while the closing screen is up.
 	const onScreen = closedAt === undefined ? cur : -1;
 
@@ -222,7 +224,7 @@ export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
 						timer
 						demo={demo}
 					/>
-					<AgendaNav plan={plan} current={cur} done={done} onGo={go} />
+					<AgendaNav plan={plan} current={cur} done={done} onGo={readOnly ? undefined : go} />
 					<main className="lr-main">
 						{closedAt !== undefined ? <V09Penutupan meeting={meeting} closedAt={closedAt} /> : null}
 						{onScreen === 0 ? <V00Info key={0} {...view} /> : null}
@@ -238,10 +240,12 @@ export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
 								{...view}
 								selected={selected}
 								onSelect={setSelected}
-								onDecide={decide}
+								onDecide={readOnly ? undefined : decide}
 							/>
 						) : null}
-						{onScreen === 8 ? <V08Aksi key={8} {...view} onAdvance={advance} /> : null}
+						{onScreen === 8 ? (
+							<V08Aksi key={8} {...view} onAdvance={readOnly ? undefined : advance} />
+						) : null}
 					</main>
 					<Rail
 						meeting={meeting}
@@ -262,6 +266,7 @@ export const LayarApp = ({ repo, meetingId, init, demo }: LayarProps) => {
 						onClose={closeRapat}
 						onBackToDecisions={() => go(7)}
 						onReopen={reopen}
+						readOnly={readOnly}
 					/>
 				</div>
 			</div>

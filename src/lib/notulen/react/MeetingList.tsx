@@ -181,6 +181,8 @@ export const MeetingList = ({
 }: MeetingListProps) => {
 	const [, setMoves] = useState(0);
 	const remote = !!repo.remote;
+	// Board view without `rapat.write` (story 16): the meetings are read, no new one is started.
+	const readOnly = !!repo.readOnly;
 	const meetings = repo.list().filter((m) => m.id !== DEMO_ID);
 	// A meeting the list cannot read would otherwise just vanish. Opening it sets the data aside
 	// and offers it for download (useMeeting), so the way back is one click.
@@ -206,15 +208,17 @@ export const MeetingList = ({
 							</span>
 						</div>
 					</div>
-					<div className="nt-actions">
-						<Button
-							variant="primary"
-							iconLeft={<FilePlus2 size={16} aria-hidden="true" />}
-							onClick={() => open(`${base}/${newId()}/notulen`)}
-						>
-							Rapat baru
-						</Button>
-					</div>
+					{readOnly ? null : (
+						<div className="nt-actions">
+							<Button
+								variant="primary"
+								iconLeft={<FilePlus2 size={16} aria-hidden="true" />}
+								onClick={() => open(`${base}/${newId()}/notulen`)}
+							>
+								Rapat baru
+							</Button>
+						</div>
+					)}
 				</div>
 			</header>
 			{remote && move ? <MoveOffer move={move} onMoved={() => setMoves((n) => n + 1)} /> : null}
@@ -265,8 +269,13 @@ export const MeetingList = ({
 							) : (
 								<tr>
 									<td colSpan={5} className="nt-tempty">
-										Belum ada notulen {remote ? 'di server' : 'di peramban ini'}. Gunakan{' '}
-										<strong>Rapat baru</strong>.
+										Belum ada notulen {remote ? 'di server' : 'di peramban ini'}.
+										{readOnly ? null : (
+											<>
+												{' '}
+												Gunakan <strong>Rapat baru</strong>.
+											</>
+										)}
 									</td>
 								</tr>
 							)}

@@ -12,7 +12,8 @@ import { Head, StatusBadge, type ViewProps } from './common';
 export const nextStatus = (s: string) =>
 	ACTION_COLUMNS[(ACTION_COLUMNS.indexOf(s) + 1) % ACTION_COLUMNS.length];
 
-type Props = ViewProps & { onAdvance: (recordId: string, status: string) => void };
+// `onAdvance` is absent for a read-only reader: the tiles show the board, they do not move it.
+type Props = ViewProps & { onAdvance?: (recordId: string, status: string) => void };
 
 export const V08Aksi = ({ meeting, agenda, onAdvance }: Props) => {
 	const all = actions(meeting);
@@ -43,8 +44,9 @@ export const V08Aksi = ({ meeting, agenda, onAdvance }: Props) => {
 									type="button"
 									className="lr-tile"
 									key={x.id}
-									aria-label={`${text(x.values['Tindakan / deliverable'])}: ${c}, majukan ke ${nextStatus(c)}`}
-									onClick={() => onAdvance(x.id, nextStatus(c))}
+									aria-label={`${text(x.values['Tindakan / deliverable'])}: ${c}${onAdvance ? `, majukan ke ${nextStatus(c)}` : ''}`}
+									disabled={!onAdvance}
+									onClick={() => onAdvance?.(x.id, nextStatus(c))}
 								>
 									<div className="lr-tile__top">
 										<span className="lr-mono lr-strong">{actionId(x, index.get(x.id) ?? 0)}</span>

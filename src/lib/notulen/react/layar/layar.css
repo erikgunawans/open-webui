@@ -749,6 +749,17 @@
 .lr-tile:hover {
 	border-color: var(--jup-border-strong);
 }
+/* A read-only reader (story 16) sees where the meeting is; nothing here invites a click. */
+.lr-nav__i:disabled,
+.lr-tile:disabled {
+	cursor: default;
+}
+.lr-nav__i:disabled:hover {
+	background: none;
+}
+.lr-tile:disabled:hover {
+	border-color: var(--jup-border-default);
+}
 .lr-tile:focus-visible {
 	outline: 3px solid var(--jup-focus-ring);
 }
