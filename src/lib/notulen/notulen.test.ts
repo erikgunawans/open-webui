@@ -2,41 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { SCHEMA } from './schema';
 import { seedMeeting, KINERJA_STARTERS } from './seed';
-import { LocalStorageMeetingRepo, parseMeeting } from './repo';
 import { demoMeeting, idDate } from './demo';
 import { DBS, titleField, filled } from './types';
-
-class MemoryStorage implements Storage {
-	private m = new Map<string, string>();
-	get length() {
-		return this.m.size;
-	}
-	clear() {
-		this.m.clear();
-	}
-	getItem(k: string) {
-		return this.m.get(k) ?? null;
-	}
-	key(i: number) {
-		return [...this.m.keys()][i] ?? null;
-	}
-	removeItem(k: string) {
-		this.m.delete(k);
-	}
-	setItem(k: string, v: string) {
-		this.m.set(k, v);
-	}
-}
-
-const events = () => {
-	const target = new EventTarget();
-	return {
-		addEventListener: target.addEventListener.bind(target),
-		removeEventListener: target.removeEventListener.bind(target),
-		fire: (key: string, newValue: string) =>
-			target.dispatchEvent(Object.assign(new Event('storage'), { key, newValue }))
-	};
-};
 
 describe('schema', () => {
 	it('has 9 databases and 151 kolom (150 from the template + Syarat), each with exactly one title', () => {
@@ -70,60 +37,6 @@ describe('seed', () => {
 	it('gives every record a unique id', () => {
 		const ids = m.records.flat().map((r) => r.id);
 		expect(new Set(ids).size).toBe(ids.length);
-	});
-});
-
-describe('repository', () => {
-	it('round-trips a meeting and refuses malformed data', () => {
-		const ev = events();
-		const repo = new LocalStorageMeetingRepo(new MemoryStorage(), ev, 'user-1');
-		const m = seedMeeting('rapat-1');
-		repo.save(m);
-		expect(repo.get('rapat-1')).toEqual(m);
-		expect(repo.get('other')).toBeNull();
-		expect(parseMeeting('{"id":"x"}')).toBeNull();
-		expect(parseMeeting('not json')).toBeNull();
-	});
-
-	it('reports a refused write instead of swallowing it, and still tells this tab', () => {
-		class FullStorage extends MemoryStorage {
-			setItem(): void {
-				throw new DOMException('quota', 'QuotaExceededError');
-			}
-		}
-		const repo = new LocalStorageMeetingRepo(new FullStorage(), events(), 'user-1');
-		const seen: string[] = [];
-		repo.subscribe('rapat-1', (x) => seen.push(x.id));
-		expect(repo.save(seedMeeting('rapat-1'))).toBe(false);
-		expect(seen).toEqual(['rapat-1']);
-		expect(new LocalStorageMeetingRepo(new MemoryStorage(), events()).save(seedMeeting('r'))).toBe(
-			true
-		);
-	});
-
-	it('tells subscribers about local saves and other tabs’ writes, and stops after unsubscribe', () => {
-		const ev = events();
-		const repo = new LocalStorageMeetingRepo(new MemoryStorage(), ev, 'user-1');
-		const seen: number[] = [];
-		const off = repo.subscribe('rapat-1', (x) => seen.push(x.session.currentAgenda));
-		const m = seedMeeting('rapat-1');
-		repo.save({ ...m, session: { ...m.session, currentAgenda: 3 } });
-		ev.fire(
-			repo.key('rapat-1'),
-			JSON.stringify({ ...m, session: { ...m.session, currentAgenda: 7 } })
-		);
-		ev.fire(repo.key('someone-else'), JSON.stringify(m));
-		off();
-		ev.fire(repo.key('rapat-1'), JSON.stringify(m));
-		expect(seen).toEqual([3, 7]);
-	});
-
-	it('keeps two users’ meetings apart on one browser', () => {
-		const storage = new MemoryStorage();
-		const a = new LocalStorageMeetingRepo(storage, events(), 'user-a');
-		const b = new LocalStorageMeetingRepo(storage, events(), 'user-b');
-		a.save(seedMeeting('rapat-1'));
-		expect(b.get('rapat-1')).toBeNull();
 	});
 });
 

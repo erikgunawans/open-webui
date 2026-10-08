@@ -3,7 +3,7 @@ import { FilePlus2, Monitor, NotebookPen } from 'lucide-react';
 
 import { toneOf } from '../agendas';
 import { DEMO_ID, demoMeeting } from '../demo';
-import type { LocalStorageMeetingRepo } from '../repo';
+import type { MeetingRepo } from '../repo';
 import { fmtDate, mainInfo, meetingName, pendingDecisions } from '../selectors';
 import { text, valueLabel, type Meeting } from '../types';
 import './notulen/notulen.css';
@@ -12,7 +12,7 @@ import './notulen/notulen.css';
 // of the reader's meetings on this browser, with the demo meeting as its last row.
 
 export type MeetingListProps = {
-	repo: LocalStorageMeetingRepo;
+	repo: MeetingRepo;
 	base: string;
 	newId: () => string;
 	open: (href: string) => void;
@@ -81,7 +81,7 @@ export const MeetingList = ({ repo, base, newId, open }: MeetingListProps) => {
 	const meetings = repo.list().filter((m) => m.id !== DEMO_ID);
 	// A meeting the list cannot read would otherwise just vanish. Opening it sets the data aside
 	// and offers it for download (useMeeting), so the way back is one click.
-	const unreadable = repo.unreadableIds().filter((id) => id !== DEMO_ID);
+	const unreadable = (repo.unreadableIds?.() ?? []).filter((id) => id !== DEMO_ID);
 	// The demo row reads the stored demo when there is one, so its counts match what Layar shows.
 	const demo = repo.get(DEMO_ID) ?? demoMeeting();
 	return (

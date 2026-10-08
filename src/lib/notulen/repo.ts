@@ -10,6 +10,13 @@ import type { Meeting } from './types';
 export type Unsubscribe = () => void;
 
 export interface MeetingRepo {
+	/** Every readable meeting this user has, in storage order. */
+	list(): Meeting[];
+	/**
+	 * Ids holding data that list() skips because it cannot be read. Only a repository that can hold
+	 * unreadable data has it; a server refuses malformed meetings before storing them.
+	 */
+	unreadableIds?(): string[];
 	get(id: string): Meeting | null;
 	/** Store the meeting; false when it could not be stored (it still reaches this tab's listeners). */
 	save(meeting: Meeting): boolean;
